@@ -158,9 +158,7 @@ public class ParseHTML{
 
     boolean setRec(String tag){
         tag=tag.toLowerCase();
-        if(tag.equals("html")
-                || tag.equals("table")
-                )
+        if(tag.equals("html") || tag.equals("table"))
             return true;
         return false;
     }

@@ -49,7 +49,6 @@ public class ReadNist {
         if(table.hasNext())
             table.refine("tr");
 
-
         ParseHTML rowHTML;
         Iterator<String> itr;
 
