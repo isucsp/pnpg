@@ -1,6 +1,7 @@
-
 import java.util.regex.*;
 import java.util.*;
+import java.net.*;
+import java.io.*;
 public class ParseHTML{
     private static String content;
     private String tag;
@@ -53,7 +54,7 @@ public class ParseHTML{
         return res;
     }
 
-    String next(){
+    String group(){
         return content.substring(innerRegion[0],innerRegion[1]);
     }
 
@@ -139,7 +140,7 @@ public class ParseHTML{
         ArrayList<String> output = new ArrayList<String>();
         int depth=0, count=0, lastFind=0;
         while(hasNext()){
-            output.add(next()); count++;
+            output.add(group()); count++;
             if(limit>0 && count>=limit) break;
         }
         return output;
@@ -156,10 +157,41 @@ public class ParseHTML{
         return count;
     }
 
+    // set recursive of the tags that can be used recursively
     boolean setRec(String tag){
         tag=tag.toLowerCase();
         if(tag.equals("html") || tag.equals("table"))
             return true;
         return false;
+    }
+
+    static String readHTML(String url){
+        StringBuilder content=new StringBuilder();
+        try{
+            URL html = new URL(url);
+            BufferedReader inRead = new BufferedReader(
+                    new InputStreamReader(html.openStream()));
+            String inputLine;
+            while ((inputLine = inRead.readLine()) != null)
+                content.append(inputLine+"\n");
+            inRead.close();
+        }catch(Exception e){
+            System.err.println(e);
+        }
+        //System.out.println(content);
+        //System.out.println(parseMark("table",content.toString(),1)[0]);
+        return content.toString();
+    }
+
+    static String getLink(String html, String str){
+        String regex="(?ims)<\\s*a[^>]*href=[^>]*\"(?<url>[^\">]*)\"[^>]*>" + str + "</a>";
+        Matcher matcher=Pattern.compile(regex).matcher(html);
+        //System.out.println(matcher.pattern());
+        if(matcher.find()){
+            //System.out.println("found");
+            //System.out.println(matcher.group());
+            //System.out.println(matcher.group("url"));
+            return matcher.group("url");
+        }else return null;
     }
 }
