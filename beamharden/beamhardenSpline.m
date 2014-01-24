@@ -13,7 +13,7 @@ function out = beamhardenASSparse(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 14 Nov 2013 10:57:07 AM CST
+%   $Revision: 0.3 $ $Date: Thu 23 Jan 2014 10:53:53 PM CST
 %
 %   v_0.3:      add the option for reconstruction with known Ie
 %   v_0.2:      add alphaDif to output;
@@ -247,7 +247,9 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
     %if(out.delta<=1e-4) maxPP=5; end
     while((max(zmf(:))<1) && pp<maxPP && ~skipIe)
         pp=pp+1;
-        R=atten(Phi,alpha); A=exp(-R*mu');
+        R=atten(Phi,alpha);
+        %A=exp(-R*mu');
+        A = polyOutput('b0',kappa,R);
         f0=@(IeVar) fIe(Imea,A,IeVar);
         [costA,zmf,diff0,h0]=f0(Ie);
 
@@ -377,35 +379,6 @@ function out = lineSearch(x,deltaX,f0,phi,stepSz,cost,opt)
     out.stepSz=stepSz; out.x=newX; out.cost=newCost; out.cnt=pp;
     out.zmf=zmf; out.costA=newCostA; out.costB=newCostB; 
     out.delta=opt.g'*deltaX;
-end
-
-function [f,zmf,g,h] = fIe(Imea,A,Ie)
-    % Err= z-f(theta)
-    Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err;
-    zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
-    if(nargout>2) g=2*A'*(Err./Ir); end
-    if(nargout>3)
-        %Err=Err*0;
-        h=2*A'*(repmat((1-Err)./(Ir.^2),1,length(Ie)).*A);
-    end
-end
-
-function [f,zmf,g,weight] = fAlpha(Imea,Ie,R,mu,Phi,Phit,tdphi)
-    A=exp(-R*mu'); Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err;
-    zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
-    if(nargout>2)
-        temp=A*(Ie.*mu);
-        g=-2*Phit(Err.*temp./Ir);
-        weight=(1-Err).*((temp./Ir).^2)+Err.*(A*(Ie.*(mu.^2)))./Ir;
-        %if(min(weight)<=0)
-        %    fprintf([repmat(' ',1,80) repmat('\n',1,1)]);
-        %    fprintf(['fAlpha[warning]: obj is non-convex over alpha,'...
-        %        'minimum=%g\n'],min(weight));
-        %    fprintf([repmat(' ',4,80) repmat('\n',4,1)]);
-        %end
-        %temp=Phi(g+tdphi);
-        %h=2*temp'*(weight.*temp);
-    end
 end
 
 function R = atten(Phi,alpha)
