@@ -13,12 +13,15 @@ function out = beamhardenICIP(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Fri 24 Jan 2014 05:32:58 PM CST
+%   $Revision: 0.3 $ $Date: Sat 25 Jan 2014 07:51:45 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
-%   v_0.2:      add alphaDif to output;
+%   v_0.2:      add llAlphaDif to output;
 %               add t[123] to output;
+%
+%   todo:       record the # of steps for the line search
+%               make sure to add 1/2 to the likelihood
 %
 
 tic;
@@ -72,6 +75,27 @@ end
 for i=1:K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
 end
+
+
+switch lower(opt.spectBasis)
+    % for b0-spline, length(I)=length(kappa)-1;
+    case 'b0'       % B-0 spline with nodes be kappa
+        polyIout = @b0Iout;
+    case 'dis'
+        polyIout = @disIout;
+end
+
+% find the best intial Ie starts
+R = (polyIout(mu,Phi(alpha)));
+for i=1:size(R,2)
+    temp(i) = var(y+log(R(:,i)),1);
+end
+idx = find(temp==min(temp));
+Ie = Ie*0;
+mu
+Ie(idx) = 1; exp(-mean(y+log(R(:,idx))))
+
+% find the best intial Ie ends
 if(skipIe)
     Ie=interp1(opt.trueMu,opt.trueIe,mu(:),'spline');
     Ie(Ie<0)=0;
@@ -92,24 +116,9 @@ if(isfield(opt,'a'))
 end
 
 if(show)
-    fontSz=14;
     if(figAlpha) figure(figAlpha); end;
     if(figIe) figure(figIe); end;
-    if(figRes)
-        figure(figRes);
-        gcaPos=get(gca,'position');
-        textHeight=0.06; mg=0.016;
-        strh1=annotation('textbox',...
-            [gcaPos(1)+mg gcaPos(2)+gcaPos(4)-textHeight-mg gcaPos(3)*0.71 textHeight],...
-            'interpreter','latex','fontsize',fontSz,'backgroundcolor','y',...
-            'linewidth',0,'margin',0,'verticalAlignment','middle',...
-            'linestyle','none');
-        strh2=annotation('textbox',...
-            [gcaPos(1)+mg gcaPos(2)+gcaPos(4)-2*textHeight-mg gcaPos(3)*0.71 textHeight],...
-            'interpreter','latex','fontsize',fontSz,'backgroundcolor','y',...
-            'linewidth',0,'margin',0,'verticalAlignment','middle',...
-            'linestyle','none');
-    end;
+    if(figRes) figure(figRes); end;
 end
 
 if(interiorPointIe)
@@ -136,19 +145,22 @@ t2=0; thresh2Lim=1e-10;
 stepShrnk=0.9;
 if(interiorPointIe) thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
 
-res1=zeros(maxItr,1); res2=res1; time=zeros(maxItr,1);
-RMSE=zeros(maxItr,1);
-alphaDif=zeros(maxItr,1);
+out.llAlpha=zeros(maxItr,1);
+out.penAlpha=zeros(maxItr,1);
+out.llI=zeros(maxItr,1);
+out.time=zeros(maxItr,1);
+out.RMSE=zeros(maxItr,1);
+out.llAlphaDif=zeros(maxItr,1);
 %ASactive=zeros(maxItr,1);
 asIdx=0;
 
 muLustig=opt.muLustig;
 
 %max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
-
-llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit);
+llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit,polyIout);
 llI = @(AAA,III) gaussLI(Imea,AAA,III);
-if(interiorPointAlpha) penAlpha=@barrierAlpha; else penAlpha=@barrierAlpha2; end
+if(interiorPointAlpha) penAlpha=@barrierAlpha; else 
+    penAlpha=@barrierAlpha2; end
 
 while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     p=p+1;
@@ -157,24 +169,24 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     if(~skipAlpha)
         [costA,zmf,diff0,weight]=llAlpha(alpha,Ie);
         [costB,difphi,hphi]=penAlpha(alpha);
-
+        
         if(min(weight)<=0)
             fprintf(['\nfAlpha[warning]: obj is non-convex over alpha,'...
                 'minimum=%g\n'],min(weight));
             str='';
         end
-
+        
         s=Psit(alpha);
         sqrtSSqrMu=sqrt(s.^2+muLustig);
         costLustig=sum(sqrtSSqrMu);
         difLustig=Psi(s./sqrtSSqrMu);
-
+        
         if(t1==0 && p==1)
             if(interiorPointAlpha)
                 t1=min([1, abs(diff0'*difphi/norm(difphi)), abs(costA/costB)]);
             else t1=1; end
         end
-
+        
         if(~isfield(opt,'t3'))
             t3=max(abs(PsitPhitz-PsitPhit1*log(sum(Ie))))*(Ie'*mu)/sum(Ie);
             t3=t3*10^opt.a;
@@ -198,27 +210,27 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
             preP=deltaAlpha; preG=difAlpha;
             deltaAlpha=deltaAlpha*s1;
         end
-
+        
         if(interiorPointAlpha)
             temp=find(deltaAlpha>0);
             if(isempty(temp)) maxStep=1;
             else maxStep=min(alpha(temp)./deltaAlpha(temp)); end
             maxStep=maxStep*0.99;
         else maxStep=1; end
-         
+        
         penalty=@(x) t1*penAlpha(x)+t3*sum(sqrt(Psit(x).^2+muLustig));
-         
+        
         % start of line Search
         pp=0; stepSz=min(1,maxStep);
         while(1)
             pp=pp+1;
             newX=alpha-stepSz*deltaAlpha;
             %newX(newX<0)=0; % force it be positive;
-
+            
             [newCostA,zmf]=llAlpha(alpha,Ie);
             [newCostB]=penalty(newX);
             newCost=newCostA+newCostB;
-
+            
             if(newCost <= cost - stepSz/2*difAlpha'*deltaAlpha)
                 break;
             else
@@ -226,15 +238,14 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
             end
         end
         %end of line search
-
-        alphaDif(p) = norm(alpha(:)-newX(:))^2;
-        res1(p)=newCostA; time(p)=toc;
+        
+        out.llAlphaDif(p) = norm(alpha(:)-newX(:))^2;
+        out.llAlpha(p)=newCostA; out.penAlpha(p) = newCostB;
+        out.time(p)=toc;
+        
         alpha = newX;
-        cost = newCost;
-        penaltyAlpha=newCostB; deltaNormAlpha=difAlpha'*deltaAlpha;
-
-        out.cost=newCost; out.cnt=pp;
-
+        deltaNormAlpha=difAlpha'*deltaAlpha;
+        
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(interiorPointAlpha)
             if(deltaNormAlpha<1e-5)
@@ -264,75 +275,61 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         pp=pp+1;
         A=exp(-Phi(alpha)*mu');
         [costA,zmf,diff0,h0]=llI(A,Ie);
-
+        
         if(interiorPointIe) optIeInteriorPoint;
         else optIeActiveSet; end
     end
-
+    
     if(p >= maxItr) break; end
     if(show)
         %figure(911); showImgMask(alpha,opt.mask);
         %figure; showImgMask(deltaAlpha,opt.mask);
+        cost = 0;
         if(figRes)
-            nCurve=1;
+            nCurve=0;
             set(0,'CurrentFigure',figRes);
-            semilogy(p,out.costA,'r.'); hold on;
-            cost=out.costA; str1=''; str2='';
-            strLegend{nCurve}='error';
-            if(~skipAlpha)
-                if(exist('penaltyAlpha'))
-                    semilogy(p,penaltyAlpha,'b.');
-                    cost=cost+penaltyAlpha;
-                    nCurve=nCurve+1;
-                    strLegend{nCurve}='alpha penalty';
-                end
-                if(exist('deltaNormAlpha'))
-                    str1=[str1 '$\|\delta \alpha\|_2=' num2str(deltaNormAlpha) '$'];
-                end
-                str1=[str1 '  $t_1=' num2str(t1) '$'...
-                    '  $s_1=' num2str(stepSz) '$'];
+            if(~skipAlpha && (isfield(out,'penAlpha')))
+                semilogy(p,out.penAlpha(p),'b.');
+                nCurve=nCurve+1;
+                strLegend{nCurve}='alpha penalty';
+                cost = cost + out.penAlpha(p);
             end
-            if(~skipIe)
-                if(exist('penaltyIe'))
-                    semilogy(p,penaltyIe,'m.');
-                    cost=cost+penaltyIe;
-                    nCurve=nCurve+1;
-                    strLegend{nCurve}='Ie penalty';
-                end
-                if(exist('deltaNormIe'))
-                    str2=[str2 '$\|\delta \mathcal{I}\|_2=' ...
-                        num2str(deltaNormIe) '$'];
-                end
-                str2=[str2 '  $t_2=' num2str(t2) '$'];
-                if(exist('stepSzIe'))
-                    str2=[str2 '  $s_2=' num2str(stepSzIe) '$'];
-                end
+        end
+        if(~skipIe)
+            semilogy(p,out.llI(p),'r.'); hold on;
+            nCurve = nCurve + 1;
+            strLegend{nCurve}='likelihood';
+            cost = cost + out.llI(p);
+            if(isfield(out,'penIe'))
+                semilogy(p,out.penIe(p),'m.');
+                cost = cost + out.penIe(p);
+                nCurve=nCurve+1;
+                strLegend{nCurve}='Ie penalty';
             end
-            title(['total cost=' num2str(cost)],'interpreter','latex','fontsize',fontSz);
-            set(strh1,'string',str1);
-            set(strh2,'string',str2);
-            legend(strLegend);
-            drawnow;
         end
-
-        if(figIe)
-            set(0,'CurrentFigure',figIe);
-            loglog(opt.trueMu,opt.trueIe,'r.-'); hold on;
-            loglog(mu,Ie,'*-'); hold off;
-            %ylim([1e-10 1]);
-            xlim([min(min(opt.trueMu),mu(1)) max(max(opt.trueMu),mu(end))]);
-            strFigIe=sprintf('sum(Ie)=%g',sum(Ie));
-            title(strFigIe);
-            drawnow;
-        end
-
-        if(~skipAlpha && figAlpha)
-            set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
-            %showImgMask(Qmask-Qmask1/2,opt.mask);
-            %title(['size of Q=' num2str(length(Q))]);
-            title(['zmf=' num2str(max(zmf))])
-            drawnow;
-        end
+        semilogy(p,cost,'k.');
+        nCurve=nCurve+1;
+        strLegend{nCurve}='overall cost';
+        title(['total cost=' num2str(cost)]);
+        legend(strLegend); drawnow;
+    end
+    
+    if(figIe)
+        set(0,'CurrentFigure',figIe);
+        loglog(opt.trueMu,opt.trueIe,'r.-'); hold on;
+        loglog(mu,Ie,'*-'); hold off;
+        %ylim([1e-10 1]);
+        xlim([min(min(opt.trueMu),mu(1)) max(max(opt.trueMu),mu(end))]);
+        title(sprintf('sum(Ie)=%g',sum(Ie)));
+        drawnow;
+    end
+    
+    if(~skipAlpha && figAlpha)
+        set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
+        %showImgMask(Qmask-Qmask1/2,opt.mask);
+        %title(['size of Q=' num2str(length(Q))]);
+        title(['zmf=' num2str(max(zmf))])
+        drawnow;
     end
     if(0)
         fprintf(repmat('\b',1,length(str)));
@@ -357,16 +354,15 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         fprintf('%s',str);
     end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
+    out.RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
 end
-res1(p+1:end)=[]; res2(p+1:end)=[]; time(p+1:end)=[]; RMSE(p+1:end)=[];
-alphaDif(p+1:end)=[];
+out.llAlpha(p+1:end) = []; out.penAlpha(p+1:end) = [];
+out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
+out.llAlphaDif(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
-out.res=[res1, res2];
-out.time=time; out.RMSE=RMSE;
 if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
-out.alphaDif = alphaDif; out.t2=t2; out.t1=t1; out.t3=t3;
+out.t2=t2; out.t1=t1; out.t3=t3;
 fprintf('\n');
 end
 
@@ -422,9 +418,9 @@ function h=hessianA(gAlpha,weight,t1hphi,Phi,Phit)
 end
 
 function x= cg(c,hessianA,atHessianA,maxItr)
-% This function solve the problem 
-% min c'*x+1/2 atHessianA(x)
-% hessianA=hessian*x
+    % This function solve the problem 
+    % min c'*x+1/2 atHessianA(x)
+    % hessianA=hessian*x
     x=0; g=c; p=0; i=0;
     while(i<maxItr)
         i= i+1;

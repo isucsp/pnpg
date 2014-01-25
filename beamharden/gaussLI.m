@@ -1,5 +1,5 @@
 
-function [f,zmf,g,h] = fIe(Imea,A,Ie)
+function [f,zmf,g,h] = gaussLI(Imea,A,Ie)
     % Err= z-f(theta)
     Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err;
     zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)

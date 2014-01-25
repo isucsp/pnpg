@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 24 Jan 2014 05:45:41 PM CST
+%   $Revision: 0.1 $ $Date: Sat 25 Jan 2014 07:34:17 AM CST
 
 clear;
 setupPath
@@ -23,6 +23,8 @@ matname='realCTResultForFST_3logspan17points.mat';
 
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
+
+opt.spectBasis = 'dis';
 
 i=i+1;
 configRealCT
@@ -114,6 +116,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     %string='realCTCircularMaskFullProjASSparseWithResampleMu1000itrRunOnGridforA_2';
     %string='castSimCircularMaskFullProjASSparseSparkInputWithResampleMu1000';
     %string='twoMaterialsCircularMaskFullProjASWithResampleMu1000itr';
+    
     string='castSimCircularMaskFullProj';
     if((~isfield(opt,'t3')) || opt.t3~=0 )
         string=[string 'Sparse'];

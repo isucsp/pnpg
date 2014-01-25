@@ -30,7 +30,7 @@ while(1)
 end
 
 temp=find(deltaIe>0);
-if(isempty(temp)) opt.maxStep1=1.1;
+if(isempty(temp)) maxStep1=1.1;
 else step=Ie(temp)./deltaIe(temp);
     temp1=find(step==min(step));
     if(min(step)==-100)
@@ -40,26 +40,42 @@ else step=Ie(temp)./deltaIe(temp);
     temp=temp(temp1); [~,temp1]=sort(abs(temp-E/2-1/2),'descend');
     temp=temp(temp1(1));
     temp1=zeros(E+1,1); temp1(temp)=1;
-    opt.maxStep1=Ie(temp)/deltaIe(temp);
+    maxStep1=Ie(temp)/deltaIe(temp);
 end
-opt.maxStep1=max(opt.maxStep1,0);
+maxStep1=max(maxStep1,0);
 
 if(sum(deltaIe)<0)
     if(1-sum(Ie)>0)
-        opt.maxStep2=(sum(Ie)-1)/sum(deltaIe);
-    else opt.maxStep2=0;
+        maxStep2=(sum(Ie)-1)/sum(deltaIe);
+    else maxStep2=0;
     end
-else opt.maxStep2=1;
+else maxStep2=1;
 end
-opt.maxStep2=max(opt.maxStep2,0);
-opt.maxStep =min(opt.maxStep1,opt.maxStep2);
+maxStep2=max(maxStep2,0);
+maxStep =min(maxStep1,maxStep2);
 
-opt.g=diff0;
-dummyf=@(x) 0;
-out = lineSearch(Ie,deltaIe,f0,dummyf,1,costA,opt);
-deltaNormIe=out.delta; stepSzIe=out.stepSz;
-if(stepSzIe==opt.maxStep)
-    if(stepSzIe==opt.maxStep2)
+% begin line search
+pp=0; maxStep=maxStep;
+stepSz=min(1,maxStep);
+while(1)
+    pp=pp+1;
+    newX=Ie-stepSz*deltaIe;
+    %newX(newX<0)=0; % force it be positive;
+
+    [newCost,zmf]=llI(A,newX);
+
+    if(newCost <= costA - stepSz/2*diff0'*deltaIe)
+        break;
+    else
+        if(pp>10) stepSz=0; else stepSz=stepSz*stepShrnk; end
+    end
+end
+% end of line search
+deltaNormIe=diff0'*deltaIe;
+Ie = newX;
+
+if(stepSz==maxStep)
+    if(stepSz==maxStep2)
         AAIe(end)=true;
     else
         AAIe=AAIe | (temp1==1);
@@ -67,9 +83,12 @@ if(stepSzIe==opt.maxStep)
     [P,Pbar,Z,G,Gbar]=updateASIe(AAIe);
     asIdx=asIdx+1;
     ASactive.itr(asIdx)=p;
-    ASactive.Ie{asIdx}=out.x;
+    ASactive.Ie{asIdx}=Ie;
 end
 
-res2(p)=out.costA; Ie=out.x; zmf=out.zmf; Ie(Ie<0)=0;
+Ie(Ie<0)=0;
+out.llI(p)=newCost; 
 %if(out.stepSz<1e-10) break; end
 if(deltaNormIe<thresh2) IeReady=1; break; end
+
+
