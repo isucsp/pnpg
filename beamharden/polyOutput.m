@@ -4,13 +4,14 @@ function [BL,sBL,ssBL] = polyOutput(option, kappa, s, I)
     if(nargin==0)       % start to test
         kappa = logspace(log10(0.03),log10(30),100);
         s = -0.1:0.001:10;
-        option = 'b0';
-        nargout = 3;
+        [BL, sBL, ssBL] = polyOutput('bo',kappa,s);
+        return;
     end
     
     kappa = kappa(:); s = s(:);
     idx = find(abs(s)<=eps);
     switch lower(option)
+        % for b0-spline, length(I)=length(kappa)-1;
         case 'b0'       % B-0 spline with nodes be kappa
             if(nargin>=4)
                 BL = zeros(length(s),1);
@@ -42,6 +43,7 @@ function [BL,sBL,ssBL] = polyOutput(option, kappa, s, I)
                     else ssBL(:,i) = temp; end
                 end
             end
+        % for b1-spline, length(I)=length(kappa)-2;
 %        case 'b1'
     end
 end

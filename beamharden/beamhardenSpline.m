@@ -1,4 +1,4 @@
-function out = beamhardenASSparse(Phi,Phit,Psi,Psit,y,xInit,opt)
+function out = beamhardenICIP(Phi,Phit,Psi,Psit,y,xInit,opt)
 %beamharden    beamharden effect correct method
 %   out = beamharden(***)
 %   Phi         The projection matrix implementation function handle
@@ -13,8 +13,9 @@ function out = beamhardenASSparse(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 23 Jan 2014 10:53:53 PM CST
+%   $Revision: 0.3 $ $Date: Fri 24 Jan 2014 05:32:58 PM CST
 %
+%   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
 %   v_0.2:      add alphaDif to output;
 %               add t[123] to output;
@@ -27,8 +28,8 @@ interiorPointAlpha=0;
 prpCGAlpha=1;
 
 if(isfield(opt,'skipIe')) skipIe=opt.skipIe; else skipIe=0; end
-interiorPointIe=1;
-activeSetIe=0;
+interiorPointIe=0;
+activeSetIe=1;
 
 if(isfield(opt,'K')) K=opt.K; end
 if(isfield(opt,'E')) E=opt.E; end
@@ -70,7 +71,6 @@ end
 
 for i=1:K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
-    R=atten(Phi,alpha);
 end
 if(skipIe)
     Ie=interp1(opt.trueMu,opt.trueIe,mu(:),'spline');
@@ -133,7 +133,7 @@ alphaReady=0; IeReady=0;
 p=0; maxItr=opt.maxItr; thresh=1e-4; str=[];
 t1=0; thresh1=1e-8;
 t2=0; thresh2Lim=1e-10;
-opt.stepShrnk=0.9;
+stepShrnk=0.9;
 if(interiorPointIe) thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
 
 res1=zeros(maxItr,1); res2=res1; time=zeros(maxItr,1);
@@ -144,26 +144,24 @@ asIdx=0;
 
 muLustig=opt.muLustig;
 
-max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
+%max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
 
-while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
+llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit);
+llI = @(AAA,III) gaussLI(Imea,AAA,III);
+if(interiorPointAlpha) penAlpha=@barrierAlpha; else penAlpha=@barrierAlpha2; end
+
+while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     p=p+1;
     
+    % start optimize over alpha
     if(~skipAlpha)
-        if(interiorPointAlpha) f1=@(alpha) barrierAlpha(alpha);
-        else f1=@(alpha) barrierAlpha2(alpha); end
-        [costB,difphi,hphi]=f1(alpha);
-
-        f0=@(alpha) fAlpha(Imea,Ie,atten(Phi,alpha),mu,Phi,Phit,t1*difphi);
-        [costA,zmf,diff0,weight]=f0(alpha);
+        [costA,zmf,diff0,weight]=llAlpha(alpha,Ie);
+        [costB,difphi,hphi]=penAlpha(alpha);
 
         if(min(weight)<=0)
-            fprintf([repmat(' ',1,80) repmat('\n',1,1)]);
-            fprintf(['fAlpha[warning]: obj is non-convex over alpha,'...
+            fprintf(['\nfAlpha[warning]: obj is non-convex over alpha,'...
                 'minimum=%g\n'],min(weight));
-            fprintf([repmat(' ',1,80) repmat('\n',1,1)]); str='';
-            fprintf([repmat(' ',1,80) repmat('\n',1,1)]); str='';
-            fprintf([repmat(' ',1,80) repmat('\n',1,1)]); str='';
+            str='';
         end
 
         s=Psit(alpha);
@@ -184,11 +182,6 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
         cost=costA+t1*costB+t3*costLustig;
         difAlpha=diff0+t1*difphi+t3*difLustig;
         if(0)
-            normDelta=difAlpha'*difAlpha;
-            s1=normDelta/atHessianA(difAlpha,weight,t1*hphi,Phi,Phit);
-            deltaAlpha=difAlpha*s1;
-        end
-        if(0)
             %afun=@(xxx,yyy) fhessianA(xxx);
             %[deltaAlpha,~]=bicg(afun,difAlpha,[],5);
             %afun=@(xxx,yyy) fhessianA(xxx);
@@ -208,17 +201,40 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
 
         if(interiorPointAlpha)
             temp=find(deltaAlpha>0);
-            if(isempty(temp)) opt.maxStep=1;
-            else opt.maxStep=min(alpha(temp)./deltaAlpha(temp)); end
-            opt.maxStep=opt.maxStep*0.99;
-        else opt.maxStep=1; end
+            if(isempty(temp)) maxStep=1;
+            else maxStep=min(alpha(temp)./deltaAlpha(temp)); end
+            maxStep=maxStep*0.99;
+        else maxStep=1; end
          
-        penalty=@(x) t1*f1(x)+t3*sum(sqrt(Psit(x).^2+muLustig));
+        penalty=@(x) t1*penAlpha(x)+t3*sum(sqrt(Psit(x).^2+muLustig));
          
-        opt.g=difAlpha;
-        out = lineSearch(alpha,deltaAlpha,f0,penalty,1,cost,opt);
-        penaltyAlpha=out.costB; deltaNormAlpha=out.delta;
-        stepSzAlpha=out.stepSz;
+        % start of line Search
+        pp=0; stepSz=min(1,maxStep);
+        while(1)
+            pp=pp+1;
+            newX=alpha-stepSz*deltaAlpha;
+            %newX(newX<0)=0; % force it be positive;
+
+            [newCostA,zmf]=llAlpha(alpha,Ie);
+            [newCostB]=penalty(newX);
+            newCost=newCostA+newCostB;
+
+            if(newCost <= cost - stepSz/2*difAlpha'*deltaAlpha)
+                break;
+            else
+                if(pp>10) stepSz=0; else stepSz=stepSz*stepShrnk; end
+            end
+        end
+        %end of line search
+
+        alphaDif(p) = norm(alpha(:)-newX(:))^2;
+        res1(p)=newCostA; time(p)=toc;
+        alpha = newX;
+        cost = newCost;
+        penaltyAlpha=newCostB; deltaNormAlpha=difAlpha'*deltaAlpha;
+
+        out.cost=newCost; out.cnt=pp;
+
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(interiorPointAlpha)
             if(deltaNormAlpha<1e-5)
@@ -234,24 +250,20 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
                 if(t1 < 1e2) t1=t1*10;
                 else alphaReady=1; end
             else
-                if(stepSzAlpha==0)
+                if(stepSz==0)
                     t1=max(1,t1/10);
                 end
             end
         end
-        alphaDif(p) = norm(alpha(:)-out.x(:))^2;
-        alpha=out.x; zmf=out.zmf; res1(p)=out.costA; time(p)=toc;
     end
+    % end optimizing over alpha
     
     pp=0; maxPP=1;
     %if(out.delta<=1e-4) maxPP=5; end
     while((max(zmf(:))<1) && pp<maxPP && ~skipIe)
         pp=pp+1;
-        R=atten(Phi,alpha);
-        %A=exp(-R*mu');
-        A = polyOutput('b0',kappa,R);
-        f0=@(IeVar) fIe(Imea,A,IeVar);
-        [costA,zmf,diff0,h0]=f0(Ie);
+        A=exp(-Phi(alpha)*mu');
+        [costA,zmf,diff0,h0]=llI(A,Ie);
 
         if(interiorPointIe) optIeInteriorPoint;
         else optIeActiveSet; end
@@ -278,7 +290,7 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
                     str1=[str1 '$\|\delta \alpha\|_2=' num2str(deltaNormAlpha) '$'];
                 end
                 str1=[str1 '  $t_1=' num2str(t1) '$'...
-                    '  $s_1=' num2str(stepSzAlpha) '$'];
+                    '  $s_1=' num2str(stepSz) '$'];
             end
             if(~skipIe)
                 if(exist('penaltyIe'))
@@ -329,7 +341,7 @@ while(~(alphaReady || skipAlpha) || ~(IeReady || skipIe) )
         str=[str, sprintf('%d-0:\t%-13g%-13g%-13g%-13g%-13g%-13g\n',...
             p,out.delta,out.delta,t1,t2,out.stepSz*s1,out.stepSz)];
         str=[str, sprintf('%-13s%-13s%13s-%-13s%-13s%-13s\n',...
-            'cost','f0','(z','f)','f1','f2')];
+            'cost','f0','(z','f)','penAlpha','f2')];
         str=[str, sprintf('%-13g%-13g%13g~%-13g%-13g%-13g\n',...
             out.cost, out.costA, out.zmf(1),...
             out.zmf(2), out.costB, out.costB)];
@@ -356,33 +368,6 @@ out.time=time; out.RMSE=RMSE;
 if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
 out.alphaDif = alphaDif; out.t2=t2; out.t1=t1; out.t3=t3;
 fprintf('\n');
-end
-
-function out = lineSearch(x,deltaX,f0,phi,stepSz,cost,opt)
-    pp=0; stepShrnk=opt.stepShrnk; maxStep=opt.maxStep;
-    stepSz=min(stepSz,maxStep);
-    while(1)
-        pp=pp+1;
-        newX=x-stepSz*deltaX;
-        %newX(newX<0)=0; % force it be positive;
-
-        [newCostA,zmf]=f0(newX);
-        [newCostB]=phi(newX);
-        newCost=newCostA+newCostB;
-
-        if(newCost <= cost - stepSz/2*opt.g'*deltaX)
-            break;
-        else
-            if(pp>10) stepSz=0; else stepSz=stepSz*stepShrnk; end
-        end
-    end
-    out.stepSz=stepSz; out.x=newX; out.cost=newCost; out.cnt=pp;
-    out.zmf=zmf; out.costA=newCostA; out.costB=newCostB; 
-    out.delta=opt.g'*deltaX;
-end
-
-function R = atten(Phi,alpha)
-    for i=1:size(alpha,2) R(:,i)=Phi(alpha(:,i)); end
 end
 
 function [f,g,h] = barrierAlpha(alpha)
