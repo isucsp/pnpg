@@ -1,0 +1,14 @@
+
+- make sure that double and float yield the same output
+- use Pinned memory for transfer data between device and host
+- use shared memory
+- global memory access should be as close as possible between threads in 
+  each block.
+- use texture memory (2d)
+- use constant memory
+- use EPS
+- size of shared memory should be made automatic
+
+- Register, local, shared, and constant memory usages are reported by the
+  compiler when compiling with the -ptxas-options=-v option.
+

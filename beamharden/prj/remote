@@ -1,0 +1,4 @@
+#/bin/bash!
+
+scp -P 32 ctPrj.cu ctPrj.h Makefile regu@neo.microway.com:phi/
+#scp -rpP 32 common/ regu@neo.microway.com:phi/
