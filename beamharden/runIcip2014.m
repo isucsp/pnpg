@@ -24,7 +24,7 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'dis';
+opt.spectBasis = 'b0';
 
 i=i+1;
 configRealCT
@@ -100,7 +100,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     opt.K=2; opt.E=17; opt.maxItr=maxitr; opt.rInit=rInit;
     opt.thresh=thresh; opt.mask=Mask;
     opt.useSparse=0; opt.showImg=1; opt.visible=1;
-    opt.skipAlpha=0;
+    opt.skipAlpha=1;
 
     trueAlpha=Img2D(maskIdx);
     trueAlpha=trueAlpha/norm(trueAlpha);

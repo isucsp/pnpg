@@ -27,8 +27,8 @@ interiorPointAlpha=0;
 prpCGAlpha=1;
 
 if(isfield(opt,'skipIe')) skipIe=opt.skipIe; else skipIe=0; end
-interiorPointIe=1;
-activeSetIe=0;
+interiorPointIe=0;
+activeSetIe=1;
 
 if(isfield(opt,'K')) K=opt.K; end
 if(isfield(opt,'E')) E=opt.E; end
