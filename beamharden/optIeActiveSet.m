@@ -9,11 +9,9 @@ while(1)
     deltaIe=zhz\(Z'*diff0); deltaIe=Z*deltaIe;
 
     estOptG=diff0-h0*deltaIe;
-    temp=AA(G,:); temp=(temp*temp')\temp;
-    lambda=zeros(E+1,1); lambda(G)=temp*estOptG;
-    %lambda1=(AA(G,:)*inv(h0)*AA(G,:)')\(AA(G,:)*(inv(h0)*diff0));
-    %lambda1'-lambda(G)'
-    %deltaIe1=inv(h0)*(diff0-AA(G,:)'*lambda1);
+    temp=B(Q,:)*estOptG;
+    temp=(B(Q,:)*B(Q,:)')\temp;
+    lambda=zeros(E+1,1); lambda(Q)=temp;
 
     if(any(lambda<0))
         %temp=find(lambda==min(lambda));
@@ -21,42 +19,25 @@ while(1)
         [~,temp2]=sort(abs(temp-1/2-E/2),'descend');
         temp=temp(temp2);
         temp1=zeros(E+1,1); temp1(temp(end))=1;
-        AAIe=AAIe&(temp1==0);
-        [P,Pbar,Z,G,Gbar]=updateASIe(AAIe);
+        Q=Q&(temp1==0);
+            Z = null(B(Q,:));
         asIdx=asIdx+1;
         ASactive.itr(asIdx)=p;
         ASactive.Ie{asIdx}=Ie;
     else break; end
 end
 
-temp=find(deltaIe>0);
-if(isempty(temp)) maxStep1=1.1;
-else step=Ie(temp)./deltaIe(temp);
-    temp1=find(step==min(step));
-    if(min(step)==-100)
-        temp1=find( step==0 & ...  
-            deltaIe(temp)==max(deltaIe(temp(temp1))) );
-    end
-    temp=temp(temp1); [~,temp1]=sort(abs(temp-E/2-1/2),'descend');
-    temp=temp(temp1(1));
-    temp1=zeros(E+1,1); temp1(temp)=1;
-    maxStep1=Ie(temp)/deltaIe(temp);
+% determine the maximum possible step size
+constrainMargin = B*Ie-b;
+if(any(constrainMargin<0))
+    display(Ie);
+    error('current Ie violate B*I>=b constraints');
 end
-maxStep1=max(maxStep1,0);
-
-if(sum(deltaIe)<0)
-    if(1-sum(Ie)>0)
-        maxStep2=(sum(Ie)-1)/sum(deltaIe);
-    else maxStep2=0;
-    end
-else maxStep2=1;
-end
-maxStep2=max(maxStep2,0);
-maxStep =min(maxStep1,maxStep2);
+temp = B*deltaIe;
+maxStep = min( constrainMargin(temp>0)./temp(temp>0) );
 
 % begin line search
-pp=0; maxStep=maxStep;
-stepSz=min(1,maxStep);
+pp=0; stepSz=min(1,maxStep);
 while(1)
     pp=pp+1;
     newX=Ie-stepSz*deltaIe;
@@ -75,12 +56,8 @@ deltaNormIe=diff0'*deltaIe;
 Ie = newX;
 
 if(stepSz==maxStep)
-    if(stepSz==maxStep2)
-        AAIe(end)=true;
-    else
-        AAIe=AAIe | (temp1==1);
-    end
-    [P,Pbar,Z,G,Gbar]=updateASIe(AAIe);
+    Q = (B*Ie-b<1e-14);
+    Z = null(B(Q,:));
     asIdx=asIdx+1;
     ASactive.itr(asIdx)=p;
     ASactive.Ie{asIdx}=Ie;

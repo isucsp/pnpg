@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 25 Jan 2014 11:39:03 AM CST
+%   $Revision: 0.3 $ $Date: Sun 26 Jan 2014 01:59:21 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -22,6 +22,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   todo:       record the # of steps for the line search
 %               make sure to add 1/2 to the likelihood
+%               The B matrix for active set method needs to be consistant
 %
 
 tic;
@@ -147,9 +148,9 @@ if(interiorPointIe)
     end
 else
     temp = polyIout(mu,0);
-    AA=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
-    AAIe=(abs(AA*Ie-b)<1e-14);
-    [P,Pbar,Z,G,Gbar]=updateASIe(AAIe);
+    B=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
+    Q = (B*Ie-b<1e-14);
+        Z = null(B(Q,:));
 end
 if(prpCGAlpha) preP=0; preG=1; end
 if(activeSetIe) minZHZ=0; end
@@ -378,6 +379,7 @@ out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
 out.t2=t2; out.t1=t1; out.t3=t3;
 fprintf('\n');
+
 end
 
 function [f,g,h] = barrierAlpha(alpha)
@@ -445,21 +447,7 @@ function x= cg(c,hessianA,atHessianA,maxItr)
     end
 end
 
-function [P,Pbar,Z,Q,Qbar]=updateASIe(in)
-    E=length(in)-1;
-    Q=find(in); Qbar=find(~in);
-    lenQ=length(Q);
-    if(in(end))
-        P=Q(1:end-1); Pbar=Qbar;
-        Z=[eye(E-lenQ); -ones(1,E-lenQ)];
-    else
-        P=Q; Pbar=Qbar(1:end-1);
-        Z=eye(E-lenQ);
-    end
-    temp=zeros(E,E-lenQ);
-    temp(Pbar,:)=Z;
-    Z=temp;
-end
+
 
 function plotB0Upiota(trueMu, trueUpiota, mu, Ie)
     loglog(trueMu,trueUpiota,'r.-'); hold on;
