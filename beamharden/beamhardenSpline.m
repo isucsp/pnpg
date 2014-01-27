@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 26 Jan 2014 01:59:21 PM CST
+%   $Revision: 0.3 $ $Date: Sun 26 Jan 2014 09:32:21 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -138,7 +138,6 @@ if(show)
 end
 
 if(interiorPointIe)
-    eps=1e-5;
     Ie(Ie<eps)=eps;
     while(sum(Ie)>1-eps)
         delta=sum(Ie)-(1-eps);
@@ -149,8 +148,9 @@ if(interiorPointIe)
 else
     temp = polyIout(mu,0);
     B=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
+    if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
-        Z = null(B(Q,:));
+    Z = null(B(Q,:),'r');
 end
 if(prpCGAlpha) preP=0; preG=1; end
 if(activeSetIe) minZHZ=0; end
@@ -287,7 +287,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=1;
+    pp=0; maxPP=100;
     %if(out.delta<=1e-4) maxPP=5; end
     while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
         pp=pp+1;
