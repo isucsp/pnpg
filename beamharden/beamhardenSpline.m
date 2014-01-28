@@ -23,6 +23,8 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   todo:       record the # of steps for the line search
 %               make sure to add 1/2 to the likelihood
 %               The B matrix for active set method needs to be consistant
+%               Try by have less number of sampling points.
+%               use annihilating filter to do Ie estimation.
 %
 
 tic;
@@ -207,7 +209,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         if(~isfield(opt,'t3'))
             [temp,temp1]=polyIout(mu,0,Ie);
             t3=max(abs(PsitPhitz-PsitPhit1*log(sum(Ie))))*temp1/temp;
-            t3=t3*10^opt.a;
+            t3=t3*10^opt.a; out.t3 = t3;
         end
         cost=costA+t1*costB+t3*costLustig;
         difAlpha=diff0+t1*difphi+t3*difLustig;
@@ -377,7 +379,8 @@ out.llAlphaDif(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
 if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
-out.t2=t2; out.t1=t1; out.t3=t3;
+out.t2=t2; out.t1=t1;
+
 fprintf('\n');
 
 end
