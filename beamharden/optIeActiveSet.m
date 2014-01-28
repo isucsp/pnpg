@@ -21,8 +21,8 @@ while(1)
         temp=find(lambda<0);
         [~,temp1]=sort(abs(temp-1/2-E/2),'descend');
         temp=temp(temp1);
-        %Q(temp(end))=false;
-        Q = Q & (lambda~=min(lambda));
+        Q(temp(end))=false;
+        %Q = Q & (lambda~=min(lambda));
         fprintf('%s\n', char(Q(:)'+'0') );
         Z = null(B(Q,:),'r');
         asIdx=asIdx+1;
@@ -43,6 +43,7 @@ while(1)
         if(maxStep>eps)
             break;
         else
+            break;
             Q = (Q | collide);fprintf('%s\n', char(Q(:)'+'0') );
             Z = null(B(Q,:),'r');
         end

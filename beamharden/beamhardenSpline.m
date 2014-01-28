@@ -289,7 +289,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=100;
+    pp=0; maxPP=1;
     %if(out.delta<=1e-4) maxPP=5; end
     while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
         pp=pp+1;
@@ -465,8 +465,12 @@ end
 function plotDisUpiota(trueMu, trueUpiota, mu, Ie)
     loglog(trueMu,trueUpiota,'r.-'); hold on;
     temp=[mu(:); mu(end)^2/mu(end-1)];
+    mu=reshape([temp';temp'],[],1);
+    mu(1)=[]; mu(end)=[];
     temp=temp(2:end)-temp(1:end-1);
-    loglog(mu,Ie./temp,'*-'); hold off;
+    Ie = Ie./temp;
+    Ie=reshape([Ie(:)';Ie(:)'],[],1);
+    loglog(mu,Ie,'*-'); hold off;
     %ylim([1e-10 1]);
     xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
 end

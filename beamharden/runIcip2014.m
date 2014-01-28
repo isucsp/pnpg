@@ -13,8 +13,8 @@ i=0; NOverP=[]; NOverPi=[];
 description='';
 
 subDir='/CircleMask'; %'/cvxHull'; %'/TightMask'; %
-imageName='realct'; %'pellet'; %'castSim' %'phantom' %'twoMaterials'; %
-runList=[3, 20];
+imageName='castSim' %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
+runList=[20];
 spark=0;
 
 matname='realCTResultForFST_3logspan17points.mat';
@@ -24,7 +24,7 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'b0';
+opt.spectBasis = 'dis';
 
 i=i+1;
 configRealCT
@@ -78,6 +78,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     rInit=rCoeff(jj);
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
     initSig=x_BackProj(:)*1+0*Mask(:)/2; %Img2D; %
+    
     rInit=min(rInit,length(At(y)));
     if(length(At(y))~=m)
         initSig=initSig(maskIdx);
@@ -100,7 +101,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     opt.K=2; opt.E=17; opt.maxItr=maxitr; opt.rInit=rInit;
     opt.thresh=thresh; opt.mask=Mask;
     opt.useSparse=0; opt.showImg=1; opt.visible=1;
-    opt.skipAlpha=1;
+    opt.skipAlpha=0;
 
     trueAlpha=Img2D(maskIdx);
     trueAlpha=trueAlpha/norm(trueAlpha);
