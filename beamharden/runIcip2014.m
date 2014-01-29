@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Wed 29 Jan 2014 01:50:38 AM CST
+%   $Revision: 0.1 $ $Date: Wed 29 Jan 2014 02:06:41 AM CST
 
 clear;
 setupPath
@@ -130,12 +130,9 @@ for jj=7 %[5:6] %1:length(rCoeff)
     if(opt.numCall>1)
         string=[string 'WithResampleMu' num2str(opt.numCall) 'Times'];
     end
-    if(opt.skipIe)
-        string=[string 'KnownIe'];
-    end
-    if(opt.maxIeStep>1)
-        string=[string 'FullAS'];
-    end
+    if(opt.skipIe) string=[string 'KnownIe']; end
+    if(opt.maxIeStep>1) string=[string 'FullAS']; end
+    string = [string opt.spectBasis];
     string=[string num2str(opt.maxItr)];
     aArray=-6.5;
 
