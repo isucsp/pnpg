@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 26 Jan 2014 09:32:21 PM CST
+%   $Revision: 0.3 $ $Date: Tue 28 Jan 2014 11:58:29 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -22,7 +22,6 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   todo:       record the # of steps for the line search
 %               make sure to add 1/2 to the likelihood
-%               The B matrix for active set method needs to be consistant
 %               Try by have less number of sampling points.
 %               use annihilating filter to do Ie estimation.
 %
@@ -48,9 +47,8 @@ if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
 if(isfield(opt,'showImg') && opt.showImg==1) show=1; else show=0; end
 if(isfield(opt,'visible') && opt.visible==1) visible=1; else visible=0; end
 if(show)
-    figRes=1000;
-    figAlpha=1001;
-    figIe=1002;
+    figRes=1000; figAlpha=1001; figIe=1002;
+    figure(figAlpha); figure(figIe); figure(figRes);
 else
     figRes=0; figAlpha=0; figIe=0;
 end
@@ -78,13 +76,11 @@ switch lower(opt.sampleMode)
         elseif(strcmp(opt.spectBasis,'b1'))
             temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
         end
-            
 end
 
 for i=1:K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
 end
-
 
 switch lower(opt.spectBasis)
     % for b0-spline, length(I)=length(kappa)-1;
@@ -111,7 +107,7 @@ for i=1:size(R,2)
 end
 idx = find(temp==min(temp));
 Ie = Ie*0;
-Ie(idx) = exp(-mean(y+log(R(:,idx))))
+Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
 if(skipIe)
@@ -123,7 +119,7 @@ if(skipIe)
     Ie=Ie.*abs(deltaEpsilon);
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
-if(isfield(opt,'skipAlpha') && opt.skipAlpha==1) skipAlpha=1;end;
+if(isfield(opt,'skipAlpha') && opt.skipAlpha==1) skipAlpha=1; end;
 if(isfield(opt,'t3'))
     t3=opt.t3; %abs(costA/costLustig)*1e-3;
     out.t3=t3;
@@ -133,12 +129,39 @@ if(isfield(opt,'a'))
     PsitPhit1=Psit(Phit(ones(length(y),1)));
 end
 
-if(show)
-    if(figAlpha) figure(figAlpha); end;
-    if(figIe) figure(figIe); end;
-    if(figRes) figure(figRes); end;
-end
+if(prpCGAlpha) preP=0; preG=1; end
+if(activeSetIe) 
+    minZHZ=0; end
 
+alphaReady=0; IeReady=0;
+p=0; maxItr=opt.maxItr; thresh=1e-4; str=[];
+t1=0; thresh1=1e-8;
+t2=0; thresh2Lim=1e-10;
+stepShrnk=0.9;
+if(interiorPointIe) 
+    thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
+
+out.llAlpha=zeros(maxItr,1);
+out.penAlpha=zeros(maxItr,1);
+out.llI=zeros(maxItr,1);
+out.time=zeros(maxItr,1);
+out.IeSteps = zeros(maxItr,1);
+out.RMSE=zeros(maxItr,1);
+out.llAlphaDif=zeros(maxItr,1);
+%ASactive=zeros(maxItr,1);
+asIdx=0;
+
+muLustig=opt.muLustig;
+
+%max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
+llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit,polyIout);
+llI = @(AAA,III) gaussLI(Imea,AAA,III);
+
+if(interiorPointAlpha) 
+    penAlpha=@barrierAlpha; 
+else 
+    penAlpha=@barrierAlpha2; 
+end
 if(interiorPointIe)
     Ie(Ie<eps)=eps;
     while(sum(Ie)>1-eps)
@@ -153,33 +176,8 @@ else
     if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
+    %IeStep = ActiveSet(B,b,Ie);
 end
-if(prpCGAlpha) preP=0; preG=1; end
-if(activeSetIe) minZHZ=0; end
-
-alphaReady=0; IeReady=0;
-p=0; maxItr=opt.maxItr; thresh=1e-4; str=[];
-t1=0; thresh1=1e-8;
-t2=0; thresh2Lim=1e-10;
-stepShrnk=0.9;
-if(interiorPointIe) thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
-
-out.llAlpha=zeros(maxItr,1);
-out.penAlpha=zeros(maxItr,1);
-out.llI=zeros(maxItr,1);
-out.time=zeros(maxItr,1);
-out.RMSE=zeros(maxItr,1);
-out.llAlphaDif=zeros(maxItr,1);
-%ASactive=zeros(maxItr,1);
-asIdx=0;
-
-muLustig=opt.muLustig;
-
-%max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
-llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit,polyIout);
-llI = @(AAA,III) gaussLI(Imea,AAA,III);
-if(interiorPointAlpha) penAlpha=@barrierAlpha; else 
-    penAlpha=@barrierAlpha2; end
 
 while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     p=p+1;
@@ -203,7 +201,8 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         if(t1==0 && p==1)
             if(interiorPointAlpha)
                 t1=min([1, abs(diff0'*difphi/norm(difphi)), abs(costA/costB)]);
-            else t1=1; end
+            else t1=1;
+            end
         end
         
         if(~isfield(opt,'t3'))
@@ -236,7 +235,8 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
             if(isempty(temp)) maxStep=1;
             else maxStep=min(alpha(temp)./deltaAlpha(temp)); end
             maxStep=maxStep*0.99;
-        else maxStep=1; end
+        else maxStep=1;
+        end
         
         penalty=@(x) t1*penAlpha(x)+t3*sum(sqrt(Psit(x).^2+muLustig));
         
@@ -278,8 +278,10 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
             end
         else
             if(deltaNormAlpha< thresh1)
-                if(t1 < 1e2) t1=t1*10;
-                else alphaReady=1; end
+                if(t1 < 1e2) 
+                    t1=t1*10;
+                else alphaReady=1;
+                end
             else
                 if(stepSz==0)
                     t1=max(1,t1/10);
@@ -289,18 +291,20 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=1;
+    pp=0; maxPP=100; IeReady=false;
     %if(out.delta<=1e-4) maxPP=5; end
+    A = polyIout(mu,Phi(alpha));
+    %IeStep.main(A,Ie,maxPP);
     while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
         pp=pp+1;
-        A = polyIout(mu,Phi(alpha));
         [costA,zmf,diff0,h0] = llI(A,Ie);
-        
-        if(interiorPointIe) optIeInteriorPoint;
-        else optIeActiveSet; end
+        if(interiorPointIe)
+            optIeInteriorPoint; else optIeActiveSet; end
     end
+    out.IeSteps(p)=pp;
     
-    if(p >= maxItr) break; end
+    if(p >= maxItr) 
+        break; end
     if(show)
         %figure(911); showImgMask(alpha,opt.mask);
         %figure; showImgMask(deltaAlpha,opt.mask);
@@ -363,8 +367,8 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     if(0)
         fprintf(repmat('\b',1,length(str)));
-        str=[sprintf('%d  %-13g%-13g',...
-            p,t1,t2)];
+        str=sprintf('%d  %-13g%-13g',...
+            p,t1,t2);
         str=[str, sprintf('%-13g%-13g%-13g',...
             out.cost, out.costA, ...
             out.zmf(2))];
@@ -375,10 +379,11 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
 end
 out.llAlpha(p+1:end) = []; out.penAlpha(p+1:end) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
-out.llAlphaDif(p+1:end)=[];
+out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
-if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
+if(activeSetIe && ~skipIe) 
+    out.ASactive=ASactive; end
 out.t2=t2; out.t1=t1;
 
 fprintf('\n');

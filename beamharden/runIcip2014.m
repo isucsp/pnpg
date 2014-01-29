@@ -24,7 +24,7 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'dis';
+opt.spectBasis = 'b0';
 
 i=i+1;
 configRealCT
