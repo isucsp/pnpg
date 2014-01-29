@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 28 Jan 2014 11:58:29 PM CST
+%   $Revision: 0.3 $ $Date: Wed 29 Jan 2014 01:49:27 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -291,7 +291,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=100; IeReady=false;
+    pp=0; maxPP=opt.maxIeStep; IeReady=false;
     %if(out.delta<=1e-4) maxPP=5; end
     A = polyIout(mu,Phi(alpha));
     %IeStep.main(A,Ie,maxPP);

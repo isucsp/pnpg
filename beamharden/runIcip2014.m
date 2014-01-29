@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sat 25 Jan 2014 07:34:17 AM CST
+%   $Revision: 0.1 $ $Date: Wed 29 Jan 2014 01:50:38 AM CST
 
 clear;
 setupPath
@@ -107,6 +107,8 @@ for jj=7 %[5:6] %1:length(rCoeff)
     trueAlpha=trueAlpha/norm(trueAlpha);
     opt.trueAlpha=trueAlpha;
 
+    opt.maxIeStep = 1;
+
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
     aArray=-6.8:0.2:-6.2;
@@ -130,6 +132,9 @@ for jj=7 %[5:6] %1:length(rCoeff)
     end
     if(opt.skipIe)
         string=[string 'KnownIe'];
+    end
+    if(opt.maxIeStep>1)
+        string=[string 'FullAS'];
     end
     string=[string num2str(opt.maxItr)];
     aArray=-6.5;
