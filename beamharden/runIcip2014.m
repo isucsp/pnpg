@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Wed 29 Jan 2014 02:06:41 AM CST
+%   $Revision: 0.1 $ $Date: Fri 31 Jan 2014 12:52:32 AM CST
 
 clear;
 setupPath
@@ -101,7 +101,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     opt.K=2; opt.E=17; opt.maxItr=maxitr; opt.rInit=rInit;
     opt.thresh=thresh; opt.mask=Mask;
     opt.useSparse=0; opt.showImg=1; opt.visible=1;
-    opt.skipAlpha=0;
+    opt.skipAlpha=1;
 
     trueAlpha=Img2D(maskIdx);
     trueAlpha=trueAlpha/norm(trueAlpha);

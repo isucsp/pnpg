@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 30 Jan 2014 10:41:38 PM CST
+%   $Revision: 0.3 $ $Date: Fri 31 Jan 2014 01:06:23 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -177,7 +177,8 @@ else
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
 
-    IeStep = ActiveSet(B,b,Ie);
+    IeStep = ActiveSet(@(III) llI(polyIout(mu,Phi(alpha)),III), B,b,Ie);
+    IeStep.maxStep = opt.maxIeStep;
 end
 
 while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
@@ -294,14 +295,18 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     
     pp=0; maxPP=opt.maxIeStep; IeReady=false;
     %if(out.delta<=1e-4) maxPP=5; end
-    A = polyIout(mu,Phi(alpha));
-    %IeStep.main(A,Ie,maxPP);
-    while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
-        pp=pp+1;
-        [costA,zmf,diff0,h0] = llI(A,Ie);
-        if(interiorPointIe)
-            optIeInteriorPoint; else optIeActiveSet; end
+    if(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && ~skipIe)
+        A = polyIout(mu,Phi(alpha));
+        % update the object fuction w.r.t. Ie
+        IeStep.func = @(III) llI(polyIout(mu,Phi(alpha)),III);
+        IeStep.main(Ie);
     end
+    %while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
+    %    pp=pp+1;
+    %    [costA,zmf,diff0,h0] = llI(A,Ie);
+    %    if(interiorPointIe)
+    %        optIeInteriorPoint; else optIeActiveSet; end
+    %end
     out.IeSteps(p)=pp;
     
     if(p >= maxItr) 
