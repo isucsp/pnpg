@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 29 Jan 2014 01:49:27 AM CST
+%   $Revision: 0.3 $ $Date: Thu 30 Jan 2014 10:41:38 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -176,7 +176,8 @@ else
     if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
-    %IeStep = ActiveSet(B,b,Ie);
+
+    IeStep = ActiveSet(B,b,Ie);
 end
 
 while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
