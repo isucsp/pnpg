@@ -9,7 +9,10 @@ classdef ActiveSet < handle
         Z
         Ie
         Name % Property help goes here
-        maxStep = 1e3; % default max # of iterations
+        maxStepNum = 1e3; % default max # of iterations
+        thresh = 1e-14; % critera for convergence
+        converged = false;
+        stepShrnk = 0.8;
     end 
 
     properties (Dependent)
@@ -40,68 +43,60 @@ classdef ActiveSet < handle
             end
         end
 
-        function init(obj,Ie);
-            if(obj.B(end,:)*Ie<obj.b(end)) 
-                Ie=obj.b(end)/(obj.B(end,:)*Ie)*Ie;
-            end
-            obj.Ie=Ie;
+        function init(obj,Ie)
+            obj.Ie=obj.adjust(Ie);
             obj.Q = (obj.B*Ie-obj.b<=obj.epsilon);
             obj.Z = null(obj.B(obj.Q,:),'r');
         end
 
-        function out = main(obj)
-            pp=0;
-            while(pp<maxPP)
+        function main(obj)
+            pp=0; obj.converged = false;
+            while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [cost,grad,hessian] = obj.func(obj.Ie);
                 ppp=0;
                 while(1)
                     ppp=ppp+1;
-                    zhz=Z'*hessian*Z; temp=min(eig(zhz));
+                    zhz=obj.Z'*hessian*obj.Z; temp=min(eig(zhz));
                     if(temp<eps)
                         if(-temp>minZHZ) minZHZ=-temp; end
                         zhz=zhz+minZHZ*eye(size(zhz));
                     end
 
-                    deltaIe=Z*inv(zhz)*(Z'*grad);
+                    deltaIe=obj.Z*(zhz\(obj.Z'*grad));
                     nextGrad=grad-hessian*deltaIe;
-                    temp=inv(B(Q,:)*B(Q,:)')*B(Q,:)*nextGrad;
-                    lambda=ones(size(Q)); lambda(Q)=temp;
-
-                    %lambda=0;
+                    temp=(obj.B(obj.Q,:)*obj.B(obj.Q,:)')\obj.B(obj.Q,:)*nextGrad;
+                    lambda=ones(size(obj.Q)); lambda(obj.Q)=temp;
 
                     if(any(lambda<0))
                         temp=find(lambda<0);
                         %temp=find(lambda==min(lambda));
-                        [~,temp1]=sort(abs(temp-1/2-E/2),'descend');
-                        Q(temp(temp1(end)))=false; fprintf('%s\n', char(Q(:)'+'0') );
-                        Z = null(B(Q,:),'r');
-                        asIdx=asIdx+1;
-                        ASactive.itr(asIdx)=p;
-                        ASactive.Ie{asIdx}=Ie;
+                        [~,temp1]=sort(abs(temp-length(lambda)/2),'descend');
+                        obj.Q(temp(temp1(end)))=false; fprintf('%s\n', char(obj.Q(:)'+'0') );
+                        obj.Z = null(obj.B(obj.Q,:),'r');
                     else
                         % determine the maximum possible step size
-                        constrainMargin = B*Ie-b;
+                        constrainMargin = obj.B*obj.Ie-obj.b;
                         if(any(constrainMargin<-eps))
-                            display(Ie);
-                            %error('current Ie violate B*I>=b constraints');
+                            display(obj.Ie);
+                            error('current Ie violate B*I>=b constraints');
                         end
-                        temp = B*deltaIe;
+                        temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));
                         temp1(temp>eps) = constrainMargin(temp>eps)./temp(temp>eps);
                         maxStep = min( temp1 );
-                        temp = find((temp>eps) & (temp1==maxStep) & (~Q));
-                        [~,temp1]=sort(abs(temp-1/2-E/2),'descend');
-                        collide = zeros(size(Q))==1; collide(temp(temp1(1))) = true;
+                        temp = find((temp>eps) & (temp1==maxStep) & (~obj.Q));
+                        [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
+                        collide = zeros(size(obj.Q))==1;
+                        collide(temp(temp1(1))) = true;
                         if(maxStep<eps)
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
-                            if(any(collide) && ppp>50)
-                                Q = (Q | collide);
-                                fprintf('%s\n', char(Q(:)'+'0') );
-                                Z = null(B(Q,:),'r');
+                            if(any(collide))
+                                obj.Q = (obj.Q | collide);
+                                fprintf('%s\n', char(obj.Q(:)'+'0') );
+                                obj.Z = null(obj.B(obj.Q,:),'r');
                             else
-                                IeReady=true;
                                 break;
                             end
                         else
@@ -109,57 +104,52 @@ classdef ActiveSet < handle
                         end
                     end
                 end
-            end
-            out.IeSteps(p)=pp;
-        end
 
-        function out = main1(obj,Ie)
+                % begin line search
+                ppp=0; stepSz=min(1,maxStep);
+                while(1)
+                    ppp=ppp+1;
+                    newIe=obj.Ie-stepSz*deltaIe;
 
-            % begin line search
-            ppp=0; stepSz=min(1,maxStep);
-            while(1)
-                ppp=ppp+1;
-                newX=Ie-stepSz*deltaIe;
-                %newX(newX<0)=0; % force it be positive;
+                    deltaNormIe=grad'*deltaIe;
+                    newCost=obj.func(newIe);
 
-                deltaNormIe=grad'*deltaIe;
-                [newCost,zmf]=llI(A,newX);
-
-                if(newCost <= cost - stepSz/2*grad'*deltaIe)
-                    break;
-                else
-                    if(pp>10)
-                        stepSz=0; else stepSz=stepSz*stepShrnk;
+                    if(newCost <= cost - stepSz/2*deltaNormIe)
+                        break;
+                    else
+                        if(ppp>10)
+                            stepSz=0; else stepSz=stepSz*obj.stepShrnk;
+                        end
                     end
                 end
+                % end of line search
+                obj.Ie = obj.adjust(newIe);
+                if(stepSz==maxStep)
+
+
+                    obj.Q = (obj.Q | collide);
+
+
+                    fprintf( '%s\n', char(obj.Q(:)'+'0') );
+                    obj.Z = null(obj.B(obj.Q,:),'r');
+                end
+                if(deltaNormIe<obj.thresh)
+                    obj.converged=true;
+                    return;
+                end
             end
-            % end of line search
-            Ie = newX;
+        end
 
-            Ie(Ie<eps)=0;
-            if(B(end,:)*Ie<b(end))
-                Ie=b(end)/(B(end,:)*Ie)*Ie;
+        function Ie=adjust(obj,Ie)
+            Ie(Ie<0)=0;
+            d=obj.b-obj.B(end,:)*Ie;
+            while(d>0)
+                S = Ie>0 & obj.B(end,:)'<0;
+                step = min( min(-Ie(S)./obj.B(end,S)), ...
+                    d/(norm(obj.B(end,S))^2));
+                Ie(S) = Ie(S) + step*obj.B(end,S);
+                d=obj.b-obj.B(end,:)*Ie;
             end
-            if(stepSz==maxStep)
-                Q = (Q | collide);
-                fprintf( '%s\n', char(Q(:)'+'0') );
-                Z = null(B(Q,:),'r');
-                asIdx=asIdx+1;
-                ASactive.itr(asIdx)=p;
-                ASactive.Ie{asIdx}=Ie;
-            end
-
-            out.llI(p)=newCost;
-
-
-
-
-            %if(deltaNormIe<thresh2) IeReady=true; break; end
-            if(deltaNormIe<thresh2) IeReady=true; return; end
-
-
-
-
         end
 
         function jobt = get.JobTitle(obj)

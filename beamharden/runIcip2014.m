@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 31 Jan 2014 12:52:32 AM CST
+%   $Revision: 0.1 $ $Date: Fri 31 Jan 2014 10:22:45 AM CST
 
 clear;
 setupPath
@@ -107,7 +107,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     trueAlpha=trueAlpha/norm(trueAlpha);
     opt.trueAlpha=trueAlpha;
 
-    opt.maxIeStep = 1;
+    opt.maxIeSteps = 1;
 
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
@@ -131,7 +131,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
         string=[string 'WithResampleMu' num2str(opt.numCall) 'Times'];
     end
     if(opt.skipIe) string=[string 'KnownIe']; end
-    if(opt.maxIeStep>1) string=[string 'FullAS']; end
+    if(opt.maxIeSteps>1) string=[string 'FullAS']; end
     string = [string opt.spectBasis];
     string=[string num2str(opt.maxItr)];
     aArray=-6.5;
@@ -155,6 +155,9 @@ for jj=7 %[5:6] %1:length(rCoeff)
     clear 'st'
     save(string);
     %[out]=beamhardenlog(B,Bt,C,Ct,y,initSig,opt);
+   
+    % ADD SPARSE RECONSRUCTION 
+
 end
 end
 %save(matname);
