@@ -1,12 +1,8 @@
-classdef Spline < handle
+classdef Spline
     % Find the case when active set wanders
     properties
-        func
-        funcz
-        funcp
-        funcpz
-        funcpp
-        funcppz
+        polyOut
+        plot
     end 
 
     methods
@@ -19,19 +15,41 @@ classdef Spline < handle
                 switch lower(sType)
                     case 'dis'
                     case 'b0'
-                        syms k s k1 k2
-                        obj.func = int(exp(-k*s),k,k1,k2);
-                        obj.funcz = subs(diff(obj.func*s,s),s,0);
-                        obj.funcp = -diff(obj.func,s);
-                        obj.funcpz = subs(diff(simple(obj.funcp*s^2),s,2),s,0)/2;
-                        obj.funcpp = diff(obj.func,s,2);
-                        obj.funcppz = subs(diff(simple(obj.funcpp*s^3),s,3),s,0)/6;
+                        obj.polyOut = @(sss,III) b0Iout(kappa,sss,III);
                     case 'b1'
                 end
             end
         end
+    end
 
-        function [BL,sBL,ssBL] = iout(ss, I)
+    methods(Static)
+        function genEquations(sType)
+            syms k s a b c
+            switch lower(sType)
+                case 'dis'
+                case 'b0'
+                    func = int(exp(-k*s),k,a,b)
+                    funcp = simple(-diff(func,s))
+                    funcpp = simple(diff(func,s,2))
+
+                    funcz = subs(diff(func*s,s),s,0)
+                    funcpz = subs(diff(simple(funcp*s^2),s,2),s,0)/2
+                    funcppz = subs(diff(simple(funcpp*s^3),s,3),s,0)/6
+                case 'b1'
+                    func = int((k-a)*exp(-k*s),k,a,b)/(b-a);
+                    func = simple(func + int((c-k)*exp(-k*s),k,b,c)/(c-b))
+                    funcp = simple(-diff(func,s))
+                    funcpp = simple(diff(func,s,2))
+
+                    funcz = subs(diff(func*s^2,s,2),s,0)/2
+                    funcpz = subs(diff(simple(funcp*s^3),s,3),s,0)/6
+                    funcppz = subs(diff(simple(funcpp*s^4),s,4),s,0)/24
+            end
+            out.func = func; out.funcp = funcp; out.funcpp = funcpp;
+            out.funcz = funcz; out.funcpz = funcpz; out.funcppz = funcppz;
+        end
+
+        function [BL,sBL,ssBL] = b0Iout(kappa, s, I)
             % kappa is a column vector, representing the nodes
             % for b0-spline, length(I)=length(kappa)-1;
             % B-0 spline with nodes be kappa
@@ -78,9 +96,4 @@ classdef Spline < handle
         end
     end
 
-    methods (Static)
-        function num = getEmpNumber
-            num = queryDB('LastEmpNumber') + 1;
-        end
-    end
 end

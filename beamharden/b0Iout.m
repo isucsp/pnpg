@@ -44,15 +44,3 @@ function [BL,sBL,ssBL] = b0Iout(kappa, s, I)
     end
 end
 
-function [BL,sBL,ssBL] = b0Iout1(kappa, ss, I)
-    syms k s k1 k2
-    func = int(exp(-k*s),k,k1,k2)
-    funcp = -diff(func,s)
-    funcpp = diff(funcp,s)
-    subs(diff(func*s,s),s,0)
-    subs(diff(simplify(funcp*s^2),s,2),s,0)/2
-    simplify(funcpp*s^3)
-    subs(diff(simple(funcpp*s^3),s,3),s,0)/6
-    
-end
-
