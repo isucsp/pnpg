@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 01 Feb 2014 01:41:23 PM CST
+%   $Revision: 0.3 $ $Date: Mon 03 Feb 2014 12:21:18 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -82,26 +82,13 @@ for i=1:K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
 end
 
-switch lower(opt.spectBasis)
-    % for b0-spline, length(I)=length(kappa)-1;
-    case 'b0'       % B-0 spline with nodes be kappa
-        polyIout = @b0Iout;
-        plotSpectrum = @(III) plotB0Upiota(opt.trueMu(1:end-1),...
-            abs(opt.trueIe(1:end-1)...
-            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-            ./(opt.trueMu(2:end)-opt.trueMu(1:end-1))), ...
-            mu, III);
-    case 'dis'
-        polyIout = @disIout;
-        plotSpectrum = @(III) plotDisUpiota(opt.trueMu(1:end-1),...
-            abs(opt.trueIe(1:end-1)...
-            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-            ./(opt.trueMu(2:end)-opt.trueMu(1:end-1))), ...
-            mu, III);
-end
+polymodel = Spline(opt.spectBasis,mu);
+polymodel.setPlot(opt.trueMu,opt.trueIe,opt.epsilon);
+polyIout = polymodel.polyIout;
+plotSpectrum = polymodel.plotSpectrum;
 
 % find the best intial Ie starts
-R = (polyIout(mu,Phi(alpha)));
+R = polyIout(Phi(alpha),[]);
 for i=1:size(R,2)
     temp(i) = var(y+log(R(:,i)),1);
 end
@@ -170,13 +157,13 @@ if(interiorPointIe)
         Ie(temp)=Ie(temp)-min( min(Ie(temp))-eps, delta/numPos  );
     end
 else
-    temp = polyIout(mu,0);
+    temp = polyIout(0,[]);
     B=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
     if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
 
-    IeStep = ActiveSet(@(III) llI(polyIout(mu,Phi(alpha)),III), B,b,Ie);
+    IeStep = ActiveSet(@(III) llI(polyIout(Phi(alpha)),III), B,b,Ie);
     IeStep.maxStepNum = opt.maxIeSteps;
 end
 
@@ -207,7 +194,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         end
         
         if(~isfield(opt,'t3'))
-            [temp,temp1]=polyIout(mu,0,Ie);
+            [temp,temp1]=polyIout(0,Ie);
             t3=max(abs(PsitPhitz-PsitPhit1*log(sum(Ie))))*temp1/temp;
             t3=t3*10^opt.a; out.t3 = t3;
         end
@@ -295,9 +282,9 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     pp=0; maxPP=opt.maxIeSteps; IeReady=false;
     %if(out.delta<=1e-4) maxPP=5; end
     if(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && ~skipIe)
-        A = polyIout(mu,Phi(alpha));
+        A = polyIout(Phi(alpha),[]);
         % update the object fuction w.r.t. Ie
-        IeStep.func = @(III) llI(polyIout(mu,Phi(alpha)),III);
+        IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
         IeStep.main();
         asIdx=asIdx+1;
         ASactive.itr(asIdx)=p;
@@ -349,7 +336,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     if(figIe)
         set(0,'CurrentFigure',figIe);
         plotSpectrum(Ie);
-        title(sprintf('int upiota d kappa = %g',polyIout(mu,0,Ie)));
+        title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end
     
@@ -464,27 +451,4 @@ function x= cg(c,hessianA,atHessianA,maxItr)
 end
 
 
-
-function plotB0Upiota(trueMu, trueUpiota, mu, Ie)
-    loglog(trueMu,trueUpiota,'r.-'); hold on;
-    mu=reshape([mu(:)';mu(:)'],[],1);
-    mu(1)=[]; mu(end)=[];
-    Ie=reshape([Ie(:)';Ie(:)'],[],1);
-    loglog(mu,Ie,'*-'); hold off;
-    %ylim([1e-10 1]);
-    xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
-end
-
-function plotDisUpiota(trueMu, trueUpiota, mu, Ie)
-    loglog(trueMu,trueUpiota,'r.-'); hold on;
-    temp=[mu(:); mu(end)^2/mu(end-1)];
-    mu=reshape([temp';temp'],[],1);
-    mu(1)=[]; mu(end)=[];
-    temp=temp(2:end)-temp(1:end-1);
-    Ie = Ie./temp;
-    Ie=reshape([Ie(:)';Ie(:)'],[],1);
-    loglog(mu,Ie,'*-'); hold off;
-    %ylim([1e-10 1]);
-    xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
-end
 

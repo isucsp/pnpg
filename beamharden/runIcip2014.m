@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 31 Jan 2014 10:22:45 AM CST
+%   $Revision: 0.1 $ $Date: Mon 03 Feb 2014 12:05:18 AM CST
 
 clear;
 setupPath

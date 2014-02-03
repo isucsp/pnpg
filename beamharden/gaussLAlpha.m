@@ -1,11 +1,11 @@
 function [f,zmf,g,weight] = gaussLAlpha(Imea,Ie,alpha,kappa,Phi,Phit,polyIout)
     for i=1:size(alpha,2) R(:,i)=Phi(alpha(:,i)); end
     if(nargout>3)
-        [BI,temp,ssBLI] = polyIout(kappa,R,Ie); %A=exp(-R*mu');
+        [BI,temp,ssBLI] = polyIout(R,Ie); %A=exp(-R*mu');
     elseif(nargout>2)
-        [BI,temp] = polyIout(kappa,R,Ie); %A=exp(-R*mu');
+        [BI,temp] = polyIout(R,Ie); %A=exp(-R*mu');
     else
-        BI = polyIout(kappa,R,Ie); %A=exp(-R*mu');
+        BI = polyIout(R,Ie); %A=exp(-R*mu');
     end
     Err=log(BI./Imea); f=Err'*Err;
     zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)

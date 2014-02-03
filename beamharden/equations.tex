@@ -1,0 +1,50 @@
+\documentclass[]{article}
+\usepackage{amsmath,amssymb,amsthm,mathrsfs}
+\usepackage[retainorgcmds]{IEEEtrantools}
+\usepackage{dsfont}
+\usepackage{standalone}
+\usepackage{commath}
+\usepackage{upgreek}
+%\usepackage[slantedGreek]{sfmath}
+\usepackage{xltxtra}
+\usepackage{pstricks-add}
+\usepackage{pst-grad}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\begin{document}
+
+\begin{equation}
+  -\frac{a\, \mathrm{e}^{- c\, s} - a\, \mathrm{e}^{- b\, s} - c\, 
+  \mathrm{e}^{- a\, s} + c\, \mathrm{e}^{- b\, s} + b\, \left(\mathrm{e}^{- 
+  a\, s} - \mathrm{e}^{- c\, s}\right)}{s^2\, \left(a - b\right)\, \left(b - 
+  c\right)}
+\end{equation}
+
+\begin{IEEEeqnarray}{rCl}
+ - \frac{b\, \left(a\, \mathrm{e}^{- a\, s} - c\, \mathrm{e}^{- c\, 
+s}\right) - a\, b\, \mathrm{e}^{- b\, s} - a\, c\, \mathrm{e}^{- a\, s} + 
+a\, c\, \mathrm{e}^{- c\, s} + b\, c\, \mathrm{e}^{- b\, s}}
+{s^2\, \left(a - b\right)\, \left(b - c\right)}\\
+- \frac{2\, \left(a\, \mathrm{e}^{- c\, s} - a\, \mathrm{e}^{- b\, s} - c\, 
+\mathrm{e}^{- a\, s} + c\, \mathrm{e}^{- b\, s} + b\, \left(\mathrm{e}^{- 
+a\, s} - \mathrm{e}^{- c\, s}\right)\right)}{s^3\, \left(a - b\right)\, 
+\left(b - c\right)}
+\end{IEEEeqnarray}
+
+\begin{equation}
+ -\frac{b\, \left(a^2 - c^2\right) - a\, b^2 + a\, c^2 - a^2\, c + b^2\, 
+  c}{2\, \left(a - b\right)\, \left(b - c\right)}
+\end{equation}
+
+\begin{equation}
+-\frac{b\, \left(a^4 - c^4\right) - a\, b^4 + a\, c^4 - a^4\, c + b^4\, 
+  c}{12\, \left(a - b\right)\, \left(b - c\right)}
+  \label{}
+\end{equation}
+
+\end{document}
