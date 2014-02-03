@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 03 Feb 2014 12:21:18 AM CST
+%   $Revision: 0.3 $ $Date: Mon 03 Feb 2014 02:32:38 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -29,6 +29,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 tic;
 K=2; E=5;
 skipAlpha=0;
+stepShrnk = 0.8;
 interiorPointAlpha=0;
 prpCGAlpha=1;
 
@@ -120,7 +121,7 @@ if(prpCGAlpha) preP=0; preG=1; end
 if(activeSetIe) 
     minZHZ=0; end
 
-alphaReady=0; IeReady=0;
+alphaReady=0;
 p=0; maxItr=opt.maxItr; thresh=1e-4; str=[];
 t1=0; thresh1=1e-8;
 t2=0; thresh2Lim=1e-10;
@@ -167,7 +168,7 @@ else
     IeStep.maxStepNum = opt.maxIeSteps;
 end
 
-while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
+while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
     p=p+1;
     
     % start optimize over alpha
@@ -279,16 +280,15 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=opt.maxIeSteps; IeReady=false;
+    pp=0;
     %if(out.delta<=1e-4) maxPP=5; end
     if(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && ~skipIe)
-        A = polyIout(Phi(alpha),[]);
         % update the object fuction w.r.t. Ie
         IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
         IeStep.main();
-        asIdx=asIdx+1;
-        ASactive.itr(asIdx)=p;
-        ASactive.Ie{asIdx}=Ie;
+        Ie = IeStep.Ie;
+        out.llI(p) = IeStep.cost;
+        out.IeSteps(p)= IeStep.stepNum;
     end
     %while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
     %    pp=pp+1;
@@ -296,7 +296,6 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     %    if(interiorPointIe)
     %        optIeInteriorPoint; else optIeActiveSet; end
     %end
-    out.IeSteps(p)=pp;
     
     if(p >= maxItr) 
         break; end

@@ -8,11 +8,12 @@ classdef ActiveSet < handle
         Q
         Z
         Ie
-        Name % Property help goes here
         maxStepNum = 1e3; % default max # of iterations
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
+        cost;
+        stepNum
     end 
 
     properties (Dependent)
@@ -53,7 +54,7 @@ classdef ActiveSet < handle
             pp=0; obj.converged = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
-                [cost,grad,hessian] = obj.func(obj.Ie);
+                [oldCost,grad,hessian] = obj.func(obj.Ie);
                 ppp=0;
                 while(1)
                     ppp=ppp+1;
@@ -107,14 +108,17 @@ classdef ActiveSet < handle
 
                 % begin line search
                 ppp=0; stepSz=min(1,maxStep);
-                while(1)
+                deltaNormIe=grad'*deltaIe;
+                if(deltaNormIe<obj.thresh)
+                    obj.converged=true;
+                    break;
+                end
+                while(~obj.converged)
                     ppp=ppp+1;
                     newIe=obj.Ie-stepSz*deltaIe;
-
-                    deltaNormIe=grad'*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if(newCost <= cost - stepSz/2*deltaNormIe)
+                    if(newCost <= oldCost - stepSz/2*deltaNormIe)
                         break;
                     else
                         if(ppp>10)
@@ -124,50 +128,26 @@ classdef ActiveSet < handle
                 end
                 % end of line search
                 obj.Ie = obj.adjust(newIe);
+                obj.cost = newCost;
                 if(stepSz==maxStep)
-
-
                     obj.Q = (obj.Q | collide);
-
-
                     fprintf( '%s\n', char(obj.Q(:)'+'0') );
                     obj.Z = null(obj.B(obj.Q,:),'r');
                 end
-                if(deltaNormIe<obj.thresh)
-                    obj.converged=true;
-                    return;
-                end
             end
+            obj.stepNum = pp;
         end
 
         function Ie=adjust(obj,Ie)
             Ie(Ie<0)=0;
-            d=obj.b-obj.B(end,:)*Ie;
+            d=obj.b(end)-obj.B(end,:)*Ie;
             while(d>0)
                 S = Ie>0 & obj.B(end,:)'<0;
-                step = min( min(-Ie(S)./obj.B(end,S)), ...
+                step = min( min(-Ie(S)./obj.B(end,S)'), ...
                     d/(norm(obj.B(end,S))^2));
-                Ie(S) = Ie(S) + step*obj.B(end,S);
-                d=obj.b-obj.B(end,:)*Ie;
+                Ie(S) = Ie(S) + step*obj.B(end,S)';
+                d=obj.b(end)-obj.B(end,:)*Ie;
             end
-        end
-
-        function jobt = get.JobTitle(obj)
-            jobt = currentJT(obj.EmpNumber);
-        end
-
-        function set.OfficeNumber(obj,setvalue)
-            if isInUse(setvalue)
-                error('Not available')
-            else
-                obj.OfficeNumber = setvalue;
-            end
-        end
-    end
-
-    methods (Static)
-        function num = getEmpNumber
-            num = queryDB('LastEmpNumber') + 1;
         end
     end
 end
