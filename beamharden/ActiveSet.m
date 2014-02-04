@@ -111,7 +111,6 @@ classdef ActiveSet < handle
                 deltaNormIe=grad'*deltaIe;
                 if(deltaNormIe<obj.thresh)
                     obj.converged=true;
-                    break;
                 end
                 while(~obj.converged)
                     ppp=ppp+1;
@@ -119,20 +118,26 @@ classdef ActiveSet < handle
                     newCost=obj.func(newIe);
 
                     if(newCost <= oldCost - stepSz/2*deltaNormIe)
-                        break;
+                        obj.Ie = obj.adjust(newIe);
+                        obj.cost = newCost;
+                        obj.converged=true;
                     else
                         if(ppp>10)
-                            stepSz=0; else stepSz=stepSz*obj.stepShrnk;
+                            obj.cost = oldCost;
+                            obj.converged=true;
+                            fprintf('WARNING: exit iterations for higher convergence criteria: %g\n',deltaNormIe);
+                        else stepSz=stepSz*obj.stepShrnk;
                         end
                     end
                 end
                 % end of line search
-                obj.Ie = obj.adjust(newIe);
-                obj.cost = newCost;
                 if(stepSz==maxStep)
                     obj.Q = (obj.Q | collide);
                     fprintf( '%s\n', char(obj.Q(:)'+'0') );
                     obj.Z = null(obj.B(obj.Q,:),'r');
+                end      
+                if(obj.converged)
+                    break;
                 end
             end
             obj.stepNum = pp;

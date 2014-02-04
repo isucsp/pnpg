@@ -376,8 +376,7 @@ out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
 out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
-if(activeSetIe && ~skipIe) 
-    out.ASactive=ASactive; end
+%if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
 out.t2=t2; out.t1=t1;
 
 fprintf('\n');

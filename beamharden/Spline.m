@@ -93,7 +93,7 @@ classdef Spline < handle
             if(nargin==0)       % start to test
                 k = logspace(log10(0.001),log10(30),100);
                 s = -0.1:0.001:10;
-                [BL, sBL, ssBL] = Spline.b1Iout(k,s);
+                [BL, sBL, ssBL] = Spline.b1Iout(k,s,[]);
                 figure; semilogy(s,BL);
                 figure; semilogy(s,sBL);
                 figure; semilogy(s,ssBL);
@@ -105,7 +105,7 @@ classdef Spline < handle
             if(~isempty(I))
                 BL = zeros(length(s),1);
             else
-                BL = zeros(length(s),length(k)-1);
+                BL = zeros(length(s),length(k)-2);
             end
             if(nargout>1) sBL = BL; end
             if(nargout>2) ssBL = BL; end
@@ -156,7 +156,7 @@ classdef Spline < handle
             if(nargin==0)       % start to test
                 k = logspace(log10(0.001),log10(30),100);
                 s = -0.1:0.001:10;
-                [BL, sBL, ssBL] = Spline.b0Iout(k,s);
+                [BL, sBL, ssBL] = Spline.b0Iout(k,s,[]);
                 figure; semilogy(s,BL);
                 figure; semilogy(s,sBL);
                 figure; semilogy(s,ssBL);
@@ -202,7 +202,7 @@ classdef Spline < handle
             if(nargin==0)       % start to test
                 kappa = logspace(log10(0.001),log10(30),100);
                 s = -0.1:0.001:10;
-                [BL, sBL, ssBL] = Spline.disIout(kappa,s);
+                [BL, sBL, ssBL] = Spline.disIout(kappa,s,[]);
                 figure; semilogy(s,BL);
                 figure; semilogy(s,sBL);
                 figure; semilogy(s,ssBL);
