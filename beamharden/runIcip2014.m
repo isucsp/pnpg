@@ -4,11 +4,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Mon 03 Feb 2014 02:34:06 PM CST
+%   $Revision: 0.1 $ $Date: Tue 04 Feb 2014 11:10:18 PM CST
 
 clear;
 setupPath
-i=0; NOverP=[]; NOverPi=[];
+i=0;
 
 description='';
 
@@ -24,12 +24,11 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'b0';
+opt.spectBasis = 'dis';
 
 i=i+1;
 configRealCT
 NOverP=[NOverP; N/m];
-NOverPi=[NOverPi; N/p_I];
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(sum(runList==3)==1)
@@ -107,7 +106,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     trueAlpha=trueAlpha/norm(trueAlpha);
     opt.trueAlpha=trueAlpha;
 
-    opt.maxIeSteps = 1;
+    opt.maxIeSteps = 100;
 
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
