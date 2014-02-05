@@ -24,7 +24,7 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'b1';
+opt.spectBasis = 'b0';
 
 i=i+1;
 configRealCT
@@ -107,7 +107,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     trueAlpha=trueAlpha/norm(trueAlpha);
     opt.trueAlpha=trueAlpha;
 
-    opt.maxIeSteps = 100;
+    opt.maxIeSteps = 1;
 
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;

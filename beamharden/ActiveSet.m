@@ -56,13 +56,12 @@ classdef ActiveSet < handle
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
                 ppp=0;
-                while(1)
+                while(ppp<20)
                     ppp=ppp+1;
                     zhz=obj.Z'*hessian*obj.Z; temp=min(eig(zhz));
-                    if(temp<eps)
-                        if(-temp>minZHZ) minZHZ=-temp; end
-                        zhz=zhz+minZHZ*eye(size(zhz));
-                    end
+%                     if(temp<1e-7)
+%                         zhz=zhz+0.5*eye(size(zhz));
+%                     end
 
                     deltaIe=obj.Z*(zhz\(obj.Z'*grad));
                     nextGrad=grad-hessian*deltaIe;
