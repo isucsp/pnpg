@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Wed 05 Feb 2014 05:09:42 PM CST
+% $Revision: 0.2 $ $Date: Thu 06 Feb 2014 09:11:05 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -29,7 +29,7 @@ classdef ConfigCT < handle
                 case 'cpu'
             end
         end
-        function gen
+        function nufftOps
 Num_proj=size(CTdata,2);
 theta_full=linspace(0,pi-pi/Num_proj,Num_proj); %The angle of projections
 theta=theta_full(theta_idx);
