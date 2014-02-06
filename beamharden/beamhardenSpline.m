@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 03 Feb 2014 02:32:38 PM CST
+%   $Revision: 0.3 $ $Date: Thu 06 Feb 2014 01:15:28 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -26,6 +26,16 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               use annihilating filter to do Ie estimation.
 %
 
+        %RMSE(i)=1-(out20{i}.alpha'*opt.trueAlpha/norm(out{i}.alpha))^2;
+    opt.trueIe=opt.trueIe/sum(opt.trueIe);
+    deltaEpsilon=mean([epsilon(:) [epsilon(2:end); epsilon(end)]],2)-...
+        mean([epsilon(:) [epsilon(1); epsilon(1:end-1)]],2);
+    PhiAlpha=Phi(args.trueImg);
+
+    Imea=0;
+    for i=1:length(epsilon)
+        Imea=Imea+exp(-PhiAlpha*kappa(i))*args.iota(i)*deltaEpsilon(i);
+    end
 tic;
 K=2; E=5;
 skipAlpha=0;

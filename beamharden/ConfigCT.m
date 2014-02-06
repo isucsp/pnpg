@@ -4,14 +4,19 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Wed 05 Feb 2014 05:09:42 PM CST
+% $Revision: 0.2 $ $Date: Thu 06 Feb 2014 01:48:01 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
     properties
-        imageName
+        imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
         maskType = 'CircleMask';
-        operType = 'nufft'; %'gpu'; %'cpu'
+        PhiPhitMode = 'nufft'; %'gpu'; %'cpu'
+
+        CTdata      % the raw data from the measurement in the matrix form
+        y
+        mask
+        maskk
 
         % for generating polychromatic measurements
         spark   
@@ -20,171 +25,160 @@ classdef ConfigCT < handle
         trueImg
         Ts
 
+        % parameters for operators
+
     end 
     methods
-        function genOperators(obj)
-            switch lower(obj.operType)
-                case 'nufft'
-                case 'gpu'
-                case 'cpu'
+        function obj = ConfigCT(in,mt,ot)
+            if(nargin>0)
+                obj.imageName = in;
+                if(nargin>1)
+                    obj.maskType = mt;
+                    if(nargin>2)
+                        obj.opTye = ot;
+                    end
+                end
             end
         end
-        function gen
-Num_proj=size(CTdata,2);
-theta_full=linspace(0,pi-pi/Num_proj,Num_proj); %The angle of projections
-theta=theta_full(theta_idx);
-CTdata=CTdata(:,theta_idx);
-[Num_pixel,Num_proj]=size(CTdata);
 
-temp=2^(ceil(log2(Num_pixel)));
-CTdata=[zeros(ceil((temp-Num_pixel)/2),Num_proj); CTdata;...
-    zeros(floor((temp-Num_pixel)/2),Num_proj)];
-[Num_pixel,Num_proj]=size(CTdata);
-
-mx=Num_pixel;
-my=mx; m=mx*my;
-m_2D=[mx, my];
-J=[1,1]*3;                       % NUFFT interpolation neighborhood
-K=2.^ceil(log2(m_2D*2));         % oversampling rate
-
-r=pi*linspace(-1,1-2/Num_pixel,Num_pixel)';
-
-xc=r*cos(theta(:)');
-yc=r*sin(theta(:)');
-om=[yc(:), xc(:)];
-st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
-st.Num_pixel=Num_pixel;
-st.Num_proj=Num_proj;
-
-y=CTdata(:);
-N=length(y);
-Imea=exp(-y);
-
-% Zero freq at f_coeff(Num_pixel/2+1)
-f_coeff=designFilter('renliang1',Num_pixel,Ts);
-
-Mask=double(Mask~=0);
-%figure; showImg(Mask);
-wvltIdx=find(maskk~=0);
-p_I=length(wvltIdx);
-maskIdx=find(Mask~=0);
-p_M=length(maskIdx);
-
-fprintf('Generating Func handles...\n');
-
-%Sampling operator
-W=@(z) midwt(z,wav,dwt_L);
-Wt=@(z) mdwt(z,wav,dwt_L);
-
-Psi=@(s) PsiFunc(s,W);
-PsiM=@(s) PsiFunc(s,W,m,maskIdx,wvltIdx);
-Psit=@(s) PsitFunc(s,Wt);
-PsiMt=@(s) PsitFunc(s,Wt,m,maskIdx,wvltIdx);
-
-switch lower(PhiPhitMode)
-    case 'basic'
-        % The most basic methods without anything here
-        switch 0
-            case 0
-                Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts);
-                PhiM=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,maskIdx);
-                Phit=@(s) PhitFunc51(s,f_coeff,st,mx,Ts);
-                PhiMt=@(s) PhitFunc51(s,f_coeff,st,mx,Ts,maskIdx);
-                FBP=@(s) FBPFunc6(s,theta_full,theta_idx,Ts);
-            case 1
-                conf.bw=1; conf.nc=mx; conf.nr=my; conf.prjWidth=Num_pixel;
-                conf.theta=theta*180/pi;
-                temp=1:numel(Img2D);
-                Phi= @(s) mParPrj(s,temp-1,conf,'forward')*Ts;
-                Phit =@(s) mParPrj(s,temp-1,conf,'backward')*Ts;
-                PhiM=@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
-                PhiMt=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
-                FBP=@(s) FBPFunc7(s,theta_full,theta_idx,Ts,maskIdx)*Ts;
-            case 2
-                conf.n=mx; conf.prjWidth=Num_pixel; conf.np=Num_proj; 
-                conf.prjFull=360; conf.dSize=(mx-1)/(Num_pixel+1); conf.effectiveRate=1; 
-                conf.d=dist;
-
-                mPrj(0,conf,'config');
-                mPrj(0,0,'showConf');
-
-                Phi= @(s) mPrj(reshape(single(s),conf.n,[])',conf,'forward')*Ts;
-                Phit =@(s) reshape(reshape(mPrj(single(s(:)),conf,'backward'),conf.n,[])'*Ts,[],1);
-                PhiM=@(s) mPrj(single(maskFunc(s,maskIdx,conf.n))',conf,'forward')*Ts;
-                PhiMt=@(s) maskFunc(reshape(mPrj(single(s(:)),conf,'backward'),conf.n,[])'*Ts,maskIdx);
-                FBP=@(s) FBPFunc8(s,conf,Ts,maskIdx)*Ts;
+        function setup(obj)
+            loadMeasurements(obj);
+            genOperators(obj);
+            fprintf('Configuration Finished!\n');
         end
 
-    case 'weighted'
-        % Fessler's weighted methods
-        weight=exp(-y);
-        %weight=exp(-ones(size(y)));
-        weight=sqrt(weight/max(weight(:)));
-        y=y.*weight;
+        function genOperators(obj)
+            switch lower(obj.PhiPhitMode)
+                case 'basic'
+                case 'gpu'
+                case 'cpu'
+                    conf.bw=1; conf.nc=mx; conf.nr=my; conf.prjWidth=Num_pixel;
+                    conf.theta=theta*180/pi;
+                    temp=1:numel(Img2D);
+                    Phi= @(s) mParPrj(s,temp-1,conf,'forward')*Ts;
+                    Phit =@(s) mParPrj(s,temp-1,conf,'backward')*Ts;
+                    PhiM=@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
+                    PhiMt=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
+                    FBP=@(s) FBPFunc7(s,theta_full,theta_idx,Ts,maskIdx)*Ts;
+                case 'weighted'
+                    % Fessler's weighted methods
+                    weight=exp(-y);
+                    %weight=exp(-ones(size(y)));
+                    weight=sqrt(weight/max(weight(:)));
+                    y=y.*weight;
 
-        Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts).*weight(:);
-        PhiM=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,maskIdx).*weight(:);
-        Phit=@(s) PhitFunc51(s.*weight(:),f_coeff,st,mx,Ts);
-        PhiMt=@(s) PhitFunc51(s.*weight(:),f_coeff,st,mx,...
-            Ts,maskIdx);
+                    Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts).*weight(:);
+                    PhiM=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,maskIdx).*weight(:);
+                    Phit=@(s) PhitFunc51(s.*weight(:),f_coeff,st,mx,Ts);
+                    PhiMt=@(s) PhitFunc51(s.*weight(:),f_coeff,st,mx,...
+                        Ts,maskIdx);
+                    FBP=@(s) FBPFunc6(s./weight,theta_idx,Ts);
+                case 'filtered'
+                    % Sqrt filtered methods
+                    y=reshape(y(:),Num_pixel,Num_proj);
+                    y=[zeros(Num_pixel/2,Num_proj); y; zeros(Num_pixel/2,Num_proj)];
+                    y=fft(fftshift(y,1))*Ts;
+                    y=y.*repmat(sqrt(f_coeff),1,Num_proj);
+                    y=fftshift(ifft(y),1)/Ts;
+                    y=y(Num_pixel/2+1:Num_pixel/2+Num_pixel,:);
+                    y=real(y(:));
 
-        FBP=@(s) FBPFunc6(s./weight,theta_idx,Ts);
+                    Phi=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts);
+                    PhiM=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
+                    Phit=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts);
+                    PhiMt=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
+                    FBP=Phit;
+                otherwise
+                    fprintf('Wrong mode for PhiPhitMode: %s\n',PhiPhitMode);
+                    return;
+            end
+        end
+        function nufftOps(obj, imgSize, prjWidth)
 
-    case 'filtered'
-        % Sqrt filtered methods
-        y=reshape(y(:),Num_pixel,Num_proj);
-        y=[zeros(Num_pixel/2,Num_proj); y; zeros(Num_pixel/2,Num_proj)];
-        y=fft(fftshift(y,1))*Ts;
-        y=y.*repmat(sqrt(f_coeff),1,Num_proj);
-        y=fftshift(ifft(y),1)/Ts;
-        y=y(Num_pixel/2+1:Num_pixel/2+Num_pixel,:);
-        y=real(y(:));
+            r=pi*linspace(-1,1-2/prjWidth,prjWidth)';
+            xc=r*cos(theta(:)');
+            yc=r*sin(theta(:)');
+            om=[yc(:), xc(:)];
+            st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
+            st.Num_pixel=prjWidth;
+            st.Num_proj=Num_proj;
 
-        Phi=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts);
-        PhiM=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
-        Phit=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts);
-        PhiMt=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
+            % Zero freq at f_coeff(prjWidth/2+1)
+            f_coeff=designFilter('renliang1',prjWidth,Ts);
 
-        FBP=Phit;
+            obj.Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts);
+            obj.PhiM=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,maskIdx);
+            obj.Phit=@(s) PhitFunc51(s,f_coeff,st,mx,Ts);
+            obj.PhiMt=@(s) PhitFunc51(s,f_coeff,st,mx,Ts,maskIdx);
+            obj.FBP=@(s) FBPFunc6(s,theta_full,theta_idx,Ts);
+        end
 
-    otherwise
-        fprintf('Wrong mode for PhiPhitMode: %s\n',PhiPhitMode);
-        return;
-end
+        function junk(obj)
+            theta_full=linspace(0,pi-pi/Num_proj,Num_proj); %The angle of 
+            projections
+            theta=theta_full(theta_idx);
+            CTdata=CTdata(:,theta_idx);
+            [Num_pixel,Num_proj]=size(CTdata);
 
-H=@(s) Phi(Psi(s));
-HM=@(s) PhiM(PsiM(s));
-Ht=@(s) Psit(Phit(s));
-HMt=@(s) PsiMt(PhiMt(s));
+            mx=Num_pixel;
+            my=mx; m=mx*my;
+            m_2D=[mx, my];
+            J=[1,1]*3;                       % NUFFT interpolation neighborhood
+            K=2.^ceil(log2(m_2D*2));         % oversampling rate
 
-scale=max(Img2D(:))-min(Img2D(:));
-scaleM=max(Img2D(maskIdx))-min(Img2D(maskIdx));
-normy=norm(y);
+            y=CTdata(:);
+            N=length(y);
+            Imea=exp(-y);
 
-fprintf('Configuration Finished!\n');
+            Mask=double(Mask~=0);
+            %figure; showImg(Mask);
+            wvltIdx=find(maskk~=0);
+            p_I=length(wvltIdx);
+            maskIdx=find(Mask~=0);
+            p_M=length(maskIdx);
 
-if(0)
-    testTranspose(Phi,Phit,N,m,'Phi');
-    testTranspose(PhiM,PhiMt,N,p_M,'PhiM');
-%   testTranspose(Psi,Psit,m,m,'Psi');
-%   testTranspose(PsiM,PsiMt,p_M,p_I,'PsiM');
-end
+            fprintf('Generating Func handles...\n');
 
-c=8.682362e-03;
-mc=1;
-mc=0.7;
-mc=6.8195e-03;    % For full projection
-%mc=1.307885e+01;
-if(0)
-    %c=expectHHt(H,Ht,N,m,'H');
-    c=expectHHt(Phi,Phit,N,m,'Phi');
-    %mc=expectHHt(HM,HMt,N,p_I,'HM');
-    mc=expectHHt(PhiM,PhiMt,N,p_M,'PhiM');
-end
+            %Sampling operator
+            W=@(z) midwt(z,wav,dwt_L);
+            Wt=@(z) mdwt(z,wav,dwt_L);
 
-img=zeros(size(Img2D));
-img(567:570,787:790)=1;
-%y=Phi(img);
+            Psi=@(s) PsiFunc(s,W);
+            PsiM=@(s) PsiFunc(s,W,m,maskIdx,wvltIdx);
+            Psit=@(s) PsitFunc(s,Wt);
+            PsiMt=@(s) PsitFunc(s,Wt,m,maskIdx,wvltIdx);
+
+            H=@(s) Phi(Psi(s));
+            HM=@(s) PhiM(PsiM(s));
+            Ht=@(s) Psit(Phit(s));
+            HMt=@(s) PsiMt(PhiMt(s));
+
+
+            if(0)
+                testTranspose(Phi,Phit,N,m,'Phi');
+                testTranspose(PhiM,PhiMt,N,p_M,'PhiM');
+                %   testTranspose(Psi,Psit,m,m,'Psi');
+                %   testTranspose(PsiM,PsiMt,p_M,p_I,'PsiM');
+            end
+
+            c=8.682362e-03;
+            mc=1;
+            mc=0.7;
+            mc=6.8195e-03;    % For full projection
+            %mc=1.307885e+01;
+            if(0)
+                %c=expectHHt(H,Ht,N,m,'H');
+                c=expectHHt(Phi,Phit,N,m,'Phi');
+                %mc=expectHHt(HM,HMt,N,p_I,'HM');
+                mc=expectHHt(PhiM,PhiMt,N,p_M,'PhiM');
+            end
+
+            img=zeros(size(Img2D));
+            img(567:570,787:790)=1;
+            %y=Phi(img);
+
+
+        end
 
         function loadMeasurements(obj)
             fprintf('Loading data...\n');
@@ -200,6 +194,10 @@ img(567:570,787:790)=1;
                 case 'pellet'
                     loadPellet(obj);
             end
+            temp=2^(ceil(log2(Num_pixel)));
+            CTdata=[zeros(ceil((temp-Num_pixel)/2),Num_proj); CTdata;...
+                zeros(floor((temp-Num_pixel)/2),Num_proj)];
+            [Num_pixel,Num_proj]=size(CTdata);
         end
         function loadCastSim(obj)
             obj.Ts=0.008;
@@ -210,7 +208,7 @@ img(567:570,787:790)=1;
             obj.trueImg=double(imread('binaryCasting.bmp'));
             obj.CTdata = genBeamHarden('showImg',false, 'spark', obj.spark,...
                 'trueImg',obj.trueImg);
-            obj.CTdata=-log(obj.CTdata/max(obj.CTdata(:)));
+            obj.y=-log(obj.CTdata/max(obj.CTdata(:)));
 
             if(strcmp(obj.maskType,'CircleMask'))
                 load('Mask1024Circle.mat');
@@ -222,6 +220,7 @@ img(567:570,787:790)=1;
                 load(sprintf('RealCTMask_%02d.mat',3));
                 load(sprintf('RealCTMaskWvlt_%02d.mat',3));
             end
+            obj.mask = Mask; obj.maskk= maskk;
             obj.wav=daubcqf(2);
             obj.dwt_L=6;        %levels of wavelet transform
             obj.rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
