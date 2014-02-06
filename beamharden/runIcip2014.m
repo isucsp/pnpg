@@ -4,34 +4,26 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Tue 04 Feb 2014 11:10:18 PM CST
+%   $Revision: 0.1 $ $Date: Wed 05 Feb 2014 11:23:41 AM CST
 
 clear;
 setupPath
-i=0;
-
-description='';
 
 subDir='/CircleMask'; %'/cvxHull'; %'/TightMask'; %
 imageName='castSim' %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-runList=[20];
-spark=0;
-
-matname='realCTResultForFST_3logspan17points.mat';
-%matname='castSimResultForFST_130pointSim3logspan17points.mat';
-%matname='castSimForFST_Cut40TightMas130pointSim3logspan17points.mat';
-
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
-saveImg=0;
+spark=0;
 
 opt.spectBasis = 'dis';
 
-i=i+1;
+saveImg=0;
+
 configRealCT
-NOverP=[NOverP; N/m];
+
+runList=[20];
 
 %%%%%%%%%%%%%%%%%%%%%%%%
-if(sum(runList==3)==1)
+if(any(runList==3))
     %solve by Back Projection
     j=0;
     prefix='BackProj';
@@ -59,7 +51,7 @@ if(sum(runList==3)==1)
 %   figure; showImg(Img2D_BackProj);
 end
 
-if(sum(runList==20)==1)
+if(any(runList==20))
     j=0;
     prefix='BeamHard';
     %system(['cp ''' which('beamhardenlog') ''' ' dirname '/']);
@@ -153,11 +145,9 @@ for jj=7 %[5:6] %1:length(rCoeff)
     end
     clear 'st'
     save(string);
-    %[out]=beamhardenlog(B,Bt,C,Ct,y,initSig,opt);
    
     % ADD SPARSE RECONSRUCTION 
 
 end
 end
-%save(matname);
 

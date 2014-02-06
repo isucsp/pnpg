@@ -16,22 +16,6 @@ classdef ActiveSet < handle
         stepNum
     end 
 
-    properties (Dependent)
-        JobTitle
-    end 
-
-    properties (Transient)
-        OfficeNumber
-    end 
-
-    properties (SetAccess = protected, GetAccess = private)
-        EmpNumber
-    end 
-
-    events
-        BackgroundAlert
-    end 
-
     methods
         function obj = ActiveSet(func, B, b, Ie, epsilon)
             % Method help here
