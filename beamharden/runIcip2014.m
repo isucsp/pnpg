@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Wed 29 Jan 2014 02:06:41 AM CST
+%   $Revision: 0.1 $ $Date: Thu 30 Jan 2014 10:40:53 AM CST
 
 clear;
 setupPath
@@ -24,7 +24,7 @@ matname='realCTResultForFST_3logspan17points.mat';
 PhiPhitMode='basic'; %'filtered'; %'weighted'; %
 saveImg=0;
 
-opt.spectBasis = 'b0';
+opt.spectBasis = 'dis';
 
 i=i+1;
 configRealCT
@@ -100,7 +100,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     opt.logspan=3; opt.sampleMode='logspan';
     opt.K=2; opt.E=17; opt.maxItr=maxitr; opt.rInit=rInit;
     opt.thresh=thresh; opt.mask=Mask;
-    opt.useSparse=0; opt.showImg=1; opt.visible=1;
+    opt.useSparse=0; opt.showImg=0; opt.visible=1;
     opt.skipAlpha=0;
 
     trueAlpha=Img2D(maskIdx);
@@ -120,7 +120,7 @@ for jj=7 %[5:6] %1:length(rCoeff)
     %string='castSimCircularMaskFullProjASSparseSparkInputWithResampleMu1000';
     %string='twoMaterialsCircularMaskFullProjASWithResampleMu1000itr';
     
-    string='castSimCircularMaskFullProj';
+    string='castSimCircularMask45Proj';
     if((~isfield(opt,'t3')) || opt.t3~=0 )
         string=[string 'Sparse'];
     end

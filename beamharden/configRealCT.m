@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.1 $ $Date: Fri 24 Jan 2014 11:18:55 AM CST
+% $Revision: 0.1 $ $Date: Thu 30 Jan 2014 10:40:45 AM CST
 
 % system(['cp ''' which(mfilename) ''' ' dirname '/']);
 fprintf('Loading data...\n');
@@ -34,7 +34,7 @@ switch lower(imageName)
         wav=daubcqf(2);
     case lower('castSim')
         Ts=0.008;
-        theta_idx=1:180;     %for phantom
+        theta_idx=1:4:180;     %for phantom
         %theta_idx=[1:10, 21:100, 111:180]; % Kun2012TSP cut
         %theta_idx=1:160;  % Dogandzic2011Asilomar
 
