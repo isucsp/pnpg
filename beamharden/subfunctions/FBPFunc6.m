@@ -7,7 +7,7 @@ function x = FBPFunc6(y,theta,Ts,maskIdx)
 % L: level of wavelet decomposition
 % m: size of image
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Thu 06 Feb 2014 11:29:55 AM CST
+%   $Revision: 0.1 $ $Date: Fri 07 Feb 2014 02:46:21 AM CST
 
 n=length(theta);
 m=length(y(:))/n;
@@ -20,8 +20,8 @@ J=[1,1]*3;                       % NUFFT interpolation neighborhood
 K=2.^ceil(log2(m_2D*2));         % oversampling rate
 
 r=pi*linspace(-1,1-2/Num_pixel,Num_pixel)';
-xc=r*cos(theta(:)');
-yc=r*sin(theta(:)');
+xc=r*cos(theta(:)'*pi/180);
+yc=r*sin(theta(:)'*pi/180);
 om=[yc(:),xc(:)];
 st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
 

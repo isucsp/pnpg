@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 06 Feb 2014 09:54:34 PM CST
+% $Revision: 0.2 $ $Date: Fri 07 Feb 2014 02:48:48 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -15,7 +15,7 @@ classdef ConfigCT < handle
         PhiPhitMode = 'nufft'; %'gpu'; %'cpu'
         imgSize = 1024;
         prjWidth = 1024;
-        theta = (0:179)'*pi/180;
+        theta = (0:179)';
 
         Phi
         Phit
@@ -88,8 +88,8 @@ classdef ConfigCT < handle
             K=2.^ceil(log2(m_2D*2));         % oversampling rate
 
             r=pi*linspace(-1,1-2/obj.prjWidth,obj.prjWidth)';
-            xc=r*cos(obj.theta(:)');
-            yc=r*sin(obj.theta(:)');
+            xc=r*cos(obj.theta(:)'*pi/180);
+            yc=r*sin(obj.theta(:)'*pi/180);
             om=[yc(:), xc(:)];
             st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
             st.Num_pixel=obj.prjWidth;
@@ -206,13 +206,14 @@ classdef ConfigCT < handle
 
         function loadCastSim(obj)
             obj.Ts=0.008;
-            theta_idx=1:180;     %for phantom
-            %theta_idx=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-            %theta_idx=1:160;  % Dogandzic2011Asilomar
+            theta=1:180;     %for phantom
+            %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
+            %theta=1:160;  % Dogandzic2011Asilomar
 
             obj.trueImg=double(imread('binaryCasting.bmp'));
             [obj.CTdata,args] = genBeamHarden('showImg',false,...
-                'spark', obj.spark, 'trueImg',obj.trueImg);
+                'spark', obj.spark, 'trueImg',obj.trueImg, ...
+                'theta', obj.theta);
             obj.trueIota = args.iota(:);
             obj.epsilon = args.epsilon(:);
             obj.trueKappa = args.kappa(:);

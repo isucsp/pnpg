@@ -75,6 +75,7 @@ function args = parseInputs(varargin)
     args.epsilon = (20:1:150)'; %keV
     args.showImg = true;
     args.saveMat = false;
+    args.theta = 0:179;
 
     for i=1:2:length(varargin)
         eval(['args.' varargin{i} ' = varargin{i+1};']);
@@ -86,7 +87,7 @@ function args = parseInputs(varargin)
     if(~isfield(args,'operators'))
         Ts=0.008;
         conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
-        conf.theta=0:179;
+        conf.theta=args.theta;
         maskIdx=1:numel(args.trueImg);
         args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
         args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
