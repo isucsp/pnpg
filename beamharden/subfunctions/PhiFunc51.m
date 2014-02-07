@@ -8,7 +8,7 @@ function y = PhiFunc51(x,f,st,m,Ts,maskIdx)
 % m: size of image
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Thu Sep 13 15:07:21 CDT 2012
+%   $Revision: 0.1 $ $Date: Thu 06 Feb 2014 11:27:41 AM CST
 
 if(nargin>5)
     u=zeros(m,m);

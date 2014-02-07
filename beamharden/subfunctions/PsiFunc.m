@@ -5,12 +5,12 @@ function x=PsiFunc(s,W,m,maskIdx,wvltIdx)
 
 % converting wavelet coefficients (sparse representation) into samples
 if(nargin==5)
-    temp=zeros(m,1);
+    temp=zeros(m^2,1);
     temp(wvltIdx)=s(:);
-    s=reshape(temp,sqrt(m),sqrt(m));
+    s=reshape(temp,m,m);
 else
     m=length(s(:));
-    s=reshape(s,sqrt(m),sqrt(m));
+    s=reshape(s,m,m);
 end
 x=W(s);
 if(nargin==5)

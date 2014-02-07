@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 29 Jan 2014 01:49:27 AM CST
+%   $Revision: 0.3 $ $Date: Thu 06 Feb 2014 09:01:05 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -29,6 +29,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 tic;
 K=2; E=5;
 skipAlpha=0;
+stepShrnk = 0.8;
 interiorPointAlpha=0;
 prpCGAlpha=1;
 
@@ -82,26 +83,13 @@ for i=1:K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
 end
 
-switch lower(opt.spectBasis)
-    % for b0-spline, length(I)=length(kappa)-1;
-    case 'b0'       % B-0 spline with nodes be kappa
-        polyIout = @b0Iout;
-        plotSpectrum = @(III) plotB0Upiota(opt.trueMu(1:end-1),...
-            abs(opt.trueIe(1:end-1)...
-            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-            ./(opt.trueMu(2:end)-opt.trueMu(1:end-1))), ...
-            mu, III);
-    case 'dis'
-        polyIout = @disIout;
-        plotSpectrum = @(III) plotDisUpiota(opt.trueMu(1:end-1),...
-            abs(opt.trueIe(1:end-1)...
-            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-            ./(opt.trueMu(2:end)-opt.trueMu(1:end-1))), ...
-            mu, III);
-end
+polymodel = Spline(opt.spectBasis,mu);
+polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+polyIout = polymodel.polyIout;
+plotSpectrum = polymodel.plotSpectrum;
 
 % find the best intial Ie starts
-R = (polyIout(mu,Phi(alpha)));
+R = polyIout(Phi(alpha),[]);
 for i=1:size(R,2)
     temp(i) = var(y+log(R(:,i)),1);
 end
@@ -111,9 +99,9 @@ Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
 if(skipIe)
-    Ie=interp1(opt.trueMu,opt.trueIe,mu(:),'spline');
+    Ie=interp1(opt.trueKappa,opt.trueIota,mu(:),'spline');
     Ie(Ie<0)=0;
-    epsilon=interp1(opt.trueMu,opt.epsilon,mu(:),'spline');
+    epsilon=interp1(opt.trueKappa,opt.epsilon,mu(:),'spline');
     deltaEpsilon=mean([epsilon(:) [epsilon(2:end); epsilon(end)]],2)-...
         mean([epsilon(:) [epsilon(1); epsilon(1:end-1)]],2);
     Ie=Ie.*abs(deltaEpsilon);
@@ -133,11 +121,10 @@ if(prpCGAlpha) preP=0; preG=1; end
 if(activeSetIe) 
     minZHZ=0; end
 
-alphaReady=0; IeReady=0;
+alphaReady=0;
 p=0; maxItr=opt.maxItr; thresh=1e-4; str=[];
 t1=0; thresh1=1e-8;
 t2=0; thresh2Lim=1e-10;
-stepShrnk=0.9;
 if(interiorPointIe) 
     thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
 
@@ -171,15 +158,21 @@ if(interiorPointIe)
         Ie(temp)=Ie(temp)-min( min(Ie(temp))-eps, delta/numPos  );
     end
 else
-    temp = polyIout(mu,0);
+    temp = polyIout(0,[]);
     B=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
     if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
-    %IeStep = ActiveSet(B,b,Ie);
+
+    IeStep = ActiveSet(@(III) llI(polyIout(Phi(alpha)),III), B,b,Ie);
+    IeStep.maxStepNum = opt.maxIeSteps;
+
+    deltaEpsilon=mean([opt.epsilon(:) [opt.epsilon(2:end); opt.epsilon(end)]],2)-...
+        mean([opt.epsilon(:) [opt.epsilon(1); opt.epsilon(1:end-1)]],2);
+    opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
 end
 
-while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
+while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
     p=p+1;
     
     % start optimize over alpha
@@ -206,7 +199,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
         end
         
         if(~isfield(opt,'t3'))
-            [temp,temp1]=polyIout(mu,0,Ie);
+            [temp,temp1]=polyIout(0,Ie);
             t3=max(abs(PsitPhitz-PsitPhit1*log(sum(Ie))))*temp1/temp;
             t3=t3*10^opt.a; out.t3 = t3;
         end
@@ -291,17 +284,22 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     end
     % end optimizing over alpha
     
-    pp=0; maxPP=opt.maxIeStep; IeReady=false;
+    pp=0;
     %if(out.delta<=1e-4) maxPP=5; end
-    A = polyIout(mu,Phi(alpha));
-    %IeStep.main(A,Ie,maxPP);
-    while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
-        pp=pp+1;
-        [costA,zmf,diff0,h0] = llI(A,Ie);
-        if(interiorPointIe)
-            optIeInteriorPoint; else optIeActiveSet; end
+    if(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && ~skipIe)
+        % update the object fuction w.r.t. Ie
+        IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
+        IeStep.main();
+        Ie = IeStep.Ie;
+        out.llI(p) = IeStep.cost;
+        out.IeSteps(p)= IeStep.stepNum;
     end
-    out.IeSteps(p)=pp;
+    %while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
+    %    pp=pp+1;
+    %    [costA,zmf,diff0,h0] = llI(A,Ie);
+    %    if(interiorPointIe)
+    %        optIeInteriorPoint; else optIeActiveSet; end
+    %end
     
     if(p >= maxItr) 
         break; end
@@ -341,7 +339,7 @@ while( ~((alphaReady || skipAlpha) && (IeReady || skipIe)) )
     if(figIe)
         set(0,'CurrentFigure',figIe);
         plotSpectrum(Ie);
-        title(sprintf('int upiota d kappa = %g',polyIout(mu,0,Ie)));
+        title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end
     
@@ -382,8 +380,9 @@ out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
 out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
-if(activeSetIe && ~skipIe) 
-    out.ASactive=ASactive; end
+out.opt = opt;
+
+%if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
 out.t2=t2; out.t1=t1;
 
 fprintf('\n');
@@ -456,27 +455,4 @@ function x= cg(c,hessianA,atHessianA,maxItr)
 end
 
 
-
-function plotB0Upiota(trueMu, trueUpiota, mu, Ie)
-    loglog(trueMu,trueUpiota,'r.-'); hold on;
-    mu=reshape([mu(:)';mu(:)'],[],1);
-    mu(1)=[]; mu(end)=[];
-    Ie=reshape([Ie(:)';Ie(:)'],[],1);
-    loglog(mu,Ie,'*-'); hold off;
-    %ylim([1e-10 1]);
-    xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
-end
-
-function plotDisUpiota(trueMu, trueUpiota, mu, Ie)
-    loglog(trueMu,trueUpiota,'r.-'); hold on;
-    temp=[mu(:); mu(end)^2/mu(end-1)];
-    mu=reshape([temp';temp'],[],1);
-    mu(1)=[]; mu(end)=[];
-    temp=temp(2:end)-temp(1:end-1);
-    Ie = Ie./temp;
-    Ie=reshape([Ie(:)';Ie(:)'],[],1);
-    loglog(mu,Ie,'*-'); hold off;
-    %ylim([1e-10 1]);
-    xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
-end
 
