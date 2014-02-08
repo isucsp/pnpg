@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 02:29:48 AM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 02:31:13 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -354,7 +354,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         strlen = length(str);
         str=sprintf('\np=%-5d cost=%-10g RSE=%-10g zmf=(%g,%g)',...
             p,out.cost(p),out.RMSE(p),zmf(1),zmf(2));
-        str=[str sprintf(' IeSteps=%-3d', out.IeSteps(p))]; 
+        str=[str sprintf('  IeSteps=%-3d', out.IeSteps(p))]; 
         fprintf([repmat('\b',1,strlen) '%s'],str);
     end
 end
