@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 02:31:13 AM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:01:04 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -134,6 +134,8 @@ out.course = cell(maxItr,1);
 out.time=zeros(maxItr,1);
 out.IeSteps = zeros(maxItr,1);
 out.RMSE=zeros(maxItr,1);
+out.deltaNormAlpha=zeros(maxItr,1);
+out.deltaNormIe=zeros(maxItr,1);
 out.llAlphaDif=zeros(maxItr,1);
 %ASactive=zeros(maxItr,1);
 asIdx=0;
@@ -216,8 +218,8 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         if(prpCGAlpha)
             beta=difAlpha'*(difAlpha-preG)/(preG'*preG);
             deltaAlpha=difAlpha+max(beta,0)*preP;
-            normDelta=difAlpha'*deltaAlpha;
-            s1=normDelta/atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,...
+            deltaNormAlpha=difAlpha'*deltaAlpha;
+            s1=deltaNormAlpha/atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,...
                 t3, Psit,muLustig,sqrtSSqrMu);
             preP=deltaAlpha; preG=difAlpha;
             deltaAlpha=deltaAlpha*s1;
@@ -255,9 +257,9 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         out.llAlphaDif(p) = norm(alpha(:)-newX(:))^2;
         out.llAlpha(p)=newCostA; out.penAlpha(p) = newCostB;
         out.time(p)=toc;
+        out.deltaNormAlpha(p)=deltaNormAlpha;
         
         alpha = newX;
-        deltaNormAlpha=difAlpha'*deltaAlpha;
         
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(interiorPointAlpha)
@@ -296,6 +298,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         out.llI(p) = IeStep.cost;
         out.IeSteps(p)= IeStep.stepNum;
         out.course{p} = IeStep.course;
+        out.deltaNormIe = IeStep.deltaNormIe;
     end
     
     if(p >= maxItr) break; end
@@ -352,9 +355,13 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
     if(opt.visible)
         strlen = length(str);
-        str=sprintf('\np=%-5d cost=%-10g RSE=%-10g zmf=(%g,%g)',...
-            p,out.cost(p),out.RMSE(p),zmf(1),zmf(2));
-        str=[str sprintf('  IeSteps=%-3d', out.IeSteps(p))]; 
+        if(mod(p,2)==0)
+            str=sprintf('\np=%-5d cost=%-10g RSE=%-10g zmf=(%g,%g)',...
+                p,out.cost(p),out.RMSE(p),zmf(1),zmf(2));
+        else
+            str=sprintf('\ndeltaNormAlpha=%-10g IeSteps=%-3d deltaNormIe=%-10g',...
+                out.deltaNormAlpha(p),out.IeSteps(p),out.deltaNormIe(p))]; 
+        end
         fprintf([repmat('\b',1,strlen) '%s'],str);
     end
 end
@@ -362,6 +369,7 @@ out.llAlpha(p+1:end) = []; out.penAlpha(p+1:end) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
 out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
 out.course(p+1:end) = [];
+out.deltaNormAlpha(p+1:end)=[]; out.deltaNormIe(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
 out.opt = opt;

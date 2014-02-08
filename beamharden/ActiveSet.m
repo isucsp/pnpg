@@ -15,6 +15,7 @@ classdef ActiveSet < handle
         cost
         stepNum
         course = [];    % record the change of active set
+        deltaNormIe
     end 
 
     methods
@@ -137,6 +138,7 @@ classdef ActiveSet < handle
                 end
             end
             obj.stepNum = pp;
+            obj.deltaNormIe = deltaNormIe;
         end
 
         function Ie=adjust(obj,Ie)
