@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Fri 07 Feb 2014 12:53:05 AM CST
+%   $Revision: 0.3 $ $Date: Fri 07 Feb 2014 05:28:09 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -27,27 +27,22 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 
 tic;
-K=2; E=5;
-skipAlpha=0;
 stepShrnk = 0.8;
-interiorPointAlpha=0;
-prpCGAlpha=1;
-
-if(isfield(opt,'skipIe')) skipIe=opt.skipIe; else skipIe=0; end
-interiorPointIe=0;
-activeSetIe=1;
-
-if(isfield(opt,'K')) K=opt.K; end
-if(isfield(opt,'E')) E=opt.E; end
-
-Imea=exp(-y); alpha=xInit(:); Ie=zeros(E,1);
-
+interiorPointAlpha=0; prpCGAlpha=1;
+interiorPointIe=0; activeSetIe=1;
+if(~isfield(opt,'K')) opt.K=2; end
+if(~isfield(opt,'E')) opt.E=5; end
+if(~isfield(opt,'showImg')) opt.showImg=0; end
+if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
+if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
-if(isfield(opt,'muRange')) temp=opt.muRange(:); else temp=[1e-2; 1e4]; end
+if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
-if(isfield(opt,'showImg') && opt.showImg==1) show=1; else show=0; end
-if(isfield(opt,'visible') && opt.visible==1) visible=1; else visible=0; end
-if(show)
+if(~isfield(opt,'visible')) opt.visible==1; end
+
+Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
+
+if(opt.showImg)
     figRes=1000; figAlpha=1001; figIe=1002;
     figure(figAlpha); figure(figIe); figure(figRes);
 else
@@ -56,10 +51,10 @@ end
 
 switch lower(opt.sampleMode)
     case 'uniform'
-        temp=linspace(temp(1),temp(2),E);
-        Ie(floor(E/2)-1:floor(E/2)+1)=1/3;
+        temp=linspace(opt.muRange(1),opt.muRange(2),opt.E);
+        Ie(floor(opt.E/2)-1:floor(opt.E/2)+1)=1/3;
     case 'exponential'
-        temp=logspace(log10(temp(1)),log10(temp(2)),E);
+        temp=logspace(log10(opt.muRange(1)),log10(opt.muRange(2)),opt.E);
         temp1=abs(temp-1);
         Ie(temp1==min(temp1))=1;
     case 'assigned'
@@ -69,9 +64,9 @@ switch lower(opt.sampleMode)
         temp2=find(temp1==min(temp1));
         Ie(temp2-1:temp2+1)=1/3;
     case 'logspan'
-        temp=logspace(-floor((E-1)/2)/(E-1)*opt.logspan,...
-            floor(E/2)/(E-1)*opt.logspan,E);
-        Ie(floor(E/2+0.5))=1;
+        temp=logspace(-floor((opt.E-1)/2)/(opt.E-1)*opt.logspan,...
+            floor(opt.E/2)/(opt.E-1)*opt.logspan,opt.E);
+        Ie(floor(opt.E/2+0.5))=1;
         if(strcmp(opt.spectBasis,'b0'))
             temp = [temp(1)^2/temp(2); temp(:)];
         elseif(strcmp(opt.spectBasis,'b1'))
@@ -79,8 +74,8 @@ switch lower(opt.sampleMode)
         end
 end
 
-for i=1:K-1
-    mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(K-1)*eps);
+for i=1:opt.K-1
+    mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
 end
 
 polymodel = Spline(opt.spectBasis,mu);
@@ -98,7 +93,7 @@ Ie = Ie*0;
 Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
-if(skipIe)
+if(opt.skipIe)
     Ie=interp1(opt.trueKappa,opt.trueIota,mu(:),'spline');
     Ie(Ie<0)=0;
     epsilon=interp1(opt.trueKappa,opt.epsilon,mu(:),'spline');
@@ -107,7 +102,6 @@ if(skipIe)
     Ie=Ie.*abs(deltaEpsilon);
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
-if(isfield(opt,'skipAlpha') && opt.skipAlpha==1) skipAlpha=1; end;
 if(isfield(opt,'t3'))
     t3=opt.t3; %abs(costA/costLustig)*1e-3;
     out.t3=t3;
@@ -131,6 +125,8 @@ if(interiorPointIe)
 out.llAlpha=zeros(maxItr,1);
 out.penAlpha=zeros(maxItr,1);
 out.llI=zeros(maxItr,1);
+out.cost=zeros(maxItr,1);
+out.course = cell(maxItr,1);
 out.time=zeros(maxItr,1);
 out.IeSteps = zeros(maxItr,1);
 out.RMSE=zeros(maxItr,1);
@@ -159,7 +155,7 @@ if(interiorPointIe)
     end
 else
     temp = polyIout(0,[]);
-    B=[eye(E); -temp(:)'/norm(temp)]; b=[zeros(E,1); -1/norm(temp)];
+    B=[eye(opt.E); -temp(:)'/norm(temp)]; b=[zeros(opt.E,1); -1/norm(temp)];
     if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
@@ -172,11 +168,11 @@ else
     opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
 end
 
-while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
+while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     p=p+1;
     
     % start optimize over alpha
-    if(~skipAlpha)
+    if(~opt.skipAlpha)
         [costA,zmf,diff0,weight]=llAlpha(alpha,Ie);
         [costB,difphi,hphi]=penAlpha(alpha);
         
@@ -281,59 +277,56 @@ while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
                 end
             end
         end
+        out.RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
     end
     % end optimizing over alpha
     
-    pp=0;
     %if(out.delta<=1e-4) maxPP=5; end
-    if(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && ~skipIe)
+    if(((~opt.skipAlpha && max(zmf(:))<1) || (opt.skipAlpha)) && ~opt.skipIe)
         % update the object fuction w.r.t. Ie
         IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
         IeStep.main();
         Ie = IeStep.Ie;
         out.llI(p) = IeStep.cost;
         out.IeSteps(p)= IeStep.stepNum;
+        out.course{p} = IeStep.course;
     end
-    %while(((~skipAlpha && max(zmf(:))<1) || (skipAlpha)) && pp<maxPP && ~skipIe)
-    %    pp=pp+1;
-    %    [costA,zmf,diff0,h0] = llI(A,Ie);
-    %    if(interiorPointIe)
-    %        optIeInteriorPoint; else optIeActiveSet; end
-    %end
     
-    if(p >= maxItr) 
-        break; end
-    if(show)
-        %figure(911); showImgMask(alpha,opt.mask);
-        %figure; showImgMask(deltaAlpha,opt.mask);
+    if(p >= maxItr) break; end
+    if(out.llI(p)~=0) out.cost(p) = out.llI(p);
+    else out.cost(p) = out.llAlpha(p); end
+    if(~opt.skipAlpha && (isfield(out,'penAlpha')))
+        out.cost(p) = out.cost(p) + out.penAlpha(p);
+    end
+    if(~opt.skipIe && isfield(out,'penIe'))
+        out.cost(p) = out.cost(p) + out.penIe(p);
+    end
+    if(opt.showImg && p>1)
         cost = 0;
-        if(figRes)
-            nCurve=0;
-            set(0,'CurrentFigure',figRes);
-            if(~skipAlpha && (isfield(out,'penAlpha')))
-                semilogy(p,out.penAlpha(p),'b.');
-                nCurve=nCurve+1;
-                strLegend{nCurve}='alpha penalty';
-                cost = cost + out.penAlpha(p);
+        set(0,'CurrentFigure',figRes);
+        if(~opt.skipAlpha)
+            subplot(2,1,1);
+            semilogy(p-1:p,out.llAlpha(p-1:p),'g'); hold on;
+            if (isfield(out,'penAlpha')))
+                semilogy(p-1:p,out.penAlpha(p-1:p),'b--');
             end
         end
-        if(~skipIe)
-            semilogy(p,out.llI(p),'r.'); hold on;
-            nCurve = nCurve + 1;
-            strLegend{nCurve}='likelihood';
+        if(~opt.skipIe)
+            semilogy(p-1:p,out.llI(p-1:p),'r'); hold on;
             cost = cost + out.llI(p);
             if(isfield(out,'penIe'))
-                semilogy(p,out.penIe(p),'m.');
-                cost = cost + out.penIe(p);
-                nCurve=nCurve+1;
-                strLegend{nCurve}='Ie penalty';
+                semilogy(p,out.penIe(p),'m--');
             end
         end
-        semilogy(p,cost,'k.');
-        nCurve=nCurve+1;
-        strLegend{nCurve}='overall cost';
-        title(['total cost=' num2str(cost)]);
-        legend(strLegend); drawnow;
+        semilogy(p-1:p,out.cost(p-1:p),'k');
+        title(sprintf('cost(%d)=%g',p,out.cost(p)));
+
+        if(~opt.skipAlpha)
+            subplot(2,1,2);
+            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
+            title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
+        end
+        drawnow;
     end
     
     if(figIe)
@@ -343,27 +336,26 @@ while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
         drawnow;
     end
     
-    if(~skipAlpha && figAlpha)
+    if(~opt.skipAlpha && figAlpha)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         %showImgMask(Qmask-Qmask1/2,opt.mask);
         %title(['size of Q=' num2str(length(Q))]);
         title(['zmf=' num2str(max(zmf))])
         drawnow;
     end
-    if(0)
+    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
+    if(opt.visible)
         fprintf(repmat('\b',1,length(str)));
-        str=sprintf('\n%-8s%-13s%-13s%-13s%-13s%-13s%-13s\n',...
-            'itr','normDif1','normDif2','t1','t2','s1','s2');
-        str=[str, sprintf('%d-0:\t%-13g%-13g%-13g%-13g%-13g%-13g\n',...
-            p,out.delta,out.delta,t1,t2,out.stepSz*s1,out.stepSz)];
+        str=sprintf('\np=%-5d cost=%-13g RSE=%-13g\n',...
+            p,out.cost(p),out.RMSE(p));
+        out.IeSteps(p)= IeStep.stepNum;
+        out.course{p} = IeStep.course;
         str=[str, sprintf('%-13s%-13s%13s-%-13s%-13s%-13s\n',...
             'cost','f0','(z','f)','penAlpha','f2')];
         str=[str, sprintf('%-13g%-13g%13g~%-13g%-13g%-13g\n',...
             out.cost, out.costA, out.zmf(1),...
             out.zmf(2), out.costB, out.costB)];
         fprintf('%s',str);
-    end
-    if(0)
         fprintf(repmat('\b',1,length(str)));
         str=sprintf('%d  %-13g%-13g',...
             p,t1,t2);
@@ -372,17 +364,16 @@ while( ~((alphaReady || skipAlpha) && (IeStep.converged || skipIe)) )
             out.zmf(2))];
         fprintf('%s',str);
     end
-    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    out.RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
 end
 out.llAlpha(p+1:end) = []; out.penAlpha(p+1:end) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
 out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
+out.course(p+1:end) = [];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
 out.opt = opt;
 
-%if(activeSetIe && ~skipIe) out.ASactive=ASactive; end
+%if(activeSetIe && ~opt.skipIe) out.ASactive=ASactive; end
 out.t2=t2; out.t1=t1;
 
 fprintf('\n');
