@@ -5,11 +5,15 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 09:36:59 AM CST
+%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 10:50:08 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
-if(~exist(filename,'file')) save(filename,''); end
+if(~exist(filename,'file'))
+    save(filename,'');
+else
+    load(filename);
+end
 if(nargin==0) runList=3; end
 
 [conf, opt] = defaultInit();
