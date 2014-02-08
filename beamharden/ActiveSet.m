@@ -72,7 +72,7 @@ classdef ActiveSet < handle
                         end
                         temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));
-                        temp1(temp>eps) = constrainMargin(temp>eps)./temp(temp>eps);
+                        temp1(temp>eps & (~obj.Q)) = constrainMargin(temp>eps)./temp(temp>eps);
                         maxStep = min( temp1 );
                         temp = find((temp>eps) & (temp1==maxStep) & (~obj.Q));
                         [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
