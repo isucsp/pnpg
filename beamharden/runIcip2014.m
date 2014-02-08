@@ -4,7 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 07 Feb 2014 02:51:57 AM CST
+%   $Revision: 0.1 $ $Date: Fri 07 Feb 2014 03:03:48 AM CST
 
 clear;
 setupPath
@@ -38,7 +38,7 @@ opt.muLustig=1e-13; % logspace(-15,-6,5);
 opt.skipIe=0;
 opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
 
-runList=[20,22];
+runList=[25,26];
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==3)) %solve by Back Projection
