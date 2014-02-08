@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Fri 07 Feb 2014 02:48:48 AM CST
+% $Revision: 0.2 $ $Date: Fri 07 Feb 2014 10:03:22 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -72,6 +72,7 @@ classdef ConfigCT < handle
             maskIdx = find(obj.mask~=0);
             wvltIdx = find(obj.maskk~=0);
             opt.trueAlpha=obj.trueImg(maskIdx);
+            opt.trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
             
             %Sampling operator
             W=@(z) midwt(z,obj.wav,obj.dwt_L);

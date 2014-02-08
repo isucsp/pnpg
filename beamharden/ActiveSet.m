@@ -8,12 +8,13 @@ classdef ActiveSet < handle
         Q
         Z
         Ie
-        maxStepNum = 1e3; % default max # of iterations
+        maxStepNum = 1e2; % default max # of iterations
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
-        cost;
+        cost
         stepNum
+        course = [];    % record the change of active set
     end 
 
     methods
@@ -35,7 +36,7 @@ classdef ActiveSet < handle
         end
 
         function main(obj)
-            pp=0; obj.converged = false;
+            pp=0; obj.converged = false; obj.course = [];
             while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
@@ -56,8 +57,11 @@ classdef ActiveSet < handle
                         temp=find(lambda<0);
                         %temp=find(lambda==min(lambda));
                         [~,temp1]=sort(abs(temp-length(lambda)/2),'descend');
-                        obj.Q(temp(temp1(end)))=false; fprintf('%s\n', char(obj.Q(:)'+'0') );
+                        k = temp(temp1(end));
+                        obj.Q(k)=false;
                         obj.Z = null(obj.B(obj.Q,:),'r');
+                        obj.course = [obj.course;...
+                            sprintf('%s\n', char(obj.Q(:)'+'0') )];
                     else
                         % determine the maximum possible step size
                         constrainMargin = obj.B*obj.Ie-obj.b;
@@ -71,15 +75,16 @@ classdef ActiveSet < handle
                         maxStep = min( temp1 );
                         temp = find((temp>eps) & (temp1==maxStep) & (~obj.Q));
                         [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
-                        collide = zeros(size(obj.Q))==1;
-                        collide(temp(temp1(1))) = true;
+                        q = temp(temp1(1));
+                        collide = zeros(size(obj.Q))==1; collide(q) = true;
                         if(maxStep<eps)
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
-                            if(any(collide))
+                            if(~isempty(q) && q~=k)
                                 obj.Q = (obj.Q | collide);
-                                fprintf('%s\n', char(obj.Q(:)'+'0') );
                                 obj.Z = null(obj.B(obj.Q,:),'r');
+                                obj.course = [obj.course;...
+                                    sprintf('%s\n', char(obj.Q(:)'+'0') )];
                             else
                                 break;
                             end
@@ -88,7 +93,11 @@ classdef ActiveSet < handle
                         end
                     end
                 end
-
+                if(ppp>=20)
+                    warning('Cannot find stable active set, stop at: %s',...
+                        sprintf('%s\n', char(obj.Q(:)'+'0') ));
+                end
+                
                 % begin line search
                 ppp=0; stepSz=min(1,maxStep);
                 deltaNormIe=grad'*deltaIe;
@@ -103,12 +112,12 @@ classdef ActiveSet < handle
                     if(newCost <= oldCost - stepSz/2*deltaNormIe)
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;
-                        obj.converged=true;
+                        break;
                     else
                         if(ppp>10)
                             obj.cost = oldCost;
                             obj.converged=true;
-                            fprintf('WARNING: exit iterations for higher convergence criteria: %g\n',deltaNormIe);
+                            warning('WARNING: exit iterations for higher convergence criteria: %g\n',deltaNormIe);
                         else stepSz=stepSz*obj.stepShrnk;
                         end
                     end
@@ -116,14 +125,18 @@ classdef ActiveSet < handle
                 % end of line search
                 if(stepSz==maxStep)
                     obj.Q = (obj.Q | collide);
-                    fprintf( '%s\n', char(obj.Q(:)'+'0') );
                     obj.Z = null(obj.B(obj.Q,:),'r');
+                    obj.course = [obj.course;...
+                        sprintf('%s\n', char(obj.Q(:)'+'0') )];
                 end      
                 if(obj.converged)
                     break;
                 end
             end
             obj.stepNum = pp;
+            if(pp>=obj.maxStepNum && ~obj.converged)
+                warning('Exit before converging with deltaNormIe=%g\n',deltaNormIe);
+            end
         end
 
         function Ie=adjust(obj,Ie)
