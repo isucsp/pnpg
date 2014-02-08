@@ -40,7 +40,8 @@ classdef ActiveSet < handle
             while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
-                ppp=0;
+                ppp=1;
+                k = -1*ones(20,1); q = k;
                 while(ppp<20)
                     ppp=ppp+1;
                     zhz=obj.Z'*hessian*obj.Z; temp=min(eig(zhz));
@@ -57,8 +58,8 @@ classdef ActiveSet < handle
                         temp=find(lambda<0);
                         %temp=find(lambda==min(lambda));
                         [~,temp1]=sort(abs(temp-length(lambda)/2),'descend');
-                        k = temp(temp1(end));
-                        obj.Q(k)=false;
+                        k(ppp) = temp(temp1(end));
+                        obj.Q(k(ppp))=false;
                         obj.Z = null(obj.B(obj.Q,:),'r');
                         obj.course = [obj.course;...
                             sprintf('%s\n', char(obj.Q(:)'+'0') )];
@@ -75,12 +76,13 @@ classdef ActiveSet < handle
                         maxStep = min( temp1 );
                         temp = find((temp>eps) & (temp1==maxStep) & (~obj.Q));
                         [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
-                        q = temp(temp1(1));
-                        collide = zeros(size(obj.Q))==1; collide(q) = true;
+                        q(ppp) = temp(temp1(1));
+                        collide = zeros(size(obj.Q))==1;
+                        collide(q(ppp)) = true;
                         if(maxStep<eps)
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
-                            if(~isempty(q) && q~=k)
+                            if(any(collide) && q(ppp)~=k(ppp-1))
                                 obj.Q = (obj.Q | collide);
                                 obj.Z = null(obj.B(obj.Q,:),'r');
                                 obj.course = [obj.course;...
