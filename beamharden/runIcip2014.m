@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 11:51:44 AM CST
+%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 12:10:33 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -79,7 +79,7 @@ if(any(runList==23)) % b0, single AS step,
     opt.spectBasis = 'b0';
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
-    for j=1:length(aArray)
+    for j=2:length(aArray)
         opt.a = aArray(j);
         for i=1:length(intval)
             conf.theta = (0:intval(i):179)';

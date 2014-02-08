@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:04:52 PM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:13:54 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -355,13 +355,9 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
     if(opt.visible)
         strlen = length(str);
-        if(mod(p,2)==0)
-            str=sprintf('\np=%-5d cost=%-10g RSE=%-10g zmf=(%g,%g)',...
-                p,out.cost(p),out.RMSE(p),zmf(1),zmf(2));
-        else
-            str=sprintf('\ndeltaNormAlpha=%-10g IeSteps=%-3d deltaNormIe=%-10g',...
-                out.deltaNormAlpha(p),out.IeSteps(p),out.deltaNormIe(p)); 
-        end
+        str=sprintf('\np=%-4d cost=%-10g RSE=%-10g dAlpha=%-10g dIe=%-10g zmf=(%g,%g) IeSteps=%-3d',...
+            p,out.cost(p),out.RMSE(p), out.deltaNormAlpha(p), ...
+            out.deltaNormIe(p), zmf(1),zmf(2), out.IeSteps(p));
         fprintf([repmat('\b',1,strlen) '%s'],str);
     end
 end
