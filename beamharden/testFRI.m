@@ -9,7 +9,7 @@ L = 32; % the length of the annihalating filter
 %      M/2 + 1 >= L >= N+1
 
 [s, idx] = sort(args.s);
-y = Imea(idx).*s;
+y = Imea(idx);
 
 sameS = (s(1:end-1)-s(2:end))==0;
 s(sameS)=[];
