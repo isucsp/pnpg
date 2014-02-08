@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 02:10:35 AM CST
+%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 02:19:55 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -52,16 +52,20 @@ if(any(runList==22)) % dis, max AS step,
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
     i=1;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,0);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out22{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out22','-append');
+    aArray=[-6.5, -9:-4];
+    for j=1:length(aArray)
+        opt.a = aArray(j);
+        for i=1:length(intval)
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+            prefix='BeamHard';
+            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+            initSig=conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            out22{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out22','-append');
+        end
     end
     [conf, opt] = defaultInit();
 end
@@ -69,17 +73,20 @@ end
 if(any(runList==23)) % b0, single AS step,
     opt.spectBasis = 'b0';
     intval = 6:-1:1;
-    i=1;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,0);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out23{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out23','-append');
+    aArray=[-6.5, -9:-4];
+    for j=1:length(aArray)
+        opt.a = aArray(j);
+        for i=1:length(intval)
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+            prefix='BeamHard';
+            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+            initSig=conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            out23{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out23','-append');
+        end
     end
     [conf, opt] = defaultInit();
 end
@@ -88,17 +95,20 @@ if(any(runList==24)) % b0, max AS step,
     opt.spectBasis = 'b0';
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
-    i=1;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,0);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out24{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out24','-append');
+    aArray=[-6.5, -9:-4];
+    for j=1:length(aArray)
+        opt.a = aArray(j);
+        for i=1:length(intval)
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+            prefix='BeamHard';
+            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+            initSig=conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            out24{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out24','-append');
+        end
     end
     [conf, opt] = defaultInit();
 end
@@ -106,17 +116,20 @@ end
 if(any(runList==25)) % b1, single AS step,
     opt.spectBasis = 'b1';
     intval = 6:-1:1;
-    i=1;
-    for i=6:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,0);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out25{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out25','-append');
+    aArray=[-6.5, -9:-4];
+    for j=1:length(aArray)
+        opt.a = aArray(j);
+        for i=1:length(intval)
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+            prefix='BeamHard';
+            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+            initSig=conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            out25{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out25','-append');
+        end
     end
     [conf, opt] = defaultInit();
 end
@@ -125,17 +138,20 @@ if(any(runList==26)) % b1, max AS step,
     opt.spectBasis = 'b1';
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
-    i=1;
-    for i=6:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,0);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out26{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out26','-append');
+    aArray=[-6.5, -9:-4];
+    for j=1:length(aArray)
+        opt.a = aArray(j);
+        for i=1:length(intval)
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+            prefix='BeamHard';
+            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+            initSig=conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            out26{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out26','-append');
+        end
     end
     [conf, opt] = defaultInit();
 end
@@ -206,7 +222,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=1;
+    opt.showImg=0;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;

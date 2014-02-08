@@ -134,9 +134,6 @@ classdef ActiveSet < handle
                 end
             end
             obj.stepNum = pp;
-            if(pp>=obj.maxStepNum && ~obj.converged)
-                warning('Exit before converging with deltaNormIe=%g\n',deltaNormIe);
-            end
         end
 
         function Ie=adjust(obj,Ie)
