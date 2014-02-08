@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 02:19:55 AM CST
+%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 02:54:00 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -28,7 +28,7 @@ if(any(runList==3)) %solve by Back Projection
     save(filename,'out3','-append');
 end
 
-if(any(runList==20)) % dis, single AS step,
+if(any(runList==21)) % dis, single AS step,
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
     for j=1:length(aArray)
@@ -40,9 +40,9 @@ if(any(runList==20)) % dis, single AS step,
             fprintf('%s, i=%d, j=%d\n',prefix,i,j);
             initSig=conf.FBP(conf.y);
             initSig = initSig(opt.mask~=0);
-            out20{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
+            out21{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out20','-append');
+            save(filename,'out21','-append');
         end
     end
     [conf, opt] = defaultInit();
@@ -158,7 +158,7 @@ end
 
 % ADD SPARSE RECONSRUCTION 
 
-if(any(runList==21)) % beamhardening with refinement
+if(any(runList==20)) % beamhardening with refinement
     j=0;
     prefix='BeamHard';
     x_BackProj=conf.FBP(conf.y);
@@ -179,7 +179,7 @@ if(any(runList==21)) % beamhardening with refinement
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             RMSE(i)=1-(out{i}(end).alpha'*opt.trueAlpha/norm(out{i}(end).alpha))^2;
         end
-        save(filename,'out21','-append');
+        save(filename,'out20','-append');
     end
 end
 
