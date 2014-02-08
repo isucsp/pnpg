@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:01:04 PM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:04:52 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -298,7 +298,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         out.llI(p) = IeStep.cost;
         out.IeSteps(p)= IeStep.stepNum;
         out.course{p} = IeStep.course;
-        out.deltaNormIe = IeStep.deltaNormIe;
+        out.deltaNormIe(p) = IeStep.deltaNormIe;
     end
     
     if(p >= maxItr) break; end
@@ -360,7 +360,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
                 p,out.cost(p),out.RMSE(p),zmf(1),zmf(2));
         else
             str=sprintf('\ndeltaNormAlpha=%-10g IeSteps=%-3d deltaNormIe=%-10g',...
-                out.deltaNormAlpha(p),out.IeSteps(p),out.deltaNormIe(p))]; 
+                out.deltaNormAlpha(p),out.IeSteps(p),out.deltaNormIe(p)); 
         end
         fprintf([repmat('\b',1,strlen) '%s'],str);
     end
