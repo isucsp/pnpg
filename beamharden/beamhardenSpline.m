@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 08:33:25 PM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 08:47:22 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -257,7 +257,6 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
                     out.llAlphaDif(p) = 0;
                     out.llAlpha(p) = out.llAlpha(p-1);
                     out.penAlpha(p) = out.penAlpha(p-1);
-                    newX
                     break;
                 else
                     stepSz=stepSz*stepShrnk;
