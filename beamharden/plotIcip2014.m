@@ -21,3 +21,17 @@ for i = 1:1
     end
 end
 
+%%
+
+style = {'b-','r-','b:','r:','b--','r--'};
+for k=1:6
+    eval(sprintf('out=out2%d;',k));
+    for i=1:size(out,1)
+        for j=1:size(out,2)
+            if(~isempty(out{i,j}))
+                rse(i,j)=min(out{i,j}.RMSE);
+            end
+        end
+    end
+    eval(sprintf('rse2%d=rse;',k));
+end
