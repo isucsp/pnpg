@@ -1,0 +1,10 @@
+#!/bin/sh
+
+RPATH=/local/renliang/imgRecSrc/beamharden
+LPATH=/home/renliang/research/imgRecSrc/beamharden
+
+for i in `seq $1 $2`
+do
+    scp research-$i:$RPATH/runIcip2014.mat $LPATH/runIcip2014_$i.mat
+done
+
