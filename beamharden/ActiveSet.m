@@ -33,7 +33,7 @@ classdef ActiveSet < handle
 
         function init(obj,Ie)
             obj.Ie = obj.adjust(Ie);
-            obj.Q = (obj.B*Ie-obj.b<=obj.epsilon);
+            obj.Q = (obj.B*Ie-obj.b<=eps);
             obj.Z = null(obj.B(obj.Q,:),'r');
         end
 
@@ -47,7 +47,7 @@ classdef ActiveSet < handle
                 while(ppp<20)
                     ppp=ppp+1;
                     zhz=obj.Z'*hessian*obj.Z; temp=min(eig(zhz));
-                    if(temp<eps)
+                    if(temp<obj.epsilon)
                         zhz=zhz+abs(temp)*3*eye(size(zhz));
                     end
 

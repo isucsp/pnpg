@@ -57,12 +57,16 @@ function [CTdata, args] = genBeamHarden(varargin)
         Imea=Imea+exp(-PhiAlpha*kappa(i))*args.iota(i)*deltaEpsilon(i);
     end
 
+    temp = max(Imea(:));
+    Imea = Imea/temp;
+    args.iota = args.iota/temp;
+
     args.kappa = kappa;
     CTdata=reshape(Imea,1024,[]);
     if(args.saveMat) save(filename,'CTdata'); end
 
     if(args.showImg)
-        y=-log(Imea/max(Imea(:)));
+        y=-log(Imea);
         rec=FBP(y);
         rec2=FBP(Phi(args.trueImg));
         figure; showImg(rec); figure; showImg(rec2);
@@ -76,6 +80,7 @@ function args = parseInputs(varargin)
     args.showImg = true;
     args.saveMat = false;
     args.theta = 0:179;
+    PhiMode = 'cpuPar'; %'nufft'; %'gpu'; %'cpu'
 
     for i=1:2:length(varargin)
         eval(['args.' varargin{i} ' = varargin{i+1};']);
@@ -85,13 +90,41 @@ function args = parseInputs(varargin)
         args.trueImg=double(imread('binaryCasting.bmp'));
     end
     if(~isfield(args,'operators'))
-        Ts=0.008;
-        conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
-        conf.theta=args.theta;
-        maskIdx=1:numel(args.trueImg);
-        args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
-        args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
-        args.operators.FBP =@(s) FBPFunc7(s,conf.theta*pi/length(conf.theta),conf.theta+1,Ts,maskIdx)*Ts;
+        switch lower(args.PhiMode)
+            case 'basic'
+                Ts=0.008;
+                n=1024;         % size of image
+                prjWidth = 1024;
+                m_2D=[n, n];
+                J=[1,1]*3;                       % NUFFT interpolation neighborhood
+                K=2.^ceil(log2(m_2D*2));         % oversampling rate
+
+                r=pi*linspace(-1,1-2/prjWidth,prjWidth)';
+                xc=r*cos(args.theta(:)'*pi/180);
+                yc=r*sin(args.theta(:)'*pi/180);
+                om=[yc(:), xc(:)];
+                st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
+                st.Num_pixel=prjWidth;
+                st.Num_proj=length(args.theta);
+
+                % Zero freq at f_coeff(prjWidth/2+1)
+                f_coeff=designFilter('renliang1',prjWidth,Ts);
+                args.operators.Phi=@(s) PhiFunc51(s,f_coeff,st,n,Ts);
+                args.operators.Phit=@(s) PhitFunc51(s,f_coeff,st,n,Ts);
+                args.operators.FBP=@(s) FBPFunc6(s,args.theta,Ts);
+            case 'cpuPar'
+                Ts=0.008;
+                conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
+                conf.theta=args.theta;
+                maskIdx=1:numel(args.trueImg);
+                args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
+                args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
+                args.operators.FBP =@(s) FBPFunc7(s,conf.theta*pi/length(conf.theta),conf.theta+1,Ts,maskIdx)*Ts;
+            case 'gpu'
+            otherwise
+                fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
+                return;
+        end
     end
 
     if(~isfield(args,'iota'))

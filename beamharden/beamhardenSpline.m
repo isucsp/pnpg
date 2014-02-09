@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 08:47:22 PM CST
+%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 01:32:01 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -82,10 +82,13 @@ for i=1:opt.K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
 end
 
+deltaEpsilon=mean([opt.epsilon(:) [opt.epsilon(2:end); opt.epsilon(end)]],2)-...
+    mean([opt.epsilon(:) [opt.epsilon(1); opt.epsilon(1:end-1)]],2);
+opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
+
 polymodel = Spline(opt.spectBasis,mu);
 polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
 polyIout = polymodel.polyIout;
-plotSpectrum = polymodel.plotSpectrum;
 
 % find the best intial Ie starts
 R = polyIout(Phi(alpha),[]);
@@ -120,27 +123,23 @@ if(activeSetIe)
     minZHZ=0; end
 
 alphaReady=0;
-p=0; maxItr=opt.maxItr; thresh=1e-4; str='';
+p=0; thresh=1e-4; str='';
 t1=0; thresh1=1e-8;
 t2=0; thresh2Lim=1e-10;
 if(interiorPointIe) 
     thresh2=1; t2Lim=1e-10; else thresh2=1e-8; end
 
-out.llAlpha=zeros(maxItr,1);
-out.penAlpha=zeros(maxItr,1);
-out.llI=zeros(maxItr,1);
-out.cost=zeros(maxItr,1);
-out.course = cell(maxItr,1);
-out.time=zeros(maxItr,1);
-out.IeSteps = zeros(maxItr,1);
-out.RMSE=zeros(maxItr,1);
-out.deltaNormAlpha=zeros(maxItr,1);
-out.deltaNormIe=zeros(maxItr,1);
-out.llAlphaDif=zeros(maxItr,1);
-%ASactive=zeros(maxItr,1);
-asIdx=0;
-
-muLustig=opt.muLustig;
+out.llAlpha=zeros(opt.maxItr,1);
+out.penAlpha=zeros(opt.maxItr,1);
+out.llI=zeros(opt.maxItr,1);
+out.cost=zeros(opt.maxItr,1);
+out.course = cell(opt.maxItr,1);
+out.time=zeros(opt.maxItr,1);
+out.IeSteps = zeros(opt.maxItr,1);
+out.RMSE=zeros(opt.maxItr,1);
+out.deltaNormAlpha=zeros(opt.maxItr,1);
+out.deltaNormIe=zeros(opt.maxItr,1);
+out.llAlphaDif=zeros(opt.maxItr,1);
 
 %max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
 llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit,polyIout);
@@ -168,10 +167,6 @@ else
 
     IeStep = ActiveSet(@(III) llI(polyIout(Phi(alpha)),III), B,b,Ie);
     IeStep.maxStepNum = opt.maxIeSteps;
-
-    deltaEpsilon=mean([opt.epsilon(:) [opt.epsilon(2:end); opt.epsilon(end)]],2)-...
-        mean([opt.epsilon(:) [opt.epsilon(1); opt.epsilon(1:end-1)]],2);
-    opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
 end
 
 while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
@@ -183,13 +178,13 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         [costB,difphi,hphi]=penAlpha(alpha);
         
         if(min(weight)<=0)
-            warning(['\nfAlpha: obj function is non-convex over alpha,'...
-                'minimum=%g\n'],min(weight));
+            warning(['fAlpha: obj function is non-convex over alpha,'...
+                'minimum=%g'],min(weight));
             str='';
         end
         
         s=Psit(alpha);
-        sqrtSSqrMu=sqrt(s.^2+muLustig);
+        sqrtSSqrMu=sqrt(s.^2+opt.muLustig);
         costLustig=sum(sqrtSSqrMu);
         difLustig=Psi(s./sqrtSSqrMu);
         
@@ -220,7 +215,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
             deltaAlpha=difAlpha+max(beta,0)*preP;
             deltaNormAlpha=difAlpha'*deltaAlpha;
             s1=deltaNormAlpha/atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,...
-                t3, Psit,muLustig,sqrtSSqrMu);
+                t3, Psit,opt.muLustig,sqrtSSqrMu);
             preP=deltaAlpha; preG=difAlpha;
             deltaAlpha=deltaAlpha*s1;
             deltaNormAlpha = deltaNormAlpha*s1;
@@ -234,7 +229,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         else maxStep=1;
         end
         
-        penalty=@(x) t1*penAlpha(x)+t3*sum(sqrt(Psit(x).^2+muLustig));
+        penalty=@(x) t1*penAlpha(x)+t3*sum(sqrt(Psit(x).^2+opt.muLustig));
         
         % start of line Search
         pp=0; stepSz=min(1,maxStep);
@@ -308,7 +303,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         out.deltaNormIe(p) = IeStep.deltaNormIe;
     end
     
-    if(p >= maxItr) break; end
+    if(p >= opt.maxItr) break; end
     if(out.llI(p)~=0) out.cost(p) = out.llI(p);
     else out.cost(p) = out.llAlpha(p); end
     if(~opt.skipAlpha && (isfield(out,'penAlpha')))
@@ -347,7 +342,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     
     if(figIe)
         set(0,'CurrentFigure',figIe);
-        plotSpectrum(Ie);
+        polymodel.plotSpectrum(Ie);
         title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end

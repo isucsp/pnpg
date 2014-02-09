@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 08:35:53 PM CST
+%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 05:23:29 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -35,7 +35,7 @@ end
 if(any(runList==21)) % dis, single AS step,
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
-    for j=1:length(aArray)
+    for j=4:length(aArray)
         opt.a = aArray(j);
         for i=1:length(intval)
             conf.theta = (0:intval(i):179)';
@@ -212,7 +212,7 @@ function [conf, opt] = defaultInit()
     conf = ConfigCT();
     conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
     conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-    conf.PhiPhitMode='basic'; %'filtered'; %'weighted'; %
+    conf.PhiMode='basic'; %'filtered'; %'weighted'; %
     conf.spark=0;
 
     % the higher, the more information. Set to 0 to turn off.
@@ -229,7 +229,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
+    opt.showImg=1;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;

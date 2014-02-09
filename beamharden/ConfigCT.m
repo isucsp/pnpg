@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Fri 07 Feb 2014 10:03:22 PM CST
+% $Revision: 0.2 $ $Date: Sun 09 Feb 2014 01:07:53 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -12,7 +12,7 @@ classdef ConfigCT < handle
         imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
         maskType = 'CircleMask';
 
-        PhiPhitMode = 'nufft'; %'gpu'; %'cpu'
+        PhiMode = 'basic'; %'gpu'; %'cpu'
         imgSize = 1024;
         prjWidth = 1024;
         theta = (0:179)';
@@ -104,7 +104,7 @@ classdef ConfigCT < handle
             obj.FBP=@(s) FBPFunc6(s,obj.theta,obj.Ts);
         end
         function genOperators(obj)
-            switch lower(obj.PhiPhitMode)
+            switch lower(obj.PhiMode)
                 case 'basic'
                     nufftOps(obj);
                 case 'gpu'
@@ -140,7 +140,7 @@ classdef ConfigCT < handle
                     Phit=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
                     FBP=Phit;
                 otherwise
-                    fprintf('Wrong mode for PhiPhitMode: %s\n',PhiPhitMode);
+                    fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                     return;
             end
         end
@@ -198,6 +198,8 @@ classdef ConfigCT < handle
                 case 'pellet'
                     loadPellet(obj);
             end
+
+            % before this, make sure max(CTdata)==1
             temp=size(obj.CTdata,1);
             obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),length(obj.theta));...
                 obj.CTdata;...
@@ -214,7 +216,7 @@ classdef ConfigCT < handle
             obj.trueImg=double(imread('binaryCasting.bmp'));
             [obj.CTdata,args] = genBeamHarden('showImg',false,...
                 'spark', obj.spark, 'trueImg',obj.trueImg, ...
-                'theta', obj.theta);
+                'theta', obj.theta, 'PhiMode',obj.PhiMode);
             obj.trueIota = args.iota(:);
             obj.epsilon = args.epsilon(:);
             obj.trueKappa = args.kappa(:);
