@@ -16,6 +16,7 @@ classdef ActiveSet < handle
         stepNum
         course = [];    % record the change of active set
         deltaNormIe
+        debugLevel = 7;
     end 
 
     methods
@@ -31,7 +32,7 @@ classdef ActiveSet < handle
         end
 
         function init(obj,Ie)
-            obj.Ie=obj.adjust(Ie);
+            obj.Ie = obj.adjust(Ie);
             obj.Q = (obj.B*Ie-obj.b<=obj.epsilon);
             obj.Z = null(obj.B(obj.Q,:),'r');
         end
@@ -47,7 +48,7 @@ classdef ActiveSet < handle
                     ppp=ppp+1;
                     zhz=obj.Z'*hessian*obj.Z; temp=min(eig(zhz));
                     if(temp<eps)
-                        zhz=zhz+abs(temp)*eye(size(zhz));
+                        zhz=zhz+abs(temp)*3*eye(size(zhz));
                     end
 
                     deltaIe=obj.Z*(zhz\(obj.Z'*grad));
@@ -69,7 +70,11 @@ classdef ActiveSet < handle
                         constrainMargin = obj.B*obj.Ie-obj.b;
                         if(any(constrainMargin<-eps))
                             display(obj.Ie);
-                            error('current Ie violate B*I>=b constraints');
+                            display(constrainMargin);
+                            if(obj.debugLevel)
+                                keyboard
+                            end
+                            warning('current Ie violate B*I>=b constraints');
                         end
                         temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));

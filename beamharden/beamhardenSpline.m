@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 12:13:54 PM CST
+%   $Revision: 0.3 $ $Date: Sat 08 Feb 2014 08:33:25 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -223,6 +223,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
                 t3, Psit,muLustig,sqrtSSqrMu);
             preP=deltaAlpha; preG=difAlpha;
             deltaAlpha=deltaAlpha*s1;
+            deltaNormAlpha = deltaNormAlpha*s1;
         end
         
         if(interiorPointAlpha)
@@ -246,20 +247,27 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
             [newCostB]=penalty(newX);
             newCost=newCostA+newCostB;
             
-            if(newCost <= cost - stepSz/2*difAlpha'*deltaAlpha)
+            if(newCost <= cost - stepSz/2*deltaNormAlpha)
+                out.llAlphaDif(p) = norm(alpha(:)-newX(:))^2;
+                out.llAlpha(p)=newCostA; out.penAlpha(p) = newCostB;
+                alpha = newX;
                 break;
             else
-                if(pp>10) stepSz=0; else stepSz=stepSz*stepShrnk; end
+                if(pp>10)
+                    out.llAlphaDif(p) = 0;
+                    out.llAlpha(p) = out.llAlpha(p-1);
+                    out.penAlpha(p) = out.penAlpha(p-1);
+                    newX
+                    break;
+                else
+                    stepSz=stepSz*stepShrnk;
+                end
             end
         end
         %end of line search
         
-        out.llAlphaDif(p) = norm(alpha(:)-newX(:))^2;
-        out.llAlpha(p)=newCostA; out.penAlpha(p) = newCostB;
         out.time(p)=toc;
         out.deltaNormAlpha(p)=deltaNormAlpha;
-        
-        alpha = newX;
         
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(interiorPointAlpha)
