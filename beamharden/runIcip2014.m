@@ -5,12 +5,12 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 12:10:33 PM CST
+%   $Revision: 0.2 $ $Date: Sat 08 Feb 2014 01:31:12 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
 if(~exist(filename,'file'))
-    save(filename,'');
+    save(filename,'filename');
 else
     load(filename);
 end
@@ -37,8 +37,7 @@ if(any(runList==21)) % dis, single AS step,
     aArray=[-6.5, -9:-4];
     for j=1:length(aArray)
         opt.a = aArray(j);
-        if(j==1) aaa=4; else aaa=1; end
-        for i=aaa:length(intval)
+        for i=1:length(intval)
             conf.theta = (0:intval(i):179)';
             opt=conf.setup(opt);
             prefix='BeamHard';
@@ -124,7 +123,8 @@ if(any(runList==25)) % b1, single AS step,
     aArray=[-6.5, -9:-4];
     for j=1:length(aArray)
         opt.a = aArray(j);
-        for i=1:length(intval)
+        if(j==1) aaa=2; else aaa=1; end
+        for i=aaa:length(intval)
             conf.theta = (0:intval(i):179)';
             opt=conf.setup(opt);
             prefix='BeamHard';
