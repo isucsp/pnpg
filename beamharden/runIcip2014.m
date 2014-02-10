@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 02:16:04 AM CST
+%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 02:43:09 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -93,7 +93,7 @@ if(any(runList==3)) %solve by Back Projection
 end
 
 if(any(runList==11)) % dis, single AS step,
-    intval = 6:-1:1; j=1; opt.maxItr=4;
+    intval = 6:-1:1; j=1;
     for i=1:length(intval)
         conf.theta = (0:intval(i):179)';
         opt=conf.setup(opt);
@@ -395,7 +395,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=1;
+    opt.showImg=0;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;
