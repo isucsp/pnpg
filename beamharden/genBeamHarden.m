@@ -62,6 +62,7 @@ function [CTdata, args] = genBeamHarden(varargin)
     args.iota = args.iota/temp;
 
     args.kappa = kappa;
+    args.s = PhiAlpha;
     CTdata=reshape(Imea,1024,[]);
     if(args.saveMat) save(filename,'CTdata'); end
 
