@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 01:32:01 AM CST
+%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 10:34:05 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -179,7 +179,8 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         
         if(min(weight)<=0)
             warning(['fAlpha: obj function is non-convex over alpha,'...
-                'minimum=%g'],min(weight));
+                '(%g,%g)'],min(weight),max(weight));
+            weight(weight<0)=0;
             str='';
         end
         
@@ -303,7 +304,6 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
         out.deltaNormIe(p) = IeStep.deltaNormIe;
     end
     
-    if(p >= opt.maxItr) break; end
     if(out.llI(p)~=0) out.cost(p) = out.llI(p);
     else out.cost(p) = out.llAlpha(p); end
     if(~opt.skipAlpha && (isfield(out,'penAlpha')))
@@ -362,6 +362,7 @@ while( ~((alphaReady || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
             out.deltaNormIe(p), zmf(1),zmf(2), out.IeSteps(p));
         fprintf([repmat('\b',1,strlen) '%s'],str);
     end
+    if(p >= opt.maxItr) break; end
 end
 out.llAlpha(p+1:end) = []; out.penAlpha(p+1:end) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];

@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 01:05:31 PM CST
+%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 10:52:57 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -35,16 +35,18 @@ if(any(runList==0)) % reserved for debug and for the best result
 end
 
 if(any(runList==3)) %solve by Back Projection
-    j=1; i=1;
-    prefix='BackProj';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    opt=conf.setup(opt);
-    out3.x_BackProj=conf.FBP(conf.y);
-    out3.res_BackProj=norm(conf.y-Phi(x_BackProj))/normy;
-    out3.Img2D_BackProj=reshape(x_BackProj,[my mx]);
-    out3.PSNR_BackProj(i,j,1)=psnr(Img2D(maskIdx),Img2D_BackProj(maskIdx),scaleM);
-    out3.PSNR_BackProj(i,j,2)=psnr(Img2D,Img2D_BackProj,scale);
-    save(filename,'out3','-append');
+    intval = 6:-1:1;
+    for i=1:length(intval)
+        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        out3{i}.img=conf.FBP(conf.y);
+        out3{i}.alpha=out3{i}.img(opt.mask~=0);
+        out3{i}.RSE=norm(conf.y-Phi(out3{i}.alpha)/norm(conf.y);
+        out3{i}.RMSE=1-(out3{i}.alpha'*opt.trueAlpha/norm(out3{i}.alpha)/norm(opt.trueAlpha))^2;
+        save(filename,'out3','-append');
+    end
+    [conf, opt] = defaultInit();
 end
 
 if(any(runList==21)) % dis, single AS step,

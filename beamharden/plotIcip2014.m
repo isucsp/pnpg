@@ -21,11 +21,10 @@ for i = 1:1
     end
 end
 
-%%
-
-style = {'b-','r-','b:','r:','b--','r--'};
+%% Find out that when a=-6.5, it give the lowest RSE
 for k=1:6
     eval(sprintf('out=out2%d;',k));
+    rse = zeros(size(out));
     for i=1:size(out,1)
         for j=1:size(out,2)
             if(~isempty(out{i,j}))
@@ -35,3 +34,5 @@ for k=1:6
     end
     eval(sprintf('rse2%d=rse;',k));
 end
+
+
