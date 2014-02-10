@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 10:34:05 PM CST
+%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 11:56:33 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -24,6 +24,8 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               make sure to add 1/2 to the likelihood
 %               Try by have less number of sampling points.
 %               use annihilating filter to do Ie estimation.
+%               use cpu version of operators
+%               optimize the form of Phi[t]Func51.m in subfuction
 %
 
 tic;

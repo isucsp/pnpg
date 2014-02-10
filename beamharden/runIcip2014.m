@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 10:52:57 PM CST
+%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 12:22:24 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -33,6 +33,46 @@ if(any(runList==0)) % reserved for debug and for the best result
     save(filename,'out0','-append');
     [conf, opt] = defaultInit();
 end
+
+if(any(runList==1))     % FPCAS
+    intval = 6:-1:1;
+    aArray=[-10:-4];
+    for i=aaa:length(intval)
+        for j=1:length(aArray)
+            opt.a = aArray(j);
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+
+    A=PhiM; At=PhiMt;
+    AO=A_operator(A,At);
+    for a=logspace(-12,-35,10) %[1e-10] %
+        j=j+1;
+        mu=a*max(abs(At(y)));
+        fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
+        opt=[];
+        load([dirname '/Img2D_BackProj_' num2str(i) '_1.mat']);
+        opt.x0=reshape(Wt(Img2D_BackProj),m,1); %zeros(m,1); %
+        %if(length(At(y))~=m) opt.x0=opt.x0(wvltIdx); end
+        %   opt.mxitr=maxitr;
+        %   opt.gtol=thresh*1e4;
+        %   opt.gtol_scale_x=thresh;
+        tic;
+        [s_FPCAS, outTmp] = FPC_AS(length(At(y)),AO,y,mu,[],opt);
+        t_FPCAS(i,j)=toc;
+        obj_FPCAS(i,j)=(norm(y-A(s_FPCAS))^2)/2+mu*sum(abs(s_FPCAS));
+        res_FPCAS(i,j)=norm(y-A(s_FPCAS))/normy;
+        Img2D_FPCAS=showImgMask(s_FPCAS,Mask); %W(s_FPCAS);
+        PSNR_FPCAS(i,j,1)=psnr(Img2D(maskIdx),Img2D_FPCAS(maskIdx),scaleM);
+        PSNR_FPCAS(i,j,2)=psnr(Img2D,Img2D_FPCAS,scale);
+        a_FPCAS(i,j)=a;
+        out_FPCAS{i,j}=outTmp;
+        if(saveImg)
+            save([dirname '/Img2D_' prefix '_' num2str(i) '_' num2str(j)...
+                '.mat'],'Img2D_FPCAS','y');
+                                                                                                                     imwrite(Img2D_FPCAS,[dirname '/Img2D_' prefix '_' num2str(i) '_'...
+                                                                                                                                 num2str(j) '.jpg'],'jpg');
+                                                                                                                                     end
+
 
 if(any(runList==3)) %solve by Back Projection
     intval = 6:-1:1;
@@ -166,7 +206,8 @@ if(any(runList==26)) % b1, max AS step,
     aArray=[-6.5, -9:-4];
     for j=1:length(aArray)
         opt.a = aArray(j);
-        for i=1:length(intval)
+        if(j==1) aaa=3; else aaa=1; end
+        for i=aaa:length(intval)
             conf.theta = (0:intval(i):179)';
             opt=conf.setup(opt);
             prefix='BeamHard';
