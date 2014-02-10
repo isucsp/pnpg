@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 12:22:24 AM CST
+%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 02:16:04 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -34,57 +34,164 @@ if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
 end
 
-if(any(runList==1))     % FPCAS
+if(any(runList==1)) % dis, single AS step,
+    intval = 6:-1:1; j=1;
+    opt.skipIe=true;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard known Ie';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out1{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out1','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==2))     % FPCAS
     intval = 6:-1:1;
     aArray=[-10:-4];
-    for i=aaa:length(intval)
+    for i=1:length(intval)
         for j=1:length(aArray)
+            fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
             opt.a = aArray(j);
             conf.theta = (0:intval(i):179)';
             opt=conf.setup(opt);
 
-    A=PhiM; At=PhiMt;
-    AO=A_operator(A,At);
-    for a=logspace(-12,-35,10) %[1e-10] %
-        j=j+1;
-        mu=a*max(abs(At(y)));
-        fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-        opt=[];
-        load([dirname '/Img2D_BackProj_' num2str(i) '_1.mat']);
-        opt.x0=reshape(Wt(Img2D_BackProj),m,1); %zeros(m,1); %
-        %if(length(At(y))~=m) opt.x0=opt.x0(wvltIdx); end
-        %   opt.mxitr=maxitr;
-        %   opt.gtol=thresh*1e4;
-        %   opt.gtol_scale_x=thresh;
-        tic;
-        [s_FPCAS, outTmp] = FPC_AS(length(At(y)),AO,y,mu,[],opt);
-        t_FPCAS(i,j)=toc;
-        obj_FPCAS(i,j)=(norm(y-A(s_FPCAS))^2)/2+mu*sum(abs(s_FPCAS));
-        res_FPCAS(i,j)=norm(y-A(s_FPCAS))/normy;
-        Img2D_FPCAS=showImgMask(s_FPCAS,Mask); %W(s_FPCAS);
-        PSNR_FPCAS(i,j,1)=psnr(Img2D(maskIdx),Img2D_FPCAS(maskIdx),scaleM);
-        PSNR_FPCAS(i,j,2)=psnr(Img2D,Img2D_FPCAS,scale);
-        a_FPCAS(i,j)=a;
-        out_FPCAS{i,j}=outTmp;
-        if(saveImg)
-            save([dirname '/Img2D_' prefix '_' num2str(i) '_' num2str(j)...
-                '.mat'],'Img2D_FPCAS','y');
-                                                                                                                     imwrite(Img2D_FPCAS,[dirname '/Img2D_' prefix '_' num2str(i) '_'...
-                                                                                                                                 num2str(j) '.jpg'],'jpg');
-                                                                                                                                     end
-
+            A = @(xx) conf.Phi(conf.Psi(xx));
+            At = @(yy) conf.Psit(conf.Phit(yy));
+            AO=A_operator(A,At);
+            mu=10^opt.a*max(abs(At(conf.y)));
+            option.x0=conf.FBP(conf.y);
+            option.x0 = conf.Psit(option.x0(opt.mask~=0));
+            [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+            out2{i,j}=out; out2{i,j}.alpha = conf.Psi(s);
+            out2{i,j}.opt = opt;
+            out2{i,j}.RMSE=1-(out2{i,j}.alpha'*opt.trueAlpha/norm(out2{i,j}.alpha)/norm(opt.trueAlpha))^2;
+            save(filename,'out2','-append');
+        end
+    end
+    [conf, opt] = defaultInit();
+end
 
 if(any(runList==3)) %solve by Back Projection
-    intval = 6:-1:1;
+    intval = 6:-1:1; j=1;
     for i=1:length(intval)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
         conf.theta = (0:intval(i):179)';
         opt=conf.setup(opt);
         out3{i}.img=conf.FBP(conf.y);
         out3{i}.alpha=out3{i}.img(opt.mask~=0);
-        out3{i}.RSE=norm(conf.y-Phi(out3{i}.alpha)/norm(conf.y);
+        out3{i}.RSE=norm(conf.y-conf.Phi(out3{i}.alpha))/norm(conf.y);
         out3{i}.RMSE=1-(out3{i}.alpha'*opt.trueAlpha/norm(out3{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out3','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==11)) % dis, single AS step,
+    intval = 6:-1:1; j=1; opt.maxItr=4;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out11{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out11','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==12)) % dis, max AS step,
+    opt.maxIeSteps = 100;
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out12{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out12','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==13)) % b0, single AS step,
+    opt.spectBasis = 'b0';
+    intval = 6:-1:1;
+    j=1;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out13{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out13','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==14)) % b0, max AS step,
+    opt.spectBasis = 'b0';
+    opt.maxIeSteps = 100;
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out14{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out14','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==15)) % b1, single AS step,
+    opt.spectBasis = 'b1';
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out15{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out15','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==16)) % b1, max AS step,
+    opt.spectBasis = 'b1';
+    opt.maxIeSteps = 100;
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out16{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out16','-append');
     end
     [conf, opt] = defaultInit();
 end

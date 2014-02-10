@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Fri 24 Jan 2014 09:58:42 AM CST
+% $Revision: 0.3 $ $Date: Mon 10 Feb 2014 02:19:22 AM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -11,6 +11,10 @@ a=a(1);
 [pathstr,~,~]=fileparts(a.file);
 addpath([pathstr '/subfunctions']);
 addpath([pathstr '/rwt']);
+addpath([pathstr '/FPC_AS']);
+addpath([pathstr '/FPC_AS/src']);
+addpath([pathstr '/FPC_AS/prob_gen']);
+addpath([pathstr '/FPC_AS/prob_gen/classes']);
 addpath([pathstr '/prj']);
 addpath([pathstr '/irt/nufft']);
 addpath([pathstr '/irt/systems']);

@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 09 Feb 2014 11:56:33 PM CST
+%   $Revision: 0.3 $ $Date: Mon 10 Feb 2014 02:13:53 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -103,12 +103,12 @@ Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
 if(opt.skipIe)
-    Ie=interp1(opt.trueKappa,opt.trueIota,mu(:),'spline');
+    Ie=interp1(opt.trueKappa(1:end-1),...
+        abs(opt.trueIota(1:end-1)...
+        .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
+        ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1))), ...
+        mu(:),'spline');
     Ie(Ie<0)=0;
-    epsilon=interp1(opt.trueKappa,opt.epsilon,mu(:),'spline');
-    deltaEpsilon=mean([epsilon(:) [epsilon(2:end); epsilon(end)]],2)-...
-        mean([epsilon(:) [epsilon(1); epsilon(1:end-1)]],2);
-    Ie=Ie.*abs(deltaEpsilon);
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
 if(isfield(opt,'t3'))
