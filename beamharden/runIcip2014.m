@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 05:44:34 AM CST
+%   $Revision: 0.2 $ $Date: Sun 09 Feb 2014 10:59:20 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -19,6 +19,21 @@ if(nargin==0) runList=3; end
 [conf, opt] = defaultInit();
 
 %%%%%%%%%%%%%%%%%%%%%%%%
+if(any(runList==0)) % reserved for debug and for the best result
+    i=1; j=1;
+    opt.spectBasis = 'b1';
+    opt.maxIeSteps = 100;
+    opt=conf.setup(opt);
+    prefix='BeamHard';
+    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    out0=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out0','-append');
+    [conf, opt] = defaultInit();
+end
+
 if(any(runList==3)) %solve by Back Projection
     j=1; i=1;
     prefix='BackProj';
@@ -231,7 +246,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
+    opt.showImg=1;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;
