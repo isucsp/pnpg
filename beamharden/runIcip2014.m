@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 02:43:09 AM CST
+%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 09:21:15 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -88,6 +88,49 @@ if(any(runList==3)) %solve by Back Projection
         out3{i}.RSE=norm(conf.y-conf.Phi(out3{i}.alpha))/norm(conf.y);
         out3{i}.RMSE=1-(out3{i}.alpha'*opt.trueAlpha/norm(out3{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out3','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==4))     % FPCAS after linearization
+    intval = 6:-1:1;
+    aArray=[-10:-4];
+    for i=1:length(intval)
+        for j=1:length(aArray)
+            fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
+            opt.a = aArray(j);
+            conf.theta = (0:intval(i):179)';
+            opt=conf.setup(opt);
+
+            A = @(xx) conf.Phi(conf.Psi(xx));
+            At = @(yy) conf.Psit(conf.Phit(yy));
+            AO=A_operator(A,At);
+            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+            mu=10^opt.a*max(abs(At(y)));
+            option.x0=conf.FBP(y);
+            option.x0 = conf.Psit(option.x0(opt.mask~=0));
+            [s, out] = FPC_AS(length(At(y)),AO,y,mu,[],option);
+            out4{i,j}=out; out4{i,j}.alpha = conf.Psi(s);
+            out4{i,j}.opt = opt;
+            out4{i,j}.RMSE=1-(out4{i,j}.alpha'*opt.trueAlpha/norm(out4{i,j}.alpha)/norm(opt.trueAlpha))^2;
+            save(filename,'out4','-append');
+        end
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==5)) %solve by Back Projection after linearization
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+        out5{i}.img=conf.FBP(y);
+        out5{i}.alpha=out5{i}.img(opt.mask~=0);
+        out5{i}.RSE=norm(y-conf.Phi(out5{i}.alpha))/norm(y);
+        out5{i}.RMSE=1-(out5{i}.alpha'*opt.trueAlpha/norm(out5{i}.alpha)/norm(opt.trueAlpha))^2;
+        save(filename,'out5','-append');
     end
     [conf, opt] = defaultInit();
 end
