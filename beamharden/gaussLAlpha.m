@@ -1,4 +1,4 @@
-function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,kappa,Phi,Phit,polyIout)
+function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,Phi,Phit,polyIout,obj)
     for i=1:size(alpha,2) R(:,i)=Phi(alpha(:,i)); end
     if(nargout>=3)
         [BLI,sBLI,ssBLI] = polyIout(R,Ie); %A=exp(-R*mu');
@@ -9,7 +9,9 @@ function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,kappa,Phi,Phit,polyIout)
     end
     Err=log(BLI./Imea);
     f=Err'*Err/2;
-    %zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
+    if(nargin>=7)
+        obj.zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
+    end
     if(nargout>=2)
         g=-Phit(Err.*sBLI./BLI);
         if(nargout>=3)

@@ -8,6 +8,7 @@ classdef ActiveSet < handle
         Q
         Z
         Ie
+        zmf
         maxStepNum = 1e2; % default max # of iterations
         thresh = 1e-14; % critera for convergence
         converged = false;
@@ -21,12 +22,12 @@ classdef ActiveSet < handle
     end 
 
     methods
-        function obj = ActiveSet(func, B, b, Ie, epsilon)
+        function obj = ActiveSet(B, b, Ie, epsilon)
             % Method help here
             if(nargin>0)
-                obj.func = func; obj.B = B; obj.b = b;
-                if(nargin>3)
-                    if(nargin>4) obj.epsilon = epsilon; end
+                obj.B = B; obj.b = b;
+                if(nargin>=3)
+                    if(nargin>=4) obj.epsilon = epsilon; end
                     obj.init(Ie);
                 end
             end
@@ -112,12 +113,13 @@ classdef ActiveSet < handle
                     obj.warned = true;
                 end
                 
-                % begin line search
-                ppp=0; stepSz=min(1,maxStep);
                 deltaNormIe=grad'*deltaIe;
                 if(deltaNormIe<obj.thresh)
                     obj.converged=true;
                 end
+
+                % begin line search
+                ppp=0; stepSz=min(1,maxStep);
                 while(~obj.converged)
                     ppp=ppp+1;
                     newIe=obj.Ie-stepSz*deltaIe;
@@ -144,9 +146,7 @@ classdef ActiveSet < handle
                     obj.course = [obj.course;...
                         sprintf('%s\n', char(obj.Q(:)'+'0') )];
                 end      
-                if(obj.converged)
-                    break;
-                end
+                if(obj.converged) break; end
             end
             obj.stepNum = pp;
             obj.deltaNormIe = deltaNormIe;

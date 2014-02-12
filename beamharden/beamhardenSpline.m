@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 09:42:00 PM CST
+%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 11:30:24 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -132,19 +132,17 @@ out.deltaNormIe=zeros(opt.maxItr,1);
 out.llAlphaDif=zeros(opt.maxItr,1);
 
 %max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
-llAlpha = @(aaa,III) gaussLAlpha(Imea,III,aaa,mu,Phi,Phit,polyIout);
-llI = @(AAA,III) gaussLI(Imea,AAA,III);
-
 if(interiorPointAlpha) 
     nonneg=@nonnegLogBarrier; 
 else 
     nonneg=@nonnegPen; 
 end
 if(prpCGAlpha)
-    alphaStep = ConjGrad(3);
+    alphaStep = ConjGrad(3,alpha);
     alphaStep.fArray{2} = nonneg;
-    alphaStep.fArray{3} = @lustigL1;
+    alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
     alphaStep.coef(1:2) = [1; 1];
+    alphaStep.maxStepNum = opt.maxAlphaSteps;
 end
 if(isfield(opt,'a'))
     PsitPhitz=Psit(Phit(y));
@@ -166,7 +164,7 @@ else
     Q = (B*Ie-b<1e-14);
     Z = null(B(Q,:),'r');
 
-    IeStep = ActiveSet(@(III) llI(polyIout(Phi(alpha)),III), B,b,Ie);
+    IeStep = ActiveSet(B,b,Ie);
     IeStep.maxStepNum = opt.maxIeSteps;
 end
 
@@ -180,13 +178,15 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
             t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
             t3 = t3*10^opt.a;
         end
-        alphaStep.fArray{1} = @(xxx) llAlpha(xxx,Ie);
+        alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
         alphaStep.coef(3) = t3;
         alphaStep.prCG();
         
-        alpha = alphaStep.alpha;
-        out.deltaNormAlpha(p)=deltaNormAlpha;
+        out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
+        out.deltaNormAlpha(p)=alphaStep.deltaNormAlpha;
         out.t3(p) = t3;
+
+        alpha = alphaStep.alpha;
         
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(isfield(opt,'trueAlpha'))
@@ -196,9 +196,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     % end optimizing over alpha
     
     %if(out.delta<=1e-4) maxPP=5; end
-    if(((~opt.skipAlpha && max(zmf(:))<1) || (opt.skipAlpha)) && ~opt.skipIe)
+    if(((~opt.skipAlpha && max(IeStep.zmf(:))<1) || (opt.skipAlpha)) && ~opt.skipIe)
         % update the object fuction w.r.t. Ie
-        IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
+        IeStep.func = @(III) gaussLI(Imea,polyIout(Phi(alpha),[]),III);
         IeStep.main();
         Ie = IeStep.Ie;
         out.llI(p) = IeStep.cost;
@@ -216,7 +216,6 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         out.cost(p) = out.cost(p) + out.penIe(p);
     end
     if(opt.showImg && p>1)
-        cost = 0;
         set(0,'CurrentFigure',figRes);
         if(~opt.skipAlpha)
             subplot(2,1,1);
@@ -227,9 +226,8 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         end
         if(~opt.skipIe)
             semilogy(p-1:p,out.llI(p-1:p),'r'); hold on;
-            cost = cost + out.llI(p);
             if(isfield(out,'penIe'))
-                semilogy(p,out.penIe(p),'m--');
+                semilogy(p-1:p,out.penIe(p-1:p),'m--');
             end
         end
         semilogy(p-1:p,out.cost(p-1:p),'k');
@@ -254,7 +252,7 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         %showImgMask(Qmask-Qmask1/2,opt.mask);
         %title(['size of Q=' num2str(length(Q))]);
-        title(sprintf('zmf=(%g,%g)', zmf(1), zmf(2)))
+        title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
         drawnow;
     end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
@@ -262,8 +260,8 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         strlen = length(str);
         str=sprintf('\np=%-4d cost=%-10g RSE=%-10g dAlpha=%-10g dIe=%-10g zmf=(%g,%g) IeSteps=%-3d',...
             p,out.cost(p),out.RMSE(p), out.deltaNormAlpha(p), ...
-            out.deltaNormIe(p), zmf(1),zmf(2), out.IeSteps(p));
-        if(alphaStep.warned || IeSteps.warned)
+            out.deltaNormIe(p), IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
+        if(alphaStep.warned || IeStep.warned)
             fprintf('%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
@@ -308,19 +306,16 @@ function [f,g,h] = nonnegPen(alpha)
         g=zeros(size(alpha));
         g(temp)=2*alpha(temp);
         if(nargout>=3)
-            h = @(xl,xr) hessian(xl,xr);
+            h = @(x,opt) hessian(x,opt);
         end
     end
-    function hh = hessian(xl,xr)
-        keyboard
-        if(isempty(xl))
-            y = xr(temp,:);
-            hh = y'*y*2;
-        elseif(xl==1)
-            hh = zeros(size(xr));
-            hh(temp,:) = xr(temp,:)*2;
+    function hh = hessian(x,opt)
+        if(opt==1)
+            hh = zeros(size(x));
+            hh(temp,:) = x(temp,:)*2;
         else
-            hh = xl(temp,:)'*xr(temp,:)*2;
+            y = x(temp,:);
+            hh = y'*y*2;
         end
     end
 end
@@ -340,14 +335,13 @@ function [f,g,h]=barrierIe(Ie)
     end
 end
 
-function [f,g,h] = lustigL1(alpha,xi,Psit)
+function [f,g,h] = lustigL1(alpha,xi,Psi,Psit)
     s=Psit(alpha);
     sqrtSSqrMu=sqrt(s.^2+xi);
     f=sum(sqrtSSqrMu);
     g=Psi(s./sqrtSSqrMu);
     h = @(x,opt) hessian(xi./(sqrtSSqrMu.^3),x,opt);
     function hh = hessian(weight,x,opt)
-        keyboard
         y = Psit(x);
         if(opt==1)
             hh = Psi(weight.*y);

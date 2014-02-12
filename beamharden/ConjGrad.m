@@ -1,40 +1,55 @@
 classdef ConjGrad < handle
     properties
         n = 3;
-        cgType = 'prp';
+        cgType = 'pr';
+        alpha
         fArray
         hArray
         coef
-        maxStepNum
+        thresh = 1e-8;
+        maxStepNum = 1e2;
+        stepNum
+        stepShrnk = 0.8;
         preG=1;
         preP=0;
+        cost
+        deltaNormAlpha
         PsitPhitz;
         PsitPhit1;
         converged = false;
+        warned = false;
     end
     methods
-        function obj = ConjGrad(n)
+        function obj = ConjGrad(n,alpha)
             if(nargin>0)
                 obj.n = n;
             end
             obj.fArray = cell(obj.n,1);
             obj.hArray = cell(obj.n,1);
             obj.coef = zeros(obj.n,1);
+            obj.alpha = alpha;
         end
 
-        function [f,g,h] = func(obj,alpha)
+        function [f,g,h] = func(obj,aaa)
             f = 0; g = 0;
             for i = 1:obj.n
-                [ftemp,gtemp,obj.hArray{i}] = obj.fArray{i}(obj.alpha);
+                [ftemp,gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
                 f = f+ftemp*obj.coef(i);
                 g = g+gtemp*obj.coef(i);
             end
             h = @(xxx,opt) hessian(xxx,opt);
             function hh = hessian(x,opt)
                 hh=0;
-                for i = 1:obj.n
-                    hh = hh + hArray{i}(x,opt)*obj.coef(i);
+                for j = 1:obj.n
+                    hh = hh + obj.hArray{j}(x,opt)*obj.coef(j);
                 end
+                if(hh<=0)
+                    warning(['fAlpha: obj function is non-convex over alpha,'...
+                        '%g'],hh);
+                    keyboard
+                    obj.warned = true;
+                end
+
             end
         end
 
@@ -44,23 +59,17 @@ classdef ConjGrad < handle
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.alpha);
 
-                if(min(weight)<=0)
-                    warning(['fAlpha: obj function is non-convex over alpha,'...
-                        '(%g,%g)'],min(weight),max(weight));
-                    obj.warned = true;
-                end
-
                 maxStep=1;
-                beta=grad'*(grad-preG)/(preG'*preG);
-                deltaAlpha=grad+max(beta,0)*preP;
-                deltaNormAlpha=grad'*deltaAlpha;
-                s1=deltaNormAlpha/hessian(deltaAlpha,2);
+                beta=grad'*(grad-obj.preG)/(obj.preG'*obj.preG);
+                deltaAlpha=grad+max(beta,0)*obj.preP;
+                obj.deltaNormAlpha=grad'*deltaAlpha;
+                s1=obj.deltaNormAlpha/hessian(deltaAlpha,2);
                 %atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,t3, Psit,opt.muLustig,sqrtSSqrMu);
-                preP = deltaAlpha; preG = grad;
+                obj.preP = deltaAlpha; obj.preG = grad;
                 deltaAlpha = deltaAlpha*s1;
-                deltaNormAlpha = deltaNormAlpha*s1;
+                obj.deltaNormAlpha = obj.deltaNormAlpha*s1;
 
-                if(deltaNormIe<obj.thresh)
+                if(obj.deltaNormAlpha<obj.thresh)
                     obj.converged=true;
                 end
 
@@ -68,29 +77,29 @@ classdef ConjGrad < handle
                 ppp=0; stepSz=min(1,maxStep);
                 while(~obj.converged)
                     ppp=ppp+1;
-                    newX=alpha-stepSz*deltaAlpha;
+                    newX=obj.alpha-stepSz*deltaAlpha;
                     %newX(newX<0)=0; % force it be positive;
                     newCost=obj.func(newX);
 
-                    if(newCost <= oldCost - stepSz/2*deltaNormAlpha)
-                        obj.difAlpha(p) = norm(obj.alpha(:)-newX(:))^2;
+                    if(newCost <= oldCost - stepSz/2*obj.deltaNormAlpha)
                         obj.alpha = newX;
+                        obj.cost = newCost;
                         break;
                     else
                         if(ppp>10)
-                            out.llAlphaDif(p) = 0;
-                            warning('exit iterations for higher convergence criteria: %g\n',deltaNormIe);
                             obj.cost = oldCost;
                             obj.warned = true;
                             obj.converged = true;
-
+                            warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormAlpha);
                         else
-                            stepSz=stepSz*stepShrnk;
+                            stepSz=stepSz*obj.stepShrnk;
                         end
                     end
                 end
                 %end of line search
+                if(obj.converged) break; end
             end
+            obj.stepNum = pp;
         end
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 
@@ -129,7 +138,7 @@ classdef ConjGrad < handle
                 maxStep=maxStep*0.99;
             end
             if(interiorPointAlpha)
-                if(deltaNormAlpha<1e-5)
+                if(obj.deltaNormAlpha<1e-5)
                     if(t1 < 1e-10/length(alpha))
                         alphaReady=1;
                     else
