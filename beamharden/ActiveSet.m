@@ -17,6 +17,7 @@ classdef ActiveSet < handle
         course = [];    % record the change of active set
         deltaNormIe
         debugLevel = 7;
+        warned = false;
     end 
 
     methods
@@ -76,6 +77,7 @@ classdef ActiveSet < handle
                                 keyboard
                             end
                             warning('current Ie violate B*I>=b constraints');
+                            obj.warned = true;
                         end
                         temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));
@@ -107,6 +109,7 @@ classdef ActiveSet < handle
                 if(ppp>=20)
                     warning('Cannot find stable active set, stop at: %s',...
                         sprintf('%s\n', char(obj.Q(:)'+'0') ));
+                    obj.warned = true;
                 end
                 
                 % begin line search

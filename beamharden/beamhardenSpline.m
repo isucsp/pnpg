@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 05:24:10 PM CST
+%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 09:42:00 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -111,18 +111,6 @@ if(opt.skipIe)
     Ie(Ie<0)=0;
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
-if(isfield(opt,'t3'))
-    t3=opt.t3; %abs(costA/costLustig)*1e-3;
-    out.t3=t3;
-end
-if(isfield(opt,'a'))
-    PsitPhitz=Psit(Phit(y));
-    PsitPhit1=Psit(Phit(ones(length(y),1)));
-end
-
-if(prpCGAlpha)
-    alphaStep = ConjGrad();
-end
 
 p=0; thresh=1e-4; str='';
 t1=0; thresh1=1e-8;
@@ -152,6 +140,17 @@ if(interiorPointAlpha)
 else 
     nonneg=@nonnegPen; 
 end
+if(prpCGAlpha)
+    alphaStep = ConjGrad(3);
+    alphaStep.fArray{2} = nonneg;
+    alphaStep.fArray{3} = @lustigL1;
+    alphaStep.coef(1:2) = [1; 1];
+end
+if(isfield(opt,'a'))
+    PsitPhitz=Psit(Phit(y));
+    PsitPhit1=Psit(Phit(ones(length(y),1)));
+end
+
 if(interiorPointIe)
     Ie(Ie<eps)=eps;
     while(sum(Ie)>1-eps)
@@ -171,34 +170,25 @@ else
     IeStep.maxStepNum = opt.maxIeSteps;
 end
 
-[costB,difphi,hphi]=nonneg(alpha);
-
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     p=p+1;
     
     % start optimize over alpha
     if(~opt.skipAlpha)
-        IeStep.func = @(III) llI(polyIout(Phi(alpha),[]),III);
-        IeStep.main();
-        Ie = IeStep.Ie;
-
-        alphaStep.setupFunc(1,@(xxx) llAlpha(xxx,Ie));
-        alphaStep.main();
+        if(~isfield(opt,'t3'))
+            [temp,temp1]=polyIout(0,Ie);
+            t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
+            t3 = t3*10^opt.a;
+        end
+        alphaStep.fArray{1} = @(xxx) llAlpha(xxx,Ie);
+        alphaStep.coef(3) = t3;
+        alphaStep.prCG();
         
-        out.time(p)=toc;
+        alpha = alphaStep.alpha;
         out.deltaNormAlpha(p)=deltaNormAlpha;
+        out.t3(p) = t3;
         
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
-        if(deltaNormAlpha< thresh1)
-            if(t1 < 1e2) 
-                t1=t1*10;
-            else alphaReady=1;
-            end
-        else
-            if(stepSz==0)
-                t1=max(1,t1/10);
-            end
-        end
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
         end
@@ -273,10 +263,16 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         str=sprintf('\np=%-4d cost=%-10g RSE=%-10g dAlpha=%-10g dIe=%-10g zmf=(%g,%g) IeSteps=%-3d',...
             p,out.cost(p),out.RMSE(p), out.deltaNormAlpha(p), ...
             out.deltaNormIe(p), zmf(1),zmf(2), out.IeSteps(p));
-        fprintf([repmat('\b',1,strlen) '%s'],str);
+        if(alphaStep.warned || IeSteps.warned)
+            fprintf('%s',str);
+        else
+            fprintf([repmat('\b',1,strlen) '%s'],str);
+        end
     end
     if(p >= opt.maxItr) break; end
+    out.time(p)=toc;
 end
+
 out.llAlpha(p+1:end) = []; out.nonneg(p+1:end) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
 out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
@@ -308,9 +304,25 @@ end
 function [f,g,h] = nonnegPen(alpha)
     temp=(alpha<0);
     f=alpha(temp)'*alpha(temp);
-    g=2*alpha;
-    g(~temp)=0;
-    h=2*ones(size(g)); h(~temp)=0;
+    if(nargout>=2)
+        g=zeros(size(alpha));
+        g(temp)=2*alpha(temp);
+        if(nargout>=3)
+            h = @(xl,xr) hessian(xl,xr);
+        end
+    end
+    function hh = hessian(xl,xr)
+        keyboard
+        if(isempty(xl))
+            y = xr(temp,:);
+            hh = y'*y*2;
+        elseif(xl==1)
+            hh = zeros(size(xr));
+            hh(temp,:) = xr(temp,:)*2;
+        else
+            hh = xl(temp,:)'*xr(temp,:)*2;
+        end
+    end
 end
 
 function [f,g,h]=barrierIe(Ie)
@@ -336,46 +348,12 @@ function [f,g,h] = lustigL1(alpha,xi,Psit)
     h = @(x,opt) hessian(xi./(sqrtSSqrMu.^3),x,opt);
     function hh = hessian(weight,x,opt)
         keyboard
-        y = Psit(x); hh = weight.*y;
+        y = Psit(x);
         if(opt==1)
-            hh = Psi(hh);
+            hh = Psi(weight.*y);
         else
-            hh = y'*hh;
+            hh = y'*(weight.*y);
         end
     end
 end
-
-function  h=atHessianA(gAlpha,weight,t1hphi,Phi,Phit,t3,Psit,muLustig,s1)
-    temp=Phi(gAlpha);
-    h=2*temp'*(weight.*temp);
-    h=h+gAlpha'*(t1hphi.*gAlpha);
-    if(nargin>5)
-        temp=Psit(gAlpha);
-        h=h+t3*muLustig*(s1.^(-3))'*(temp.^2);
-    end
-end
-
-function h=hessianA(gAlpha,weight,t1hphi,Phi,Phit)
-    temp=Phi(gAlpha);
-    h=2*Phit(weight.*temp);
-    h=h+(t1hphi.*gAlpha);
-end
-
-function [f,g,h] = objectiveF(obj)
-    fval = zeros(size(fArray));
-    gval = zeros(length(x),length(fArray));
-    hval = cell(size(fArray));
-    for i = 1:length(fArray)
-        [fval(i),gval(:,i),hval{i}] = obj.fArray{i}(obj.alpha);
-    end
-    f = fval*coef; g = gval*coeff;
-    h = @(xxx,opt) hessian(xxx,opt);
-    function hh = hessian(x,opt)
-        hh=0;
-        for i = 1:length(fArray)
-            hh = hh + hval{i}(x,opt);
-        end
-    end
-end
-
 

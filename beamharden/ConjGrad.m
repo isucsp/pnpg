@@ -1,23 +1,44 @@
 classdef ConjGrad < handle
     properties
+        n = 3;
         cgType = 'prp';
-        func
         fArray
+        hArray
         coef
+        maxStepNum
         preG=1;
         preP=0;
+        PsitPhitz;
+        PsitPhit1;
         converged = false;
     end
     methods
-        function obj = ConjGrad()
-            fval = zeros(3,length(fArray));
-            if(~isfield(opt,'t3'))
-                [temp,temp1]=polyIout(0,Ie);
-                t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
-                t3=t3*10^opt.a; out.t3 = t3;
+        function obj = ConjGrad(n)
+            if(nargin>0)
+                obj.n = n;
+            end
+            obj.fArray = cell(obj.n,1);
+            obj.hArray = cell(obj.n,1);
+            obj.coef = zeros(obj.n,1);
+        end
+
+        function [f,g,h] = func(obj,alpha)
+            f = 0; g = 0;
+            for i = 1:obj.n
+                [ftemp,gtemp,obj.hArray{i}] = obj.fArray{i}(obj.alpha);
+                f = f+ftemp*obj.coef(i);
+                g = g+gtemp*obj.coef(i);
+            end
+            h = @(xxx,opt) hessian(xxx,opt);
+            function hh = hessian(x,opt)
+                hh=0;
+                for i = 1:obj.n
+                    hh = hh + hArray{i}(x,opt)*obj.coef(i);
+                end
             end
         end
-        function main(obj)
+
+        function prCG(obj)
             pp=0; obj.converged = false; obj.warned = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
@@ -26,15 +47,14 @@ classdef ConjGrad < handle
                 if(min(weight)<=0)
                     warning(['fAlpha: obj function is non-convex over alpha,'...
                         '(%g,%g)'],min(weight),max(weight));
-                    weight(weight<0)=0;
-                    str='';
+                    obj.warned = true;
                 end
 
                 maxStep=1;
                 beta=grad'*(grad-preG)/(preG'*preG);
                 deltaAlpha=grad+max(beta,0)*preP;
                 deltaNormAlpha=grad'*deltaAlpha;
-                s1=deltaNormAlpha/h(deltaAlpha,2);
+                s1=deltaNormAlpha/hessian(deltaAlpha,2);
                 %atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,t3, Psit,opt.muLustig,sqrtSSqrMu);
                 preP = deltaAlpha; preG = grad;
                 deltaAlpha = deltaAlpha*s1;
@@ -63,7 +83,7 @@ classdef ConjGrad < handle
                             obj.cost = oldCost;
                             obj.warned = true;
                             obj.converged = true;
-                            
+
                         else
                             stepSz=stepSz*stepShrnk;
                         end
@@ -121,4 +141,5 @@ classdef ConjGrad < handle
 
         end
     end
+end
 

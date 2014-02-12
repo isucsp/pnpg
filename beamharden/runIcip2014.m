@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 11 Feb 2014 11:04:01 AM CST
+%   $Revision: 0.2 $ $Date: Tue 11 Feb 2014 09:42:13 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -439,7 +439,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=1;
+    opt.showImg=0;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;
