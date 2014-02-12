@@ -39,6 +39,7 @@ classdef ActiveSet < handle
 
         function main(obj)
             pp=0; obj.converged = false; obj.course = [];
+            obj.warned = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
@@ -46,13 +47,13 @@ classdef ActiveSet < handle
                 k = -1*ones(20,1); q = k;
                 while(ppp<20)
                     ppp=ppp+1;
-                    zhz=obj.Z'*hessian*obj.Z; temp=eig(zhz);
-                    if(min(temp)/max(temp)<obj.epsilon)
-                        zhz=zhz+(max(temp)*obj.epsilon-min(temp))*eye(size(zhz));
+                    zhz=hessian(obj.Z,2);
+                    if(min(eig(zhz))<0)
+                        keyboard
                     end
 
                     deltaIe=obj.Z*(zhz\(obj.Z'*grad));
-                    nextGrad=grad-hessian*deltaIe;
+                    nextGrad=grad-hessian(deltaIe,1);
                     temp=(obj.B(obj.Q,:)*obj.B(obj.Q,:)')\obj.B(obj.Q,:)*nextGrad;
                     lambda=ones(size(obj.Q)); lambda(obj.Q)=temp;
 
@@ -95,6 +96,7 @@ classdef ActiveSet < handle
                                 obj.course = [obj.course;...
                                     sprintf('%s\n', char(obj.Q(:)'+'0') )];
                             else
+                                obj.converged=true;
                                 break;
                             end
                         else
@@ -126,7 +128,8 @@ classdef ActiveSet < handle
                         if(ppp>10)
                             obj.cost = oldCost;
                             obj.converged=true;
-                            warning('WARNING: exit iterations for higher convergence criteria: %g\n',deltaNormIe);
+                            warning('exit iterations for higher convergence criteria: %g\n',deltaNormIe);
+                            obj.warned = true;
                         else stepSz=stepSz*obj.stepShrnk;
                         end
                     end

@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 10 Feb 2014 09:21:15 PM CST
+%   $Revision: 0.2 $ $Date: Tue 11 Feb 2014 11:04:01 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -14,15 +14,16 @@ if(~exist(filename,'file'))
 else
     load(filename);
 end
-if(nargin==0) runList=3; end
+if(nargin==0) runList=0; end
 
 [conf, opt] = defaultInit();
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
-    opt.spectBasis = 'b1';
+    opt.spectBasis = 'b0';
     opt.maxIeSteps = 100;
+    %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
     prefix='BeamHard';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
@@ -438,7 +439,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
+    opt.showImg=1;
     opt.visible=1;
     opt.skipAlpha=0;
     opt.maxIeSteps = 1;
