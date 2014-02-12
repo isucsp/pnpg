@@ -4,6 +4,7 @@ classdef ConjGrad < handle
         cgType = 'pr';
         alpha
         fArray
+        fVal
         hArray
         coef
         thresh = 1e-8;
@@ -25,18 +26,19 @@ classdef ConjGrad < handle
                 obj.n = n;
             end
             obj.fArray = cell(obj.n,1);
+            obj.fVal = zeros(obj.n,1);
             obj.hArray = cell(obj.n,1);
             obj.coef = zeros(obj.n,1);
             obj.alpha = alpha;
         end
 
         function [f,g,h] = func(obj,aaa)
-            f = 0; g = 0;
+            g = 0;
             for i = 1:obj.n
-                [ftemp,gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
-                f = f+ftemp*obj.coef(i);
+                [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
                 g = g+gtemp*obj.coef(i);
             end
+            f = obj.fVal'*obj.coef;
             h = @(xxx,opt) hessian(xxx,opt);
             function hh = hessian(x,opt)
                 hh=0;

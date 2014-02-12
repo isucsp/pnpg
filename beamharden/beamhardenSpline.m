@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 11:30:24 PM CST
+%   $Revision: 0.3 $ $Date: Tue 11 Feb 2014 11:52:27 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -120,13 +120,14 @@ if(interiorPointIe)
 else thresh2=1e-8; end
 
 out.llAlpha=zeros(opt.maxItr,1);
-out.nonneg=zeros(opt.maxItr,1);
-out.llI=zeros(opt.maxItr,1);
-out.cost=zeros(opt.maxItr,1);
+out.llI    =zeros(opt.maxItr,1);
+out.nonneg =zeros(opt.maxItr,1);
+out.l1Pen  =zeros(opt.maxItr,1);
+out.cost   =zeros(opt.maxItr,1);
 out.course = cell(opt.maxItr,1);
-out.time=zeros(opt.maxItr,1);
-out.IeSteps = zeros(opt.maxItr,1);
-out.RMSE=zeros(opt.maxItr,1);
+out.time   =zeros(opt.maxItr,1);
+out.IeSteps=zeros(opt.maxItr,1);
+out.RMSE   =zeros(opt.maxItr,1);
 out.deltaNormAlpha=zeros(opt.maxItr,1);
 out.deltaNormIe=zeros(opt.maxItr,1);
 out.llAlphaDif=zeros(opt.maxItr,1);
@@ -182,6 +183,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         alphaStep.coef(3) = t3;
         alphaStep.prCG();
         
+        out.llAlpha(p) = out.fVal(1);
+        out.nonneg(p) = out.fVal(2);
+        out.l1Pen(p) = out.fVal(3);
         out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
         out.deltaNormAlpha(p)=alphaStep.deltaNormAlpha;
         out.t3(p) = t3;
@@ -212,6 +216,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     if(~opt.skipAlpha && (isfield(out,'nonneg')))
         out.cost(p) = out.cost(p) + out.nonneg(p);
     end
+    if(~opt.skipAlpha && (isfield(out,'l1Pen')))
+        out.cost(p) = out.cost(p) + out.l1Pen(p);
+    end
     if(~opt.skipIe && isfield(out,'penIe'))
         out.cost(p) = out.cost(p) + out.penIe(p);
     end
@@ -223,11 +230,14 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
             if (isfield(out,'nonneg'))
                 semilogy(p-1:p,out.nonneg(p-1:p),'b--');
             end
+            if (isfield(out,'l1Pen'))
+                semilogy(p-1:p,out.l1Pen(p-1:p),'c-.');
+            end
         end
         if(~opt.skipIe)
             semilogy(p-1:p,out.llI(p-1:p),'r'); hold on;
             if(isfield(out,'penIe'))
-                semilogy(p-1:p,out.penIe(p-1:p),'m--');
+                semilogy(p-1:p,out.penIe(p-1:p),'m:');
             end
         end
         semilogy(p-1:p,out.cost(p-1:p),'k');
