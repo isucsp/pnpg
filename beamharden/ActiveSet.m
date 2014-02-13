@@ -126,7 +126,8 @@ classdef ActiveSet < handle
                     newIe=obj.Ie-stepSz*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if(newCost <= oldCost - stepSz/2*obj.deltaNormIe)
+                    if((newCost <= oldCost - stepSz/2*obj.deltaNormIe)...
+                            || (ppp>10 && newCost < oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;
                         if(stepSz==maxStep)
@@ -138,11 +139,16 @@ classdef ActiveSet < handle
                         break;
                     else
                         if(ppp>10)
-                            obj.cost = oldCost;
                             warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
+                            if(oldCost>=obj.cost)
+                                obj.converged = true;
+                            else
+                                obj.cost = oldCost;
+                            end
                             needBreak = true;
                             obj.warned = true;
-                        else stepSz=stepSz*obj.stepShrnk;
+                        else
+                            stepSz=stepSz*obj.stepShrnk;
                         end
                     end
                 end

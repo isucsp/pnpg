@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Wed 12 Feb 2014 11:19:41 PM CST
+%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 12:20:47 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -39,7 +39,7 @@ if(any(runList==1)) % dis, single AS step,
     intval = 6:-1:1; j=1;
     opt.spectBasis = 'dis';
     opt.skipIe=true;
-    for i=6:length(intval)
+    for i=1:length(intval)
         conf.theta = (0:intval(i):179)';
         opt=conf.setup(opt);
         prefix='BeamHard known Ie';
@@ -133,6 +133,42 @@ if(any(runList==5)) %solve by Back Projection after linearization
         out5{i}.RSE=norm(y-conf.Phi(out5{i}.alpha))/norm(y);
         out5{i}.RMSE=1-(out5{i}.alpha'*opt.trueAlpha/norm(out5{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out5','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==6)) % b0, known Ie,
+    intval = 6:-1:1; j=1;
+    opt.spectBasis = 'b0';
+    opt.skipIe=true;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard known Ie';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out6{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out6','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==7)) % b1, known Ie,
+    intval = 6:-1:1; j=1;
+    opt.spectBasis = 'b1';
+    opt.skipIe=true;
+    for i=1:length(intval)
+        conf.theta = (0:intval(i):179)';
+        opt=conf.setup(opt);
+        prefix='BeamHard known Ie';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out7{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out7','-append');
     end
     [conf, opt] = defaultInit();
 end
@@ -441,7 +477,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=1;
+    opt.showImg=0;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;

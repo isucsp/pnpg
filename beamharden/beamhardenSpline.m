@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 12 Feb 2014 11:35:51 PM CST
+%   $Revision: 0.3 $ $Date: Thu 13 Feb 2014 12:09:21 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -103,7 +103,6 @@ Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
 if(opt.skipIe)  % it is better to use dis or b-1 spline
-    keyboard
     opt.trueUpiota=abs(opt.trueIota(1:end-1)...
         .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
         ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1)));
@@ -187,9 +186,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
             [temp,temp1]=polyIout(0,Ie);
             t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
             t3 = t3*10^opt.a;
+            alphaStep.coef(3) = t3;
         end
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
-        alphaStep.coef(3) = t3;
         alphaStep.prCG();
         
         out.llAlpha(p) = alphaStep.fVal(1)*alphaStep.coef(1);

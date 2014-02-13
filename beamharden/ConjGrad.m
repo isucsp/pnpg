@@ -92,25 +92,27 @@ classdef ConjGrad < handle
 
                 % start of line Search
                 ppp=0; stepSz=min(1,maxStep);
-                while(true)
+                while(~obj.converged && ~needBreak)
                     ppp=ppp+1;
                     newX=obj.alpha-stepSz*deltaAlpha;
                     %newX(newX<0)=0; % force it be positive;
                     newCost=obj.func(newX);
 
-                    if(newCost <= oldCost - stepSz/2*obj.deltaNormAlpha)
+                    if((newCost <= oldCost - stepSz/2*obj.deltaNormAlpha)...
+                            || (ppp>10 && newCost < oldCost))
                         obj.alpha = newX;
                         obj.cost = newCost;
                         break;
                     else
-                        if(ppp==9) keyboard
-                        end
                         if(ppp>10)
-                            obj.cost = oldCost;
+                            warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormAlpha);
+                            if(oldCost>=obj.cost)
+                                obj.converged = true;
+                            else
+                                obj.cost = oldCost;
+                            end
                             obj.warned = true;
                             needBreak = true;
-                            warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormAlpha);
-                            break;
                         else
                             stepSz=stepSz*obj.stepShrnk;
                         end
