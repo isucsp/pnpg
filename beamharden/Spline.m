@@ -133,6 +133,7 @@ classdef Spline < handle
             % for b1-spline, length(I)=length(k)-1;
             % B-1 spline with nodes be k
 
+            % The accuracy will be at least 100*EPS% of the value at s=0
             EPS=1e-6;
             if(nargin==0)       % start to test
                 k = logspace(log10(0.001),log10(30),100);
@@ -168,6 +169,7 @@ classdef Spline < handle
                 -(a^4-b^4)/(24*(a-b))+(b^4-c^4)/(24*(b-c));
                 (a^5-b^5)/(120*(a-b))-(b^5-c^5)/(120*(b-c));
                 ];
+                % The accuracy will be at least 100*EPS% of the value at s=0
                 temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                 idx = abss<temp2;
                 temp(idx) = temp1(1)+temp1(2)*s(idx);

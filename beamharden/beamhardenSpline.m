@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 12 Feb 2014 11:33:47 PM CST
+%   $Revision: 0.3 $ $Date: Wed 12 Feb 2014 11:35:51 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -120,6 +120,7 @@ if(opt.skipIe)  % it is better to use dis or b-1 spline
         Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
             mu(2:end-1),'spline');
     end
+    % there will be some points interplated negative and need to be removed
     Ie(Ie<0)=0;
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
