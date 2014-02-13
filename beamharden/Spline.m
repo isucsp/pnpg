@@ -127,7 +127,7 @@ classdef Spline < handle
             EPS=1e-12;
             if(nargin==0)       % start to test
                 k = logspace(log10(0.001),log10(30),100);
-                s = -0.1:0.001:10;
+                s = -0.01:0.000001:0.01;
                 [BL, sBL, ssBL] = Spline.b1Iout(k,s,[]);
                 figure; semilogy(s,BL);
                 figure; semilogy(s,sBL);
@@ -270,7 +270,7 @@ classdef Spline < handle
             if(~isempty(I))
                 BL = zeros(length(s),1);
             else
-                BL = zeros(length(s),length(kappa)-1);
+                BL = zeros(length(s),length(kappa));
             end
             if(nargout>1) sBL = BL; end
             if(nargout>2) ssBL = BL; end
@@ -293,7 +293,6 @@ classdef Spline < handle
             end
         end
 
-
         function plotB1Upiota(trueMu, trueUpiota, mu, Ie)
             loglog(trueMu,trueUpiota,'r.-'); hold on;
             loglog(mu,[0; Ie; 0],'*-'); hold off;
@@ -313,12 +312,8 @@ classdef Spline < handle
 
         function plotDisUpiota(trueMu, trueUpiota, mu, Ie)
             loglog(trueMu,trueUpiota,'r.-'); hold on;
-            temp=[mu(:); mu(end)^2/mu(end-1)];
-            mu=reshape([temp';temp'],[],1);
-            mu(1)=[]; mu(end)=[];
-            temp=temp(2:end)-temp(1:end-1);
+            temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
             Ie = Ie./temp;
-            Ie=reshape([Ie(:)';Ie(:)'],[],1);
             loglog(mu,Ie,'*-'); hold off;
             %ylim([1e-10 1]);
             xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);

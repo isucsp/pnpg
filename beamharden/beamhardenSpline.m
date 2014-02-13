@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 12 Feb 2014 12:13:19 AM CST
+%   $Revision: 0.3 $ $Date: Wed 12 Feb 2014 05:59:46 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -73,8 +73,8 @@ switch lower(opt.sampleMode)
         temp=logspace(-floor((opt.E-1)/2)/(opt.E-1)*opt.logspan,...
             floor(opt.E/2)/(opt.E-1)*opt.logspan,opt.E);
         Ie(floor(opt.E/2+0.5))=1;
-        if(strcmp(opt.spectBasis,'b0'))
-            temp = [temp(1)^2/temp(2); temp(:)];
+        if(strcmp(opt.spectBasis,'b0')) % extend to bigger end
+            temp = [temp(:); temp(end)^2/temp(end-1)];
         elseif(strcmp(opt.spectBasis,'b1'))
             temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
         end
@@ -102,12 +102,31 @@ Ie = Ie*0;
 Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 % find the best intial Ie ends
-if(opt.skipIe)
-    Ie=interp1(opt.trueKappa(1:end-1),...
-        abs(opt.trueIota(1:end-1)...
-        .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-        ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1))), ...
-        mu(:),'spline');
+if(opt.skipIe)  % it is better to use dis or b-1 spline
+    if(strcmp(opt.spectBasis,'dis'))
+        % extend to bigger end
+        keyboard
+        % number of point is suspicious
+        Ie=interp1(opt.trueKappa(1:end-1),...
+            abs(opt.trueIota(1:end-1)...
+            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
+            ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1))), ...
+            mu(:),'spline');
+        temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
+        Ie = Ie.*temp;
+    elseif(strcmp(opt.spectBasis,'b0'))
+        Ie=interp1(opt.trueKappa(1:end-1),...
+            abs(opt.trueIota(1:end-1)...
+            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
+            ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1))), ...
+            mu(1:end-1),'spline');
+    elseif(strcmp(opt.spectBasis,'b1'))
+        Ie=interp1(opt.trueKappa(1:end-1),...
+            abs(opt.trueIota(1:end-1)...
+            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
+            ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1))), ...
+            mu(2:end-1),'spline');
+    end
     Ie(Ie<0)=0;
 end
 if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
@@ -161,10 +180,6 @@ if(interiorPointIe)
 else
     temp = polyIout(0,[]);
     B=[eye(opt.E); -temp(:)'/norm(temp)]; b=[zeros(opt.E,1); -1/norm(temp)];
-    if(B(end,:)*Ie<b(end)) Ie=b(end)/(B(end,:)*Ie)*Ie; end
-    Q = (B*Ie-b<1e-14);
-    Z = null(B(Q,:),'r');
-
     IeStep = ActiveSet(B,b,Ie);
     IeStep.maxStepNum = opt.maxIeSteps;
 end
@@ -183,9 +198,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         alphaStep.coef(3) = t3;
         alphaStep.prCG();
         
-        out.llAlpha(p) = alphaStep.fVal(1);
-        out.nonneg(p) = alphaStep.fVal(2);
-        out.l1Pen(p) = alphaStep.fVal(3);
+        out.llAlpha(p) = alphaStep.fVal(1)*alphaStep.coef(1);
+        out.nonneg(p) = alphaStep.fVal(2)*alphaStep.coef(2);
+        out.l1Pen(p) = alphaStep.fVal(3)*alphaStep.coef(3);
         out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
         out.deltaNormAlpha(p)=alphaStep.deltaNormAlpha;
         out.t3(p) = t3;
@@ -210,7 +225,7 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         out.course{p} = IeStep.course;
         out.deltaNormIe(p) = IeStep.deltaNormIe;
     end
-    
+
     if(out.llI(p)~=0) out.cost(p) = out.llI(p);
     else out.cost(p) = out.llAlpha(p); end
     if(~opt.skipAlpha && (isfield(out,'nonneg')))
@@ -226,26 +241,26 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         set(0,'CurrentFigure',figRes);
         if(~opt.skipAlpha)
             subplot(2,1,1);
-            semilogy(p-1:p,out.llAlpha(p-1:p),'g'); hold on;
+            loglog(p-1:p,out.llAlpha(p-1:p),'g'); hold on;
             if (isfield(out,'nonneg'))
-                semilogy(p-1:p,out.nonneg(p-1:p),'b--');
+                loglog(p-1:p,out.nonneg(p-1:p),'b--');
             end
             if (isfield(out,'l1Pen'))
-                semilogy(p-1:p,out.l1Pen(p-1:p),'c-.');
+                loglog(p-1:p,out.l1Pen(p-1:p),'c-.');
             end
         end
         if(~opt.skipIe)
-            semilogy(p-1:p,out.llI(p-1:p),'r'); hold on;
+            loglog(p-1:p,out.llI(p-1:p),'r'); hold on;
             if(isfield(out,'penIe'))
-                semilogy(p-1:p,out.penIe(p-1:p),'m:');
+                loglog(p-1:p,out.penIe(p-1:p),'m:');
             end
         end
-        semilogy(p-1:p,out.cost(p-1:p),'k');
+        loglog(p-1:p,out.cost(p-1:p),'k');
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
         if(~opt.skipAlpha && isfield(opt,'trueAlpha'))
             subplot(2,1,2);
-            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
+            loglog(p-1:p,out.RMSE(p-1:p)); hold on;
             title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
         end
         drawnow;

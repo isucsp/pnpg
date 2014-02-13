@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Wed 12 Feb 2014 12:12:15 AM CST
+%   $Revision: 0.2 $ $Date: Wed 12 Feb 2014 05:34:26 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -21,7 +21,7 @@ if(nargin==0) runList=0; end
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
-    opt.spectBasis = 'b0';
+    %opt.spectBasis = 'b1';
     opt.maxIeSteps = 100;
     %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
@@ -37,8 +37,9 @@ end
 
 if(any(runList==1)) % dis, single AS step,
     intval = 6:-1:1; j=1;
+    opt.spectBasis = 'dis';
     opt.skipIe=true;
-    for i=1:length(intval)
+    for i=6:length(intval)
         conf.theta = (0:intval(i):179)';
         opt=conf.setup(opt);
         prefix='BeamHard known Ie';
@@ -400,7 +401,7 @@ if(any(runList==20)) % beamhardening with refinement
     end
 end
 
-if(any(runList==0))
+if(any(runList==1000))
     servers={'linux-3', 'research-4'}
     for i=1:length(servers)
         eval(['!scp ' servers{i} ':/local/renliang/imgRecSrc/beamharden/' filename ' temp.mat']);
@@ -436,17 +437,17 @@ function [conf, opt] = defaultInit()
     %opt.muRange=[0.03 30];
     opt.logspan=3;
     opt.sampleMode='logspan'; %'assigned'; %'exponential'; %
+    opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
+    opt.showImg=1;
     opt.visible=1;
-    opt.skipAlpha=0;
-    opt.maxIeSteps = 1;
-    opt.maxAlphaSteps = 1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
     opt.muLustig=1e-13; % logspace(-15,-6,5);
+    opt.skipAlpha=0;
+    opt.maxAlphaSteps = 1;
     opt.skipIe=0;
-    opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
+    opt.maxIeSteps = 1;
 end
