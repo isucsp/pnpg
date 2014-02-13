@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 09 Feb 2014 01:07:53 AM CST
+% $Revision: 0.2 $ $Date: Thu 13 Feb 2014 08:46:31 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -13,6 +13,7 @@ classdef ConfigCT < handle
         maskType = 'CircleMask';
 
         PhiMode = 'basic'; %'gpu'; %'cpu'
+        PhiModeGen = 'cpuPar';
         imgSize = 1024;
         prjWidth = 1024;
         theta = (0:179)';
@@ -216,7 +217,7 @@ classdef ConfigCT < handle
             obj.trueImg=double(imread('binaryCasting.bmp'));
             [obj.CTdata,args] = genBeamHarden('showImg',false,...
                 'spark', obj.spark, 'trueImg',obj.trueImg, ...
-                'theta', obj.theta, 'PhiMode',obj.PhiMode);
+                'theta', obj.theta, 'PhiMode',obj.PhiModeGen);
             obj.trueIota = args.iota(:);
             obj.epsilon = args.epsilon(:);
             obj.trueKappa = args.kappa(:);

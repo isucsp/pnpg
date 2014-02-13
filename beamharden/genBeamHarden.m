@@ -113,7 +113,7 @@ function args = parseInputs(varargin)
                 args.operators.Phi=@(s) PhiFunc51(s,f_coeff,st,n,Ts);
                 args.operators.Phit=@(s) PhitFunc51(s,f_coeff,st,n,Ts);
                 args.operators.FBP=@(s) FBPFunc6(s,args.theta,Ts);
-            case 'cpuPar'
+            case lower('cpuPar')
                 Ts=0.008;
                 conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
                 conf.theta=args.theta;

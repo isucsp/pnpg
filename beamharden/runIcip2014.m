@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 12:20:47 AM CST
+%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 08:45:06 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -21,8 +21,8 @@ if(nargin==0) runList=0; end
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
-    %opt.spectBasis = 'b1';
-    opt.maxIeSteps = 100;
+    opt.spectBasis = 'dis';
+    %opt.maxIeSteps = 100;
     %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
     prefix='BeamHard';
@@ -460,6 +460,7 @@ function [conf, opt] = defaultInit()
     conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
     conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
     conf.PhiMode='basic'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='cpuPar'; %'filtered'; %'weighted'; %
     conf.spark=0;
 
     % the higher, the more information. Set to 0 to turn off.
@@ -477,7 +478,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
+    opt.showImg=1;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
