@@ -161,7 +161,7 @@ void pixelDrive(ft* img, ft* sino){
     ft d=conf->d; // the distance from rotating center to source in pixel
     int N=conf->n;
 
-    if(N%2==0 && blockIdx.x==gridDim.x-1){
+    if(blockIdx.x==gridDim.x-1 && threadIdx.x==0 && N%2==0){
         for(int i=0; i<N; i++){
             img[i]=0; img[i*N]=0;
         }
@@ -202,7 +202,7 @@ void pixelDrive(ft* img, ft* sino){
     __shared__ volatile ft shared[8][ANG_BLK][4*TILE_SZ];
     for(thetaIdx=threadIdx.y; thetaIdx<conf->prjFull;thetaIdx+=blockDim.y){
 
-        thetalIdx=(thetaIdx/blockDim.y)*blockDim.y;
+        thetalIdx=threadIdx.y*blockDim.y;
         thetarIdx=thetalIdx+blockDim.y-1;
 
         theta  = thetaIdx *2*PI/conf->prjFull;
@@ -535,6 +535,29 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     config.imgSize=config.n*config.n;
     config.sinoSize=config.prjWidth*config.np;
 
+#if GPU
+    config.fGrid = dim3(
+            min(pConf->np, pConf->prjFull/8+1),
+            (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
+            );
+    config.fThread = dim3(THRD_SZ,LYR_BLK);
+    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
+
+    // use the last block to make frame zero.
+    if(pConf->n%2==0)
+        config.bGrid = dim3((1+temp)*temp/2+1); // add 1 to zero out the negative frame
+    else
+        config.bGrid = dim3((1+temp)*temp/2);
+    config.bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+#else
+    int temp = (pConf->n+1)/2;
+    config.fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
+    if(pConf->n%2==0)
+        config.bSize = (1+temp)*temp/2+1;
+    else
+        config.bSize = (1+temp)*temp/2;
+#endif
+
     cudaDeviceReset();
     HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
     HANDLE_ERROR(cudaMalloc((void**)&dev_sino,pConf->prjFull*pConf->prjWidth*sizeof(ft)));
@@ -595,24 +618,6 @@ int gpuPrj(ft* img, ft* sino, char cmd){
                             (pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft)));
         }
 
-    dim3 grid;
-    dim3 thread;
-    if(cmd & FWD_BIT){
-        grid = dim3(
-                min(pConf->np, pConf->prjFull/8+1),
-                (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
-                );
-        thread = dim3(THRD_SZ,LYR_BLK);
-    }else{
-        int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
-        // use the last block to make frame zero.
-        if(pConf->n%2==0)
-            grid = dim3((1+temp)*temp/2+1);
-        else
-            grid = dim3((1+temp)*temp/2);
-        thread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
-    }
-
 #if DEBUG
     if(cmd & FWD_BIT) printf("forward project ...\n");
     else printf("backward project ...\n");
@@ -620,8 +625,8 @@ int gpuPrj(ft* img, ft* sino, char cmd){
             grid.x,grid.y,thread.x,thread.y);
 #endif
 
-    if(cmd & FWD_BIT) rayDrive<<<grid,thread>>>(dev_img, dev_sino);
-    else pixelDrive<<<grid,thread>>>(dev_img, dev_sino);
+    if(cmd & FWD_BIT) rayDrive<<<pConf->fGrid,pConf->fThread>>>(dev_img, dev_sino);
+    else pixelDrive<<<pConf->bGrid,pConf->bThread>>>(dev_img, dev_sino);
 
 #if EXE_PROF
     cudaProfilerStop();

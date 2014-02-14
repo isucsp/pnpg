@@ -10,11 +10,7 @@
  */
 
 static int nthread=64;
-struct threadConfig{
-    int size;
-    int nthread;
-    int threadIdx;
-}
+static int fSize, bSize;
 
 ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     // range of gamma is in [-alpha,pi/4+alpha], where alpha is small
@@ -99,33 +95,25 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
 #if GPU
 __global__
 #endif
-void pixelDriveFan(ft* img, ft* sino){
+void pixelDriveFan(ft* img, ft* sino, int, int){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta, thetal, thetar;       // the current angle, range in [0 45]
     int thetaIdx, thetalIdx, thetarIdx; // index counts from 0
-    prjConf* conf = &dConf;
+    prjConf* conf = pConf;
 
     int pC = conf->prjWidth/2;
     ft d=conf->d; // the distance from rotating center to source in pixel
     int N=conf->n;
 
-    if(N%2==0 && blockIdx.x==gridDim.x-1){
+    int x=0, y=threadIdx;
+    while(y>x){ x++; y-=x; }
+    if(x==N/2 && N%2==0){
         for(int i=0; i<N; i++){
             img[i]=0; img[i*N]=0;
         }
         return;
     }
-
-    int tileSz = sqrtf(blockDim.x);
-
-    int tileX=0, tileY=blockIdx.x;
-    while(tileY>tileX){ tileX++; tileY-=tileX; }
-
-    int xl=tileX*tileSz, yt=tileY*tileSz;
-
-    int x=xl+threadIdx.x/tileSz,
-        y=yt+threadIdx.x%tileSz;
 
     ft cosT, sinT;  // cosine and sine of theta
     ft cosTl, sinTl;  // cosine and sine of theta
@@ -151,59 +139,8 @@ void pixelDriveFan(ft* img, ft* sino){
     __shared__ volatile ft shared[8][ANG_BLK][4*TILE_SZ];
     for(thetaIdx=threadIdx.y; thetaIdx<conf->prjFull;thetaIdx+=blockDim.y){
 
-        thetalIdx=(thetaIdx/blockDim.y)*blockDim.y;
-        thetarIdx=thetalIdx+blockDim.y-1;
-
         theta  = thetaIdx *2*PI/conf->prjFull;
-        thetal = thetalIdx*2*PI/conf->prjFull;
-        thetar = thetarIdx*2*PI/conf->prjFull;
-
         cosT = cos(theta ); sinT = sin(theta );
-        cosTl= cos(thetal); sinTl= sin(thetal);
-        cosTr= cos(thetar); sinTr= sin(thetar);
-
-        tileSzCosTl=tileSz*cosTl; tileSzSinTl=tileSz*sinTl;
-        tileSzCosTr=tileSz*cosTr; tileSzSinTr=tileSz*sinTr;
-
-        // up letf
-        qe = (xl-0.5)*sinTl - (yt-0.5)*cosTl + d;
-        oc = (xl-0.5)*cosTl + (yt-0.5)*sinTl;
-        tll = d*oc/qe;
-
-        // up right
-        //qe = (xr+0.5)*sinTl - (yt-0.5)*cosTl + d;
-        //oc = (xr+0.5)*cosTl + (yt-0.5)*sinTl;
-        qe = qe+tileSzSinTl; oc = oc+tileSzCosTl; tll = min(tll, d*oc/qe);
-
-        // bottom right
-        //qe = (xr+0.5)*sinTl - (yb+0.5)*cosTl + d;
-        //oc = (xr+0.5)*cosTl + (yb+0.5)*sinTl;
-        qe = qe-tileSzCosTl; oc = oc+tileSzSinTl; tll = min(tll, d*oc/qe);
-
-        // bottom left
-        //qe = (xl-0.5)*sinTl - (yb+0.5)*cosTl + d;
-        //oc = (xl-0.5)*cosTl + (yb+0.5)*sinTl;
-        qe = qe-tileSzSinTl; oc = oc-tileSzCosTl; tll = min(tll, d*oc/qe);
-
-        // up letf
-        qe = (xl-0.5)*sinTr - (yt-0.5)*cosTr + d;
-        oc = (xl-0.5)*cosTr + (yt-0.5)*sinTr;
-        trr = d*oc/qe;
-
-        // up right
-        //qe = (xr+0.5)*sinTr - (yt-0.5)*cosTr + d;
-        //oc = (xr+0.5)*cosTr + (yt-0.5)*sinTr;
-        qe = qe+tileSzSinTr; oc = oc+tileSzCosTr; trr = max(trr, d*oc/qe);
-
-        // bottom right
-        //qe = (xr+0.5)*sinTr - (yb+0.5)*cosTr + d;
-        //oc = (xr+0.5)*cosTr + (yb+0.5)*sinTr;
-        qe = qe-tileSzCosTr; oc = oc+tileSzSinTr; trr = max(trr, d*oc/qe);
-
-        // bottom left
-        //qe = (xl-0.5)*sinTr - (yb+0.5)*cosTr + d;
-        //oc = (xl-0.5)*cosTr + (yb+0.5)*sinTr;
-        qe = qe-tileSzSinTr; oc = oc-tileSzCosTr; trr = max(trr, d*oc/qe);
 
         // up letf
         qe = (x-0.5)*sinT - (y-0.5)*cosT + d;
@@ -228,41 +165,10 @@ void pixelDriveFan(ft* img, ft* sino){
         qe = qe-sinT; oc = oc-cosT; t = d*oc/qe;
         tl = min(tl, t); tr=max(tr,t);
 
-        dtll=max((int)round((tll+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
-        dtrr=min((int)round((trr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
-
         //qe = d+x*sinT-y*cosT; // positive direction is qo
         qe = qe + sinT/2 +cosT/2;
         dtl = max((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
         dtr = min((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
-        dtl = max(dtl,dtll); dtr=min(dtr,dtrr);
-
-        __syncthreads();
-        for(dt=dtll+threadIdx.x; dt<=dtrr; dt+=blockDim.x){
-            shared[0][threadIdx.y][dt-dtll]=sino[thetaIdx*conf->prjWidth+dt+pC];
-
-            temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
-            shared[1][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
-
-            temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
-            shared[2][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
-
-            temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
-            shared[3][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
-
-            temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
-            shared[4][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
-
-            temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            shared[5][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
-
-            temp=(conf->prjFull-thetaIdx)%conf->prjFull;
-            shared[6][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
-
-            temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            shared[7][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
-        }
-        __syncthreads();
 
         for(dt=dtl; dt<=dtr; dt++){
             t = dt*conf->dSize;
@@ -274,14 +180,28 @@ void pixelDriveFan(ft* img, ft* sino){
             bw = qe*beamWidth*cosB/d;
             weight=getWeight(dist,bw,cosR,sinR);
 
-            imgt[0] += weight*shared[0][threadIdx.y][dt-dtll];
-            imgt[1] += weight*shared[1][threadIdx.y][dt-dtll];
-            imgt[2] += weight*shared[2][threadIdx.y][dt-dtll];
-            imgt[3] += weight*shared[3][threadIdx.y][dt-dtll];
-            imgt[4] += weight*shared[4][threadIdx.y][dt-dtll];
-            imgt[5] += weight*shared[5][threadIdx.y][dt-dtll];
-            imgt[6] += weight*shared[6][threadIdx.y][dt-dtll];
-            imgt[7] += weight*shared[7][threadIdx.y][dt-dtll];
+            imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
+
+            temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
+            imgt[1] += weight*sino[temp*conf->prjWidth+dt+pC];
+
+            temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
+            imgt[2] += weight*sino[temp*conf->prjWidth+dt+pC];
+
+            temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
+            imgt[3] += weight*sino[temp*conf->prjWidth+dt+pC];
+
+            temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
+            imgt[4] += weight*sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            imgt[5] += weight*sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(conf->prjFull-thetaIdx)%conf->prjFull;
+            imgt[6] += weight*sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            imgt[7] += weight*sino[temp*conf->prjWidth-dt+pC];
 
         }
     }
@@ -300,15 +220,8 @@ void pixelDriveFan(ft* img, ft* sino){
 __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
-    const prjConf * conf = &dConf;
+    const prjConf * conf = pConf;
     int sinoIdx;
-    //tIdx = blockIdx.y;
-    //thetaIdx = blockIdx.x;
-    thetaIdx = blockIdx.x;
-    tIdx = blockIdx.y*blockDim.x+threadIdx.x;
-    int tllIdx = blockIdx.y*blockDim.x;
-    int trrIdx = blockIdx.y*blockDim.x+blockDim.x-1;
-
     //printf("tIdx=%d, thetaIdx=%d\n",tIdx, thetaIdx);
 
     //if(blockIdx.x==0 && blockIdx.y==0)
@@ -324,20 +237,10 @@ __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
     ft beamWidth = conf->dSize*conf->effectiveRate;
     ft hbeamW = beamWidth/2;
 
-    // adding shared memory improves performance from 2.1s to 1.3s in 
-    // Quadro 600
-    // improves from 0.2s to 0.08s in Tesla K20
-    // improves from 0.2s to 0.18s in Tesla K10
-
-    __shared__ volatile ft shared[8][2*THRD_SZ];
-    // the length should be at least blockDim.x*sqrt(2)*(1+N/2/d)
-
     theta = thetaIdx*2*PI/conf->prjFull;
     t = (tIdx-pC)*conf->dSize;
     ft tl = t-hbeamW+EPS,
-       tr = t+hbeamW-EPS,
-       tll = (tllIdx-pC)*conf->dSize-hbeamW+EPS,
-       trr = (trrIdx-pC)*conf->dSize+hbeamW-EPS;
+       tr = t+hbeamW-EPS;
     d = conf->d;
 
     ft cosT, sinT;  // cosine and sine of theta
@@ -357,15 +260,12 @@ __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
     //    printf("cosB=%f, sinB=%f\n",cosB,sinB);
     //}
 
-    ft dtl=d*tl, dtll=d*tll, dtr=d*tr, dtrr=d*trr;
-    ft QxBxl = tl *cosT+d*sinT, QxBxr = tr *cosT+d*sinT,
-       QxBxll= tll*cosT+d*sinT, QxBxrr= trr*cosT+d*sinT;
+    ft dtl=d*tl, dtr=d*tr;
+    ft QxBxl = tl *cosT+d*sinT, QxBxr = tr *cosT+d*sinT;
+    ft QyByl =-tl *sinT+d*cosT, QyByr =-tr *sinT+d*cosT;
 
-    ft QyByl =-tl *sinT+d*cosT, QyByr =-tr *sinT+d*cosT,
-       QyByll=-tll*sinT+d*cosT, QyByrr=-trr*sinT+d*cosT;
-
-    ft   xl, xll, xr, xrr;
-    int dxl,dxll,dxr,dxrr;
+    ft   xl, xr;
+    int dxl,dxr;
 
     int x,y=(N-1)/2;
     //xc = xc + y*slopeXYc;
@@ -379,31 +279,11 @@ __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
         if(QxBxl>0) xl = (dtl -QxBxl *(y+0.5f))/QyByl;
         else xl = (dtl -QxBxl *(y-0.5f))/QyByl;
 
-        if(QxBxll>0) xll= (dtll-QxBxll*(y+0.5f))/QyByll;
-        else xll= (dtll-QxBxll*(y-0.5f))/QyByll;
-
         xr = (dtr - QxBxr *(y-0.5f))/QyByr;
-        xrr= (dtrr- QxBxrr*(y-0.5f))/QyByrr;
 
-        dxll=max((int)round(xll),-(N-1)/2);
-        dxrr=min((int)round(xrr), (N-1)/2);
         dxl =max((int)round(xl ),-(N-1)/2);
         dxr =min((int)round(xr ), (N-1)/2);
-        dxl =max(dxl,dxll); dxr=min(dxr,dxrr);
 
-        __syncthreads();
-        for(x=dxll+threadIdx.x, temp=threadIdx.x; x<=dxrr;
-                x+=blockDim.x, temp+=blockDim.x){
-            shared[0][temp] = img[( y+N/2)*N+x+N/2];
-            shared[1][temp] = img[( x+N/2)*N-y+N/2];
-            shared[2][temp] = img[(-y+N/2)*N-x+N/2];
-            shared[3][temp] = img[(-x+N/2)*N+y+N/2];
-            shared[4][temp] = img[(-y+N/2)*N+x+N/2];
-            shared[5][temp] = img[( x+N/2)*N+y+N/2];
-            shared[6][temp] = img[( y+N/2)*N-x+N/2];
-            shared[7][temp] = img[(-x+N/2)*N-y+N/2];
-        }
-        __syncthreads();
         //if(thetaIdx==45 && blockIdx.y==1 && threadIdx.x==0){
         //    printf("\nthetaIdx=%d, t=%f, y=%d, %d->%d\n \t",
         //            thetaIdx,t,y,dxll,dxrr);
@@ -418,26 +298,26 @@ __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
             bw=beamwidthCosB + (x*sinT-y*cosT)*beamwidthCosB/d;
             weight=getWeight(dist,bw,cosR,sinR);
 
-            sinot[0]+=weight*shared[0][x-dxll];
+            sinot[0]+=weight*img[( y+N/2)*N+x+N/2];
 
             //if(thetaIdx==42 && blockIdx.y==4 && threadIdx.x==0){
             //    printf("%d %d %e %e %e\n",y,x,weight, weight*shared[0][x-dxll],sinot[0]);
             //}
 
             //temp=thetaIdx+conf->prjFull/4;
-            sinot[1]+=weight*shared[1][x-dxll]; //img[imgIdx];
+            sinot[1]+=weight*img[( x+N/2)*N-y+N/2]; //img[imgIdx];
             //temp+=conf->prjFull/4;
-            sinot[2]+=weight*shared[2][x-dxll]; //img[imgIdx];
+            sinot[2]+=weight*img[(-y+N/2)*N-x+N/2]; //img[imgIdx];
             //temp+=conf->prjFull/4;
-            sinot[3]+=weight*shared[3][x-dxll]; //img[imgIdx];
+            sinot[3]+=weight*img[(-x+N/2)*N+y+N/2]; //img[imgIdx];
             //temp=conf->prjFull/2-thetaIdx;
-            sinot[4]+=weight*shared[4][x-dxll]; //img[imgIdx];
+            sinot[4]+=weight*img[(-y+N/2)*N+x+N/2]; //img[imgIdx];
             //temp=3*conf->prjFull/4-thetaIdx;
-            sinot[5]+=weight*shared[5][x-dxll]; //img[imgIdx];
+            sinot[5]+=weight*img[( x+N/2)*N+y+N/2]; //img[imgIdx];
             //temp=conf->prjFull-thetaIdx;
-            sinot[6]+=weight*shared[6][x-dxll]; //img[imgIdx];
+            sinot[6]+=weight*img[( y+N/2)*N-x+N/2]; //img[imgIdx];
             //temp=conf->prjFull/4-thetaIdx;
-            sinot[7]+=weight*shared[7][x-dxll]; //img[imgIdx];
+            sinot[7]+=weight*img[(-x+N/2)*N-y+N/2]; //img[imgIdx];
         }
     }
 
@@ -473,20 +353,20 @@ __global__ void rayDriveFan(ft* img, ft* sino, int tIdx, int thetaIdx){
 }
 
 void *parPrjFor(void *arg){
-    int i=0; 
-    int istart=((size_t)arg)*n;
-    int iend=istart+angleSz;
-    if(iend>opt->np) iend=opt->np;
-    for(i=istart; i<iend; i++) parPrj(0,totPixels,i);
+    int tIdx, thetaIdx;
+    for(int i=(size_t)arg; i<pConf->fSize; i+=nthread){
+        thetaIdx = i/pConf->prjWidth;
+        tIdx = i%pConf->prjWidth;
+        rayDrive(pImg,pSino,tIdx,thetaIdx);
+    }
     return 0;
 }
 
 void *parPrjBack(void *arg){
-    int i=0; 
-    int istart=((size_t)arg)*blockSz;
-    int iend=istart+blockSz;
-    if(iend>totPixels) iend=totPixels;
-    for(i=0; i<opt->np; i++) parPrj(istart,iend,i);
+    int 
+    for(int i=(size_t)arg; i<pConf->fSize; i+=nthread){
+        pixelDrive(pImg,pSino,x,y);
+    }
     return 0;
 }
 
@@ -505,24 +385,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         if(pConf->np<pConf->prjFull)
             HANDLE_ERROR(cudaMemset(dev_sino,0,
                         (pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft)));
-    }
-
-    dim3 grid;
-    dim3 thread;
-    if(cmd & FWD_BIT){
-        grid = dim3(
-                min(pConf->np, pConf->prjFull/8+1),
-                (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
-                );
-        thread = dim3(THRD_SZ,LYR_BLK);
-    }else{
-        int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
-        // use the last block to make frame zero.
-        if(pConf->n%2==0)
-            grid = dim3((1+temp)*temp/2+1);
-        else
-            grid = dim3((1+temp)*temp/2);
-        thread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
     }
 
 #if DEBUG
@@ -578,20 +440,10 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         for(i=0; i<totPixels; i++)
             img[i]/=beamWidth;
     return 0;
-    if(cmd & FWD_BIT) rayDrive<<<grid,thread>>>(dev_img, dev_sino);
-    else pixelDrive<<<grid,thread>>>(dev_img, dev_sino);
 
 #if EXE_PROF
     // add cpu execution profile instructions
 #endif
-
-    if(cmd & FWD_BIT)
-        HANDLE_ERROR( cudaMemcpy( sino, dev_sino, pConf->sinoSize*sizeof(ft),
-                    cudaMemcpyDeviceToHost ) );
-    else{
-        HANDLE_ERROR( cudaMemcpy( img, dev_img, pConf->imgSize*sizeof(ft),
-                    cudaMemcpyDeviceToHost ) );
-    }
 
 #if EXE_TIME
     printf( "Time taken:  %3.1f ms\n", elapsedTime );
