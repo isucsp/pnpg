@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 08:45:06 AM CST
+%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 10:35:29 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -22,6 +22,7 @@ if(nargin==0) runList=0; end
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
     opt.spectBasis = 'dis';
+    opt.skipIe = true;
     %opt.maxIeSteps = 100;
     %conf.theta = (0:6:179)';
     opt=conf.setup(opt);

@@ -1,6 +1,6 @@
 /*
  *   Description: use GPU to calculate parallel beam, fan beam projection 
- *   and back projection.
+ *   and their corresponding back projection.
  *
  *   Reference:
  *   Author: Renliang Gu (renliang@iastate.edu)
@@ -14,7 +14,13 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
+
+#if EXE_PROF
+#if GPU
 #include <cuda_profiler_api.h>
+#endif
+#endif
+
 #include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
@@ -34,14 +40,17 @@ const ft SQRT2 = sqrt(2);
 
 prjConf config;
 prjConf* pConf = &config;
+
+#if GPU
 cudaEvent_t     start, stop;
-float           elapsedTime;
 
 ft *dev_img;
 ft *dev_sino;
 
 __constant__ prjConf dConf;
+#endif
 
+#if GPU
 /*
    */
 static void HandleError( cudaError_t err,
@@ -53,8 +62,12 @@ static void HandleError( cudaError_t err,
         exit( EXIT_FAILURE );
     }
 }
+#endif
 
-__device__ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
+#if GPU
+__device__
+#endif
+ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     // range of gamma is in [-alpha,pi/4+alpha], where alpha is small
     //ft temp=abs(fmod(theta,90)-45)*PI/180; /* test value of temp */
     cosR = cosR<0 ? -cosR : cosR;
@@ -134,7 +147,10 @@ __device__ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     return weight;
 }
 
-__global__ void pixelDrive(ft* img, ft* sino){
+#if GPU
+__global__
+#endif
+void pixelDrive(ft* img, ft* sino){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta, thetal, thetar;       // the current angle, range in [0 45]
@@ -620,6 +636,7 @@ int gpuPrj(ft* img, ft* sino, char cmd){
     }
 
 #if EXE_TIME
+    float elapsedTime;
     HANDLE_ERROR( cudaEventRecord( stop, 0 ) );
     HANDLE_ERROR( cudaEventSynchronize( stop ) );
     HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
