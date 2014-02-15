@@ -38,11 +38,11 @@ static const ft SQRT2 = sqrt(2);
 prjConf config;
 prjConf* pConf = &config;
 
-static unsigned int nthread=64;
+static unsigned int nthread=8;
 static int fSize, bSize;
 static ft *pImg, *pSino;
-void * (*rayDrive)(ft*, ft*, int);
-void * (*pixelDrive)(ft*, ft*, int);
+void (*rayDrive)(ft*, ft*, int);
+void (*pixelDrive)(ft*, ft*, int);
 
 ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     // range of gamma is in [-alpha,pi/4+alpha], where alpha is small
@@ -381,6 +381,7 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
 
     sinoIdx=(conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
     sino[sinoIdx]=sinot[7]*temp;
+//        printf("before establishing threads...\n");
 }
 
 void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft 
@@ -392,6 +393,10 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
 
     config.imgSize=config.n*config.n;
     config.sinoSize=config.prjWidth*config.np;
+
+    if(config.d>0){
+        rayDrive = rayDriveFan;
+    }
 
 #if GPU
     config.fGrid = dim3(
@@ -461,6 +466,8 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #if EXE_PROF
     // add some instruction for cpu execution profile
 #endif
+    pImg = img;
+    pSino = sino;
 
 #if EXE_TIME
     // start the timers
@@ -519,7 +526,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     else
         for(i=0; i<pConf->imgSize; i++)
             img[i]/=pConf->effectiveRate;
-    return 0;
 
 #if EXE_PROF
     // add cpu execution profile instructions
@@ -594,16 +600,17 @@ int forwardTest( void ) {
         for(int j=0; j < config.prjWidth; j++){
             offset = i*config.prjWidth+j;
             value = (unsigned char)(255 * sino[offset]/temp);
-#if SHOWIMG
             offset = (config.np-1-i)*config.prjWidth+j;
             sinoPtr[(offset<<2)+0] = value;
             sinoPtr[(offset<<2)+1] = value;
             sinoPtr[(offset<<2)+2] = value;
             sinoPtr[(offset<<2)+3] = 0xff;
-#endif
         }
 #endif
-    free(sino); free(img);
+    printf("img=%016x, sino=%016x\n",(long)img,(long)sino);
+    printf("pImg=%016x, pSino=%016x\n",(long)pImg,(long)pSino);
+    //free(sino);
+    //free(img);
 #if SHOWIMG
     sinogram.display_and_exit();
 #endif
@@ -698,7 +705,7 @@ int main(int argc, char *argv[]){
     showSetup();
 
     forwardTest();
-    backwardTest();
+    //backwardTest();
     return 0;
 }
 
