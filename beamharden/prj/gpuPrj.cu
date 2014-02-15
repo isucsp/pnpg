@@ -10,6 +10,7 @@
  */
 
 /*#include <unistd.h>*/
+#define GPU 1
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -28,7 +29,7 @@
 #include <string.h>
 
 extern "C"{
-#include "gpuPrj.h"
+#include "prj.h"
 }
 
 #if SHOWIMG
@@ -46,6 +47,8 @@ cudaEvent_t     start, stop;
 
 ft *dev_img;
 ft *dev_sino;
+
+static dim3 fGrid, fThread, bGrid, bThread;
 
 __constant__ prjConf dConf;
 #endif
@@ -536,19 +539,19 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     config.sinoSize=config.prjWidth*config.np;
 
 #if GPU
-    config.fGrid = dim3(
+    fGrid = dim3(
             min(pConf->np, pConf->prjFull/8+1),
             (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
             );
-    config.fThread = dim3(THRD_SZ,LYR_BLK);
+    fThread = dim3(THRD_SZ,LYR_BLK);
     int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
 
     // use the last block to make frame zero.
     if(pConf->n%2==0)
-        config.bGrid = dim3((1+temp)*temp/2+1); // add 1 to zero out the negative frame
+        bGrid = dim3((1+temp)*temp/2+1); // add 1 to zero out the negative frame
     else
-        config.bGrid = dim3((1+temp)*temp/2);
-    config.bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+        bGrid = dim3((1+temp)*temp/2);
+    bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
 #else
     int temp = (pConf->n+1)/2;
     config.fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
@@ -625,8 +628,8 @@ int gpuPrj(ft* img, ft* sino, char cmd){
             grid.x,grid.y,thread.x,thread.y);
 #endif
 
-    if(cmd & FWD_BIT) rayDrive<<<pConf->fGrid,pConf->fThread>>>(dev_img, dev_sino);
-    else pixelDrive<<<pConf->bGrid,pConf->bThread>>>(dev_img, dev_sino);
+    if(cmd & FWD_BIT) rayDrive<<<fGrid,fThread>>>(dev_img, dev_sino);
+    else pixelDrive<<<bGrid,bThread>>>(dev_img, dev_sino);
 
 #if EXE_PROF
     cudaProfilerStop();

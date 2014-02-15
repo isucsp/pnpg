@@ -31,10 +31,16 @@ mParPrj: mParPrj.c parPrj.o
 parPrj.o: parPrj.c parPrj.h
 	gcc -c -fPIC -lpthread parPrj.c
 
+cpuPrj: cpuPrj.o
+	g++ -lglut -pthread cpuPrj.o -o cpuPrj && ./cpuPrj
+
+cpuPrj.o: cpuPrj.c prj.h
+	g++ -Wall -c cpuPrj.c -o cpuPrj.o
+
 gpuPrj: gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o -o gpuPrj
 
-gpuPrj.o: gpuPrj.cu gpuPrj.h 
+gpuPrj.o: gpuPrj.cu prj.h 
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu
 
 solveTriDiag:
@@ -42,9 +48,6 @@ solveTriDiag:
 
 gpuRun: gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o -o gpuPrj -run
-
-cpuCtPrj: ctPrj.c ctPrj.h
-	g++ ctPrj.c -lglut -lGL -lpthread -o ctPrj && ./ctPrj
 
 clean:
 	-rm -vrf *.o *.mex* *~ *.data
