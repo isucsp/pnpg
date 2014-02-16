@@ -616,9 +616,31 @@ int gpuPrj(ft* img, ft* sino, char cmd){
         else{
             HANDLE_ERROR(cudaMemcpy(dev_sino,sino,pConf->sinoSize*sizeof(ft),
                         cudaMemcpyHostToDevice ) );
+
+
+
+
+
+
+
+
+
+
+
+
+
             if(pConf->np<pConf->prjFull)
                 HANDLE_ERROR(cudaMemset(dev_sino,0,
                             (pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft)));
+               
+
+
+
+
+
+
+
+
         }
 
 #if DEBUG

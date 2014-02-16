@@ -36,7 +36,7 @@
 prjConf config;
 prjConf* pConf = &config;
 
-static unsigned int nthread=1;
+static unsigned int nthread=64;
 static int fSize, bSize;
 ft *pImg, *pSino;
 void (*rayDrive)(ft*, ft*, int);
@@ -374,6 +374,7 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
     sinoIdx=(3*conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
     sino[sinoIdx]=sinot[5]*temp;
 
+    if(thetaIdx>=1)
     sinoIdx=(conf->prjFull-thetaIdx)*conf->prjWidth+tIdx;
     sino[sinoIdx]=sinot[6]*temp;
 
@@ -465,9 +466,6 @@ void *parPrjBack(void *arg){
 }
 
 int cpuPrj(ft* img, ft* sino, char cmd){
-#if EXE_PROF
-    // add some instruction for cpu execution profile
-#endif
     pImg = img;
     pSino = sino;
 
@@ -480,13 +478,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     if(!(cmd & FWD_BIT))
         if(pConf->np<pConf->prjFull)
             memset(sino,0,(pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft));
-
-#if DEBUG
-    if(cmd & FWD_BIT) printf("forward project ...\n");
-    else printf("backward project ...\n");
-    printf("grid=(%d,%d), thread=(%d,%d)\n",
-            grid.x,grid.y,thread.x,thread.y);
-#endif
 
     int res;
     pthread_t *a_thread;
@@ -576,8 +567,8 @@ int main(int argc, char *argv[]){
     showSetup();
 
     while(1){
-   // forwardTest();
-    backwardTest();
+    forwardTest();
+    //backwardTest();
     }
     return 0;
 }

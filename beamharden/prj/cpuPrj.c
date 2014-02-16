@@ -123,9 +123,132 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     return weight;
 }
 
-#if GPU
-__global__
-#endif
+void pixelDrivePar(ft* img, ft* sino, int threadIdx){
+    //printf("entering pixelDrive\n");
+    // detector array is of odd size with the center at the middle
+    ft theta;       // the current angle, range in [0 45]
+    int thetaIdx; // index counts from 0
+    prjConf* conf = pConf;
+
+    int pC = conf->prjWidth/2;
+    int N=conf->n;
+
+    int x=0, y=threadIdx;
+    while(y>x){ x++; y-=x; }
+    if(x==N/2 && N%2==0){
+        for(int i=0; i<N; i++){
+            img[i]=0; img[i*N]=0;
+        }
+        return;
+    }
+
+    ft cosT, sinT;  // cosine and sine of theta
+
+    // for each point (x,y) on the ray is
+    // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
+    // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
+    ft oc;
+    ft beamWidth = conf->dSize*conf->effectiveRate;
+
+    ft dist, weight;
+    int temp, imgIdx;
+    ft imgt[8];
+    ft t, tl, tr;
+    int dt, dtl, dtr;
+    for(int i=0; i<8; i++) imgt[i]=0;
+    for(thetaIdx=0; thetaIdx<conf->prjFull/2;thetaIdx++){
+
+        theta  = thetaIdx *2*PI/conf->prjFull;
+        cosT = cos(theta ); sinT = sin(theta );
+
+        // up letf
+        oc = (x-0.5)*cosT + (y-0.5)*sinT;
+        tl = oc; tr = tl;
+
+        // up right
+        //qe = (x+0.5)*sinT - (y-0.5)*cosT + d;
+        //oc = (x+0.5)*cosT + (y-0.5)*sinT;
+        oc = oc + cosT; t = oc;
+        tl = MIN(tl, t); tr=MAX(tr,t);
+
+        // bottom right
+        //qe = (x+0.5)*sinT - (y+0.5)*cosT + d;
+        //oc = (x+0.5)*cosT + (y+0.5)*sinT;
+        oc=oc+sinT; t = oc;
+        tl = MIN(tl, t); tr=MAX(tr,t);
+
+        // bottom left
+        //qe = (x-0.5)*sinT - (y+0.5)*cosT + d;
+        //oc = (x-0.5)*cosT + (y+0.5)*sinT;
+        oc = oc-cosT; t = oc;
+        tl = MIN(tl, t); tr=MAX(tr,t);
+
+        //qe = d+x*sinT-y*cosT; // positive direction is qo
+        dtl = MAX((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
+        dtr = MIN((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+
+        for(dt=dtl; dt<=dtr; dt++){
+            t = dt*conf->dSize;
+            dist=x*cosT+y*sinT-t;
+            weight=getWeight(dist,beamWidth,cosT,sinT);
+
+            if(thetaIdx<conf->np){
+                imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
+                imgt[2] += weight*sino[thetaIdx*conf->prjWidth-dt+pC];
+            }
+
+            temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[1] += weight*sino[temp*conf->prjWidth+dt+pC];
+                imgt[3] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
+
+            temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[2] += weight*sino[temp*conf->prjWidth+dt+pC];
+                imgt[0] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
+
+            temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[3] += weight*sino[temp*conf->prjWidth+dt+pC];
+                imgt[1] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
+
+            temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[4] += weight*sino[temp*conf->prjWidth-dt+pC];
+                imgt[6] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
+
+            temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[5] += weight*sino[temp*conf->prjWidth-dt+pC];
+                imgt[7] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
+
+            temp=(conf->prjFull-thetaIdx)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[6] += weight*sino[temp*conf->prjWidth-dt+pC];
+                imgt[4] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
+
+            temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            if(temp<conf->np){
+                imgt[7] += weight*sino[temp*conf->prjWidth-dt+pC];
+                imgt[5] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
+        }
+    }
+    imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5]/conf->effectiveRate;
+    imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N-y+N/2; img[imgIdx] = imgt[7]/conf->effectiveRate;
+}
 void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
@@ -207,50 +330,222 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             bw = qe*beamWidth*cosB/d;
             weight=getWeight(dist,bw,cosR,sinR);
 
-            imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
+            if(thetaIdx<conf->np)
+                imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
 
             temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
-            imgt[1] += weight*sino[temp*conf->prjWidth+dt+pC];
+            if(temp<conf->np){
+                imgt[1] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
 
             temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
-            imgt[2] += weight*sino[temp*conf->prjWidth+dt+pC];
+            if(temp<conf->np){
+                imgt[2] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
 
             temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
-            imgt[3] += weight*sino[temp*conf->prjWidth+dt+pC];
+            if(temp<conf->np){
+                imgt[3] += weight*sino[temp*conf->prjWidth+dt+pC];
+            }
 
             temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
-            imgt[4] += weight*sino[temp*conf->prjWidth-dt+pC];
+            if(temp<conf->np){
+                imgt[4] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
 
             temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            imgt[5] += weight*sino[temp*conf->prjWidth-dt+pC];
+            if(temp<conf->np){
+                imgt[5] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
 
             temp=(conf->prjFull-thetaIdx)%conf->prjFull;
-            imgt[6] += weight*sino[temp*conf->prjWidth-dt+pC];
+            if(temp<conf->np){
+                imgt[6] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
 
             temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            imgt[7] += weight*sino[temp*conf->prjWidth-dt+pC];
-
+            if(temp<conf->np){
+                imgt[7] += weight*sino[temp*conf->prjWidth-dt+pC];
+            }
         }
     }
-    if(x<=(N-1)/2 && y<=(N-1)/2){
-        imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0];
-        imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1];
-        imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2];
-        imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3];
-        imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4];
-        imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5];
-        imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6];
-        imgIdx = (-x+N/2)*N-y+N/2; img[imgIdx] = imgt[7];
+    imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5]/conf->effectiveRate;
+    imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N-y+N/2; img[imgIdx] = imgt[7]/conf->effectiveRate;
+}
+
+void rayDrivePar(ft* img, ft* sino, int threadIdx){
+    //printf("entering rayDrive\n");
+    // detector array is of odd size with the center at the middle
+    int temp;
+    const prjConf * conf = pConf;
+    int sinoIdx;
+    int thetaIdx, tIdx;
+    if(conf->prjWidth%2==0){
+        if(threadIdx==fSize){
+            for(int i=0; i<conf->np; i++)
+                sino[i*conf->prjWidth]=0;
+            return;
+        }
+        thetaIdx= threadIdx/(pConf->prjWidth/2);
+        tIdx = threadIdx%(pConf->prjWidth/2)+1;
+    }else{
+        thetaIdx = threadIdx/((pConf->prjWidth+1)/2);
+        tIdx = threadIdx%((pConf->prjWidth+1)/2);
     }
+
+    ft theta;       // the current angle, range in [0 45]
+    ft t;           // position of current detector
+
+    int N =conf->n;// N is of size NxN centering at (N/2,N/2)
+    int pC = conf->prjWidth/2;
+    ft beamWidth = conf->dSize*conf->effectiveRate;
+    ft hbeamW = beamWidth/2;
+
+    theta = thetaIdx*2*PI/conf->prjFull;
+    t = (tIdx-pC)*conf->dSize;
+    ft tl = t-hbeamW+EPS,
+       tr = t+hbeamW-EPS;
+
+    ft cosT, sinT;  // cosine and sine of theta
+    cosT=cos(theta); sinT=sin(theta);
+
+    // for each point (x,y) on the ray is
+    // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
+    // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
+
+    ft   xl, xr;
+    int dxl,dxr;
+
+    int x,y=(N-1)/2;
+    //xc = xc + y*slopeXYc;
+
+    // beamw is based on the position of this pixel
+    ft dist, weight;
+    ft sinot[8];
+    for(int i=0; i<8; i++) sinot[i]=0;
+    for(y=(N-1)/2; y>=-(N-1)/2; y--){
+        xl = (tl-sinT *(y+0.5f))/cosT;
+        xr = (tr-sinT *(y-0.5f))/cosT;
+
+        dxl =MAX((int)round(xl ),-(N-1)/2);
+        dxr =MIN((int)round(xr ), (N-1)/2);
+
+        //if(thetaIdx==45 && blockIdx.y==1 && threadIdx.x==0){
+        //    printf("\nthetaIdx=%d, t=%f, y=%d, %d->%d\n \t",
+        //            thetaIdx,t,y,dxll,dxrr);
+        //    for(temp=0; temp<=dxrr-dxll; temp++){
+        //        if(shared[1][temp]>0)
+        //            printf("%d: %d: %f",temp,temp+dxll,shared[1][temp]);
+        //    }
+        //}
+        for(x=dxl; x<=dxr; x++){
+            dist=x*cosT+y*sinT-t;
+            weight=getWeight(dist,beamWidth,cosT,sinT);
+
+            sinot[0]+=weight*img[( y+N/2)*N+x+N/2];
+            //temp=thetaIdx+conf->prjFull/4;
+            sinot[1]+=weight*img[( x+N/2)*N-y+N/2]; //img[imgIdx];
+            //temp+=conf->prjFull/4;
+            sinot[2]+=weight*img[(-y+N/2)*N-x+N/2]; //img[imgIdx];
+            //temp+=conf->prjFull/4;
+            sinot[3]+=weight*img[(-x+N/2)*N+y+N/2]; //img[imgIdx];
+            //temp=conf->prjFull/2-thetaIdx;
+            sinot[4]+=weight*img[(-y+N/2)*N+x+N/2]; //img[imgIdx];
+            //temp=3*conf->prjFull/4-thetaIdx;
+            sinot[5]+=weight*img[( x+N/2)*N+y+N/2]; //img[imgIdx];
+            //temp=conf->prjFull-thetaIdx;
+            sinot[6]+=weight*img[( y+N/2)*N-x+N/2]; //img[imgIdx];
+            //temp=conf->prjFull/4-thetaIdx;
+            sinot[7]+=weight*img[(-x+N/2)*N-y+N/2]; //img[imgIdx];
+        }
+    }
+
+    if(thetaIdx<conf->np){
+        sinoIdx=thetaIdx*conf->prjWidth;
+        sino[sinoIdx+tIdx]=sinot[0]/conf->effectiveRate;
+        sino[sinoIdx+2*pC-tIdx]=sinot[2]/conf->effectiveRate;
+    }
+
+    temp = thetaIdx+conf->prjFull/4;
+    if(temp<conf->np){
+        sinoIdx = temp*conf->prjWidth;
+        sino[sinoIdx+tIdx]=sinot[1]/conf->effectiveRate;
+        sino[sinoIdx+2*pC-tIdx]=sinot[3]/conf->effectiveRate;
+    }
+
+    temp = thetaIdx+conf->prjFull/2;
+    if(temp<conf->np){
+        sinoIdx = temp*conf->prjWidth;
+        sino[sinoIdx+tIdx]=sinot[2]/conf->effectiveRate;
+        sino[sinoIdx+2*pC-tIdx]=sinot[0]/conf->effectiveRate;
+    }
+
+    temp = thetaIdx+3*conf->prjFull/4;
+    if(temp<conf->np){
+        sinoIdx = temp*conf->prjWidth;
+        sino[sinoIdx+tIdx]=sinot[3]/conf->effectiveRate;
+        sino[sinoIdx+2*pC-tIdx]=sinot[1]/conf->effectiveRate;
+    }
+    
+    if(thetaIdx>0 && thetaIdx<conf->prjFull*0.125f){
+        tIdx = 2*pC-tIdx;
+
+        temp = conf->prjFull/2-thetaIdx;
+        if(temp<conf->np){
+            sinoIdx = temp*conf->prjWidth;
+            sino[sinoIdx+tIdx]=sinot[4]/conf->effectiveRate;
+            sino[sinoIdx+2*pC-tIdx]=sinot[6]/conf->effectiveRate;
+        }
+
+        temp = 3*conf->prjFull/4-thetaIdx;
+        if(temp<conf->np){
+            sinoIdx = temp*conf->prjWidth;
+            sino[sinoIdx+tIdx]=sinot[5]/conf->effectiveRate;
+            sino[sinoIdx+2*pC-tIdx]=sinot[7]/conf->effectiveRate;
+        }
+
+        temp = conf->prjFull-thetaIdx;
+        if(temp<conf->np){
+            sinoIdx = temp*conf->prjWidth;
+            sino[sinoIdx+tIdx]=sinot[6]/conf->effectiveRate;
+            sino[sinoIdx+2*pC-tIdx]=sinot[4]/conf->effectiveRate;
+        }
+
+        temp = conf->prjFull/4-thetaIdx;
+        if(temp<conf->np){
+            sinoIdx = temp*conf->prjWidth;
+            sino[sinoIdx+tIdx]=sinot[7]/conf->effectiveRate;
+            sino[sinoIdx+2*pC-tIdx]=sinot[5]/conf->effectiveRate;
+        }
+    }
+//        printf("before establishing threads...\n");
 }
 
 void rayDriveFan(ft* img, ft* sino, int threadIdx){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
+    int temp;
     const prjConf * conf = pConf;
     int sinoIdx;
-    int thetaIdx = threadIdx/pConf->prjWidth;
-    int tIdx = threadIdx%pConf->prjWidth;
+    int thetaIdx, tIdx;
+    if(conf->prjWidth%2==0){
+        if(threadIdx==fSize){
+            for(int i=0; i<conf->np; i++)
+                sino[i*conf->prjWidth]=0;
+            return;
+        }
+        thetaIdx= threadIdx/(pConf->prjWidth-1);
+        tIdx = threadIdx%(pConf->prjWidth-1)+1;
+    }else{
+        thetaIdx= threadIdx/pConf->prjWidth;
+        tIdx = threadIdx%pConf->prjWidth;
+    }
     //printf("tIdx=%d, thetaIdx=%d\n",tIdx, thetaIdx);
 
     //if(blockIdx.x==0 && blockIdx.y==0)
@@ -301,7 +596,6 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
 
     // beamw is based on the position of this pixel
     ft bw, dist, weight;
-    int temp;
     ft sinot[8];
     for(int i=0; i<8; i++) sinot[i]=0;
     for(y=(N-1)/2; y>=-(N-1)/2; y--){
@@ -352,33 +646,45 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
 
     if(tIdx>=conf->prjWidth) return;
 
-    sinoIdx=thetaIdx*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[0];
+    if(thetaIdx<conf->np){
+        sinoIdx=thetaIdx*conf->prjWidth+tIdx;
+        sino[sinoIdx]=sinot[0]/conf->effectiveRate;
+    }
 
-    sinoIdx=(thetaIdx+conf->prjFull/4)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[1];
+    temp = thetaIdx+conf->prjFull/4;
+    if(temp<conf->np){
+        sino[temp*conf->prjWidth+tIdx]=sinot[1]/conf->effectiveRate;
+    }
 
-    sinoIdx=(thetaIdx+conf->prjFull/2)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[2];
+    temp = thetaIdx+conf->prjFull/2;
+    if(temp<conf->np){
+        sino[temp*conf->prjWidth+tIdx]=sinot[2]/conf->effectiveRate;
+    }
 
-    sinoIdx=(thetaIdx+3*conf->prjFull/4)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[3];
+    temp = thetaIdx+3*conf->prjFull/4;
+    if(temp<conf->np){
+        sino[temp*conf->prjWidth+tIdx]=sinot[3]/conf->effectiveRate;
+    }
+    
+    if(thetaIdx>0 && thetaIdx<conf->prjFull*0.125f){
+        tIdx = 2*pC-tIdx;
 
-    temp = (2*pC-tIdx);
-    tIdx = temp%conf->prjWidth;
-    temp = 1-temp/conf->prjWidth;
+        temp = conf->prjFull/2-thetaIdx;
+        if(temp<conf->np)
+            sino[temp*conf->prjWidth+tIdx]=sinot[4]/conf->effectiveRate;
 
-    sinoIdx=(conf->prjFull/2-thetaIdx)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[4]*temp;
+        temp = 3*conf->prjFull/4-thetaIdx;
+        if(temp<conf->np)
+            sino[temp*conf->prjWidth+tIdx]=sinot[5]/conf->effectiveRate;
 
-    sinoIdx=(3*conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[5]*temp;
+        temp = conf->prjFull-thetaIdx;
+        if(temp<conf->np)
+            sino[temp*conf->prjWidth+tIdx]=sinot[6]/conf->effectiveRate;
 
-    sinoIdx=(conf->prjFull-thetaIdx)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[6]*temp;
-
-    sinoIdx=(conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
-    sino[sinoIdx]=sinot[7]*temp;
+        temp = conf->prjFull/4-thetaIdx;
+        if(temp<conf->np)
+            sino[temp*conf->prjWidth+tIdx]=sinot[7]/conf->effectiveRate;
+    }
 //        printf("before establishing threads...\n");
 }
 
@@ -395,45 +701,29 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     if(config.d>0){
         rayDrive = rayDriveFan;
         pixelDrive = pixelDriveFan;
+
+        fSize = MIN(pConf->np, pConf->prjFull/8+1);
+        if(pConf->prjWidth%2==0)
+            fSize = fSize*(pConf->prjWidth-1)+1;
+        else
+            fSize = fSize*pConf->prjWidth;
+        bSize = (pConf->n+1)/2;
+        if(pConf->n%2==0) bSize = (1+bSize)*bSize/2+1;
+        else bSize = (1+bSize)*bSize/2;
     }else{
-        rayDrive = rayDriveFan;
-        pixelDrive = pixelDriveFan;
+        rayDrive = rayDrivePar;
+        pixelDrive = pixelDrivePar;
+
+        fSize = MIN(pConf->np, pConf->prjFull/8+1);
+        if(pConf->prjWidth%2==0)
+            fSize = fSize*(pConf->prjWidth/2)+1;
+        else
+            fSize = fSize*((pConf->prjWidth+1)/2);
+        bSize = (pConf->n+1)/2;
+        if(pConf->n%2==0) bSize = (1+bSize)*bSize/2+1;
+        else bSize = (1+bSize)*bSize/2;
     }
 
-#if GPU
-    config.fGrid = dim3(
-            min(pConf->np, pConf->prjFull/8+1),
-            (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
-            );
-    config.fThread = dim3(THRD_SZ,LYR_BLK);
-    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
-
-    // use the last block to make frame zero.
-    if(pConf->n%2==0)
-        config.bGrid = dim3((1+temp)*temp/2+1); // add 1 to zero out the negative frame
-    else
-        config.bGrid = dim3((1+temp)*temp/2);
-    config.bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
-
-    cudaDeviceReset();
-    HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
-    HANDLE_ERROR(cudaMalloc((void**)&dev_sino,pConf->prjFull*pConf->prjWidth*sizeof(ft)));
-    HANDLE_ERROR(cudaMemcpyToSymbol( dConf, pConf, sizeof(prjConf)) );
-
-#if EXE_TIME
-    // start the timers
-    HANDLE_ERROR( cudaEventCreate( &start ) );
-    HANDLE_ERROR( cudaEventCreate( &stop ) );
-#endif
-
-#else
-    int temp = (pConf->n+1)/2;
-    fSize = MIN(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
-    if(pConf->n%2==0)
-        bSize = (1+temp)*temp/2+1;
-    else
-        bSize = (1+temp)*temp/2;
-#endif
 
 #if DEBUG
     printf("setup done\n");
@@ -477,10 +767,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     start = clock();
 #endif
 
-    if(!(cmd & FWD_BIT))
-        if(pConf->np<pConf->prjFull)
-            memset(sino,0,(pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft));
-
 #if DEBUG
     if(cmd & FWD_BIT) printf("forward project ...\n");
     else printf("backward project ...\n");
@@ -522,13 +808,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
     }
     free(a_thread);
-    if(cmd & FWD_BIT)
-        for(i=0; i<pConf->sinoSize; i++)
-            sino[i]/=pConf->effectiveRate;
-    else
-        for(i=0; i<pConf->imgSize; i++)
-            img[i]/=pConf->effectiveRate;
-    pImg=NULL; pSino=NULL;
 
 #if EXE_PROF
     // add cpu execution profile instructions
@@ -583,8 +862,6 @@ int forwardTest( void ) {
     fwrite(img,sizeof(ft), pConf->imgSize,f);
     fclose(f);
     //image.display_and_exit();
-
-    printf("img=%016x, sino=%016x\n",(long)img,(long)sino);
 
     cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 
@@ -662,7 +939,6 @@ int backwardTest( void ) {
     fclose(f);
     //sinogram.display_and_exit();
 
-    printf("aimg=%016x, sino=%016x\n",(long)img,(long)sino);
     cpuPrj(img,sino, RENEW_MEM);
 
     f = fopen("reImg.data","wb");
@@ -704,12 +980,17 @@ int main(int argc, char *argv[]){
         N = atoi(argv[1]);
         printf("N=%d\n",N);
     }
-    setup(N,N,360,360,1,1,3000);
     showSetup();
 
     while(1){
-    forwardTest();
- //   backwardTest();
+        setup(N,N,360,360,1,1,3000);
+        showSetup();
+        forwardTest();
+        backwardTest();
+        setup(N,N,180,360,1,1,0);
+        showSetup();
+        forwardTest();
+        backwardTest();
     }
     return 0;
 }
