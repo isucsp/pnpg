@@ -1,6 +1,6 @@
 
 CUDA  := /usr/local/cuda
-MATLAB = /usr/local/MATLAB/R2013b
+MATLAB = /usr/local/MATLAB/R2013a
 
 MEX = $(MATLAB)/bin/mex
 CXX = g++
@@ -18,10 +18,10 @@ CFLAGS = -fPIC -D_GNU_SOURCE -pthread -fexceptions -arch glnxa64
 LFLAGS = -Wall
 COPTIMFLAGS = -O3 -funroll-loops -msse2
  
-all: mParPrj solveTriDiag mPrj gpuPrj
+all: mParPrj solveTriDiag mPrj gpuPrj cpuPrj
 
-mPrj: mPrj.c gpuPrj.o
-	$(MEX) mPrj.c gpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+mPrj: mPrj.c cpuPrj.o
+	$(MEX) mPrj.c cpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
 #$(MEX) mPrj.c gpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL 
 
@@ -33,9 +33,10 @@ parPrj.o: parPrj.c parPrj.h
 
 cpuPrj: cpuPrj.o
 	g++ cpuPrj.o -o cpuPrj -pthread #-lglut 
+	$(MEX) mPrj.c cpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
 cpuPrj.o: cpuPrj.c prj.h
-	g++ -Wall -c cpuPrj.c -o cpuPrj.o
+	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
 
 gpuPrj: gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o -o gpuPrj

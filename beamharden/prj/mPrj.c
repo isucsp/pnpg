@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include "gpuPrj.h"
+#include "prj.h"
 
 extern struct prjConf* pConf;
 
