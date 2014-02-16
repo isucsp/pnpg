@@ -32,7 +32,7 @@ parPrj.o: parPrj.c parPrj.h
 	gcc -c -fPIC -lpthread parPrj.c
 
 cpuPrj: cpuPrj.o
-	g++ cpuPrj.o -o cpuPrj -lglut -pthread
+	g++ cpuPrj.o -o cpuPrj -pthread #-lglut 
 
 cpuPrj.o: cpuPrj.c prj.h
 	g++ -Wall -c cpuPrj.c -o cpuPrj.o

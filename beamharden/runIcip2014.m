@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 13 Feb 2014 10:35:29 AM CST
+%   $Revision: 0.2 $ $Date: Sat 15 Feb 2014 09:21:52 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -21,15 +21,17 @@ if(nargin==0) runList=0; end
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
-    opt.spectBasis = 'dis';
+    opt.spectBasis = 'b1';
     opt.skipIe = true;
     %opt.maxIeSteps = 100;
     %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
     prefix='BeamHard';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
+    %initSig=conf.FBP(conf.y);
+    %initSig = initSig(opt.mask~=0);
+    initSig = opt.trueAlpha;
+    keyboard
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');

@@ -36,6 +36,7 @@ end
 
 if(1)
     %% show the comparison between different method on different number of projections
+    aa=0;
     prj = zeros(6,1);
     intval = 6:-1:1;
     for i=1:length(intval)
@@ -54,6 +55,8 @@ if(1)
         end
         if(length(prj)==length(rse))
             semilogy(prj,rse,style2{k}); hold on;
+            aa=aa+1;
+            legStr{aa} = ['unknown Ie by ' num2str(k)];
         end
         eval(sprintf('rse2%d=rse;',k));
     end
@@ -63,6 +66,21 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'r:<');
+    aa=aa+1; legStr{aa}='known Ie by dis';
+    out=out6;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    plot(prj,rse,'r:>','linewidth',2);
+    aa=aa+1; legStr{aa}='known Ie by b0';
+    out=out7;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    plot(prj,rse,'r:h');
+    aa=aa+1; legStr{aa}='known Ie by b1';
 
     out=out3;
     rse=zeros(size(out));
@@ -70,6 +88,7 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'g:^');
+    aa=aa+1; legStr{aa}='direct FBP';
 
     out=out5;
     rse=zeros(size(out));
@@ -77,6 +96,7 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'c-.p');
+    aa=aa+1; legStr{aa}='FBP after linearization';
 
     out=out2;
     rse = zeros(size(out));
@@ -89,6 +109,7 @@ if(1)
     end
     semilogy(prj,min(rse'),'k--d'); hold on;
     eval(sprintf('rsel%d=rse;',k));
+    aa=aa+1; legStr{aa}='FPCAS';
 
     out=out4;
     rse = ones(size(out));
@@ -101,6 +122,9 @@ if(1)
     end
     semilogy(prj,min(rse'),'r--d'); hold on;
     eval(sprintf('rse%d=rse;',4));
+    aa=aa+1; legStr{aa}='FPCAS after linearization';
+
+    legend(legStr);
 end
 
 

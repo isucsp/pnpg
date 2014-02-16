@@ -38,7 +38,7 @@ static const ft SQRT2 = sqrt(2);
 prjConf config;
 prjConf* pConf = &config;
 
-static unsigned int nthread=8;
+static unsigned int nthread=32;
 static int fSize, bSize;
 static ft *pImg, *pSino;
 void (*rayDrive)(ft*, ft*, int);

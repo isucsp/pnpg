@@ -9,7 +9,7 @@
 #define EXE_TIME 1
 #define EXE_PROF 0
 #define DEBUG   0
-#define SHOWIMG  1
+#define SHOWIMG  0
 
 #define DIM   1024
 

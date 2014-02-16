@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 13 Feb 2014 10:10:29 AM CST
+%   $Revision: 0.3 $ $Date: Sat 15 Feb 2014 09:12:48 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -45,7 +45,7 @@ if(~isfield(opt,'visible')) opt.visible==1; end
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
-    opt.trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
+    trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
 end
 
 if(opt.showImg)
@@ -202,7 +202,7 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         
         %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(isfield(opt,'trueAlpha'))
-            out.RMSE(p)=1-(alpha'*opt.trueAlpha/norm(alpha))^2;
+            out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
         end
     end
     % end optimizing over alpha
