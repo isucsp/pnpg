@@ -50,5 +50,5 @@ gpuRun: gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o -o gpuPrj -run
 
 clean:
-	-rm -vrf *.o *.mex* *~ *.data
+	-rm -vrf *.o *.mex* *~ *.data *.out
 
