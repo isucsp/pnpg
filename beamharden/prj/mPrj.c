@@ -44,7 +44,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #if GPU
         gpuPrj(inpr, outpr, RENEW_MEM | FWD_BIT);
 #else
-        parPrjThread();
+        cpuPrj(inpr, outpr, RENEW_MEM | FWD_BIT);
 #endif
     }else if(!strcmp(cmd,"backward")){
         inpr=(ft*)mxGetPr(prhs[0]);
@@ -58,7 +58,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #if GPU
         gpuPrj(outpr, inpr, RENEW_MEM );
 #else
-        parPrjThread();
+        cpuPrj(outpr, inpr, RENEW_MEM );
 #endif
     }else if(!strcmp(cmd,"config")){
         struct prjConf config;

@@ -4,7 +4,10 @@
 
 #include <stddef.h>
 #include <float.h>
+
 #define EPS (1e-8)      // need to justify
+#define PI (3.14159265359f)
+#define SQRT2 (1.414213562373095f)
 
 #define EXE_TIME 1
 #define EXE_PROF 0

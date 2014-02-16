@@ -36,7 +36,7 @@
 prjConf config;
 prjConf* pConf = &config;
 
-static unsigned int nthread=32;
+static unsigned int nthread=1;
 static int fSize, bSize;
 ft *pImg, *pSino;
 void (*rayDrive)(ft*, ft*, int);
@@ -547,154 +547,22 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 }
 
 int forwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
-    int offset;
-    int YC = config.n/2, XC = config.n/2;
-    for(int i=0; i < config.n; i++){
-        for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
-            if(((i-YC-10)*(i-YC-10)+(j-XC-0)*(j-XC-0)<=160*160)
-                    && ((i-YC-60)*(i-YC-60)+(j-XC-60)*(j-XC-60)>=44*44)
-              ){
-                img[offset]=1;
-            }else
-                img[offset]=0;
-            //            if(i<5 && j < 5) img[i][j]=1;
-#if SHOWIMG
-            value = (unsigned char)(0xff * img[offset]);
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-#endif
-        }
-    }
-    FILE* f = fopen("img.data","w");
-    fwrite(img,sizeof(ft), pConf->imgSize,f);
-    fclose(f);
-    //image.display_and_exit();
-
-    printf("img=%016x, sino=%016x\n",(long)img,(long)sino);
 
     cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 
-    f = fopen("sinogram.data","wb");
-    fwrite(sino, sizeof(ft), config.sinoSize, f);
-    fclose(f);
-#if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.np; i++){
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            if( sino[offset]>temp)
-                temp=sino[offset];
-        }
-    }
-    for(int i=0; i < config.np; i++)
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            value = (unsigned char)(255 * sino[offset]/temp);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
-        }
-#endif
     free(img); free(sino);
-
-#if SHOWIMG
-    //sinogram.display_and_exit();
-#endif
     return 0;
 }
 
 int backwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
-    int offset;
 
-    FILE* f = fopen("sinogram.data","rb");
-    int tempI;
-    tempI=rand()%config.np;
-
-    fread(sino,sizeof(ft),config.sinoSize,f);
-
-    for(int i=0; i < config.np; i++){
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            if(i==tempI*0 && abs(j-config.prjWidth/2)<=150){
-                if(offset%15<6) sino[offset]=1;
-                else sino[offset]=0;
-            }else
-                sino[offset]=0;
-            //fscanf(f,"%f ", &sino[offset]);
-            //            if(i<5 && j < 5) img[i][j]=1;
-#if SHOWIMG
-            value = (unsigned char)(255 * sino[offset]);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
-#endif
-        }
-        //fscanf(f,"\n");
-    }
-    fclose(f);
-    //sinogram.display_and_exit();
-
-    printf("aimg=%016x, sino=%016x\n",(long)img,(long)sino);
     cpuPrj(img,sino, RENEW_MEM);
 
-    f = fopen("reImg.data","wb");
-    fwrite(img,sizeof(ft),config.imgSize,f);
-    fclose(f);
-
-#if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.n; i++)
-        for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
-            if( img[offset]>temp) temp=img[offset];
-        }
-    for(int i=0; i < config.n; i++){
-        for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
-            value = (unsigned char)(255 * img[offset]/temp);
-#if SHOWIMG
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-#endif
-        }
-    }
-#endif
-
     free(sino); free(img);
-#if SHOWIMG
-    image.display_and_exit();
-#endif
     return 0;
 }
 
@@ -708,8 +576,8 @@ int main(int argc, char *argv[]){
     showSetup();
 
     while(1){
-    forwardTest();
- //   backwardTest();
+   // forwardTest();
+    backwardTest();
     }
     return 0;
 }
