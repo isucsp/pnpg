@@ -1,6 +1,6 @@
 
 CUDA  := /usr/local/cuda
-MATLAB = /usr/local/MATLAB/R2013a
+MATLAB = /usr/local/MATLAB/R2013b
 
 MEX = $(MATLAB)/bin/mex
 CXX = g++
@@ -20,8 +20,8 @@ COPTIMFLAGS = -O3 -funroll-loops -msse2
  
 all: mParPrj solveTriDiag mPrj gpuPrj cpuPrj
 
-mPrj: mPrj.c cpuPrj.o
-	$(MEX) mPrj.c cpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+mPrj: mPrj.c gpuPrj.o
+	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
 #$(MEX) mPrj.c gpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL 
 
@@ -32,10 +32,10 @@ parPrj.o: parPrj.c parPrj.h
 	gcc -c -fPIC -lpthread parPrj.c
 
 cpuPrj: cpuPrj.o
-	g++ cpuPrj.o -o cpuPrj -pthread #-lglut 
-	$(MEX) mPrj.c cpuPrj.o -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+	g++ cpuPrj.o -o cpuPrj -pthread -lglut -lGL
+	$(MEX) mPrj.c cpuPrj.o -DCPU=1 -lglut -lGL
 
-cpuPrj.o: cpuPrj.c prj.h
+cpuPrj.o: cpuPrj.c prj.h mPrj.c
 	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
 
 gpuPrj: gpuPrj.o

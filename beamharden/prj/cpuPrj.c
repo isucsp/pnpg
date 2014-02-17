@@ -27,7 +27,9 @@
 #include <stddef.h>
 #include <string.h>
 
+extern "C"{
 #include "prj.h"
+}
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"
@@ -915,6 +917,7 @@ int backwardTest( void ) {
 
     fread(sino,sizeof(ft),config.sinoSize,f);
 
+    /*  
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
             offset = i*config.prjWidth+j;
@@ -935,7 +938,7 @@ int backwardTest( void ) {
 #endif
         }
         //fscanf(f,"\n");
-    }
+    }*/
     fclose(f);
     //sinogram.display_and_exit();
 

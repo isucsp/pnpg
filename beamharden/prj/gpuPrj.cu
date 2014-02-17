@@ -36,9 +36,6 @@ extern "C"{
 #include "./common/cpu_bitmap.h"
 #endif
 
-const ft PI = 3.14159265359f;
-const ft SQRT2 = sqrt(2);
-
 prjConf config;
 prjConf* pConf = &config;
 

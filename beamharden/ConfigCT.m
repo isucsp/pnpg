@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sat 15 Feb 2014 09:13:41 AM CST
+% $Revision: 0.2 $ $Date: Sun 16 Feb 2014 02:57:55 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -103,18 +103,32 @@ classdef ConfigCT < handle
             obj.Phit=@(s) PhitFunc51(s,f_coeff,st,obj.imgSize,obj.Ts,maskIdx);
             obj.FBP=@(s) FBPFunc6(s,obj.theta,obj.Ts);
         end
+        function fanParOps(obj)
+            conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
+            conf.np=length(obj.theta); conf.prjFull=obj.prjFull;
+            conf.dSize=1; %(n-1)/(Num_pixel+1);
+            conf.effectiveRate=1; conf.d=obj.dist;
+
+            mPrj(0,conf,'config');
+            mPrj(0,0,'showConf');
+            maskIdx = find(obj.mask~=0);
+            obj.Phi =@(s) mPrj(single(maskFunc(s,maskIdx,conf.n))',conf,'forward')*obj.Ts;
+            obj.Phit=@(s) maskFunc(reshape(mPrj(single(s(:)),conf,'backward'),conf.n,[])'*obj.Ts,maskIdx);
+            obj.FBP =@(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
+        end
         function genOperators(obj)
             switch lower(obj.PhiMode)
                 case 'basic'
                     nufftOps(obj);
-                case 'gpu'
+                case 'fanPar'   % can be cpu or gpu, with both fan or parallel projections
+                    fanParOps(obj);
                 case 'cpu'
-                    conf.bw=1; conf.nc=mx; conf.nr=my; conf.prjWidth=Num_pixel;
-                    conf.theta=theta*180/pi;
-                    temp=1:numel(Img2D);
-                    Phi=@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
-                    Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
-                    FBP=@(s) FBPFunc7(s,theta_full,theta_idx,Ts,maskIdx)*Ts;
+                    conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
+                    conf.theta=obj.theta;
+                    maskIdx = find(obj.mask~=0);
+                    obj.Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
+                    obj.Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
+                    obj.FBP = @(s) FBPFunc7(s,theta_full,theta_idx,obj.Ts,maskIdx)*obj.Ts;
                 case 'weighted'
                     % Fessler's weighted methods
                     weight=exp(-y);

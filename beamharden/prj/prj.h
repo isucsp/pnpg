@@ -12,7 +12,7 @@
 #define EXE_TIME 1
 #define EXE_PROF 0
 #define DEBUG   0
-#define SHOWIMG  0
+#define SHOWIMG  1
 
 #define DIM   1024
 
@@ -32,7 +32,7 @@
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
-typedef float ft;
+typedef double ft;
 
 struct prjConf {
     int n; /* number of rows and cols of input image */
@@ -53,7 +53,12 @@ struct prjConf {
 
 void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft effectiveRate, ft d);
 void showSetup(void);
+#if GPU
 int gpuPrj(ft* img, ft* sino, char cmd);
+#endif
+#if CPU
+#endif
+int cpuPrj(ft* img, ft* sino, char cmd);
 
 #endif
 

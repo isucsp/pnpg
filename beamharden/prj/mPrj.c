@@ -31,6 +31,10 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //double *maskIdx;
     char* cmd;
 
+    if(nrhs!=3){
+        printf("number of input arguments are: %d\n",nrhs);
+        return;
+    }
     cmd=mxArrayToString(prhs[2]);
 
     /*  create the output matrix */
@@ -66,13 +70,29 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         config.prjWidth=mxGetScalar(mxGetField(prhs[1],0,"prjWidth"));
         config.np=mxGetScalar(mxGetField(prhs[1],0,"np"));
         config.prjFull=mxGetScalar(mxGetField(prhs[1],0,"prjFull"));
-        config.dSize=mxGetScalar(mxGetField(prhs[1],0,"dSize"));
-        config.effectiveRate=mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
-        config.d=mxGetScalar(mxGetField(prhs[1],0,"d"));
+        config.dSize=(float)mxGetScalar(mxGetField(prhs[1],0,"dSize"));
+        config.effectiveRate=(float)mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
+        config.d=(float)mxGetScalar(mxGetField(prhs[1],0,"d"));
+        printf("\nConfiguring the operator...\n");
+        printf("config.n=%d\n",config.n);
+        printf("config.prjWidth=%d\n",config.prjWidth);
+        printf("config.np=%d\n",config.np);
+        printf("config.prjFull=%d\n",config.prjFull);
+        printf("config.dSize=%g\n",config.dSize);
+        printf("config.effectiveRate=%g\n",config.effectiveRate);
+        printf("config.d=%g\n",config.d);
 
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
     }else{
         showSetup();
+        printf("\nPrinting the current configuration ...\n");
+        printf("config.n=%d\n",pConf->n);
+        printf("config.prjWidth=%d\n",pConf->prjWidth);
+        printf("config.np=%d\n",pConf->np);
+        printf("config.prjFull=%d\n",pConf->prjFull);
+        printf("config.dSize=%g\n",pConf->dSize);
+        printf("config.effectiveRate=%g\n",pConf->effectiveRate);
+        printf("config.d=%g\n",pConf->d);
     }
     return;
 }
