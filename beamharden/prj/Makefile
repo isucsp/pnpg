@@ -1,6 +1,6 @@
 
 CUDA  := /usr/local/cuda
-MATLAB = /usr/local/MATLAB/R2013b
+MATLAB = /usr/local/MATLAB/R2013a
 
 MEX = $(MATLAB)/bin/mex
 CXX = g++
@@ -32,8 +32,8 @@ parPrj.o: parPrj.c parPrj.h
 	gcc -c -fPIC -lpthread parPrj.c
 
 cpuPrj: cpuPrj.o
-	g++ cpuPrj.o -o cpuPrj -pthread -lglut -lGL
-	$(MEX) mPrj.c cpuPrj.o -DCPU=1 -lglut -lGL
+	g++ cpuPrj.o -o cpuPrj -pthread #-lglut -lGL
+	$(MEX) mPrj.c cpuPrj.o -DCPU=1 #-lglut -lGL
 
 cpuPrj.o: cpuPrj.c prj.h mPrj.c
 	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o

@@ -121,7 +121,19 @@ function args = parseInputs(varargin)
                 args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
                 args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
                 args.operators.FBP =@(s) FBPFunc7(s,conf.theta*pi/length(conf.theta),conf.theta+1,Ts,maskIdx)*Ts;
-            case 'gpu'
+            case lower('cpuFanPar')
+                conf.n=1024; conf.prjWidth=1024;
+                conf.np=length(obj.theta); conf.prjFull=args.prjFull;
+                conf.dSize=1; %(n-1)/(Num_pixel+1);
+                conf.effectiveRate=1;
+                conf.d=0;
+
+                mPrj(0,conf,'config');
+                maskIdx = find(obj.mask~=0);
+                obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+                obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
+                %obj.FBP =@(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
+                obj.FBP =@(s) FBPFunc7(s,theta_full,theta_idx,obj.Ts,maskIdx)*obj.Ts;
             otherwise
                 fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                 return;

@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 15 Feb 2014 09:12:48 AM CST
+%   $Revision: 0.3 $ $Date: Mon 17 Feb 2014 01:00:48 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -122,7 +122,7 @@ if(opt.skipIe)  % it is better to use dis or b-1 spline
     % there will be some points interplated negative and need to be removed
     Ie(Ie<0)=0;
 end
-if(isfield(opt,'Ie') && length(opt.Ie)==length(mu(:))) Ie=opt.Ie(:); end;
+if(isfield(opt,'Ie')) Ie=opt.Ie(:); end;
 
 p=0; thresh=1e-4; str='';
 t1=0; thresh1=1e-8;
@@ -153,7 +153,14 @@ end
 if(prpCGAlpha)
     alphaStep = ConjGrad(3,alpha);
     alphaStep.fArray{2} = nonneg;
-    alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
+    if(isfield(opt,'muLustig'))
+        fprintf('use lustig approximation for l1 norm\n');
+        alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
+    end
+    if(isfield(opt,'muHuber'))
+        fprintf('use huber approximation for l1 norm\n');
+        alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
+    end
     alphaStep.coef(1:2) = [1; 1];
     alphaStep.maxStepNum = opt.maxAlphaSteps;
 end
@@ -357,14 +364,42 @@ function [f,g,h] = lustigL1(alpha,xi,Psi,Psit)
     s=Psit(alpha);
     sqrtSSqrMu=sqrt(s.^2+xi);
     f=sum(sqrtSSqrMu);
-    g=Psi(s./sqrtSSqrMu);
-    h = @(x,opt) hessian(xi./(sqrtSSqrMu.^3),x,opt);
+    if(nargout>=2)
+        g=Psi(s./sqrtSSqrMu);
+        if(nargout>=3)
+            h = @(x,opt) hessian(xi./(sqrtSSqrMu.^3),x,opt);
+        end
+    end
     function hh = hessian(weight,x,opt)
         y = Psit(x);
         if(opt==1)
             hh = Psi(weight.*y);
         else
             hh = y'*(weight.*y);
+        end
+    end
+end
+
+function [f,g,h] = huber(alpha,mu,Psi,Psit)
+    s=Psit(alpha);
+    idx = abs(s)<mu;
+    temp = abs(s)-mu/2;
+    temp(idx) = s(idx).^2/2/mu;
+    f = sum(temp);
+    if(nargout>=2)
+        temp = ones(size(s));
+        temp(idx) = s(idx)/mu;
+        g=Psi(temp);
+        if(nargout>=3)
+            h = @(x,opt) hessian(x,opt);
+        end
+    end
+    function hh = hessian(x,opt)
+        y = Psit(x);
+        if(opt==1)
+            y(idx) = y(idx)/mu; y(~idx) = 0; hh=Psi(y);
+        else
+            y = y(idx); hh = y'*y/mu;
         end
     end
 end

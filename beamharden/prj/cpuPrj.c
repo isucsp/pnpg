@@ -909,7 +909,6 @@ int backwardTest( void ) {
 
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
-    int offset;
 
     FILE* f = fopen("sinogram.data","rb");
     int tempI;
@@ -918,6 +917,7 @@ int backwardTest( void ) {
     fread(sino,sizeof(ft),config.sinoSize,f);
 
     /*  
+    int offset;
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
             offset = i*config.prjWidth+j;

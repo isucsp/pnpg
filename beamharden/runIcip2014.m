@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 15 Feb 2014 09:21:52 AM CST
+%   $Revision: 0.2 $ $Date: Mon 17 Feb 2014 01:23:06 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -413,6 +413,52 @@ if(any(runList==26)) % b1, max AS step,
     [conf, opt] = defaultInit();
 end
 
+if(any(runList==30)) % Huber function test for best muHuber
+    j=1;
+    opt.spectBasis = 'dis';
+    opt=rmfield(opt,'muLustig');
+    muHuber=[logspace(-1,-15,8), 0.2];
+    opt.maxItr=1e3;
+    opt=conf.setup(opt);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    for i=1:length(muHuber)
+        opt.muHuber=muHuber(i);
+        opt=conf.setup(opt);
+        prefix='Huber function for different mu''s';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        out30{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        initSig=out30{i,j}.alpha;
+        opt.Ie=out30{i,j}.Ie;
+        save(filename,'out30','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==31)) % test for different u for lustig
+    j=1;
+    opt.spectBasis = 'dis';
+    opt.maxItr=1e3;
+    opt=conf.setup(opt);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    aArray=[-6.5, -9:-4];
+    for i=1:length(aArray)
+        opt.a = aArray(i);
+        opt=conf.setup(opt);
+        prefix='continuous method for different u''s';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        out31{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        initSig=out31{i,j}.alpha;
+        opt.Ie=out31{i,j}.Ie;
+        save(filename,'out31','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+
 % ADD SPARSE RECONSRUCTION 
 
 if(any(runList==20)) % beamhardening with refinement
@@ -481,7 +527,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=1;
+    opt.showImg=0;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
