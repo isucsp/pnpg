@@ -80,7 +80,8 @@ function args = parseInputs(varargin)
     args.epsilon = (20:1:150)'; %keV
     args.showImg = true;
     args.saveMat = false;
-    args.theta = 0:179;
+    args.prjNum = 180;      % number of projections from degree at 0
+    args.prjFull = 360;
     PhiMode = 'cpuPar'; %'nufft'; %'gpu'; %'cpu'
 
     for i=1:2:length(varargin)
@@ -91,9 +92,10 @@ function args = parseInputs(varargin)
         args.trueImg=double(imread('binaryCasting.bmp'));
     end
     if(~isfield(args,'operators'))
+        Ts = 0.008;
+        theta = (0:args.prjNum-1)'/args.prjFull*360; % theta's in degree
         switch lower(args.PhiMode)
             case 'basic'
-                Ts=0.008;
                 n=1024;         % size of image
                 prjWidth = 1024;
                 m_2D=[n, n];
@@ -101,39 +103,38 @@ function args = parseInputs(varargin)
                 K=2.^ceil(log2(m_2D*2));         % oversampling rate
 
                 r=pi*linspace(-1,1-2/prjWidth,prjWidth)';
-                xc=r*cos(args.theta(:)'*pi/180);
-                yc=r*sin(args.theta(:)'*pi/180);
+                xc=r*cos(theta'*pi/180);
+                yc=r*sin(theta'*pi/180);
                 om=[yc(:), xc(:)];
                 st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
                 st.Num_pixel=prjWidth;
-                st.Num_proj=length(args.theta);
+                st.Num_proj=args.prjNum;
 
                 % Zero freq at f_coeff(prjWidth/2+1)
                 f_coeff=designFilter('renliang1',prjWidth,Ts);
                 args.operators.Phi=@(s) PhiFunc51(s,f_coeff,st,n,Ts);
                 args.operators.Phit=@(s) PhitFunc51(s,f_coeff,st,n,Ts);
-                args.operators.FBP=@(s) FBPFunc6(s,args.theta,Ts);
+                args.operators.FBP=@(s) FBPFunc6(s,theta,Ts);
             case lower('cpuPar')
-                Ts=0.008;
                 conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
-                conf.theta=args.theta;
+                conf.theta=theta;
                 maskIdx=1:numel(args.trueImg);
                 args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
                 args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
-                args.operators.FBP =@(s) FBPFunc7(s,conf.theta*pi/length(conf.theta),conf.theta+1,Ts,maskIdx)*Ts;
+                args.operators.FBP =@(s) FBPFunc7(s,args.prjFull,args.prjNum,Ts,maskIdx)*Ts;
             case lower('cpuFanPar')
                 conf.n=1024; conf.prjWidth=1024;
-                conf.np=length(obj.theta); conf.prjFull=args.prjFull;
+                conf.np=args.prjNum; conf.prjFull=args.prjFull;
                 conf.dSize=1; %(n-1)/(Num_pixel+1);
                 conf.effectiveRate=1;
                 conf.d=0;
 
                 mPrj(0,conf,'config');
-                maskIdx = find(obj.mask~=0);
-                obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-                obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
-                %obj.FBP =@(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
-                obj.FBP =@(s) FBPFunc7(s,theta_full,theta_idx,obj.Ts,maskIdx)*obj.Ts;
+                maskIdx=1:numel(args.trueImg);
+                args.operators.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*Ts;
+                args.operators.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*Ts;
+                args.operators.FBP =@(s) FBPFunc7(s,args.prjFull,args.prjNum,Ts,maskIdx)*Ts;
+                %args.operators.FBP =@(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
             otherwise
                 fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                 return;

@@ -106,10 +106,12 @@ classdef ConjGrad < handle
                     else
                         if(ppp>10)
                             warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormAlpha);
-                            if(oldCost>=obj.cost)
-                                obj.converged = true;
+                            if(oldCost>=newCost)
+                                obj.alpha = newX;
+                                obj.cost = newCost;
                             else
                                 obj.cost = oldCost;
+                                obj.converged = true;
                             end
                             obj.warned = true;
                             needBreak = true;

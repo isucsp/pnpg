@@ -22,7 +22,7 @@ function x = FBPFunc8(y,conf,Ts,maskIdx)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Wed 13 Nov 2013 06:17:52 PM CST
+%   $Revision: 0.1 $ $Date: Mon 17 Feb 2014 10:35:42 PM CST
 
 n=conf.np;
 m=length(y(:))/n;
@@ -43,5 +43,5 @@ y=real(y);
 y=y(Num_pixel/2-floor(m/2):Num_pixel/2+floor((m-1)/2),:);
 [Num_pixel,Num_proj]=size(y);
 
-x=reshape(mPrj(single(y),conf,'backward'),conf.n,[])';
+x=reshape(mPrj(y,0,'backward'),conf.n,[]);
 

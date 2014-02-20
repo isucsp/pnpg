@@ -1,4 +1,4 @@
-function x = FBPFunc7(y,theta_full,theta_idx,Ts,maskIdx)
+function x = FBPFunc7(y,prjFull,prjNum,Ts,maskIdx)
 % FBPFunc7      Filtered back projection reconstruction
 %   This routine is implemented by the external C language. The C code 
 %   implement the projection and back projection by the discrete methods.
@@ -22,15 +22,13 @@ function x = FBPFunc7(y,theta_full,theta_idx,Ts,maskIdx)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sun Sep 16 19:31:58 CDT 2012
+%   $Revision: 0.1 $ $Date: Mon 17 Feb 2014 08:05:42 PM CST
 
-n=length(theta_idx(:));
+n=length(prjNum);
 m=length(y(:))/n;
 y=reshape(y,m,n);
 y=[zeros(m/2,n); y; zeros(m/2,n)];
 [Num_pixel,Num_proj]=size(y);
-
-theta=theta_full(theta_idx);
 
 f=designFilter('renliang1',m*2,Ts);
 
@@ -42,7 +40,7 @@ y=real(y);
 y=y(m/2+1:m/2+m,:);
 [Num_pixel,Num_proj]=size(y);
 conf.bw=1; conf.nc=Num_pixel; conf.nr=Num_pixel; conf.prjWidth=Num_pixel;
-conf.theta=theta*180/pi;
+conf.theta=(0:prjNum-1)*360/prjFull;
 out=mParPrj(y,maskIdx-1,conf,'backward');
 x=zeros(m,m);
 x(maskIdx)=out(1:length(maskIdx));

@@ -8,6 +8,8 @@ do
     scp research-$i:$RPATH/runIcip2014.mat $LPATH/runIcip2014_$i.mat
 done
 
-scp linux-3:$RPATH/runIcip2014.mat $LPATH/runIcip2014_l3.mat
-scp linux-5:$RPATH/runIcip2014.mat $LPATH/runIcip2014_l5.mat
+for i in `seq $3 $4`
+do
+    scp linux-$i:$RPATH/runIcip2014.mat $LPATH/runIcip2014_l$i.mat
+done
 

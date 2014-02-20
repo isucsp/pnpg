@@ -5,7 +5,7 @@ function runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 17 Feb 2014 01:23:06 AM CST
+%   $Revision: 0.2 $ $Date: Tue 18 Feb 2014 11:44:21 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -21,17 +21,18 @@ if(nargin==0) runList=0; end
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
-    opt.spectBasis = 'b1';
-    opt.skipIe = true;
+    opt.spectBasis = 'dis';
+    %opt.skipIe = true;
+    opt.a=opt.a+log10(0.5);
+    conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
     %opt.maxIeSteps = 100;
-    %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
     prefix='BeamHard';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    %initSig=conf.FBP(conf.y);
-    %initSig = initSig(opt.mask~=0);
-    initSig = opt.trueAlpha;
-    keyboard
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
@@ -173,6 +174,38 @@ if(any(runList==7)) % b1, known Ie,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out7','-append');
     end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==8)) % reserved for debug and for the best result
+    i=1; j=1;
+    opt.spectBasis = 'b1';
+    %opt.skipIe = true;
+    conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='cpuFanPar'; %'filtered'; %'weighted'; %
+    %opt.maxIeSteps = 100;
+    %conf.theta = (0:6:179)';
+    opt=conf.setup(opt);
+    prefix='BeamHard';
+    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
+    out8{1}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out8','-append');
+
+    conf.PhiMode='basic'; %'filtered'; %'weighted'; %'cpuFanPar'; %
+    conf.PhiModeGen='basic'; %'cpuFanPar'; %'filtered'; %'weighted'; %
+    opt=conf.setup(opt);
+    prefix='BeamHard';
+    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
+    out8{2}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out8','-append');
     [conf, opt] = defaultInit();
 end
 
@@ -422,15 +455,15 @@ if(any(runList==30)) % Huber function test for best muHuber
     opt=conf.setup(opt);
     initSig=conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
-    for i=1:length(muHuber)
+    for i=2:length(muHuber)
         opt.muHuber=muHuber(i);
         opt=conf.setup(opt);
+        initSig=out30{i-1,j}.alpha;
+        opt.Ie=out30{i-1,j}.Ie;
         prefix='Huber function for different mu''s';
         fprintf('%s, i=%d, j=%d\n',prefix,i,j);
         out30{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
-        initSig=out30{i,j}.alpha;
-        opt.Ie=out30{i,j}.Ie;
         save(filename,'out30','-append');
     end
     [conf, opt] = defaultInit();
@@ -457,6 +490,31 @@ if(any(runList==31)) % test for different u for lustig
     end
     [conf, opt] = defaultInit();
 end
+
+if(any(runList==32)) % Huber function test for best muHuber
+    j=1;
+    opt.spectBasis = 'dis';
+    opt=rmfield(opt,'muLustig');
+    muHuber=[1e-16 logspace(-1,-15,8), 1e-16];
+    muHuber=muHuber(end:-1:1);
+    opt.maxItr=1e3;
+    opt=conf.setup(opt);
+    initSig=conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    for i=1:length(muHuber)
+        opt.muHuber=muHuber(i);
+        opt=conf.setup(opt);
+        prefix='Huber function for different mu''s';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        out32{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        initSig=out32{i,j}.alpha;
+        opt.Ie=out32{i,j}.Ie;
+        save(filename,'out32','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
 
 
 % ADD SPARSE RECONSRUCTION 
@@ -527,7 +585,6 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.showImg=0;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
@@ -536,4 +593,5 @@ function [conf, opt] = defaultInit()
     opt.maxAlphaSteps = 1;
     opt.skipIe=0;
     opt.maxIeSteps = 1;
+    opt.showImg=1;
 end

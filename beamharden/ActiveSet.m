@@ -13,7 +13,7 @@ classdef ActiveSet < handle
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
-        cost
+        cost;
         stepNum
         course = [];    % record the change of active set
         deltaNormIe
@@ -116,6 +116,7 @@ classdef ActiveSet < handle
                 obj.deltaNormIe=grad'*deltaIe;
                 if(obj.deltaNormIe<obj.thresh)
                     obj.converged=true;
+                    obj.cost=oldCost;
                     break;
                 end
 
@@ -140,10 +141,12 @@ classdef ActiveSet < handle
                     else
                         if(ppp>10)
                             warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
-                            if(oldCost>=obj.cost)
-                                obj.converged = true;
+                            if(oldCost>=newCost)
+                                obj.Ie = obj.adjust(newIe);
+                                obj.cost = newCost;
                             else
                                 obj.cost = oldCost;
+                                obj.converged = true;
                             end
                             needBreak = true;
                             obj.warned = true;

@@ -1,5 +1,5 @@
 
-style1 = {'b-','r-','b:','r:','b--','r--'};
+style1 = {'b-','r-','b:','r:','b--','r--','-','*','.','+','d'};
 style2 = {'b-*','r-*','b:o','r:o','b--s','r--s'};
 
 if(0)
@@ -34,7 +34,7 @@ if(0)
     end
 end
 
-if(1)
+if(0)
     %% show the comparison between different method on different number of projections
     aa=0;
     prj = zeros(6,1);
@@ -165,4 +165,43 @@ if(0)
     end
 end
 
+%% runlist = 30
+if(0)
+    figure;
+    out=out30; p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.RMSE,style1{k});
+        p=p+out{k}.p;
+        hold on;
+    end
+end
+
+%% runlist = 31
+if(1)
+    figure;
+    out=out31; p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.RMSE,style1{1});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.l1Pen,style1{2});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.cost,style1{3});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.nonneg,style1{4});
+        p=p+out{k}.p;
+        hold on;
+    end
+end
 
