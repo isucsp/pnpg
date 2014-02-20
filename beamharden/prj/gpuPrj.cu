@@ -15,13 +15,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-
-#if EXE_PROF
-#if GPU
-#include <cuda_profiler_api.h>
-#endif
-#endif
-
 #include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
@@ -31,6 +24,12 @@
 extern "C"{
 #include "prj.h"
 }
+
+#if EXE_PROF
+#if GPU
+#include <cuda_profiler_api.h>
+#endif
+#endif
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"

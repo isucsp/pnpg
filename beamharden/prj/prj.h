@@ -9,7 +9,7 @@
 #define PI (3.14159265359f)
 #define SQRT2 (1.414213562373095f)
 
-#define EXE_TIME 0
+#define EXE_TIME 1
 #define EXE_PROF 0
 #define DEBUG   0
 #define SHOWIMG  0
