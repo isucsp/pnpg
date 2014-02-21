@@ -15,13 +15,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-
-#if EXE_PROF
-#if GPU
-#include <cuda_profiler_api.h>
-#endif
-#endif
-
 #include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
@@ -31,6 +24,12 @@
 extern "C"{
 #include "prj.h"
 }
+
+#if EXE_PROF
+#if GPU
+#include <cuda_profiler_api.h>
+#endif
+#endif
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"
@@ -161,15 +160,13 @@ void pixelDrive(ft* img, ft* sino){
     ft d=conf->d; // the distance from rotating center to source in pixel
     int N=conf->n;
 
-    if(blockIdx.x==gridDim.x-1 && threadIdx.x==0 && N%2==0){
+    if(blockIdx.x==0 && threadIdx.x==0 && N%2==0){
         for(int i=0; i<N; i++){
             img[i]=0; img[i*N]=0;
         }
-        return;
     }
 
     int tileSz = sqrtf(blockDim.x);
-
     int tileX=0, tileY=blockIdx.x;
     while(tileY>tileX){ tileX++; tileY-=tileX; }
 
@@ -535,28 +532,16 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     config.imgSize=config.n*config.n;
     config.sinoSize=config.prjWidth*config.np;
 
-#if GPU
     fGrid = dim3(
             min(pConf->np, pConf->prjFull/8+1),
             (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
             );
     fThread = dim3(THRD_SZ,LYR_BLK);
-    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
 
     // use the last block to make frame zero.
-    if(pConf->n%2==0)
-        bGrid = dim3((1+temp)*temp/2+1); // add 1 to zero out the negative frame
-    else
-        bGrid = dim3((1+temp)*temp/2);
+    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
+    bGrid = dim3((1+temp)*temp/2);
     bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
-#else
-    int temp = (pConf->n+1)/2;
-    config.fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
-    if(pConf->n%2==0)
-        config.bSize = (1+temp)*temp/2+1;
-    else
-        config.bSize = (1+temp)*temp/2;
-#endif
 
     cudaDeviceReset();
     HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
@@ -744,7 +729,7 @@ int forwardTest( void ) {
 #endif
     free(sino); free(img);
 #if SHOWIMG
-    sinogram.display_and_exit();
+    //sinogram.display_and_exit();
 #endif
     return 0;
 }
