@@ -24,10 +24,11 @@
 
 extern struct prjConf* pConf;
 
+static ft *img, *sino;
 /*  The gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    ft *inpr, *outpr;
+    double *imgt, *sinot;
     //double *maskIdx;
     char* cmd;
 
@@ -39,31 +40,49 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     /*  create the output matrix */
     if(!strcmp(cmd,"forward")){      /* forward projection */
-        inpr=(ft*)mxGetPr(prhs[0]);
-        if(sizeof(ft)==sizeof(float))
-            plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxSINGLE_CLASS,mxREAL);
-        else
-            plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
-        outpr = (ft *)mxGetPr(plhs[0]);
-#if GPU
-        gpuPrj(inpr, outpr, RENEW_MEM | FWD_BIT);
-#else
-        cpuPrj(inpr, outpr, RENEW_MEM | FWD_BIT);
-#endif
-    }else if(!strcmp(cmd,"backward")){
-        inpr=(ft*)mxGetPr(prhs[0]);
+        plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
+        imgt = mxGetPr(prhs[0]);
+        for(int i=0; i<pConf->n; i++)
+            for(int j=0; j<pConf->n; j++)
+                img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
+        sinot = mxGetPr(plhs[0]);
         if(sizeof(ft)==sizeof(float)){
-            plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxSINGLE_CLASS,mxREAL);
-            outpr = (ft*)mxGetData(plhs[0]);
-        }else{
-            plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
-            outpr = (ft*)mxGetPr(plhs[0]);
-        }
 #if GPU
-        gpuPrj(outpr, inpr, RENEW_MEM );
+            gpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 #else
-        cpuPrj(outpr, inpr, RENEW_MEM );
+            cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 #endif
+            for(int i=0; i<pConf->prjWidth*pConf->np; i++)
+                sinot[i]=sino[i];
+        }else{
+#if GPU
+            gpuPrj(img, sinot, RENEW_MEM | FWD_BIT);
+#else
+            cpuPrj(img, sinot, RENEW_MEM | FWD_BIT);
+#endif
+        }
+    }else if(!strcmp(cmd,"backward")){
+        plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
+        imgt = (ft*)mxGetData(plhs[0]);
+        sinot=mxGetPr(prhs[0]);
+        if(sizeof(ft)==sizeof(float)){
+            for(int i=0; i<pConf->prjWidth*pConf->np; i++)
+                sino[i]=(ft)sinot[i];
+#if GPU
+            gpuPrj(img, sino, RENEW_MEM );
+#else
+            cpuPrj(img, sino, RENEW_MEM );
+#endif
+        }else{
+#if GPU
+            gpuPrj(img, sinot, RENEW_MEM );
+#else
+            cpuPrj(img, sinot, RENEW_MEM );
+#endif
+        }
+        for(int i=0; i<pConf->n; i++)
+            for(int j=0; j<pConf->n; j++)
+                imgt[i*pConf->n+j]=img[i+j*pConf->n];
     }else if(!strcmp(cmd,"config")){
         struct prjConf config;
         config.n=mxGetScalar(mxGetField(prhs[1],0,"n"));
@@ -81,6 +100,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         printf("config.dSize=%g\n",config.dSize);
         printf("config.effectiveRate=%g\n",config.effectiveRate);
         printf("config.d=%g\n",config.d);
+
+        ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
+        ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
     }else{

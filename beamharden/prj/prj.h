@@ -32,7 +32,13 @@
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 
+#if GPU
+typedef float ft;
+#endif
+
+#if CPU
 typedef double ft;
+#endif
 
 struct prjConf {
     int n; /* number of rows and cols of input image */

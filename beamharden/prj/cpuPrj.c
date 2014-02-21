@@ -40,7 +40,7 @@ prjConf* pConf = &config;
 
 static unsigned int nthread=32;
 static int fSize, bSize;
-ft *pImg, *pSino;
+static ft *pImg, *pSino;
 void (*rayDrive)(ft*, ft*, int);
 void (*pixelDrive)(ft*, ft*, int);
 
@@ -911,13 +911,12 @@ int backwardTest( void ) {
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
     FILE* f = fopen("sinogram.data","rb");
-    int tempI;
-    tempI=rand()%config.np;
 
     fread(sino,sizeof(ft),config.sinoSize,f);
 
     /*  
-    int offset;
+    int offset, tempI;
+    tempI=rand()%config.np;
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
             offset = i*config.prjWidth+j;
