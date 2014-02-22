@@ -42,10 +42,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if(!strcmp(cmd,"forward")){      /* forward projection */
         plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
         imgt = mxGetPr(prhs[0]);
+            printf("test0\n");
         for(int i=0; i<pConf->n; i++)
             for(int j=0; j<pConf->n; j++)
                 img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
         sinot = mxGetPr(plhs[0]);
+            printf("test1\n");
         if(sizeof(ft)==sizeof(float)){
 #if GPU
             gpuPrj(img, sino, RENEW_MEM | FWD_BIT);
@@ -55,6 +57,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for(int i=0; i<pConf->prjWidth*pConf->np; i++)
                 sinot[i]=sino[i];
         }else{
+            printf("test2\n");
 #if GPU
             gpuPrj(img, sinot, RENEW_MEM | FWD_BIT);
 #else
