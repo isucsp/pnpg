@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 11:38:50 PM CST
+%   $Revision: 0.2 $ $Date: Sat 22 Feb 2014 10:16:36 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -15,8 +15,8 @@ else
     save(filename,'filename');
 end
 
-[conf, opt] = defaultInit();
 if(isempty(runList))
+    [conf, opt] = defaultInit();
     opt = conf.setup(opt);
 end
 
@@ -24,6 +24,7 @@ if(nargin==0) runList=0; end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
+    [conf, opt] = defaultInit();
     i=1; j=1;
     opt.spectBasis = 'dis';
     %opt.skipIe = true;
@@ -40,10 +41,10 @@ if(any(runList==0)) % reserved for debug and for the best result
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==1)) % dis, single AS step,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     opt.spectBasis = 'dis';
     opt.skipIe=true;
@@ -58,10 +59,10 @@ if(any(runList==1)) % dis, single AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out1','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==2))     % FPCAS
+    [conf, opt] = defaultInit();
     intval = 6:-1:1;
     aArray=[-10:-4];
     for i=1:length(intval)
@@ -84,10 +85,10 @@ if(any(runList==2))     % FPCAS
             save(filename,'out2','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==3)) %solve by Back Projection
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
@@ -99,10 +100,10 @@ if(any(runList==3)) %solve by Back Projection
         out3{i}.RMSE=1-(out3{i}.alpha'*opt.trueAlpha/norm(out3{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out3','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==4))     % FPCAS after linearization
+    [conf, opt] = defaultInit();
     intval = 6:-1:1;
     aArray=[-10:-4];
     for i=1:length(intval)
@@ -126,10 +127,10 @@ if(any(runList==4))     % FPCAS after linearization
             save(filename,'out4','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==5)) %solve by Back Projection after linearization
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
@@ -142,10 +143,10 @@ if(any(runList==5)) %solve by Back Projection after linearization
         out5{i}.RMSE=1-(out5{i}.alpha'*opt.trueAlpha/norm(out5{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out5','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==6)) % b0, known Ie,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     opt.spectBasis = 'b0';
     opt.skipIe=true;
@@ -160,10 +161,10 @@ if(any(runList==6)) % b0, known Ie,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out6','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==7)) % b1, known Ie,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     opt.spectBasis = 'b1';
     opt.skipIe=true;
@@ -179,10 +180,10 @@ if(any(runList==7)) % b1, known Ie,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out7','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==71)) % b1, known Ie,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     conf.PhiMode = 'cpuPrj';
     opt.spectBasis = 'b1';
@@ -199,10 +200,10 @@ if(any(runList==71)) % b1, known Ie,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out71','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==8)) % reserved for debug and for the best result
+    [conf, opt] = defaultInit();
     i=1; j=1;
     opt.spectBasis = 'b1';
     %opt.skipIe = true;
@@ -231,10 +232,10 @@ if(any(runList==8)) % reserved for debug and for the best result
     out8{2}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out8','-append');
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==11)) % dis, single AS step,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     for i=6:length(intval)
         conf.theta = (0:intval(i):179)';
@@ -247,10 +248,10 @@ if(any(runList==11)) % dis, single AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out11','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==12)) % dis, max AS step,
+    [conf, opt] = defaultInit();
     opt.maxIeSteps = 100;
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
@@ -264,10 +265,10 @@ if(any(runList==12)) % dis, max AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out12','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==13)) % b0, single AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b0';
     intval = 6:-1:1;
     j=1;
@@ -282,10 +283,10 @@ if(any(runList==13)) % b0, single AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out13','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==14)) % b0, max AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b0';
     opt.maxIeSteps = 100;
     intval = 6:-1:1; j=1;
@@ -300,10 +301,10 @@ if(any(runList==14)) % b0, max AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out14','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==15)) % b1, single AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b1';
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
@@ -318,10 +319,10 @@ if(any(runList==15)) % b1, single AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out15','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==151)) % b1, single AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b1';
     conf.PhiMode = 'cpuPrj';
     intval = 6:-1:1; j=1;
@@ -337,10 +338,25 @@ if(any(runList==151)) % b1, single AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out151','-append');
     end
+end
+
+if(any(runList==152)) % b1, single AS step,
     [conf, opt] = defaultInit();
+    i=1; j=1;
+    opt.spectBasis = 'b1';
+    opt=conf.setup(opt);
+    prefix='BeamHard';
+    opt.maxItr = 8000;
+    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+    initSig = out15{end}.alpha;
+    opt.Ie = out15{end}.Ie;
+    out152{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out152','-append');
 end
 
 if(any(runList==16)) % b1, max AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b1';
     opt.maxIeSteps = 100;
     intval = 6:-1:1; j=1;
@@ -356,10 +372,10 @@ if(any(runList==16)) % b1, max AS step,
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out16','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==21)) % dis, single AS step,
+    [conf, opt] = defaultInit();
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
     for j=4:length(aArray)
@@ -377,10 +393,10 @@ if(any(runList==21)) % dis, single AS step,
             save(filename,'out21','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==22)) % dis, max AS step,
+    [conf, opt] = defaultInit();
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
     i=1;
@@ -400,10 +416,10 @@ if(any(runList==22)) % dis, max AS step,
             save(filename,'out22','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==23)) % b0, single AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b0';
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
@@ -421,10 +437,10 @@ if(any(runList==23)) % b0, single AS step,
             save(filename,'out23','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==24)) % b0, max AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b0';
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
@@ -445,10 +461,10 @@ if(any(runList==24)) % b0, max AS step,
             save(filename,'out24','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==25)) % b1, single AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b1';
     intval = 6:-1:1;
     aArray=[-6.5, -9:-4];
@@ -467,10 +483,10 @@ if(any(runList==25)) % b1, single AS step,
             save(filename,'out25','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==26)) % b1, max AS step,
+    [conf, opt] = defaultInit();
     opt.spectBasis = 'b1';
     opt.maxIeSteps = 100;
     intval = 6:-1:1;
@@ -490,10 +506,10 @@ if(any(runList==26)) % b1, max AS step,
             save(filename,'out26','-append');
         end
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==30)) % Huber function test for best muHuber
+    [conf, opt] = defaultInit();
     j=1;
     opt.spectBasis = 'dis';
     opt=rmfield(opt,'muLustig');
@@ -513,10 +529,10 @@ if(any(runList==30)) % Huber function test for best muHuber
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out30','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==31)) % test for different u for lustig
+    [conf, opt] = defaultInit();
     j=1;
     opt.spectBasis = 'dis';
     opt.maxItr=1e3;
@@ -535,10 +551,10 @@ if(any(runList==31)) % test for different u for lustig
         opt.Ie=out31{i,j}.Ie;
         save(filename,'out31','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 if(any(runList==32)) % Huber function test for best muHuber
+    [conf, opt] = defaultInit();
     j=1;
     opt.spectBasis = 'dis';
     opt=rmfield(opt,'muLustig');
@@ -559,7 +575,6 @@ if(any(runList==32)) % Huber function test for best muHuber
         opt.Ie=out32{i,j}.Ie;
         save(filename,'out32','-append');
     end
-    [conf, opt] = defaultInit();
 end
 
 
