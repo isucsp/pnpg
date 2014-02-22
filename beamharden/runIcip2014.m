@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 22 Feb 2014 12:33:23 PM CST
+%   $Revision: 0.2 $ $Date: Sat 22 Feb 2014 12:42:00 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -47,20 +47,29 @@ if(any(runList==0.1)) % reserved for debug and for the best result
     i=1; j=1;
     opt.muLustig=3.1623e-11;
     opt.spectBasis = 'b1';
-    %opt.skipIe = true;
     opt.a=opt.a+log10(0.5);
-    %conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
-    %conf.PhiModeGen='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
-    %opt.maxIeSteps = 100;
     opt=conf.setup(opt);
     prefix='BeamHard';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
+    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
     %initSig = opt.trueAlpha;
     out01=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out01','-append');
+end
+
+if(any(runList==0.2)) % reserved for debug and for the best result
+    [conf, opt] = defaultInit();
+    opt.muLustig=3.1623e-11;
+    opt.spectBasis = 'b1';
+    opt=conf.setup(opt);
+    i=1; j=1;
+    fprintf('%s, i=%d, j=%d\n','beamharden',i,j);
+    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
+    out02=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out02','-append');
 end
 
 if(any(runList==1)) % dis, single AS step,
