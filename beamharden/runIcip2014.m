@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 11:36:32 PM CST
+%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 11:38:50 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -182,7 +182,7 @@ if(any(runList==7)) % b1, known Ie,
     [conf, opt] = defaultInit();
 end
 
-if(any(runList==7)) % b1, known Ie,
+if(any(runList==71)) % b1, known Ie,
     intval = 6:-1:1; j=1;
     conf.PhiMode = 'cpuPrj';
     opt.spectBasis = 'b1';
@@ -195,9 +195,9 @@ if(any(runList==7)) % b1, known Ie,
         fprintf('%s, i=%d, j=%d\n',prefix,i,j);
         initSig=conf.FBP(conf.y);
         initSig = initSig(opt.mask~=0);
-        out7{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        out71{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out7','-append');
+        save(filename,'out71','-append');
     end
     [conf, opt] = defaultInit();
 end
