@@ -13,7 +13,7 @@ classdef ActiveSet < handle
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
-        cost
+        cost;
         stepNum
         course = [];    % record the change of active set
         deltaNormIe
@@ -41,7 +41,7 @@ classdef ActiveSet < handle
 
         function main(obj)
             pp=0; obj.converged = false; obj.course = [];
-            obj.warned = false;
+            obj.warned = false; needBreak = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
@@ -82,15 +82,15 @@ classdef ActiveSet < handle
                         end
                         temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));
-                        temp1(temp>eps & (~obj.Q)) = ...
-                            constrainMargin(temp>eps & (~obj.Q))./temp(temp>eps & (~obj.Q));
+                        temp1(temp>0 & (~obj.Q)) = ...
+                            constrainMargin(temp>0 & (~obj.Q))./temp(temp>0 & (~obj.Q));
                         maxStep = min( temp1 );
                         temp = find(temp1==maxStep);
                         [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
                         q(ppp) = temp(temp1(1));
                         collide = zeros(size(obj.Q))==1;
                         collide(q(ppp)) = true;
-                        if(maxStep<eps)
+                        if(maxStep<=0)
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
                             if(any(collide) && q(ppp)~=k(ppp-1))
@@ -99,7 +99,7 @@ classdef ActiveSet < handle
                                 obj.course = [obj.course;...
                                     sprintf('%s\n', char(obj.Q(:)'+'0') )];
                             else
-                                obj.converged=true;
+                                needBreak = true;
                                 break;
                             end
                         else
@@ -113,43 +113,52 @@ classdef ActiveSet < handle
                     obj.warned = true;
                 end
                 
-                deltaNormIe=grad'*deltaIe;
-                if(deltaNormIe<obj.thresh)
+                obj.deltaNormIe=grad'*deltaIe;
+                if(obj.deltaNormIe<obj.thresh)
                     obj.converged=true;
+                    obj.cost=oldCost;
+                    break;
                 end
 
                 % begin line search
                 ppp=0; stepSz=min(1,maxStep);
-                while(~obj.converged)
+                while(~obj.converged && ~needBreak)
                     ppp=ppp+1;
                     newIe=obj.Ie-stepSz*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if(newCost <= oldCost - stepSz/2*deltaNormIe)
+                    if((newCost <= oldCost - stepSz/2*obj.deltaNormIe)...
+                            || (ppp>10 && newCost < oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;
+                        if(stepSz==maxStep)
+                            obj.Q = (obj.Q | collide);
+                            obj.Z = null(obj.B(obj.Q,:),'r');
+                            obj.course = [obj.course;...
+                                sprintf('%s\n', char(obj.Q(:)'+'0') )];
+                        end      
                         break;
                     else
                         if(ppp>10)
-                            obj.cost = oldCost;
-                            obj.converged=true;
-                            warning('exit iterations for higher convergence criteria: %g\n',deltaNormIe);
+                            warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
+                            if(oldCost>=newCost)
+                                obj.Ie = obj.adjust(newIe);
+                                obj.cost = newCost;
+                            else
+                                obj.cost = oldCost;
+                                obj.converged = true;
+                            end
+                            needBreak = true;
                             obj.warned = true;
-                        else stepSz=stepSz*obj.stepShrnk;
+                        else
+                            stepSz=stepSz*obj.stepShrnk;
                         end
                     end
                 end
                 % end of line search
-                if(stepSz==maxStep)
-                    obj.Q = (obj.Q | collide);
-                    obj.Z = null(obj.B(obj.Q,:),'r');
-                    obj.course = [obj.course;...
-                        sprintf('%s\n', char(obj.Q(:)'+'0') )];
-                end      
-                if(obj.converged) break; end
+                if(obj.converged || needBreak) break; end
             end
             obj.stepNum = pp;
-            obj.deltaNormIe = deltaNormIe;
         end
 
         function Ie=adjust(obj,Ie)

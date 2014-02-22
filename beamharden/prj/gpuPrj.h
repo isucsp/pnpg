@@ -47,6 +47,9 @@ struct prjConf {
 
     int imgSize;
     int sinoSize;
+#if GPU
+    dim3 fGrid, fThread, bGrid, bThread;
+#endif
 };
 
 struct cpuPrjConf{

@@ -1,6 +1,6 @@
 /*
  *   Description: use GPU to calculate parallel beam, fan beam projection 
- *   and back projection.
+ *   and their corresponding back projection.
  *
  *   Reference:
  *   Author: Renliang Gu (renliang@iastate.edu)
@@ -10,11 +10,11 @@
  */
 
 /*#include <unistd.h>*/
+#define GPU 1
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include <cuda_profiler_api.h>
 #include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
@@ -22,26 +22,34 @@
 #include <string.h>
 
 extern "C"{
-#include "gpuPrj.h"
+#include "prj.h"
 }
+
+#if EXE_PROF
+#if GPU
+#include <cuda_profiler_api.h>
+#endif
+#endif
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"
 #endif
 
-const ft PI = 3.14159265359f;
-const ft SQRT2 = sqrt(2);
-
 prjConf config;
 prjConf* pConf = &config;
+
+#if GPU
 cudaEvent_t     start, stop;
-float           elapsedTime;
 
 ft *dev_img;
 ft *dev_sino;
 
-__constant__ prjConf dConf;
+static dim3 fGrid, fThread, bGrid, bThread;
 
+__constant__ prjConf dConf;
+#endif
+
+#if GPU
 /*
    */
 static void HandleError( cudaError_t err,
@@ -53,8 +61,12 @@ static void HandleError( cudaError_t err,
         exit( EXIT_FAILURE );
     }
 }
+#endif
 
-__device__ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
+#if GPU
+__device__
+#endif
+ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     // range of gamma is in [-alpha,pi/4+alpha], where alpha is small
     //ft temp=abs(fmod(theta,90)-45)*PI/180; /* test value of temp */
     cosR = cosR<0 ? -cosR : cosR;
@@ -134,7 +146,10 @@ __device__ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
     return weight;
 }
 
-__global__ void pixelDrive(ft* img, ft* sino){
+#if GPU
+__global__
+#endif
+void pixelDrive(ft* img, ft* sino){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta, thetal, thetar;       // the current angle, range in [0 45]
@@ -145,15 +160,13 @@ __global__ void pixelDrive(ft* img, ft* sino){
     ft d=conf->d; // the distance from rotating center to source in pixel
     int N=conf->n;
 
-    if(N%2==0 && blockIdx.x==gridDim.x-1){
+    if(blockIdx.x==0 && threadIdx.x==0 && N%2==0){
         for(int i=0; i<N; i++){
             img[i]=0; img[i*N]=0;
         }
-        return;
     }
 
     int tileSz = sqrtf(blockDim.x);
-
     int tileX=0, tileY=blockIdx.x;
     while(tileY>tileX){ tileX++; tileY-=tileX; }
 
@@ -186,7 +199,7 @@ __global__ void pixelDrive(ft* img, ft* sino){
     __shared__ volatile ft shared[8][ANG_BLK][4*TILE_SZ];
     for(thetaIdx=threadIdx.y; thetaIdx<conf->prjFull;thetaIdx+=blockDim.y){
 
-        thetalIdx=(thetaIdx/blockDim.y)*blockDim.y;
+        thetalIdx=threadIdx.y*blockDim.y;
         thetarIdx=thetalIdx+blockDim.y-1;
 
         theta  = thetaIdx *2*PI/conf->prjFull;
@@ -519,6 +532,17 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     config.imgSize=config.n*config.n;
     config.sinoSize=config.prjWidth*config.np;
 
+    fGrid = dim3(
+            min(pConf->np, pConf->prjFull/8+1),
+            (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
+            );
+    fThread = dim3(THRD_SZ,LYR_BLK);
+
+    // use the last block to make frame zero.
+    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
+    bGrid = dim3((1+temp)*temp/2);
+    bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+
     cudaDeviceReset();
     HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
     HANDLE_ERROR(cudaMalloc((void**)&dev_sino,pConf->prjFull*pConf->prjWidth*sizeof(ft)));
@@ -574,28 +598,32 @@ int gpuPrj(ft* img, ft* sino, char cmd){
         else{
             HANDLE_ERROR(cudaMemcpy(dev_sino,sino,pConf->sinoSize*sizeof(ft),
                         cudaMemcpyHostToDevice ) );
+
+
+
+
+
+
+
+
+
+
+
+
+
             if(pConf->np<pConf->prjFull)
                 HANDLE_ERROR(cudaMemset(dev_sino,0,
                             (pConf->prjFull-pConf->np)*pConf->prjWidth*sizeof(ft)));
-        }
+               
 
-    dim3 grid;
-    dim3 thread;
-    if(cmd & FWD_BIT){
-        grid = dim3(
-                min(pConf->np, pConf->prjFull/8+1),
-                (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
-                );
-        thread = dim3(THRD_SZ,LYR_BLK);
-    }else{
-        int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
-        // use the last block to make frame zero.
-        if(pConf->n%2==0)
-            grid = dim3((1+temp)*temp/2+1);
-        else
-            grid = dim3((1+temp)*temp/2);
-        thread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
-    }
+
+
+
+
+
+
+
+        }
 
 #if DEBUG
     if(cmd & FWD_BIT) printf("forward project ...\n");
@@ -604,8 +632,8 @@ int gpuPrj(ft* img, ft* sino, char cmd){
             grid.x,grid.y,thread.x,thread.y);
 #endif
 
-    if(cmd & FWD_BIT) rayDrive<<<grid,thread>>>(dev_img, dev_sino);
-    else pixelDrive<<<grid,thread>>>(dev_img, dev_sino);
+    if(cmd & FWD_BIT) rayDrive<<<fGrid,fThread>>>(dev_img, dev_sino);
+    else pixelDrive<<<bGrid,bThread>>>(dev_img, dev_sino);
 
 #if EXE_PROF
     cudaProfilerStop();
@@ -620,6 +648,7 @@ int gpuPrj(ft* img, ft* sino, char cmd){
     }
 
 #if EXE_TIME
+    float elapsedTime;
     HANDLE_ERROR( cudaEventRecord( stop, 0 ) );
     HANDLE_ERROR( cudaEventSynchronize( stop ) );
     HANDLE_ERROR( cudaEventElapsedTime( &elapsedTime,
@@ -700,7 +729,7 @@ int forwardTest( void ) {
 #endif
     free(sino); free(img);
 #if SHOWIMG
-    sinogram.display_and_exit();
+    //sinogram.display_and_exit();
 #endif
     return 0;
 }

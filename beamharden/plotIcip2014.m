@@ -1,41 +1,146 @@
 
-style1 = {'b-','r-','b:','r:','b--','r--'};
+style1 = {'b-','r-','b:','r:','b--','r--','-','*','.','+','d'};
 style2 = {'b-*','r-*','b:o','r:o','b--s','r--s'};
 
-if(0)
-    for k=1:6
-        eval(sprintf('out=out1%d;',k));
-        rse = zeros(size(out));
-        for i=1:size(out,1)
-            for j=1:size(out,2)
-                if(~isempty(out{i,j}))
-                    figure((i-1)*size(out,2)+j);
-                    loglog(1:out{i,j}.p, out{i,j}.cost,style1{k});
-                    hold on;
-                end
-            end
-        end
-    end
-end
-
-if(0)
-    for k=1:6
-        eval(sprintf('out=out1%d;',k));
-        rse = zeros(size(out));
-        for i=1:size(out,1)
-            for j=1:size(out,2)
-                if(~isempty(out{i,j}))
-                    figure((i-1)*size(out,2)+j);
-                    semilogy(1:out{i,j}.p, out{i,j}.RMSE,style1{k});
-                    hold on;
-                end
-            end
-        end
-    end
-end
-
+%% NDE report plot
 if(1)
+    aa=0;
+    legStr=[];
+    toPlot=[];
+    prj = zeros(6,1);
+    intval = 6:-1:1;
+    for i=1:length(intval)
+        prj(i) = length((0:intval(i):179));
+    end
+    toPlot=[toPlot prj(:)];
+    figure;
+    for k=[5]
+        eval(sprintf('out=out1%d;',k));
+        rse = zeros(size(out));
+        for i=1:size(out,1)
+            for j=1:size(out,2)
+                if(~isempty(out{i,j}))
+                    rse(i,j)=min(out{i,j}.RMSE);
+                end
+            end
+        end
+        if(length(prj)==length(rse))
+            semilogy(prj,rse,style2{k}); hold on;
+        end
+        eval(sprintf('rse2%d=rse;',k));
+        toPlot=[toPlot rse(:)];
+    end
+    aa=1;
+    legStr{1} = ['unknown Ie by dis'];
+    legStr{2} = ['unknown Ie by b0'];
+    legStr{1} = ['unknown Ie by b1'];
+
+    %out=out1;
+    %rse=zeros(size(out));
+    %for i=1:length(out)
+    %    rse(i)=min(out{i}.RMSE);
+    %end
+    %plot(prj,rse,'r:<');
+    %aa=aa+1; legStr{aa}='known Ie by dis';
+    %out=out6;
+    %rse=zeros(size(out));
+    %for i=1:length(out)
+    %    rse(i)=min(out{i}.RMSE);
+    %end
+    %plot(prj,rse,'r:>','linewidth',2);
+    %aa=aa+1; legStr{aa}='known Ie by b0';
+    out=out7;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    toPlot=[toPlot rse(:)];
+    plot(prj,rse,'r:h');
+    aa=aa+1; legStr{aa}='known Ie by b1';
+
+    out=out3;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    toPlot=[toPlot rse(:)];
+    plot(prj,rse,'g:^');
+    aa=aa+1; legStr{aa}='direct FBP';
+
+    out=out5;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    toPlot=[toPlot rse(:)];
+    plot(prj,rse,'c-.p');
+    aa=aa+1; legStr{aa}='FBP after linearization';
+
+    out=out2;
+    rse = zeros(size(out));
+    for i=1:size(out,1)
+        for j=1:size(out,2)
+            if(~isempty(out{i,j}))
+                rse(i,j)=min(out{i,j}.RMSE);
+            end
+        end
+    end
+    %semilogy(prj,rse(:,5),'k--d'); hold on;
+    %toPlot=[toPlot rse(:,5)];
+    toPlot=[toPlot min(rse,[],2)];
+    semilogy(prj,min(rse'),'k--d'); hold on;
+    eval(sprintf('rse%d=rse;',2));
+    aa=aa+1; legStr{aa}='FPCAS';
+
+    out=out4;
+    rse = ones(size(out));
+    for i=1:size(out,1)
+        for j=1:size(out,2)
+            if(~isempty(out{i,j}))
+                rse(i,j)=min(out{i,j}.RMSE);
+            end
+        end
+    end
+    %semilogy(prj,rse(:,5),'r--d'); hold on;
+    %toPlot=[toPlot rse(:,5)];
+    semilogy(prj,min(rse'),'r--d'); hold on;
+    toPlot=[toPlot min(rse,[],2)];
+    eval(sprintf('rse%d=rse;',4));
+    aa=aa+1; legStr{aa}='FPCAS after linearization';
+
+    legend(legStr);
+    save('RSEvsPrjNum.data','toPlot','-ascii');
+
+    %for k=1:2:6
+    %    eval(sprintf('out=out1%d;',k));
+    %    rse = zeros(size(out));
+    %    for i=1:size(out,1)
+    %        for j=1:size(out,2)
+    %            if(~isempty(out{i,j}))
+    %                figure((i-1)*size(out,2)+j);
+    %                subplot(2,1,1);
+    %                loglog(1:out{i,j}.p, out{i,j}.cost,style1{k}); hold on;
+    %                subplot(2,1,2);
+    %                loglog(1:out{i,j}.p, out{i,j}.RMSE,style1{k});
+    %                hold on;
+    %            end
+    %        end
+    %    end
+    %end
+
+    % plot Phi alpha vs I^out
+    [conf, opt]=runIcip2014([]);
+    alpha=conf.FBP(conf.y);
+    alpha=alpha(opt.mask~=0);
+    phialpha0=conf.Phi(opt.trueAlpha);
+    phialpha1=conf.Phi(alpha);
+    phialpha2=conf.Phi(out15{end}.alpha);
+    Imea = out15{end}.
+end
+
+if(0)
     %% show the comparison between different method on different number of projections
+    aa=0;
     prj = zeros(6,1);
     intval = 6:-1:1;
     for i=1:length(intval)
@@ -54,6 +159,8 @@ if(1)
         end
         if(length(prj)==length(rse))
             semilogy(prj,rse,style2{k}); hold on;
+            aa=aa+1;
+            legStr{aa} = ['unknown Ie by ' num2str(k)];
         end
         eval(sprintf('rse2%d=rse;',k));
     end
@@ -63,6 +170,21 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'r:<');
+    aa=aa+1; legStr{aa}='known Ie by dis';
+    out=out6;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    plot(prj,rse,'r:>','linewidth',2);
+    aa=aa+1; legStr{aa}='known Ie by b0';
+    out=out7;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=min(out{i}.RMSE);
+    end
+    plot(prj,rse,'r:h');
+    aa=aa+1; legStr{aa}='known Ie by b1';
 
     out=out3;
     rse=zeros(size(out));
@@ -70,6 +192,7 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'g:^');
+    aa=aa+1; legStr{aa}='direct FBP';
 
     out=out5;
     rse=zeros(size(out));
@@ -77,6 +200,7 @@ if(1)
         rse(i)=min(out{i}.RMSE);
     end
     plot(prj,rse,'c-.p');
+    aa=aa+1; legStr{aa}='FBP after linearization';
 
     out=out2;
     rse = zeros(size(out));
@@ -89,6 +213,7 @@ if(1)
     end
     semilogy(prj,min(rse'),'k--d'); hold on;
     eval(sprintf('rsel%d=rse;',k));
+    aa=aa+1; legStr{aa}='FPCAS';
 
     out=out4;
     rse = ones(size(out));
@@ -101,6 +226,9 @@ if(1)
     end
     semilogy(prj,min(rse'),'r--d'); hold on;
     eval(sprintf('rse%d=rse;',4));
+    aa=aa+1; legStr{aa}='FPCAS after linearization';
+
+    legend(legStr);
 end
 
 
@@ -141,4 +269,43 @@ if(0)
     end
 end
 
+%% runlist = 30
+if(0)
+    figure;
+    out=out30; p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.RMSE,style1{k});
+        p=p+out{k}.p;
+        hold on;
+    end
+end
+
+%% runlist = 31
+if(0)
+    figure;
+    out=out31; p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.RMSE,style1{1});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.l1Pen,style1{2});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.cost,style1{3});
+        p=p+out{k}.p;
+        hold on;
+    end
+    p=1;
+    for k=1:length(out)
+        semilogy(p:p+out{k}.p-1, out{k}.nonneg,style1{4});
+        p=p+out{k}.p;
+        hold on;
+    end
+end
 

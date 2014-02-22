@@ -1,0 +1,6 @@
+*.o
+cpuPrj
+gpuPrj
+*.mexa64
+*.data
+*.out

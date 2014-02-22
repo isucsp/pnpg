@@ -12,3 +12,5 @@
 - Register, local, shared, and constant memory usages are reported by the
   compiler when compiling with the -ptxas-options=-v option.
 
+- It may be a problem when prjFull is some arbitrary number
+    fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;

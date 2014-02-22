@@ -33,13 +33,27 @@ classdef ConjGrad < handle
         end
 
         function [f,g,h] = func(obj,aaa)
-            g = 0;
-            for i = 1:obj.n
-                [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
-                g = g+gtemp*obj.coef(i);
+            if(nargout==3)
+                g = 0;
+                for i = 1:obj.n
+                    [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
+                    g = g+gtemp*obj.coef(i);
+                end
+                f = obj.fVal'*obj.coef;
+                h = @(xxx,opt) hessian(xxx,opt);
+            elseif(nargout==2)
+                g = 0;
+                for i = 1:obj.n
+                    [obj.fVal(i),gtemp] = obj.fArray{i}(aaa);
+                    g = g+gtemp*obj.coef(i);
+                end
+                f = obj.fVal'*obj.coef;
+            else
+                for i = 1:obj.n
+                    obj.fVal(i) = obj.fArray{i}(aaa);
+                end
+                f = obj.fVal'*obj.coef;
             end
-            f = obj.fVal'*obj.coef;
-            h = @(xxx,opt) hessian(xxx,opt);
             function hh = hessian(x,opt)
                 hh=0;
                 for j = 1:obj.n
@@ -56,7 +70,7 @@ classdef ConjGrad < handle
         end
 
         function prCG(obj)
-            pp=0; obj.converged = false; obj.warned = false;
+            pp=0; obj.converged = false; obj.warned = false; needBreak = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
                 [oldCost,grad,hessian] = obj.func(obj.alpha);
@@ -73,33 +87,41 @@ classdef ConjGrad < handle
 
                 if(obj.deltaNormAlpha<obj.thresh)
                     obj.converged=true;
+                    break;
                 end
 
                 % start of line Search
                 ppp=0; stepSz=min(1,maxStep);
-                while(~obj.converged)
+                while(~obj.converged && ~needBreak)
                     ppp=ppp+1;
                     newX=obj.alpha-stepSz*deltaAlpha;
                     %newX(newX<0)=0; % force it be positive;
                     newCost=obj.func(newX);
 
-                    if(newCost <= oldCost - stepSz/2*obj.deltaNormAlpha)
+                    if((newCost <= oldCost - stepSz/2*obj.deltaNormAlpha)...
+                            || (ppp>10 && newCost < oldCost))
                         obj.alpha = newX;
                         obj.cost = newCost;
                         break;
                     else
                         if(ppp>10)
-                            obj.cost = oldCost;
-                            obj.warned = true;
-                            obj.converged = true;
                             warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormAlpha);
+                            if(oldCost>=newCost)
+                                obj.alpha = newX;
+                                obj.cost = newCost;
+                            else
+                                obj.cost = oldCost;
+                                obj.converged = true;
+                            end
+                            obj.warned = true;
+                            needBreak = true;
                         else
                             stepSz=stepSz*obj.stepShrnk;
                         end
                     end
                 end
                 %end of line search
-                if(obj.converged) break; end
+                if(obj.converged || needBreak) break; end
             end
             obj.stepNum = pp;
         end

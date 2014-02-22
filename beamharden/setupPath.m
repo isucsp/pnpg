@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Mon 10 Feb 2014 02:19:22 AM CST
+% $Revision: 0.3 $ $Date: Fri 21 Feb 2014 06:24:33 PM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path

@@ -1,13 +1,12 @@
 %   Test the mex function parFwdPrj.c
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Wed 13 Nov 2013 06:36:14 PM CST
+%   $Revision: 0.1 $ $Date: Sun 16 Feb 2014 04:38:55 PM CST
 
 N=512;
 img=zeros(N,N);
 img(50:100,N/2-50:N/2+50)=1;
-load(['../Mask' num2str(N) 'Circle.mat']);
-addpath('../');
+Mask=ones(size(img));
 maskIdx=find(Mask);
 img=img(maskIdx);
 conf.bw=1; conf.nc=N; conf.nr=N; conf.prjWidth=N; conf.theta=0:179;

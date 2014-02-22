@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 09 Feb 2014 01:07:53 AM CST
+% $Revision: 0.2 $ $Date: Mon 17 Feb 2014 10:38:58 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -13,9 +13,14 @@ classdef ConfigCT < handle
         maskType = 'CircleMask';
 
         PhiMode = 'basic'; %'gpu'; %'cpu'
+        PhiModeGen = 'cpuPar';
         imgSize = 1024;
         prjWidth = 1024;
-        theta = (0:179)';
+        prjNum = 180;
+        prjFull = 360;
+        dSize = 1;
+        effectiveRate = 1;
+        dist = 0;       % default to be parallel beam
 
         Phi
         Phit
@@ -72,7 +77,6 @@ classdef ConfigCT < handle
             maskIdx = find(obj.mask~=0);
             wvltIdx = find(obj.maskk~=0);
             opt.trueAlpha=obj.trueImg(maskIdx);
-            opt.trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
             
             %Sampling operator
             W=@(z) midwt(z,obj.wav,obj.dwt_L);
@@ -87,34 +91,51 @@ classdef ConfigCT < handle
             m_2D=[obj.imgSize, obj.imgSize];
             J=[1,1]*3;                       % NUFFT interpolation neighborhood
             K=2.^ceil(log2(m_2D*2));         % oversampling rate
+            theta = (0:obj.prjNum-1)*360/obj.prjFull;
 
             r=pi*linspace(-1,1-2/obj.prjWidth,obj.prjWidth)';
-            xc=r*cos(obj.theta(:)'*pi/180);
-            yc=r*sin(obj.theta(:)'*pi/180);
+            xc=r*cos(theta(:)'*pi/180);
+            yc=r*sin(theta(:)'*pi/180);
             om=[yc(:), xc(:)];
             st=nufft_init(om,m_2D,J,K,m_2D/2,'minmax:kb');
             st.Num_pixel=obj.prjWidth;
-            st.Num_proj=length(obj.theta);
+            st.Num_proj=obj.prjNum;
 
             maskIdx = find(obj.mask~=0);
             % Zero freq at f_coeff(prjWidth/2+1)
             f_coeff=designFilter('renliang1',obj.prjWidth,obj.Ts);
             obj.Phi=@(s) PhiFunc51(s,f_coeff,st,obj.imgSize,obj.Ts,maskIdx);
             obj.Phit=@(s) PhitFunc51(s,f_coeff,st,obj.imgSize,obj.Ts,maskIdx);
-            obj.FBP=@(s) FBPFunc6(s,obj.theta,obj.Ts);
+            obj.FBP=@(s) FBPFunc6(s,theta,obj.Ts);
+        end
+        function cpuFanParOps(obj)
+            conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
+            conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
+            conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
+            conf.effectiveRate=obj.effectiveRate;
+            conf.d=obj.dist;
+
+            mPrj(0,conf,'config');
+            mPrj(0,0,'showConf');
+            maskIdx = find(obj.mask~=0);
+            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            obj.FBP = @(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
         end
         function genOperators(obj)
             switch lower(obj.PhiMode)
                 case 'basic'
                     nufftOps(obj);
-                case 'gpu'
+                case lower('cpuFanPar')
+                    % can be cpu or gpu, with both fan or parallel projections
+                    cpuFanParOps(obj);
                 case 'cpu'
-                    conf.bw=1; conf.nc=mx; conf.nr=my; conf.prjWidth=Num_pixel;
-                    conf.theta=theta*180/pi;
-                    temp=1:numel(Img2D);
-                    Phi=@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
-                    Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
-                    FBP=@(s) FBPFunc7(s,theta_full,theta_idx,Ts,maskIdx)*Ts;
+                    conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
+                    conf.theta=obj.theta;
+                    maskIdx = find(obj.mask~=0);
+                    obj.Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
+                    obj.Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
+                    obj.FBP = @(s) FBPFunc7(s,obj.prjFull,obj.prjNum,obj.Ts,maskIdx)*obj.Ts;
                 case 'weighted'
                     % Fessler's weighted methods
                     weight=exp(-y);
@@ -201,22 +222,23 @@ classdef ConfigCT < handle
 
             % before this, make sure max(CTdata)==1
             temp=size(obj.CTdata,1);
-            obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),length(obj.theta));...
+            obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),obj.prjNum);...
                 obj.CTdata;...
-                zeros(floor((obj.prjWidth-temp)/2),length(obj.theta))];
+                zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
             obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
         end
 
         function loadCastSim(obj)
             obj.Ts=0.008;
-            theta=1:180;     %for phantom
+            %theta=1:180;     %for phantom
             %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
             %theta=1:160;  % Dogandzic2011Asilomar
 
             obj.trueImg=double(imread('binaryCasting.bmp'));
             [obj.CTdata,args] = genBeamHarden('showImg',false,...
                 'spark', obj.spark, 'trueImg',obj.trueImg, ...
-                'theta', obj.theta, 'PhiMode',obj.PhiMode);
+                'prjNum', obj.prjNum, 'prjFull', obj.prjFull,...
+                'PhiMode',obj.PhiModeGen);
             obj.trueIota = args.iota(:);
             obj.epsilon = args.epsilon(:);
             obj.trueKappa = args.kappa(:);
