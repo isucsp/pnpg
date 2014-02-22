@@ -18,7 +18,7 @@ CFLAGS = -fPIC -D_GNU_SOURCE -pthread -fexceptions -arch glnxa64
 LFLAGS = -Wall
 COPTIMFLAGS = -O3 -funroll-loops -msse2
  
-all: mParPrj solveTriDiag cpuPrj
+all: mParPrj solveTriDiag mCPUPrj
 
 mGPUPrj: mPrj.c gpuPrj
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
