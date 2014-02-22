@@ -20,10 +20,10 @@ COPTIMFLAGS = -O3 -funroll-loops -msse2
  
 all: mParPrj solveTriDiag mCPUPrj
 
-mGPUPrj: mPrj.c gpuPrj
+mGPUPrj: mPrj.c gpuPrj.o
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
-mCPUPrj: mPrj.c cpuPrj
+mCPUPrj: mPrj.c cpuPrj.o
 	$(MEX) mPrj.c cpuPrj.o -DCPU=1
 
 mParPrj: mParPrj.c parPrj.o
@@ -32,12 +32,16 @@ mParPrj: mParPrj.c parPrj.o
 parPrj.o: parPrj.c parPrj.h
 	gcc -c -fPIC -lpthread parPrj.c
 
-cpuPrj: cpuPrj.c prj.h
+cpuPrj.o: cpuPrj.c prj.h
 	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
+
+cpuPrj: cpuPrj.o
 	g++ cpuPrj.o -o cpuPrj -pthread #-lglut -lGL
 
-gpuPrj: gpuPrj.cu prj.h
+gpuPrj.o: gpuPrj.cu prj.h
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu
+
+gpuPrj: gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o -o gpuPrj
 
 solveTriDiag:
