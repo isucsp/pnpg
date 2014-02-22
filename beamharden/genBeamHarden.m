@@ -48,8 +48,8 @@ function [CTdata, args] = genBeamHarden(varargin)
     end
 
     epsilon=epsilon(:);
-    deltaEpsilon=mean([epsilon(:) [epsilon(2:end); epsilon(end)]],2)-...
-        mean([epsilon(:) [epsilon(1); epsilon(1:end-1)]],2);
+    temp = [epsilon(1);(epsilon(1:end-1)+epsilon(2:end))/2;epsilon(end)];
+    deltaEpsilon = temp(2:end)-temp(1:end-1);
     PhiAlpha=Phi(args.trueImg);
 
     Imea=0;
