@@ -1,22 +1,26 @@
-function runIcip2014(runList)
+function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %      Beam Hardening correction of CT Imaging via Mass attenuation 
 %                        coefficient discretizati
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 20 Feb 2014 05:08:45 PM CST
+%   $Revision: 0.2 $ $Date: Thu 20 Feb 2014 11:30:19 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
-if(~exist(filename,'file'))
-    save(filename,'filename');
-else
+if(exist(filename,'file') && ~isempty(runList))
     load(filename);
+else
+    save(filename,'filename');
 end
-if(nargin==0) runList=0; end
 
 [conf, opt] = defaultInit();
+if(isempty(runList))
+    opt = conf.setup(opt);
+end
+
+if(nargin==0) runList=0; end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
