@@ -1,9 +1,9 @@
 %   Test the mex function mPrj.c
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sun 16 Feb 2014 05:10:32 PM CST
+%   $Revision: 0.1 $ $Date: Fri 21 Feb 2014 08:57:34 PM CST
 
-N=512;
+N=1024;
 img=zeros(N,N);
 img(50:100,N/2-50:N/2+50)=1;
 
@@ -21,11 +21,11 @@ tic;
 out=Phi(img);
 toc
 out=reshape(out,N,[]);
-figure(911); showImg(out);
+%figure(911); showImg(out);
 tic;
 xxx=Phit(out);
 toc
-figure(912); showImg(xxx);
+%figure(912); showImg(xxx);
 
 % test the symmetry of the matrices Phi and Phit
 RPar=testTranspose(Phi,Phit,N*conf.np,N^2,'Phi',100);
