@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 09:17:44 PM CST
+%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 11:36:32 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -168,7 +168,28 @@ if(any(runList==7)) % b1, known Ie,
     opt.spectBasis = 'b1';
     opt.skipIe=true;
     for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
+        conf.prjFull = 360/intval(i);
+        conf.prjNum = conf.prjFull/2;
+        opt=conf.setup(opt);
+        prefix='BeamHard known Ie';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out7{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out7','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
+if(any(runList==7)) % b1, known Ie,
+    intval = 6:-1:1; j=1;
+    conf.PhiMode = 'cpuPrj';
+    opt.spectBasis = 'b1';
+    opt.skipIe=true;
+    for i=1:length(intval)
+        conf.prjFull = 360/intval(i);
+        conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         prefix='BeamHard known Ie';
         fprintf('%s, i=%d, j=%d\n',prefix,i,j);
@@ -286,7 +307,8 @@ if(any(runList==15)) % b1, single AS step,
     opt.spectBasis = 'b1';
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
+        conf.prjFull = 360/intval(i);
+        conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         prefix='BeamHard';
         fprintf('%s, i=%d, j=%d\n',prefix,i,j);
@@ -299,12 +321,32 @@ if(any(runList==15)) % b1, single AS step,
     [conf, opt] = defaultInit();
 end
 
+if(any(runList==151)) % b1, single AS step,
+    opt.spectBasis = 'b1';
+    conf.PhiMode = 'cpuPrj';
+    intval = 6:-1:1; j=1;
+    for i=1:length(intval)
+        conf.prjFull = 360/intval(i);
+        conf.prjNum = conf.prjFull/2;
+        opt=conf.setup(opt);
+        prefix='BeamHard';
+        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+        initSig=conf.FBP(conf.y);
+        initSig = initSig(opt.mask~=0);
+        out151{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out151','-append');
+    end
+    [conf, opt] = defaultInit();
+end
+
 if(any(runList==16)) % b1, max AS step,
     opt.spectBasis = 'b1';
     opt.maxIeSteps = 100;
     intval = 6:-1:1; j=1;
     for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
+        conf.prjFull = 360/intval(i);
+        conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         prefix='BeamHard';
         fprintf('%s, i=%d, j=%d\n',prefix,i,j);
@@ -323,7 +365,8 @@ if(any(runList==21)) % dis, single AS step,
     for j=4:length(aArray)
         opt.a = aArray(j);
         for i=1:length(intval)
-            conf.theta = (0:intval(i):179)';
+            conf.prjFull = 360/intval(i);
+            conf.prjNum = conf.prjFull/2;
             opt=conf.setup(opt);
             prefix='BeamHard';
             fprintf('%s, i=%d, j=%d\n',prefix,i,j);
@@ -598,5 +641,5 @@ function [conf, opt] = defaultInit()
     opt.maxAlphaSteps = 1;
     opt.skipIe=0;
     opt.maxIeSteps = 1;
-    opt.showImg=1;
+    opt.showImg=0;
 end
