@@ -82,7 +82,7 @@ function args = parseInputs(varargin)
     args.saveMat = false;
     args.prjNum = 180;      % number of projections from degree at 0
     args.prjFull = 360;
-    PhiMode = 'cpuPar'; %'nufft'; %'gpu'; %'cpu'
+    PhiMode = 'parPrj'; %'cpuPrj'; %'basic';
 
     for i=1:2:length(varargin)
         eval(['args.' varargin{i} ' = varargin{i+1};']);
@@ -115,14 +115,14 @@ function args = parseInputs(varargin)
                 args.operators.Phi=@(s) PhiFunc51(s,f_coeff,st,n,Ts);
                 args.operators.Phit=@(s) PhitFunc51(s,f_coeff,st,n,Ts);
                 args.operators.FBP=@(s) FBPFunc6(s,theta,Ts);
-            case lower('cpuPar')
+            case lower('parPrj')
                 conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
                 conf.theta=theta;
                 maskIdx=1:numel(args.trueImg);
                 args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
                 args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
                 args.operators.FBP =@(s) FBPFunc7(s,args.prjFull,args.prjNum,Ts,maskIdx)*Ts;
-            case lower('cpuFanPar')
+            case lower('cpuPrj')
                 conf.n=1024; conf.prjWidth=1024;
                 conf.np=args.prjNum; conf.prjFull=args.prjFull;
                 conf.dSize=1; %(n-1)/(Num_pixel+1);

@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 20 Feb 2014 11:30:19 PM CST
+%   $Revision: 0.2 $ $Date: Fri 21 Feb 2014 09:17:44 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -571,7 +571,8 @@ function [conf, opt] = defaultInit()
     conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
     conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
     conf.PhiMode='basic'; %'filtered'; %'weighted'; %
-    conf.PhiModeGen='cpuPar'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='parPrj'; %'cpuPrj'; %'basic';
+    %
     conf.spark=0;
 
     % the higher, the more information. Set to 0 to turn off.

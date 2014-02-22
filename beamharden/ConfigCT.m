@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Mon 17 Feb 2014 10:38:58 PM CST
+% $Revision: 0.2 $ $Date: Fri 21 Feb 2014 09:24:14 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -12,8 +12,8 @@ classdef ConfigCT < handle
         imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
         maskType = 'CircleMask';
 
-        PhiMode = 'basic'; %'gpu'; %'cpu'
-        PhiModeGen = 'cpuPar';
+        PhiMode = 'basic'; %'gpuPrj'; %'cpuPrj'; %'parPrj';
+        PhiModeGen = 'parPrj';
         imgSize = 1024;
         prjWidth = 1024;
         prjNum = 180;
@@ -126,12 +126,12 @@ classdef ConfigCT < handle
             switch lower(obj.PhiMode)
                 case 'basic'
                     nufftOps(obj);
-                case lower('cpuFanPar')
+                case lower('cpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
                     cpuFanParOps(obj);
-                case 'cpu'
+                case lower('parPrj')
                     conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
-                    conf.theta=obj.theta;
+                    conf.theta = (0:obj.prjNum-1)*360/obj.prjFull;
                     maskIdx = find(obj.mask~=0);
                     obj.Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
                     obj.Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
