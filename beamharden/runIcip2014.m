@@ -5,11 +5,11 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 22 Feb 2014 12:42:00 PM CST
+%   $Revision: 0.2 $ $Date: Sun 23 Feb 2014 10:43:42 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
-if(exist(filename,'file') && ~isempty(runList))
+if(exist(filename,'file') && nargin~=0 && ~isempty(runList))
     load(filename);
 else
     save(filename,'filename');
@@ -18,6 +18,7 @@ end
 if(nargin==0)
     [conf, opt] = defaultInit();
     opt = conf.setup(opt);
+    runList = [];
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
