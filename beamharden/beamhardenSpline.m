@@ -161,7 +161,7 @@ if(prpCGAlpha)
         fprintf('use huber approximation for l1 norm\n');
         alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
     end
-    alphaStep.coef(1:2) = [1; 1];
+    alphaStep.coef(1:2) = [2; 1];
     alphaStep.maxStepNum = opt.maxAlphaSteps;
 end
 if(isfield(opt,'a'))

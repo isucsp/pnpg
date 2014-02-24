@@ -28,7 +28,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.muLustig=3.1623e-11;
     opt.spectBasis = 'dis';
     %opt.skipIe = true;
-    opt.a=opt.a+log10(0.5);
+    opt.a=opt.a;
     %conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
     %conf.PhiModeGen='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
     %opt.maxIeSteps = 100;

@@ -2,4 +2,8 @@
 *.mat
 *.log
 *.aux
+*.zip
 *.pdf
+*.gz
+*.tar
+subfunctions/
