@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 17 Feb 2014 08:32:32 AM CST
+%   $Revision: 0.3 $ $Date: Sat 22 Feb 2014 08:24:38 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -29,13 +29,13 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 
 tic;
-stepShrnk = 0.8;
 interiorPointAlpha=0; prpCGAlpha=1;
 interiorPointIe=0; activeSetIe=1;
 if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=5; end
 if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
@@ -161,8 +161,9 @@ if(prpCGAlpha)
         fprintf('use huber approximation for l1 norm\n');
         alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
     end
-    alphaStep.coef(1:2) = [1; 1];
+    alphaStep.coef(1:2) = [1; 1/2];
     alphaStep.maxStepNum = opt.maxAlphaSteps;
+    alphaStep.stepShrnk = opt.stepShrnk;
 end
 if(isfield(opt,'a'))
     PsitPhitz=Psit(Phit(y));
@@ -182,6 +183,7 @@ else
     B=[eye(opt.E); -temp(:)'/norm(temp)]; b=[zeros(opt.E,1); -1/norm(temp)];
     IeStep = ActiveSet(B,b,Ie);
     IeStep.maxStepNum = opt.maxIeSteps;
+    IeStep.stepShrnk = opt.stepShrnk;
 end
 
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
