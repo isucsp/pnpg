@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 23 Feb 2014 10:43:42 AM CST
+%   $Revision: 0.2 $ $Date: Sun 23 Feb 2014 09:48:30 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -27,6 +27,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     i=1; j=1;
     opt.muLustig=3.1623e-11;
     opt.spectBasis = 'dis';
+    opt.stepShrnk = 0.9;
     %opt.skipIe = true;
     opt.a=opt.a;
     %conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
@@ -678,6 +679,7 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
+    opt.stepShrnk = 0.8;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
