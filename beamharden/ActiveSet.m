@@ -56,7 +56,7 @@ classdef ActiveSet < handle
 
                     deltaIe=obj.Z*(zhz\(obj.Z'*grad));
                     nextGrad=grad-hessian(deltaIe,1);
-                    temp=(obj.B(obj.Q,:)*obj.B(obj.Q,:)')\obj.B(obj.Q,:)*nextGrad;
+                    temp=(obj.B(obj.Q,:)*obj.B(obj.Q,:)')\(obj.B(obj.Q,:)*nextGrad);
                     lambda=ones(size(obj.Q)); lambda(obj.Q)=temp;
 
                     if(any(lambda<0))
@@ -127,7 +127,7 @@ classdef ActiveSet < handle
                     newIe=obj.Ie-stepSz*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if((newCost <= oldCost - stepSz/2*obj.deltaNormIe)...
+                    if((newCost <= oldCost - stepSz/2000*obj.deltaNormIe)...
                             || (ppp>10 && newCost < oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;

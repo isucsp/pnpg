@@ -25,7 +25,9 @@ end
 if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
-    opt.muLustig=3.1623e-11;
+    opt.muLustig=logspace(-15,-6,5);
+    opt.muLustig=opt.muLustig(3);
+    3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;
     %opt.skipIe = true;
@@ -688,5 +690,5 @@ function [conf, opt] = defaultInit()
     opt.maxAlphaSteps = 1;
     opt.skipIe=0;
     opt.maxIeSteps = 1;
-    opt.showImg=0;
+    opt.showImg=1;
 end

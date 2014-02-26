@@ -40,7 +40,7 @@ if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
-if(~isfield(opt,'visible')) opt.visible==1; end
+if(~isfield(opt,'visible')) opt.visible=1; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -84,6 +84,31 @@ for i=1:opt.K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
 end
 
+% find the best intial Ie ends
+if(isfield(opt,'Ie')) Ie=opt.Ie(:);
+else
+    if(opt.skipIe)  % it is better to use dis or b-1 spline
+        opt.trueUpiota=abs(opt.trueIota(1:end-1)...
+            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
+            ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1)));
+        if(strcmp(opt.spectBasis,'dis'))
+            % extend to bigger end
+            % number of point is suspicious
+            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota,mu(:),'spline');
+            temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
+            Ie = Ie.*temp;
+        elseif(strcmp(opt.spectBasis,'b0'))
+            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
+                mu(1:end-1),'spline');
+        elseif(strcmp(opt.spectBasis,'b1'))
+            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
+                mu(2:end-1),'spline');
+        end
+        % there will be some points interplated negative and need to be removed
+        Ie(Ie<0)=0;
+    end
+end
+
 deltaEpsilon=mean([opt.epsilon(:) [opt.epsilon(2:end); opt.epsilon(end)]],2)-...
     mean([opt.epsilon(:) [opt.epsilon(1); opt.epsilon(1:end-1)]],2);
 opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
@@ -93,36 +118,13 @@ polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
 polyIout = polymodel.polyIout;
 
 % find the best intial Ie starts
-R = polyIout(Phi(alpha),[]);
-for i=1:size(R,2)
-    temp(i) = var(y+log(R(:,i)),1);
-end
-idx = find(temp==min(temp));
-Ie = Ie*0;
-Ie(idx) = exp(-mean(y+log(R(:,idx))));
-
-% find the best intial Ie ends
-if(opt.skipIe)  % it is better to use dis or b-1 spline
-    opt.trueUpiota=abs(opt.trueIota(1:end-1)...
-        .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-        ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1)));
-    if(strcmp(opt.spectBasis,'dis'))
-        % extend to bigger end
-        % number of point is suspicious
-        Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota,mu(:),'spline');
-        temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
-        Ie = Ie.*temp;
-    elseif(strcmp(opt.spectBasis,'b0'))
-        Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
-            mu(1:end-1),'spline');
-    elseif(strcmp(opt.spectBasis,'b1'))
-        Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
-            mu(2:end-1),'spline');
-    end
-    % there will be some points interplated negative and need to be removed
-    Ie(Ie<0)=0;
-end
-if(isfield(opt,'Ie')) Ie=opt.Ie(:); end;
+% R = polyIout(Phi(alpha),[]);
+% for i=1:size(R,2)
+%     temp(i) = var(y+log(R(:,i)),1);
+% end
+% idx = find(temp==min(temp));
+% Ie = Ie*0;
+% Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
 p=0; thresh=1e-4; str='';
 t1=0; thresh1=1e-8;
@@ -161,7 +163,7 @@ if(prpCGAlpha)
         fprintf('use huber approximation for l1 norm\n');
         alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
     end
-    alphaStep.coef(1:2) = [2; 1];
+    alphaStep.coef(1:2) = [1; 1];
     alphaStep.maxStepNum = opt.maxAlphaSteps;
     alphaStep.stepShrnk = opt.stepShrnk;
 end

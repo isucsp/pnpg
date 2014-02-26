@@ -33,8 +33,8 @@ function [CTdata, args] = genBeamHarden(varargin)
     % from 130 points to 1300 points, increasing 1e-6, which is not necessary.
     idx = massAttenCoef(:,1)>=min(epsilon) & massAttenCoef(:,1)<=max(epsilon);
     idx1= find(idx, 1 )-1; idx2 = find(idx, 1, 'last' )+1;
-    kappa=interp1(massAttenCoef(idx1:idx2,1),massAttenCoef(idx1:idx2,2),...
-        epsilon,'spline');
+    kappa=exp(interp1(log(massAttenCoef(idx1:idx2,1)),...
+        log(massAttenCoef(idx1:idx2,2)), log(epsilon),'linear'));
 
     if(args.showImg)
         %figure; loglog(massAttenCoef(:,1),massAttenCoef(:,2));
@@ -93,7 +93,7 @@ function args = parseInputs(varargin)
     end
     if(~isfield(args,'operators'))
         Ts = 0.008;
-        theta = (0:args.prjNum-1)'/args.prjFull*360; % theta's in degree
+        theta = (0:args.prjNum-1)'*360/args.prjFull; % theta's in degree
         switch lower(args.PhiMode)
             case 'basic'
                 n=1024;         % size of image

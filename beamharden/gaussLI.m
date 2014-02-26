@@ -1,11 +1,11 @@
 function [f,g,h] = gaussLI(Imea,A,Ie)
     % Err= z-f(theta)
-    Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err/2;
-    if(nargout>1) g=A'*(Err./Ir); end
+    Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err    ;
+    if(nargout>1) g=A'*(Err./Ir)   *2; end
     if(nargout>2)
         %Err=Err*0;
         %h=2*A'*(repmat((1-Err)./(Ir.^2),1,length(Ie)).*A);
-        h = @(x,opt) hessian(A,(1-Err)./(Ir.^2),x,opt);
+        h = @(x,opt) hessian(A,(1-Err)./(Ir.^2),x,opt)    *2;
     end
     %if(nargout>3)
     %    zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)

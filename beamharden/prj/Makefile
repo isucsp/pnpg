@@ -26,11 +26,8 @@ mGPUPrj: mPrj.c gpuPrj.o
 mCPUPrj: mPrj.c cpuPrj.o
 	$(MEX) mPrj.c cpuPrj.o -DCPU=1
 
-mParPrj: mParPrj.c parPrj.o
-	$(MEX) mParPrj.c parPrj.o
-
-parPrj.o: parPrj.c parPrj.h
-	gcc -c -fPIC -lpthread parPrj.c
+mParPrj: mParPrj.c parPrj.c parPrj.h
+	$(MEX) mParPrj.c parPrj.c
 
 cpuPrj.o: cpuPrj.c prj.h
 	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
