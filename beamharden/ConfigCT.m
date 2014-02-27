@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Fri 21 Feb 2014 09:24:14 PM CST
+% $Revision: 0.2 $ $Date: Wed 26 Feb 2014 02:41:14 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -103,9 +103,8 @@ classdef ConfigCT < handle
 
             maskIdx = find(obj.mask~=0);
             % Zero freq at f_coeff(prjWidth/2+1)
-            f_coeff=designFilter('renliang1',obj.prjWidth,obj.Ts);
-            obj.Phi=@(s) PhiFunc51(s,f_coeff,st,obj.imgSize,obj.Ts,maskIdx);
-            obj.Phit=@(s) PhitFunc51(s,f_coeff,st,obj.imgSize,obj.Ts,maskIdx);
+            obj.Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
+            obj.Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
             obj.FBP=@(s) FBPFunc6(s,theta,obj.Ts);
         end
         function cpuFanParOps(obj)

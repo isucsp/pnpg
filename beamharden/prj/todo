@@ -14,3 +14,5 @@
 
 - It may be a problem when prjFull is some arbitrary number
     fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
+
+- need to divie the effectiveRate for gpuPrj.cu

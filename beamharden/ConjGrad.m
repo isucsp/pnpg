@@ -98,7 +98,7 @@ classdef ConjGrad < handle
                     %newX(newX<0)=0; % force it be positive;
                     newCost=obj.func(newX);
 
-                    if((newCost <= oldCost - stepSz/2000*obj.deltaNormAlpha)...
+                    if((newCost <= oldCost - stepSz/200*obj.deltaNormAlpha)...
                             || (ppp>10 && newCost < oldCost))
                         obj.alpha = newX;
                         obj.cost = newCost;

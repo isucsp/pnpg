@@ -29,6 +29,7 @@
 #define MIN(x,y) ((x) < (y) ? (x) : (y))
 #define RENEW_MEM (1<<1)
 #define FWD_BIT (1)
+#define FBP_BIT (1<<2)
 
 #define HANDLE_ERROR( err ) (HandleError( err, __FILE__, __LINE__ ))
 

@@ -127,7 +127,7 @@ classdef ActiveSet < handle
                     newIe=obj.Ie-stepSz*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if((newCost <= oldCost - stepSz/2000*obj.deltaNormIe)...
+                    if((newCost <= oldCost - stepSz/200*obj.deltaNormIe)...
                             || (ppp>10 && newCost < oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;

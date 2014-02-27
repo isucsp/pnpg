@@ -26,14 +26,20 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
+#include "kiss_fft.h"
 
+#ifdef __cplusplus
 extern "C"{
+#endif
 #include "prj.h"
+#ifdef __cplusplus
 }
+#endif
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"
 #endif
+
 
 prjConf config;
 prjConf* pConf = &config;
@@ -756,6 +762,34 @@ void *parPrjBack(void *arg){
     return 0;
 }
 
+void rampFilter(ft *pSino, int size, ft Ts){
+    int N = 2*size;
+    kiss_fft_cpx ramp[N];
+    kiss_fft_cpx hann[N];
+    for(int i=0; i<N; i++){
+        if(i<N/2)
+            ramp[i].r = i/N/Ts;
+        else
+            ramp[i].r = (N-i)/N/Ts;
+    }
+
+
+    //hamming=0.54+0.46*cos(2*pi*n'/N);
+    //hann=0.5+0.5*cos(2*pi*n'/N);
+    //sinc=sin(pi*n'/N)./(pi*n'/N);
+
+    sinc(N/2+1)=1;
+    hn=fftshift(fft(fftshift(hn)))*Ts;
+    hn=hn.*hann;
+    kiss_fft_cfg cfg = kiss_fft_alloc(  ,is_inverse_fft ,0,0 );
+    kiss_fft_cpx;
+    while ...
+
+
+            kiss_fft( cfg , cx_in , cx_out );
+    free(cfg);
+}
+
 int cpuPrj(ft* img, ft* sino, char cmd){
 #if EXE_PROF
     // add some instruction for cpu execution profile
@@ -791,6 +825,53 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             }
         }
         /*printf("Waiting for thread to finish...\n");*/
+    }else if(cmd & FBP_BIT){
+        pSino = (ft*) calloc(pConf->sinoSize,sizeof(ft));
+        ft bq;
+        int pC = pConf->prjWidth/2,idx1,idx2;
+        for(int j=0; j<(pConf->prjWidth+1)/2; j++){
+            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf-dSize);
+            for(i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+                    i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
+                pSino[idx1]=sino[idx1]*pConf->d / bq;
+                pSino[idx2]=sino[idx2]*pConf->d / bq;
+            }
+        }
+        if(pConf->prjWidth%2==0){
+            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf-dSize);
+            for(i=0, idx1=0; i<pConf->np;
+                    i++, idx1+=pConf->prjWidth){
+                pSino[idx1]=sino[idx1]*pConf->d / bq;
+            }
+        }
+
+        for(i=0; i<pConf->np; i++)
+            rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
+
+        for(int j=0; j<(pConf->prjWidth+1)/2; j++){
+            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf-dSize);
+            for(i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+                    i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
+                pSino[idx1]=sino[idx1]*pConf->d / bq;
+                pSino[idx2]=sino[idx2]*pConf->d / bq;
+            }
+        }
+        if(pConf->prjWidth%2==0){
+            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf-dSize);
+            for(i=0, idx1=0; i<pConf->np;
+                    i++, idx1+=pConf->prjWidth){
+                pSino[idx1]=sino[idx1]*pConf->d / bq;
+            }
+        }
+        
+        for(i=0; i<nthread; i++){
+            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
+            if (res != 0) {
+                perror("Thread creation failed");
+                exit(EXIT_FAILURE);
+            }
+        }
+
     }else{
         for(i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
