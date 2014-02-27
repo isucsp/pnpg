@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include "kiss_fft.h"
+#include "./common/kiss_fft.h"
 
 #ifdef __cplusplus
 extern "C"{
@@ -337,6 +337,9 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             dist=x*cosR+y*sinR-d*t/bq;
             bw = qe*beamWidth*cosB/d;
             weight=getWeight(dist,bw,cosR,sinR);
+
+            //if(conf->cmd & FBP_BIT) weight = weight*d*d/qe/qe;
+            if(conf->cmd & FBP_BIT) weight = weight*d/qe;
 
             if(thetaIdx<conf->np)
                 imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
@@ -762,32 +765,46 @@ void *parPrjBack(void *arg){
     return 0;
 }
 
-void rampFilter(ft *pSino, int size, ft Ts){
+void rampFilter(ft *signal, int size, ft Ts){
     int N = 2*size;
     kiss_fft_cpx ramp[N];
     kiss_fft_cpx hann[N];
+    kiss_fft_cpx proj[N];
     for(int i=0; i<N; i++){
-        if(i<N/2)
-            ramp[i].r = i/N/Ts;
-        else
-            ramp[i].r = (N-i)/N/Ts;
+        if(i<N/2){
+            ramp[i].r = (ft)i/N/Ts;
+            proj[i].r = signal[i];
+        }else{
+            ramp[i].r = (ft)(N-i)/N/Ts;
+            proj[i].r = 0;
+        }
+        hann[i].r = 1; //0.5+0.5*cos(2*PI*i/N);
+        ramp[i].i = 0;
+        proj[i].i = 0;
+        hann[i].i = 0;
     }
-
-
     //hamming=0.54+0.46*cos(2*pi*n'/N);
     //hann=0.5+0.5*cos(2*pi*n'/N);
     //sinc=sin(pi*n'/N)./(pi*n'/N);
 
-    sinc(N/2+1)=1;
-    hn=fftshift(fft(fftshift(hn)))*Ts;
-    hn=hn.*hann;
-    kiss_fft_cfg cfg = kiss_fft_alloc(  ,is_inverse_fft ,0,0 );
-    kiss_fft_cpx;
-    while ...
+    kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
+    kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
+    kiss_fft( cfgFFT , proj, proj );
+    for(int i=0; i<N; i++){
+        proj[i].r=proj[i].r*ramp[i].r*hann[i].r;
+        proj[i].i=proj[i].i*ramp[i].r*hann[i].r;
+    }
+    // the kiss_fft inverse fft doesn't divide N
+    kiss_fft( cfgIFFT, proj, proj );
 
+    for(int i=0; i<N/2; i++){
+        signal[i] = proj[i].r/N;
+    }
+    //for(int i=0; i<N; i++){
+    //    printf("%d, %g, %g, %g, %g, %g\n",i,ramp[i].r,ramp[i].i, hann[i].r, hann[i].i, proj[i].r);
+    //}
 
-            kiss_fft( cfg , cx_in , cx_out );
-    free(cfg);
+    free(cfgFFT); free(cfgIFFT);
 }
 
 int cpuPrj(ft* img, ft* sino, char cmd){
@@ -813,11 +830,10 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     int res;
     pthread_t *a_thread;
     void *thread_result;
-    size_t i=0; 
 
     a_thread=(pthread_t*)calloc(nthread,sizeof(pthread_t));
     if(cmd & FWD_BIT){
-        for(i=0; i<nthread; i++){
+        for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
             if (res != 0) {
                 perror("Thread creation failed");
@@ -826,45 +842,50 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         }
         /*printf("Waiting for thread to finish...\n");*/
     }else if(cmd & FBP_BIT){
+        pConf->cmd = FBP_BIT; //when put this don't foget to remove it later
         pSino = (ft*) calloc(pConf->sinoSize,sizeof(ft));
         ft bq;
-        int pC = pConf->prjWidth/2,idx1,idx2;
+        int pC = pConf->prjWidth/2;
         for(int j=0; j<(pConf->prjWidth+1)/2; j++){
-            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf-dSize);
-            for(i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
+            for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
                     i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
                 pSino[idx1]=sino[idx1]*pConf->d / bq;
                 pSino[idx2]=sino[idx2]*pConf->d / bq;
             }
         }
         if(pConf->prjWidth%2==0){
-            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf-dSize);
-            for(i=0, idx1=0; i<pConf->np;
+            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
+            for(int i=0, idx1=0; i<pConf->np;
                     i++, idx1+=pConf->prjWidth){
                 pSino[idx1]=sino[idx1]*pConf->d / bq;
             }
         }
+        printf("reconstructing by FBP ... \n");
 
-        for(i=0; i<pConf->np; i++)
+        for(int i=0; i<pConf->np; i++)
             rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
 
         for(int j=0; j<(pConf->prjWidth+1)/2; j++){
-            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf-dSize);
-            for(i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
+            for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
                     i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
-                pSino[idx1]=sino[idx1]*pConf->d / bq;
-                pSino[idx2]=sino[idx2]*pConf->d / bq;
+                pSino[idx1]=pSino[idx1]*pConf->d / bq;
+                pSino[idx2]=pSino[idx2]*pConf->d / bq;
             }
         }
         if(pConf->prjWidth%2==0){
-            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf-dSize);
-            for(i=0, idx1=0; i<pConf->np;
+            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
+            for(int i=0, idx1=0; i<pConf->np;
                     i++, idx1+=pConf->prjWidth){
-                pSino[idx1]=sino[idx1]*pConf->d / bq;
+                pSino[idx1]=pSino[idx1]*pConf->d / bq;
             }
         }
+        FILE* f = fopen("sinogram_1.data","wb");
+        fwrite(pSino, sizeof(ft), config.sinoSize, f);
+        fclose(f);
         
-        for(i=0; i<nthread; i++){
+        for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
             if (res != 0) {
                 perror("Thread creation failed");
@@ -873,7 +894,7 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         }
 
     }else{
-        for(i=0; i<nthread; i++){
+        for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
             if (res != 0) {
                 perror("Thread creation failed");
@@ -882,7 +903,7 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         }
     }
     /*printf("Waiting for thread to finish...\n");*/
-    for(i=0; i<nthread; i++){
+    for(size_t i=0; i<nthread; i++){
         res = pthread_join(a_thread[i], &thread_result);
         if (res != 0) {
             perror("Thread join failed");
@@ -890,6 +911,7 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         }
         /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
     }
+    pConf->cmd = 0;
     free(a_thread);
 
 #if EXE_PROF
@@ -995,8 +1017,9 @@ int backwardTest( void ) {
 
     fread(sino,sizeof(ft),config.sinoSize,f);
 
+    int offset;
     /*  
-    int offset, tempI;
+    int tempI;
     tempI=rand()%config.np;
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
@@ -1022,7 +1045,7 @@ int backwardTest( void ) {
     fclose(f);
     //sinogram.display_and_exit();
 
-    cpuPrj(img,sino, RENEW_MEM);
+    cpuPrj(img,sino, RENEW_MEM | FBP_BIT);
 
     f = fopen("reImg.data","wb");
     fwrite(img,sizeof(ft),config.imgSize,f);
@@ -1035,17 +1058,19 @@ int backwardTest( void ) {
             offset = i*config.n+j;
             if( img[offset]>temp) temp=img[offset];
         }
+    //printf("temp=%g\n",temp);
     for(int i=0; i < config.n; i++){
         for(int j=0; j < config.n; j++){
             offset = i*config.n+j;
-            value = (unsigned char)(255 * img[offset]/temp);
-#if SHOWIMG
+            if(img[offset]>0)
+                value = (unsigned char)(255 * img[offset]/temp);
+            else
+                value = 0;
             offset = (config.n-1-i)*config.n+j;
             ptr[(offset<<2)+0] = value;
             ptr[(offset<<2)+1] = value;
             ptr[(offset<<2)+2] = value;
             ptr[(offset<<2)+3] = 0xff;
-#endif
         }
     }
 #endif
@@ -1058,23 +1083,33 @@ int backwardTest( void ) {
 }
 
 int main(int argc, char *argv[]){
-    int N = 1024;
+    int N = 512;
     if(argc>1){
         N = atoi(argv[1]);
         printf("N=%d\n",N);
     }
-    showSetup();
 
-    while(1){
-        setup(N,N,360,360,1,1,3000);
-        showSetup();
-        forwardTest();
-        backwardTest();
-        setup(N,N,180,360,1,1,0);
-        showSetup();
-        forwardTest();
-        backwardTest();
+    ft signal[1024];
+
+    for(int i=0; i< 1024; i++){
+        if(i>=300 && i<600)
+            signal[i]=1.0f;
+        else
+            signal[i]=0;
     }
+    rampFilter(signal, 1024, 1);
+
+    //return 0;
+
+    setup(N,N,360,360,1,1,800);
+    showSetup();
+    forwardTest();
+    backwardTest();
+
+    setup(N,N,180,360,1,1,0);
+    showSetup();
+    forwardTest();
+    backwardTest();
     return 0;
 }
 

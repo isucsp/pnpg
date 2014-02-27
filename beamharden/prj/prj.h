@@ -12,7 +12,7 @@
 #define EXE_TIME 0
 #define EXE_PROF 0
 #define DEBUG   0
-#define SHOWIMG  0
+#define SHOWIMG  1
 
 #define DIM   1024
 
@@ -36,7 +36,7 @@
 #if GPU
 typedef float ft;
 #else
-typedef double ft;
+typedef float ft;
 #endif
 
 struct prjConf {
@@ -50,7 +50,7 @@ struct prjConf {
     float d;   // distance from rotation center to X-ray source in pixel
     // set d be FLT_MAX for parallel projection
 
-    char fwd;    /* To indicate forward projection by 1 and backward by 0 */
+    char cmd;    /* To indicate forward projection by 1 and backward by 0 */
 
     unsigned int imgSize;
     unsigned int sinoSize;

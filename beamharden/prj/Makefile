@@ -32,8 +32,8 @@ mParPrj: mParPrj.c parPrj.c parPrj.h
 cpuPrj.o: cpuPrj.c prj.h
 	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
 
-cpuPrj: cpuPrj.o
-	g++ cpuPrj.o -o cpuPrj -pthread #-lglut -lGL
+cpuPrj: cpuPrj.c common/kiss_fft.c
+	g++ cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu
