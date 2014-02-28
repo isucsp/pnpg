@@ -57,9 +57,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
     }else{
         ft img[pConf->imgSize];
-#if GPU
         ft sino[pConf->sinoSize];
-#endif
         if(!strcmp(cmd,"forward")){      /* forward projection */
             plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
             imgt = mxGetPr(prhs[0]);
@@ -69,21 +67,21 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
 #if GPU
             gpuPrj(img, sino, RENEW_MEM | FWD_BIT);
-            for(int i=0; i<pConf->prjWidth*pConf->np; i++)
-                sinot[i]=sino[i];
 #else
-            cpuPrj(img, sinot, RENEW_MEM | FWD_BIT);
+            cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 #endif
+            for(int i=0; i<pConf->sinoSize; i++)
+                sinot[i]=sino[i];
         }else if(!strcmp(cmd,"backward")){
             plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
             imgt = mxGetPr(plhs[0]);
             sinot = mxGetPr(prhs[0]);
+            for(int i=0; i<pConf->sinoSize; i++)
+                sino[i]=(ft)sinot[i];
 #if GPU
-                for(int i=0; i<pConf->prjWidth*pConf->np; i++)
-                    sino[i]=(ft)sinot[i];
                 gpuPrj(img, sino, RENEW_MEM );
 #else
-                cpuPrj(img, sinot, RENEW_MEM );
+                cpuPrj(img, sino, RENEW_MEM );
 #endif
             for(int i=0; i<pConf->n; i++)
                 for(int j=0; j<pConf->n; j++)

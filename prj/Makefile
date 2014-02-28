@@ -23,17 +23,14 @@ all: mParPrj solveTriDiag mCPUPrj cpuPrj
 mGPUPrj: mPrj.c gpuPrj.o
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
-mCPUPrj: mPrj.c cpuPrj.o
-	$(MEX) mPrj.c cpuPrj.o -DCPU=1
+mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c
+	$(MEX) cpuPrj.c common/kiss_fft.c mPrj.c -DCPU=1
 
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) mParPrj.c parPrj.c
 
-cpuPrj.o: cpuPrj.c prj.h
-	g++ -Wall -fPIC -c cpuPrj.c -o cpuPrj.o
-
 cpuPrj: cpuPrj.c common/kiss_fft.c
-	g++ cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
+	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu

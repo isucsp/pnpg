@@ -41,8 +41,8 @@ extern "C"{
 #endif
 
 
-prjConf config;
-prjConf* pConf = &config;
+struct prjConf config;
+struct prjConf* pConf = &config;
 
 static unsigned int nthread=64;
 static int fSize, bSize;
@@ -136,7 +136,7 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
     // detector array is of odd size with the center at the middle
     ft theta;       // the current angle, range in [0 45]
     int thetaIdx; // index counts from 0
-    prjConf* conf = pConf;
+    struct prjConf* conf = pConf;
 
     int pC = conf->prjWidth/2;
     int N=conf->n;
@@ -263,7 +263,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     // detector array is of odd size with the center at the middle
     ft theta;       // the current angle, range in [0 45]
     int thetaIdx; // index counts from 0
-    prjConf* conf = pConf;
+    struct prjConf* conf = pConf;
 
     int pC = conf->prjWidth/2;
     ft d=conf->d; // the distance from rotating center to source in pixel
@@ -398,7 +398,7 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
     int temp;
-    const prjConf * conf = pConf;
+    const struct prjConf * conf = pConf;
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
@@ -546,7 +546,7 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
     int temp;
-    const prjConf * conf = pConf;
+    const struct prjConf * conf = pConf;
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
@@ -867,9 +867,11 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         ft bq;
         int pC = pConf->prjWidth/2;
 
+#if DEBUG
         FILE* f = fopen("sinogram_0.data","wb");
-        //fwrite(sino, sizeof(ft), config.sinoSize, f);
-        //fclose(f);
+        fwrite(sino, sizeof(ft), config.sinoSize, f);
+        fclose(f);
+#endif
 
         if(pConf->d>0){
             printf("reconstructing by FBP (fan beam) ... \n");
@@ -890,12 +892,14 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             }
         }else{
             printf("reconstructing by FBP (parallel beam) ... \n");
-            for(int j=0; j<pConf->sinoSize; j++) pSino[j]=sino[j];
+            for(unsigned int j=0; j<pConf->sinoSize; j++) pSino[j]=sino[j];
         }
 
-        //f = fopen("sinogram_1.data","wb");
-        //fwrite(pSino, sizeof(ft), config.sinoSize, f);
-        //fclose(f);
+#if DEBUG
+        f = fopen("sinogram_1.data","wb");
+        fwrite(pSino, sizeof(ft), config.sinoSize, f);
+        fclose(f);
+#endif
 
         for(int i=0; i<pConf->np; i++)
             rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
@@ -916,9 +920,11 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         //    }
         //}
 
-        //f = fopen("sinogram_2.data","wb");
-        //fwrite(pSino, sizeof(ft), config.sinoSize, f);
-        //fclose(f);
+#if DEBUG
+        f = fopen("sinogram_2.data","wb");
+        fwrite(pSino, sizeof(ft), config.sinoSize, f);
+        fclose(f);
+#endif
         
         for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
@@ -999,16 +1005,20 @@ int forwardTest( void ) {
 #endif
         }
     }
+#if DEBUG
     FILE* f = fopen("img.data","w");
     fwrite(img,sizeof(ft), pConf->imgSize,f);
     fclose(f);
+#endif
     //image.display_and_exit();
 
     cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
 
+#if DEBUG
     f = fopen("sinogram.data","wb");
     fwrite(sino, sizeof(ft), config.sinoSize, f);
     fclose(f);
+#endif
 #if SHOWIMG
     ft temp=0;
     for(int i=0; i < config.np; i++){
@@ -1044,16 +1054,18 @@ int backwardTest( void ) {
     CPUBitmap sinogram( config.prjWidth, config.np );
     unsigned char *sinoPtr = sinogram.get_ptr();
     unsigned char value;
+    int offset;
 #endif
 
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
+#if DEBUG
     FILE* f = fopen("sinogram.data","rb");
-
     fread(sino,sizeof(ft),config.sinoSize,f);
+    fclose(f);
+#endif
 
-    int offset;
     /*  
     int tempI;
     tempI=rand()%config.np;
@@ -1078,14 +1090,15 @@ int backwardTest( void ) {
         }
         //fscanf(f,"\n");
     }*/
-    fclose(f);
     //sinogram.display_and_exit();
 
     cpuPrj(img,sino, RENEW_MEM | FBP_BIT);
 
+#if DEBUG
     f = fopen("reImg.data","wb");
     fwrite(img,sizeof(ft),config.imgSize,f);
     fclose(f);
+#endif
 
 #if SHOWIMG
     ft temp=0;
