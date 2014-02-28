@@ -248,6 +248,7 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
             }
         }
     }
+    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
     imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
@@ -282,7 +283,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     // for each point (x,y) on the ray is
     // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
     // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
-    ft qe, oc;
+    ft qe, oc, qa;
     ft bq;
     ft cosB, sinB; //, tanB=t/d;
     ft cosR, sinR;
@@ -327,6 +328,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
         qe = qe + sinT/2 +cosT/2;
         dtl = MAX((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
         dtr = MIN((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+        qa = sqrt(2*d*qe-d*d+x*x+y*y);
 
         for(dt=dtl; dt<=dtr; dt++){
             t = dt*conf->dSize;
@@ -339,7 +341,8 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             weight=getWeight(dist,bw,cosR,sinR);
 
             //if(conf->cmd & FBP_BIT) weight = weight*d*d/qe/qe;
-            if(conf->cmd & FBP_BIT) weight = weight*d/qe;
+            if(conf->cmd & FBP_BIT) weight = weight*d/qa;
+            //if(conf->cmd & FBP_BIT) weight = weight*d/qe;
 
             if(thetaIdx<conf->np)
                 imgt[0] += weight*sino[thetaIdx*conf->prjWidth+dt+pC];
@@ -380,6 +383,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             }
         }
     }
+    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
     imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
@@ -767,28 +771,42 @@ void *parPrjBack(void *arg){
 
 void rampFilter(ft *signal, int size, ft Ts){
     int N = 2*size;
+    kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
+    kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
     kiss_fft_cpx ramp[N];
     kiss_fft_cpx hann[N];
     kiss_fft_cpx proj[N];
     for(int i=0; i<N; i++){
+        //hamming=0.54+0.46*cos(2*pi*n'/N);
+        //hann=0.5+0.5*cos(2*pi*n'/N);
+        //sinc=sin(pi*n'/N)./(pi*n'/N);
         if(i<N/2){
-            ramp[i].r = (ft)i/N/Ts;
+            ramp[i].r = (ft)i/N;
             proj[i].r = signal[i];
         }else{
-            ramp[i].r = (ft)(N-i)/N/Ts;
+            ramp[i].r = (ft)(N-i)/N;
             proj[i].r = 0;
         }
-        hann[i].r = 1; //0.5+0.5*cos(2*PI*i/N);
+        hann[i].r = 0.5+0.5*cos(2*PI*i/N);
         ramp[i].i = 0;
         proj[i].i = 0;
         hann[i].i = 0;
     }
-    //hamming=0.54+0.46*cos(2*pi*n'/N);
-    //hann=0.5+0.5*cos(2*pi*n'/N);
-    //sinc=sin(pi*n'/N)./(pi*n'/N);
+    // use double length of ramp filter to get the best performance.
+    for(int i=1; i<N; i++){
+        if(i%2==0)
+            ramp[i].r=0;
+        else{
+            if(i<N/2)
+                ramp[i].r = -1.0/PI/PI/i/i;
+            else
+                ramp[i].r = -1.0/PI/PI/(N-i)/(N-i);
+        }
+        //if(i>=N/4 && i<N*3/4) ramp[i].r=0;
+    }
+    ramp[0].r=0.25;
+    kiss_fft( cfgFFT , ramp, ramp );
 
-    kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
-    kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
     kiss_fft( cfgFFT , proj, proj );
     for(int i=0; i<N; i++){
         proj[i].r=proj[i].r*ramp[i].r*hann[i].r;
@@ -800,8 +818,10 @@ void rampFilter(ft *signal, int size, ft Ts){
     for(int i=0; i<N/2; i++){
         signal[i] = proj[i].r/N;
     }
+
+    //kiss_fft( cfgIFFT , ramp, ramp );
     //for(int i=0; i<N; i++){
-    //    printf("%d, %g, %g, %g, %g, %g\n",i,ramp[i].r,ramp[i].i, hann[i].r, hann[i].i, proj[i].r);
+    //    printf("%d, %g, %g, %g, %g, %g\n",i,ramp[i].r/N,ramp[i].i, hann[i].r, hann[i].i, proj[i].r);
     //}
 
     free(cfgFFT); free(cfgIFFT);
@@ -846,44 +866,59 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         pSino = (ft*) calloc(pConf->sinoSize,sizeof(ft));
         ft bq;
         int pC = pConf->prjWidth/2;
-        for(int j=0; j<(pConf->prjWidth+1)/2; j++){
-            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
-            for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
-                    i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
-                pSino[idx1]=sino[idx1]*pConf->d / bq;
-                pSino[idx2]=sino[idx2]*pConf->d / bq;
+
+        FILE* f = fopen("sinogram_0.data","wb");
+        //fwrite(sino, sizeof(ft), config.sinoSize, f);
+        //fclose(f);
+
+        if(pConf->d>0){
+            printf("reconstructing by FBP (fan beam) ... \n");
+            for(int j=0; j<(pConf->prjWidth+1)/2; j++){
+                bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
+                for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+                        i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
+                    pSino[idx1]=sino[idx1]*pConf->d / bq;
+                    pSino[idx2]=sino[idx2]*pConf->d / bq;
+                }
             }
-        }
-        if(pConf->prjWidth%2==0){
-            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
-            for(int i=0, idx1=0; i<pConf->np;
-                    i++, idx1+=pConf->prjWidth){
-                pSino[idx1]=sino[idx1]*pConf->d / bq;
+            if(pConf->prjWidth%2==0){
+                bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
+                for(int i=0, idx1=0; i<pConf->np;
+                        i++, idx1+=pConf->prjWidth){
+                    pSino[idx1]=sino[idx1]*pConf->d / bq;
+                }
             }
+        }else{
+            printf("reconstructing by FBP (parallel beam) ... \n");
+            for(int j=0; j<pConf->sinoSize; j++) pSino[j]=sino[j];
         }
-        printf("reconstructing by FBP ... \n");
+
+        //f = fopen("sinogram_1.data","wb");
+        //fwrite(pSino, sizeof(ft), config.sinoSize, f);
+        //fclose(f);
 
         for(int i=0; i<pConf->np; i++)
             rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
 
-        for(int j=0; j<(pConf->prjWidth+1)/2; j++){
-            bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
-            for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
-                    i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
-                pSino[idx1]=pSino[idx1]*pConf->d / bq;
-                pSino[idx2]=pSino[idx2]*pConf->d / bq;
-            }
-        }
-        if(pConf->prjWidth%2==0){
-            bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
-            for(int i=0, idx1=0; i<pConf->np;
-                    i++, idx1+=pConf->prjWidth){
-                pSino[idx1]=pSino[idx1]*pConf->d / bq;
-            }
-        }
-        FILE* f = fopen("sinogram_1.data","wb");
-        fwrite(pSino, sizeof(ft), config.sinoSize, f);
-        fclose(f);
+        //for(int j=0; j<(pConf->prjWidth+1)/2; j++){
+        //    bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
+        //    for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
+        //            i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
+        //        pSino[idx1]=pSino[idx1]*pConf->d / bq;
+        //        pSino[idx2]=pSino[idx2]*pConf->d / bq;
+        //    }
+        //}
+        //if(pConf->prjWidth%2==0){
+        //    bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
+        //    for(int i=0, idx1=0; i<pConf->np;
+        //            i++, idx1+=pConf->prjWidth){
+        //        pSino[idx1]=pSino[idx1]*pConf->d / bq;
+        //    }
+        //}
+
+        //f = fopen("sinogram_2.data","wb");
+        //fwrite(pSino, sizeof(ft), config.sinoSize, f);
+        //fclose(f);
         
         for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
@@ -912,6 +947,7 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
     }
     pConf->cmd = 0;
+    if(pSino!=sino) free(pSino);
     free(a_thread);
 
 #if EXE_PROF
@@ -1089,8 +1125,19 @@ int main(int argc, char *argv[]){
         printf("N=%d\n",N);
     }
 
-    ft signal[1024];
+    setup(N,N,720,720,1,1,3800);
+    showSetup();
+    forwardTest();
+    backwardTest();
+    return 0;
 
+    setup(N,N,180,360,1,1,0);
+    showSetup();
+    forwardTest();
+    backwardTest();
+    return 0;
+
+    ft signal[1024];
     for(int i=0; i< 1024; i++){
         if(i>=300 && i<600)
             signal[i]=1.0f;
@@ -1098,18 +1145,7 @@ int main(int argc, char *argv[]){
             signal[i]=0;
     }
     rampFilter(signal, 1024, 1);
-
-    //return 0;
-
-    setup(N,N,360,360,1,1,800);
-    showSetup();
-    forwardTest();
-    backwardTest();
-
-    setup(N,N,180,360,1,1,0);
-    showSetup();
-    forwardTest();
-    backwardTest();
     return 0;
+
 }
 

@@ -6,4 +6,5 @@
 *.pdf
 *.gz
 *.tar
+*.data
 subfunctions/

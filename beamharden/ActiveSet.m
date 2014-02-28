@@ -13,7 +13,7 @@ classdef ActiveSet < handle
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
-        cost;
+        cost = 0;
         stepNum
         course = [];    % record the change of active set
         deltaNormIe
@@ -94,12 +94,12 @@ classdef ActiveSet < handle
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
                             if(any(collide) && q(ppp)~=k(ppp-1))
+                                break;
                                 obj.Q = (obj.Q | collide);
                                 obj.Z = null(obj.B(obj.Q,:),'r');
                                 obj.course = [obj.course;...
                                     sprintf('%s\n', char(obj.Q(:)'+'0') )];
                             else
-                                needBreak = true;
                                 break;
                             end
                         else
@@ -127,7 +127,7 @@ classdef ActiveSet < handle
                     newIe=obj.Ie-stepSz*deltaIe;
                     newCost=obj.func(newIe);
 
-                    if((newCost <= oldCost - stepSz/200*obj.deltaNormIe)...
+                    if((newCost <= oldCost - stepSz/2*obj.deltaNormIe)...
                             || (ppp>10 && newCost < oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;

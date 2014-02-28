@@ -45,5 +45,5 @@ solveTriDiag:
 	$(MEX) solveTridiag.c
 
 clean:
-	-rm -vrf *.o *.mex* *~ *.data *.out
+	-rm -vrf *.o *.mex* *~ *.data *.out profiler
 
