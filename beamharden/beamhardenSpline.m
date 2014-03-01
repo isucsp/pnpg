@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 22 Feb 2014 08:24:38 PM CST
+%   $Revision: 0.3 $ $Date: Fri 28 Feb 2014 05:22:12 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -41,6 +41,7 @@ if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
 if(~isfield(opt,'visible')) opt.visible=1; end
+if(~isfield(opt,'alphaStep')) opt.alphaStep='cg-pr'; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -152,20 +153,28 @@ if(interiorPointAlpha)
 else 
     nonneg=@nonnegPen; 
 end
-if(prpCGAlpha)
-    alphaStep = ConjGrad(3,alpha);
-    alphaStep.fArray{2} = nonneg;
-    if(isfield(opt,'muLustig'))
-        fprintf('use lustig approximation for l1 norm\n');
-        alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
-    end
-    if(isfield(opt,'muHuber'))
-        fprintf('use huber approximation for l1 norm\n');
-        alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
-    end
-    alphaStep.coef(1:2) = [1; 1];
-    alphaStep.maxStepNum = opt.maxAlphaSteps;
-    alphaStep.stepShrnk = opt.stepShrnk;
+switch lower(opt.alphaStep)
+    case lower('cg-pr')
+        alphaStep = ConjGrad(3,alpha);
+        alphaStep.fArray{2} = nonneg;
+        if(isfield(opt,'muLustig'))
+            fprintf('use lustig approximation for l1 norm\n');
+            alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
+        end
+        if(isfield(opt,'muHuber'))
+            fprintf('use huber approximation for l1 norm\n');
+            alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
+        end
+        alphaStep.coef(1:2) = [1; 1];
+        alphaStep.maxStepNum = opt.maxAlphaSteps;
+        alphaStep.stepShrnk = opt.stepShrnk;
+    case lower('SpaRSA')
+        alphaStep = ConjGrad(2,alpha);
+        alphaStep.coef(1:2) = [1; 1];
+        alphaStep.fArray{2} = nonneg;
+        alphaStep.u = 
+        alphaStep.maxStepNum = opt.maxAlphaSteps;
+        alphaStep.stepShrnk = opt.stepShrnk;
 end
 if(isfield(opt,'a'))
     PsitPhitz=Psit(Phit(y));

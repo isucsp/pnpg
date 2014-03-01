@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 27 Feb 2014 11:15:55 PM CST
+%   $Revision: 0.2 $ $Date: Fri 28 Feb 2014 05:18:41 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -26,6 +26,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
     opt.muLustig=logspace(-15,-6,5);
+    opt.alphaStep='sparsa';
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;

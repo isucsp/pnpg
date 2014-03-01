@@ -15,10 +15,11 @@ classdef ConjGrad < handle
         preP=0;
         cost
         deltaNormAlpha
-        PsitPhitz;
-        PsitPhit1;
         converged = false;
         warned = false;
+    end
+    properties(Access=private)
+        method = 'cg-pr';
     end
     methods
         function obj = ConjGrad(n,alpha)
@@ -67,6 +68,34 @@ classdef ConjGrad < handle
                 end
 
             end
+        end
+        function set.method(obj,method)
+            switch lower(method)
+                case lower('sparsa')
+                    obj.mainFunc=@(o) sparsa(o);
+                case lower('cg-pr')
+                    obj.mainFunc=@(o) prCG(o);
+            end
+        end
+
+        function main(obj)
+            obj.mainFunc(obj);
+        end
+
+        function sparsa(obj)
+            pp=0; obj.converged = false; obj.warned = false; needBreak = false;
+            while(pp<obj.maxStepNum)
+                [oldCost,grad,hessian] = obj.func(obj.alpha);
+
+                obj.deltaNormAlpha = grad'*grad;
+                t=hessian(grad,2)/obj.deltaNormAlpha;
+                si = Psit(obj.alpha);
+                dsi = Psit(grad);
+                wi=si-dsi/t;
+                newSi=ConjGrad.softThresh(wi,obj.u/t);
+            end
+            temp = Psi(newSi);
+            obj.alpha = Psi(newSi);
         end
 
         function prCG(obj)
@@ -172,6 +201,14 @@ classdef ConjGrad < handle
                 end
             end
 
+        end
+    end
+    methods(static)
+        function y = softThresh(x,thresh)
+            idx = abs(x)<=thresh;
+            y(x>0) = x(x>0)-thresh;
+            y(x<0) = x(x<0)+thresh;
+            y(idx) = 0;
         end
     end
 end
