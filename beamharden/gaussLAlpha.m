@@ -8,16 +8,16 @@ function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,Phi,Phit,polyIout,obj)
         BLI = polyIout(R,Ie); %A=exp(-R*mu');
     end
     Err=log(BLI./Imea);
-    f=Err'*Err                 ;
+    f=Err'*Err/2;
     if(nargin>=7)
         obj.zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
     end
     if(nargout>=2)
-        g=-Phit(Err.*sBLI./BLI)  *2;
+        g=-Phit(Err.*sBLI./BLI);
         if(nargout>=3)
             h=@(x,opt) hessian(Phi, Phit,...
                 (1-Err).*((sBLI./BLI).^2)+Err.*ssBLI./BLI,...
-                x,opt)       *2;
+                x,opt);
         end
     end
 end

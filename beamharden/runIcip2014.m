@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 28 Feb 2014 05:18:41 PM CST
+%   $Revision: 0.2 $ $Date: Sun 02 Mar 2014 08:56:41 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 filename = [mfilename '.mat'];
@@ -26,7 +26,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
     opt.muLustig=logspace(-15,-6,5);
-    opt.alphaStep='sparsa';
+    %opt.alphaStep='SpaRSA'; %'NCG_PR';
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;
@@ -609,49 +609,6 @@ if(any(runList==32)) % Huber function test for best muHuber
         initSig=out32{i,j}.alpha;
         opt.Ie=out32{i,j}.Ie;
         save(filename,'out32','-append');
-    end
-end
-
-
-
-% ADD SPARSE RECONSRUCTION 
-
-if(any(runList==20)) % beamhardening with refinement
-    j=0;
-    prefix='BeamHard';
-    x_BackProj=conf.FBP(conf.y);
-    for jj=7 %[5:6] %1:length(rCoeff)
-        j=j+1;
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=x_BackProj(:)*1+0*Mask(:)/2; %Img2D; %
-
-        aArray=-6.8:0.2:-6.2;
-        muLustigArray=logspace(-15,-6,5);
-        j=3;
-        opt.muLustig=muLustigArray(j);
-
-        aArray=-6.5;
-        for i=1:length(aArray)
-            opt.a=aArray(i);
-            out{i}=beamhardenASSparseResampleMu(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,conf.y,initSig,opt);
-            RMSE(i)=1-(out{i}(end).alpha'*opt.trueAlpha/norm(out{i}(end).alpha))^2;
-        end
-        save(filename,'out20','-append');
-    end
-end
-
-if(any(runList==1000))
-    servers={'linux-3', 'research-4'}
-    for i=1:length(servers)
-        eval(['!scp ' servers{i} ':/local/renliang/imgRecSrc/beamharden/' filename ' temp.mat']);
-        st = load('temp.mat');
-        names = fieldnames(st);
-        for i=1:length(names)
-            fprintf('saving %s...\n',names{i});
-            eval([names{i} '= st.' names{i} ';']);
-            save(filename,names{i});
-        end
     end
 end
 

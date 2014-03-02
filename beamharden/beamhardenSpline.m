@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Fri 28 Feb 2014 05:22:12 PM CST
+%   $Revision: 0.3 $ $Date: Sun 02 Mar 2014 09:20:50 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -33,6 +33,7 @@ interiorPointAlpha=0; prpCGAlpha=1;
 interiorPointIe=0; activeSetIe=1;
 if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=5; end
+if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
@@ -41,7 +42,8 @@ if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
 if(~isfield(opt,'visible')) opt.visible=1; end
-if(~isfield(opt,'alphaStep')) opt.alphaStep='cg-pr'; end
+if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
+if(~isfield(opt,'continuation')) opt.continuation=true; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -134,19 +136,6 @@ if(interiorPointIe)
     thresh2=1; t2Lim=1e-10;
 else thresh2=1e-8; end
 
-out.llAlpha=zeros(opt.maxItr,1);
-out.llI    =zeros(opt.maxItr,1);
-out.nonneg =zeros(opt.maxItr,1);
-out.l1Pen  =zeros(opt.maxItr,1);
-out.cost   =zeros(opt.maxItr,1);
-out.course = cell(opt.maxItr,1);
-out.time   =zeros(opt.maxItr,1);
-out.IeSteps=zeros(opt.maxItr,1);
-out.RMSE   =zeros(opt.maxItr,1);
-out.deltaNormAlpha=zeros(opt.maxItr,1);
-out.deltaNormIe=zeros(opt.maxItr,1);
-out.llAlphaDif=zeros(opt.maxItr,1);
-
 %max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
 if(interiorPointAlpha) 
     nonneg=@nonnegLogBarrier; 
@@ -154,7 +143,7 @@ else
     nonneg=@nonnegPen; 
 end
 switch lower(opt.alphaStep)
-    case lower('cg-pr')
+    case lower('NCG_PR')
         alphaStep = ConjGrad(3,alpha);
         alphaStep.fArray{2} = nonneg;
         if(isfield(opt,'muLustig'))
@@ -168,14 +157,29 @@ switch lower(opt.alphaStep)
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
+        alphaStep.method = 'NCG_PR';
     case lower('SpaRSA')
         alphaStep = ConjGrad(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
-        alphaStep.u = 
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
+        alphaStep.method = 'SpaRSA';
+        alphaStep.Psi = Psi;
+        alphaStep.Psit = Psit;
+        alphaStep.M = 5;
 end
+out.fVal        =zeros(opt.maxItr,length(alphaStep.coef));
+out.llI         =zeros(opt.maxItr,1);
+out.difAlpha    =zeros(opt.maxItr,1);
+out.cost        =zeros(opt.maxItr,1);
+out.course      = cell(opt.maxItr,1);
+out.time        =zeros(opt.maxItr,1);
+out.IeSteps     =zeros(opt.maxItr,1);
+out.RMSE        =zeros(opt.maxItr,1);
+out.difObjAlpha =zeros(opt.maxItr,1);
+out.difObjIe    =zeros(opt.maxItr,1);
+
 if(isfield(opt,'a'))
     PsitPhitz=Psit(Phit(y));
     PsitPhit1=Psit(Phit(ones(length(y),1)));
@@ -197,26 +201,39 @@ else
     IeStep.stepShrnk = opt.stepShrnk;
 end
 
+[temp,temp1]=polyIout(0,Ie);
+t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
+t3 = t3*0.0001;
+alphaStep.u = t3;
+
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     p=p+1;
     
     % start optimize over alpha
     if(~opt.skipAlpha)
-        if(~isfield(opt,'t3'))
+        if(~isfield(opt,'t3') && strcmpi(opt.alphaStep,'NCG_PR'))
             [temp,temp1]=polyIout(0,Ie);
             t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
             t3 = t3*10^opt.a;
             alphaStep.coef(3) = t3;
         end
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
-        alphaStep.prCG();
+        alphaStep.main();
         
-        out.llAlpha(p) = alphaStep.fVal(1)*alphaStep.coef(1);
-        out.nonneg(p) = alphaStep.fVal(2)*alphaStep.coef(2);
-        out.l1Pen(p) = alphaStep.fVal(3)*alphaStep.coef(3);
+        out.fVal(p,:) = alphaStep.fVal(:)';
         out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
-        out.deltaNormAlpha(p)=alphaStep.deltaNormAlpha;
-        out.t3(p) = t3;
+        out.difObjAlpha(p)=alphaStep.difObj;
+        if(opt.continuation && alphaStep.difObj<1e-5)
+            if(max(t3*0.2,opt.u)<alphaStep.u)
+                t3 = t3*0.2;
+                alphaStep.u = max(t3,opt.u);
+                fprintf('\nnew u= %g\n',alphaStep.u);
+                alphaStep.warned = true;
+            end
+        end
+        if(~isfield(opt,'t3') && strcmpi(opt.alphaStep,'NCG_PR'))
+            out.t3(p) = t3;
+        end
 
         alpha = alphaStep.alpha;
         
@@ -236,16 +253,15 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         out.llI(p) = IeStep.cost;
         out.IeSteps(p)= IeStep.stepNum;
         out.course{p} = IeStep.course;
-        out.deltaNormIe(p) = IeStep.deltaNormIe;
+        out.difObjIe(p) = IeStep.deltaNormIe;
     end
 
     if(out.llI(p)~=0) out.cost(p) = out.llI(p);
-    else out.cost(p) = out.llAlpha(p); end
-    if(~opt.skipAlpha && (isfield(out,'nonneg')))
-        out.cost(p) = out.cost(p) + out.nonneg(p);
-    end
-    if(~opt.skipAlpha && (isfield(out,'l1Pen')))
-        out.cost(p) = out.cost(p) + out.l1Pen(p);
+    else out.cost(p) = out.fVal(p,1); end
+    if(~opt.skipAlpha)
+        for i=2:length(out.fVal(p,:))
+            out.cost(p) = out.cost(p) + out.fVal(p,i);
+        end
     end
     if(~opt.skipIe && isfield(out,'penIe'))
         out.cost(p) = out.cost(p) + out.penIe(p);
@@ -254,16 +270,16 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         set(0,'CurrentFigure',figRes);
         if(~opt.skipAlpha)
             subplot(2,1,1);
-            loglog(p-1:p,out.llAlpha(p-1:p),'g'); hold on;
-            if (isfield(out,'nonneg'))
-                loglog(p-1:p,out.nonneg(p-1:p),'b--');
+            loglog(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
+            if(length(out.fVal(p,:))>1)
+                loglog(p-1:p,out.fVal(p-1:p,2),'g');
             end
-            if (isfield(out,'l1Pen'))
-                loglog(p-1:p,out.l1Pen(p-1:p),'c-.');
+            if(length(out.fVal(p,:))>2)
+                loglog(p-1:p,out.fVal(p-1:p,3),'b');
             end
         end
         if(~opt.skipIe)
-            loglog(p-1:p,out.llI(p-1:p),'r'); hold on;
+            loglog(p-1:p,out.llI(p-1:p),'c'); hold on;
             if(isfield(out,'penIe'))
                 loglog(p-1:p,out.penIe(p-1:p),'m:');
             end
@@ -296,9 +312,12 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
     if(opt.visible)
         strlen = length(str);
-        str=sprintf('\np=%-4d cost=%-10g RSE=%-10g dAlpha=%-10g dIe=%-10g zmf=(%g,%g) IeSteps=%-3d',...
-            p,out.cost(p),out.RMSE(p), out.deltaNormAlpha(p), ...
-            out.deltaNormIe(p), IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
+        str=sprintf(['\np=%-4d cost=%-10g RSE=%-10g ',...
+            'dAlpha=%-10g dObjAlpha=%-10g dObjIe=%-10g ',...
+            'zmf=(%g,%g) IeSteps=%-3d'],...
+            p,out.cost(p),out.RMSE(p), out.difAlpha(p), ...
+            out.difObjAlpha(p), out.difObjIe(p),...
+            IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
         if(alphaStep.warned || IeStep.warned)
             fprintf('%s',str);
         else
@@ -309,11 +328,11 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     out.time(p)=toc;
 end
 
-out.llAlpha(p+1:end) = []; out.nonneg(p+1:end) = [];
+out.fVal(p+1:end,:) = [];
 out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
-out.llAlphaDif(p+1:end)=[]; out.IeSteps(p+1:end)=[];
+out.IeSteps(p+1:end)=[];
 out.course(p+1:end) = [];
-out.deltaNormAlpha(p+1:end)=[]; out.deltaNormIe(p+1:end)=[];
+out.deltaNormAlpha(p+1:end)=[]; out.difObjIe(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 
 out.opt = opt;
