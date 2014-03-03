@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Wed 26 Feb 2014 02:41:14 PM CST
+% $Revision: 0.2 $ $Date: Mon 03 Mar 2014 12:22:52 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -164,46 +164,6 @@ classdef ConfigCT < handle
                     return;
             end
         end
-        function junk(obj)
-            Mask=double(Mask~=0);
-            %figure; showImg(Mask);
-            wvltIdx=find(maskk~=0);
-            p_I=length(wvltIdx);
-            maskIdx=find(Mask~=0);
-            p_M=length(maskIdx);
-
-            fprintf('Generating Func handles...\n');
-            m=imgSize^2;
-
-            H=@(s) Phi(Psi(s));
-            Ht=@(s) Psit(Phit(s));
-
-            if(0)
-                testTranspose(Phi,Phit,N,m,'Phi');
-                testTranspose(PhiM,PhiMt,N,p_M,'PhiM');
-                %   testTranspose(Psi,Psit,m,m,'Psi');
-                %   testTranspose(PsiM,PsiMt,p_M,p_I,'PsiM');
-            end
-
-            c=8.682362e-03;
-            mc=1;
-            mc=0.7;
-            mc=6.8195e-03;    % For full projection
-            %mc=1.307885e+01;
-            if(0)
-                %c=expectHHt(H,Ht,N,m,'H');
-                c=expectHHt(Phi,Phit,N,m,'Phi');
-                %mc=expectHHt(HM,HMt,N,p_I,'HM');
-                mc=expectHHt(PhiM,PhiMt,N,p_M,'PhiM');
-            end
-
-            img=zeros(size(Img2D));
-            img(567:570,787:790)=1;
-            %y=Phi(img);
-
-
-        end
-
         function loadMeasurements(obj)
             fprintf('Loading data...\n');
             switch lower(obj.imageName)
@@ -225,192 +185,6 @@ classdef ConfigCT < handle
                 obj.CTdata;...
                 zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
             obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
-        end
-
-        function loadCastSim(obj)
-            obj.Ts=0.008;
-            %theta=1:180;     %for phantom
-            %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-            %theta=1:160;  % Dogandzic2011Asilomar
-
-            obj.trueImg=double(imread('binaryCasting.bmp'));
-            [obj.CTdata,args] = genBeamHarden('showImg',false,...
-                'spark', obj.spark, 'trueImg',obj.trueImg, ...
-                'prjNum', obj.prjNum, 'prjFull', obj.prjFull,...
-                'PhiMode',obj.PhiModeGen);
-            obj.trueIota = args.iota(:);
-            obj.epsilon = args.epsilon(:);
-            obj.trueKappa = args.kappa(:);
-
-            if(strcmp(obj.maskType,'CircleMask'))
-                load('Mask1024Circle.mat');
-                load('MaskWvlt1024CircleL8D6.mat');
-            elseif(strcmp(obj.maskType,'cvxHull'))
-                load(sprintf('RealCTMask_%02d.mat',2));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',2));
-            else
-                load(sprintf('RealCTMask_%02d.mat',3));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',3));
-            end
-            obj.mask = Mask; obj.maskk= maskk;
-            obj.wav=daubcqf(2);
-            obj.dwt_L=6;        %levels of wavelet transform
-            obj.rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
-        end
-
-        function loadTwoMaterials(obj)
-            obj.Ts=0.008;
-            theta_idx=1:180;     %for phantom
-            %theta_idx=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-            %theta_idx=1:160;  % Dogandzic2011Asilomar
-
-            if(spark)
-                load 'CTdata_220TwoMaterialsSpark.mat'
-            else
-                load 'CTdata_220TwoMaterials.mat'
-            end
-            load('twoMaterialCasting.mat'); %load Img2D
-            if(strcmp(obj.maskType,'/CircleMask'))
-                load('Mask1024Circle.mat');
-                load('MaskWvlt1024CircleL8D6.mat');
-            elseif(strcmp(obj.maskType,'/cvxHull'))
-                load(sprintf('RealCTMask_%02d.mat',2));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',2));
-            else
-                load(sprintf('RealCTMask_%02d.mat',3));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',3));
-            end
-
-            CTdata=CTdata_mtrx;
-            CTdata=-log(CTdata/max(CTdata(:)));
-
-            wav=daubcqf(6);
-            dwt_L=8;        %levels of wavelet transform
-            rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
-        end
-        function loadPhantom(obj)
-            Ts=0.1;
-            theta_idx=1:4:720;     %for phantom
-            theta_idx=theta_idx(1:180);
-            load 'PhantomPb511.mat';
-            load 'Phantom512.mat';
-            if(strcmp(obj.maskType,'/CircleMask'))
-                load 'Mask512Circle.mat'
-                load 'MaskWvlt512Circle.mat'
-            else 
-                load 'PhantomMask512.mat';
-                load 'PhantomMaskWvlt512.mat' ;
-            end
-            %levels of wavelet transform
-            if(size(Img2D,1)==512)
-                dwt_L=5;    %for  512x512  Phantom image
-                rCoeff=[6e3 7e3 8e3 1e4 5e4 2e5];   %512x512Phantom
-            else
-                rCoeff=[15000 16000 17000 18e3 19e3 2e4 3e4 5e4 4e4 6e4];
-                %1024x1024Phantom
-                dwt_L=6;   %for 1024x1024 Phantom image
-            end
-            wav=daubcqf(2);
-        end
-        function loadRealCT(obj)
-            Ts=0.01*0.8;
-
-            theta_idx=1:180;  %[1,79]; %
-            %theta_idx=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-            %theta_idx=1:160;  % Dogandzic2011Asilomar
-
-            %Pre-processing data
-            center_loc=691; %692;
-            dist=8597; %8797; %
-            %FAN_BEAM_PARAMETERS 1098.8800	    536.0000
-            %COR_PARAMETERS -28.614487	    0.001389
-            load 'CTdata_220.mat'
-            %1024x1024RealCT
-            rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
-            % In asilomar paper: DORE 2e4 maskDORE 15e3
-            % In Kun's Juarnal: DORE 5000 and 2e4
-            wrap=1;
-
-            wav=daubcqf(6);
-            dwt_L=8;        %levels of wavelet transform
-
-            load 'RealCT.mat';
-
-            fprintf('Loading %s...\n',obj.maskType);
-            if(strcmp(obj.maskType,'/CircleMask'))
-                load('Mask1024Circle.mat');
-                load('MaskWvlt1024CircleL8D6.mat');
-            elseif(strcmp(obj.maskType,'/cvxHull'))
-                load(sprintf('RealCTMask_%02d.mat',2));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',2));
-            else
-                load(sprintf('RealCTMask_%02d.mat',3));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',3));
-            end
-
-            CTdata=CTdata_mtrx;
-            CTdata(CTdata==max(CTdata(:)))=max(CTdata(:))*1.0;
-            CTdata=-log(CTdata/max(CTdata(:)));
-            CTdata=CTdata(:,end:-1:1);
-            CTdata=CTdata(:,[wrap:360 1:wrap-1]);
-            CTdata=CTdata(81:2*center_loc-81,:);
-            %CTdata(end-98:end,:)=[];
-            %CTdata(1:98,:)=[];
-
-            ds=1.1924;
-            paraInc=1;
-            %           CTdata=CTdata_mtrx;
-            perpenCenter=(size(CTdata,1)+1)/2;
-            rotationCenter=perpenCenter;
-            %           ds=0.8419;
-        end
-        function loadPellet(obj)
-            Ts=0.01*0.8;
-
-            theta_idx=1:180;
-            rCoeff=[2000 3000 5000 7000 8000 10000 20000 35000 50000 1e5 5e5]; %1024x1024RealCT
-            %Pre-processing data
-            % For *non-calibrated* data
-            %rotationCenter=1008.7; dist=7248.2; perpenCenter=695;
-            %load 'fuelPellet/test036_0223.mat'
-            %ds=1.96;
-
-            % For *calibrated* data
-            rotationCenter=883.6; dist=8855; perpenCenter=610;
-            % FAN_BEAM_PARAMETERS       1086.6030       24.4266
-            % COR_PARAMETERS            -14735.476562   0.001953
-            load '../fuelPellet.db/test036_Calibrated_0302.mat'
-            ds=1.7214;
-            %load(['/home/renliang/research/fuelPellet.db/' ...
-            %    'test036_Calibrated_0150.mat']);
-            wrap=1; %50; %
-
-            wav=daubcqf(6);
-            dwt_L=8;        %levels of wavelet transform
-            %       wav=daubcqf(2);
-            %       dwt_L=6;        %levels of wavelet transform
-
-            load 'RealCT.mat';
-
-            fprintf('Loading %s...\n',obj.maskType);
-            if(strcmp(obj.maskType,'/CircleMask'))
-                load('Mask1024Circle.mat');
-                load('MaskWvlt1024CircleL8D6.mat');
-            else 
-                load(sprintf('RealCTMask_%02d.mat',maskNo));
-                load(sprintf('RealCTMaskWvlt_%02d.mat',maskNo));
-            end
-
-            CTdata_mtrx=CTdata;
-            CTdata=-log(CTdata/max(CTdata(:)));
-            CTdata=CTdata(:,end:-1:1);
-            CTdata=CTdata(:,[wrap:360 1:wrap-1]);
-
-            paraInc=1;
-
-            if change
-                fan2parallel();
-            end
         end
 
         function fan2parallel()
@@ -452,6 +226,43 @@ classdef ConfigCT < handle
             % CTdata=CTdata.*repmat(filt(:),1,Num_proj);
             % aaa=10^-0.4;
             % CTdata=(exp(aaa*CTdata)-1)/aaa;
+        end
+        function junk(obj)
+            Mask=double(Mask~=0);
+            %figure; showImg(Mask);
+            wvltIdx=find(maskk~=0);
+            p_I=length(wvltIdx);
+            maskIdx=find(Mask~=0);
+            p_M=length(maskIdx);
+
+            fprintf('Generating Func handles...\n');
+            m=imgSize^2;
+
+            H=@(s) Phi(Psi(s));
+            Ht=@(s) Psit(Phit(s));
+
+            if(0)
+                testTranspose(Phi,Phit,N,m,'Phi');
+                testTranspose(PhiM,PhiMt,N,p_M,'PhiM');
+                %   testTranspose(Psi,Psit,m,m,'Psi');
+                %   testTranspose(PsiM,PsiMt,p_M,p_I,'PsiM');
+            end
+
+            c=8.682362e-03;
+            mc=1;
+            mc=0.7;
+            mc=6.8195e-03;    % For full projection
+            %mc=1.307885e+01;
+            if(0)
+                %c=expectHHt(H,Ht,N,m,'H');
+                c=expectHHt(Phi,Phit,N,m,'Phi');
+                %mc=expectHHt(HM,HMt,N,p_I,'HM');
+                mc=expectHHt(PhiM,PhiMt,N,p_M,'PhiM');
+            end
+
+            img=zeros(size(Img2D));
+            img(567:570,787:790)=1;
+            %y=Phi(img);
         end
     end
 end
