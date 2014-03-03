@@ -5,20 +5,23 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 02 Mar 2014 08:56:41 AM CST
+%   $Revision: 0.2 $ $Date: Mon 03 Mar 2014 12:07:33 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
-filename = [mfilename '.mat'];
-if(exist(filename,'file') && nargin~=0 && ~isempty(runList))
-    load(filename);
-else
-    save(filename,'filename');
+if(nargin~=0 && ~isempty(runList))
+    filename = [mfilename '.mat'];
+    if( exist(filename,'file') )
+        load(filename);
+    else
+        save(filename,'filename');
+    end
 end
 
 if(nargin==0)
+    runList = [];
+elseif(isempty(runList))
     [conf, opt] = defaultInit();
     opt = conf.setup(opt);
-    runList = [];
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,12 +29,13 @@ if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
     opt.muLustig=logspace(-15,-6,5);
-    %opt.alphaStep='SpaRSA'; %'NCG_PR';
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;
-    opt.a=opt.a;
     opt.skipIe=true;
+    %opt.continuation = true;
+    opt.u = 1e-4;
+    opt.alphaStep='SpaRSA'; %'NCG_PR';
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     %conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
@@ -636,7 +640,7 @@ function [conf, opt] = defaultInit()
     %opt.muRange=[0.03 30];
     opt.logspan=3;
     opt.sampleMode='logspan'; %'assigned'; %'exponential'; %
-    opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
+    %opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;

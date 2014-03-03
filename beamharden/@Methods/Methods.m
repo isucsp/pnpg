@@ -1,4 +1,4 @@
-classdef ConjGrad < handle
+classdef Methods < handle
     properties
         % for common purpose
         mainFunc = @(o) NCG_PR(o);
@@ -29,10 +29,11 @@ classdef ConjGrad < handle
         t=-1;   % suppose be larger than L, largest eigenvalue of Hessian
         u       % coefficient of l1 norm term
         M = 5;  % keep the record of objective from the last M iterations
-        cost
+        oldCost
+        cost;
     end
     methods
-        function obj = ConjGrad(n,alpha)
+        function obj = Methods(n,alpha)
             if(nargin>0)
                 obj.n = n;
             end
@@ -41,7 +42,7 @@ classdef ConjGrad < handle
             obj.hArray = cell(obj.n,1);
             obj.coef = zeros(obj.n,1);
             obj.alpha = alpha;
-            obj.cost = zeros(obj.M,1);
+            obj.oldCost = zeros(obj.M,1);
         end
 
         function [f,g,h] = func(obj,aaa)
@@ -51,7 +52,7 @@ classdef ConjGrad < handle
                     [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
                     g = g+gtemp*obj.coef(i);
                 end
-                f = obj.fVal'*obj.coef;
+                f = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
                 h = @(xxx,opt) hessian(xxx,opt);
             elseif(nargout==2)
                 g = 0;
@@ -59,12 +60,12 @@ classdef ConjGrad < handle
                     [obj.fVal(i),gtemp] = obj.fArray{i}(aaa);
                     g = g+gtemp*obj.coef(i);
                 end
-                f = obj.fVal'*obj.coef;
+                f = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
             else
                 for i = 1:obj.n
                     obj.fVal(i) = obj.fArray{i}(aaa);
                 end
-                f = obj.fVal'*obj.coef;
+                f = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
             end
             function hh = hessian(x,opt)
                 hh=0;
@@ -96,109 +97,20 @@ classdef ConjGrad < handle
         end
         function set.M(obj,M)
             obj.M = M;
-            obj.cost = zeros(obj.M,1);
+            obj.oldCost = zeros(obj.M,1);
+        end
+        function set.u(obj,u)
+            obj.u = u;
+            obj.coef(3) = u;
+        end
+        function u = get.u(obj)
+            u = obj.coef(3);
         end
 
         function main(obj)
             obj.mainFunc(obj);
         end
 
-        function SpaRSA(obj)
-            pp=0; obj.converged = false; obj.warned = false; needBreak = false;
-            while(pp<obj.maxStepNum)
-                pp=pp+1;
-                [oldCost,grad] = obj.func(obj.alpha);
-                si = obj.Psit(obj.alpha);
-                dsi = obj.Psit(grad);
-                obj.t = (grad-obj.preG)'*(grad-obj.preG)/...
-                    ((obj.alpha-obj.preAlpha)'*(obj.alpha-obj.preAlpha));
-                obj.cost = [oldCost; obj.cost(1:obj.M-1)];
-
-                % start of line Search
-                ppp=0;
-                while(~obj.converged && ~needBreak)
-                    ppp=ppp+1;
-                    wi=si-dsi/obj.t;
-                    newSi=ConjGrad.softThresh(wi,obj.u/obj.t);
-                    newX = obj.Psi(newSi);
-                    newCost=obj.func(newX);
-                    obj.difAlpha = (newX-obj.alpha)'*(newX-obj.alpha);
-
-                    % the following is the core of SpaRSA method
-                    if((newCost <= max(obj.cost) - obj.sigma*obj.t/2*obj.difAlpha)...
-                            || (ppp>10))
-                        break;
-                    else
-                        if(ppp>10)
-                            warning('exit iterations for higher convergence criteria: %g\n',obj.difAlpha);
-                            if(oldCost>=newCost)
-                                obj.alpha = newX;
-                            else
-                                obj.converged = true;
-                            end
-                            obj.warned = true;
-                            needBreak = true;
-                        else
-                            obj.t=obj.t/obj.stepShrnk;
-                        end
-                    end
-                end
-                obj.preG = grad; obj.preAlpha = obj.alpha;
-                obj.alpha = newX; obj.difObj = oldCost-newCost;
-            end
-        end
-
-        function NCG_PR(obj)
-            pp=0; obj.converged = false; obj.warned = false; needBreak = false;
-            while(pp<obj.maxStepNum)
-                pp=pp+1;
-                [oldCost,grad,hessian] = obj.func(obj.alpha);
-
-                maxStep=1;
-                beta=grad'*(grad-obj.preG)/(obj.preG'*obj.preG);
-                deltaAlpha=grad+max(beta,0)*obj.preP;
-                deltaNormAlpha=grad'*deltaAlpha;
-                s1=deltaNormAlpha/hessian(deltaAlpha,2);
-                %atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,t3, Psit,opt.muLustig,sqrtSSqrMu);
-                obj.preP = deltaAlpha; obj.preG = grad;
-                deltaAlpha = deltaAlpha*s1;
-                deltaNormAlpha = deltaNormAlpha*s1;
-
-                if(deltaNormAlpha<obj.thresh)
-                    obj.converged=true;
-                    break;
-                end
-
-                % start of line Search
-                ppp=0; stepSz=min(1,maxStep);
-                while(~obj.converged && ~needBreak)
-                    ppp=ppp+1;
-                    newX=obj.alpha-stepSz*deltaAlpha;
-                    %newX(newX<0)=0; % force it be positive;
-                    newCost=obj.func(newX);
-
-                    if((newCost <= oldCost - stepSz/2*deltaNormAlpha)...
-                            || (ppp>10 && newCost < oldCost))
-                        needBreak = true;
-                    else
-                        if(ppp>10)
-                            warning('exit iterations for higher convergence criteria: %g\n',deltaNormAlpha);
-                            obj.warned = true;
-                            needBreak = true;
-                        else
-                            stepSz=stepSz*obj.stepShrnk;
-                        end
-                    end
-                end
-                %end of line search
-
-                obj.difAlpha = (newX-obj.alpha)'*(newX-obj.alpha);
-                obj.difObj = newCost - oldCost;
-                obj.alpha = newX;
-                if(obj.converged || needBreak) break; end
-            end
-            obj.stepNum = pp;
-        end
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 
             % min c'*x+1/2 atHessianA(x)
