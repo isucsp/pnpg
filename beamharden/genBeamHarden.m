@@ -63,7 +63,7 @@ function [CTdata, args] = genBeamHarden(varargin)
 
     args.kappa = kappa;
     args.s = PhiAlpha;
-    CTdata=reshape(Imea,1024,[]);
+    CTdata=reshape(Imea,args.prjWidth,[]);
     if(args.saveMat) save(filename,'CTdata'); end
 
     if(args.showImg)
@@ -82,6 +82,7 @@ function args = parseInputs(varargin)
     args.saveMat = false;
     args.prjNum = 180;      % number of projections from degree at 0
     args.prjFull = 360;
+    args.dSize = 1;
     PhiMode = 'parPrj'; %'cpuPrj'; %'basic';
 
     for i=1:2:length(varargin)
@@ -90,6 +91,13 @@ function args = parseInputs(varargin)
 
     if(~isfield(args,'trueImg'))
         args.trueImg=double(imread('binaryCasting.bmp'));
+    else
+        if(~isfield(args,'imgSize'))
+            args.imgSize=floor(sqrt(length(args.trueImg(:))));
+        end
+        if(~isfield(args,'prjWidth'))
+            args.prjWidth = args.imgSize/args.dSize;
+        end
     end
     if(~isfield(args,'operators'))
         Ts = 0.008;
@@ -116,14 +124,14 @@ function args = parseInputs(varargin)
                 args.operators.Phit=@(s) PhitFunc51(s,f_coeff,st,n,Ts);
                 args.operators.FBP=@(s) FBPFunc6(s,theta,Ts);
             case lower('parPrj')
-                conf.bw=1; conf.nc=1024; conf.nr=1024; conf.prjWidth=1024;
-                conf.theta=theta;
+                conf.bw=1; conf.nc=args.imgSize; conf.nr=args.imgSize;
+                conf.prjWidth=args.prjWidth; conf.theta=theta;
                 maskIdx=1:numel(args.trueImg);
                 args.operators.Phi =@(s) mParPrj(s,maskIdx-1,conf,'forward')*Ts;
                 args.operators.Phit=@(s) mParPrj(s,maskIdx-1,conf,'backward')*Ts;
                 args.operators.FBP =@(s) FBPFunc7(s,args.prjFull,args.prjNum,Ts,maskIdx)*Ts;
             case lower('cpuPrj')
-                conf.n=1024; conf.prjWidth=1024;
+                conf.n=args.imgSize; conf.prjWidth=args.prjWidth;
                 conf.np=args.prjNum; conf.prjFull=args.prjFull;
                 conf.dSize=1; %(n-1)/(Num_pixel+1);
                 conf.effectiveRate=1;

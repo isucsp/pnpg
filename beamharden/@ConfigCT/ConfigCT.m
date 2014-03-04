@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Mon 03 Mar 2014 12:22:52 PM CST
+% $Revision: 0.2 $ $Date: Mon 03 Mar 2014 08:45:29 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -82,8 +82,8 @@ classdef ConfigCT < handle
             W=@(z) midwt(z,obj.wav,obj.dwt_L);
             Wt=@(z) mdwt(z,obj.wav,obj.dwt_L);
 
-            obj.Psi=@(s) PsiFunc(s,W,obj.imgSize,maskIdx,wvltIdx);
-            obj.Psit=@(s) PsitFunc(s,Wt,obj.imgSize,maskIdx,wvltIdx);
+            obj.Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,obj.imgSize)),maskIdx);
+            obj.Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,obj.imgSize)),maskIdx);
             fprintf('Configuration Finished!\n');
         end
 
@@ -117,9 +117,9 @@ classdef ConfigCT < handle
             mPrj(0,conf,'config');
             mPrj(0,0,'showConf');
             maskIdx = find(obj.mask~=0);
-            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
-            obj.FBP = @(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
+            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward'); %*obj.Ts;
+            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx); %*obj.Ts;
+            obj.FBP =@(s) mPrj(s,0,'FBP'); %*obj.Ts;
         end
         function genOperators(obj)
             switch lower(obj.PhiMode)
@@ -167,6 +167,8 @@ classdef ConfigCT < handle
         function loadMeasurements(obj)
             fprintf('Loading data...\n');
             switch lower(obj.imageName)
+                case 'phantom_1'
+                    loadPhantom_1(obj);
                 case 'phantom'
                     loadPhantom(obj);
                 case lower('castSim')

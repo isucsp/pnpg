@@ -86,6 +86,20 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for(int i=0; i<pConf->n; i++)
                 for(int j=0; j<pConf->n; j++)
                     imgt[i*pConf->n+j]=img[i+j*pConf->n];
+        }else if(!strcmp(cmd,"FBP")){
+            plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
+            imgt = mxGetPr(plhs[0]);
+            sinot = mxGetPr(prhs[0]);
+            for(int i=0; i<pConf->sinoSize; i++)
+                sino[i]=(ft)sinot[i];
+#if GPU
+                gpuPrj(img, sino, FBP_BIT );
+#else
+                cpuPrj(img, sino, FBP_BIT );
+#endif
+            for(int i=0; i<pConf->n; i++)
+                for(int j=0; j<pConf->n; j++)
+                    imgt[i*pConf->n+j]=img[i+j*pConf->n];
         }else{
             showSetup();
             printf("\nPrinting the current configuration ...\n");

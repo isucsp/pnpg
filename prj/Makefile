@@ -24,7 +24,7 @@ mGPUPrj: mPrj.c gpuPrj.o
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
 mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c
-	$(MEX) CFLAGS="$(CFLAGS)" cpuPrj.c common/kiss_fft.c mPrj.c -DCPU=1
+	$(MEX) CFLAGS="$(CFLAGS)" mPrj.c cpuPrj.c common/kiss_fft.c -DCPU=1
 
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c

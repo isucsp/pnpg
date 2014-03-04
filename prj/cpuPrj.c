@@ -840,13 +840,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     start = clock();
 #endif
 
-#if DEBUG
-    if(cmd & FWD_BIT) printf("forward project ...\n");
-    else printf("backward project ...\n");
-    printf("grid=(%d,%d), thread=(%d,%d)\n",
-            grid.x,grid.y,thread.x,thread.y);
-#endif
-
     int res;
     pthread_t *a_thread;
     void *thread_result;

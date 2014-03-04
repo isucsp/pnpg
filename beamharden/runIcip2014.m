@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 03 Mar 2014 12:07:33 PM CST
+%   $Revision: 0.2 $ $Date: Mon 03 Mar 2014 08:44:22 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -28,6 +28,11 @@ end
 if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
+    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    conf.imgSize = 256;
+    conf.prjWidth = 256;
+    %'realct'; 
+    %'pellet'; %
     opt.muLustig=logspace(-15,-6,5);
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
@@ -35,11 +40,11 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='SpaRSA'; %'NCG_PR';
-    conf.prjFull = 360/6;
+    %opt.alphaStep='SpaRSA'; %'NCG_PR';
+    conf.prjFull = 360/1;
     conf.prjNum = conf.prjFull/2;
-    %conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
-    %conf.PhiModeGen='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
+    conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
     %opt.maxIeSteps = 100;
     opt=conf.setup(opt);
     prefix='BeamHard';
