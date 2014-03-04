@@ -981,8 +981,9 @@ int forwardTest( void ) {
     for(int i=0; i < config.n; i++){
         for(int j=0; j < config.n; j++){
             offset = i*config.n+j;
-            if(((i-YC-10)*(i-YC-10)+(j-XC-0)*(j-XC-0)<=160*160)
-                    && ((i-YC-60)*(i-YC-60)+(j-XC-60)*(j-XC-60)>=44*44)
+            if(((i-YC-0.02*config.n)*(i-YC-0.02*config.n)+(j-XC-0)*(j-XC-0)<=(0.32*config.n)*(0.32*config.n))
+                    && ((i-YC-0.12*config.n)*(i-YC-0.12*config.n)+
+                        (j-XC-0.12*config.n)*(j-XC-0.12*config.n)>=(0.088*config.n)*(0.088*config.n))
               ){
                 img[offset]=1;
             }else
@@ -1131,7 +1132,7 @@ int main(int argc, char *argv[]){
         printf("N=%d\n",N);
     }
 
-    setup(N,N,720,720,1,1,3800);
+    setup(N,N,720,720,1,1,3*N);
     showSetup();
     forwardTest();
     backwardTest();

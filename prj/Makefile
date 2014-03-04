@@ -24,13 +24,13 @@ mGPUPrj: mPrj.c gpuPrj.o
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
 mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c
-	$(MEX) CFLAGS="$(CFLAGS)" mPrj.c cpuPrj.c common/kiss_fft.c -DCPU=1
+	$(MEX) CFLAGS="$(CFLAGS)" mPrj.c cpuPrj.c common/kiss_fft.c -DCPU=1 # -lglut -lGL
 
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
 
 cpuPrj: cpuPrj.c common/kiss_fft.c
-	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread # -lglut -lGL
+	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu
