@@ -20,16 +20,16 @@ CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-poin
  
 all: mParPrj solveTriDiag mCPUPrj cpuPrj
 
-mGPUPrj: mPrj.c gpuPrj.o
+mGPUPrj: mPrj.c gpuPrj.o prj.h
 	$(MEX) mPrj.c gpuPrj.o -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
 
-mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c
+mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c prj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mPrj.c cpuPrj.c common/kiss_fft.c -DCPU=1 # -lglut -lGL
 
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
 
-cpuPrj: cpuPrj.c common/kiss_fft.c
+cpuPrj: cpuPrj.c common/kiss_fft.c prj.h
 	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h

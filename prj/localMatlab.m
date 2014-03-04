@@ -5,6 +5,6 @@ function img = localMatlab(fn,col)
             img=[img; fread(f,1000,'float')];
         end
         img=reshape(img,[],col);
-        figure; imshow(img,[]);
+        figure; showImg(img);
 end
 

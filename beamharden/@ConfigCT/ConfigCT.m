@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Mon 03 Mar 2014 08:45:29 PM CST
+% $Revision: 0.2 $ $Date: Tue 04 Mar 2014 09:34:12 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -115,7 +115,7 @@ classdef ConfigCT < handle
             conf.d=obj.dist;
 
             mPrj(0,conf,'config');
-            mPrj(0,0,'showConf');
+            %mPrj(0,0,'showConf');
             maskIdx = find(obj.mask~=0);
             obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward'); %*obj.Ts;
             obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx); %*obj.Ts;

@@ -402,7 +402,7 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
-        if(threadIdx==fSize){
+        if(threadIdx==fSize-1){
             for(int i=0; i<conf->np; i++)
                 sino[i*conf->prjWidth]=0;
             return;
@@ -550,7 +550,7 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
-        if(threadIdx==fSize){
+        if(threadIdx==fSize-1){
             for(int i=0; i<conf->np; i++)
                 sino[i*conf->prjWidth]=0;
             return;
@@ -723,8 +723,8 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
         else
             fSize = fSize*pConf->prjWidth;
         bSize = (pConf->n+1)/2;
-        if(pConf->n%2==0) bSize = (1+bSize)*bSize/2+1;
-        else bSize = (1+bSize)*bSize/2;
+        bSize = (1+bSize)*bSize/2;
+        if(pConf->n%2==0) bSize++;
     }else{
         rayDrive = rayDrivePar;
         pixelDrive = pixelDrivePar;
@@ -735,8 +735,8 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
         else
             fSize = fSize*((pConf->prjWidth+1)/2);
         bSize = (pConf->n+1)/2;
-        if(pConf->n%2==0) bSize = (1+bSize)*bSize/2+1;
-        else bSize = (1+bSize)*bSize/2;
+        bSize = (1+bSize)*bSize/2;
+        if(pConf->n%2==0) bSize++;
     }
 
 
@@ -769,7 +769,12 @@ void *parPrjBack(void *arg){
     return 0;
 }
 
+#if DEBUG
+void rampFilter(ft *signal, int size, ft Ts, int test){
+    FILE * f;
+#else
 void rampFilter(ft *signal, int size, ft Ts){
+#endif
     int N = 2*size;
     kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
     kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
@@ -807,6 +812,17 @@ void rampFilter(ft *signal, int size, ft Ts){
     ramp[0].r=0.25;
     kiss_fft( cfgFFT , ramp, ramp );
 
+#if DEBUG
+    if(test==-1){
+        f = fopen("test.data","w");
+        for(int i=0; i<N; i++){
+            //printf("%g\n",ramp[i].r);
+            fprintf(f,"%g\n",(ft)ramp[i].r);
+        }
+        fprintf(f,"\n");
+    }
+#endif
+
     kiss_fft( cfgFFT , proj, proj );
     for(int i=0; i<N; i++){
         proj[i].r=proj[i].r*ramp[i].r*hann[i].r;
@@ -814,6 +830,16 @@ void rampFilter(ft *signal, int size, ft Ts){
     }
     // the kiss_fft inverse fft doesn't divide N
     kiss_fft( cfgIFFT, proj, proj );
+#if DEBUG
+    if(test==-1){
+        for(int i=0; i<N; i++){
+            //printf("%g\n",ramp[i].r);
+            fprintf(f,"%g\n",(ft)proj[i].r);
+        }
+        fprintf(f,"\n");
+        fclose(f);
+    }
+#endif
 
     for(int i=0; i<N/2; i++){
         signal[i] = proj[i].r/N;
@@ -867,7 +893,9 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #endif
 
         if(pConf->d>0){
+#if DEBUG
             printf("reconstructing by FBP (fan beam) ... \n");
+#endif
             for(int j=0; j<(pConf->prjWidth+1)/2; j++){
                 bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
                 for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
@@ -884,7 +912,9 @@ int cpuPrj(ft* img, ft* sino, char cmd){
                 }
             }
         }else{
+#if DEBUG
             printf("reconstructing by FBP (parallel beam) ... \n");
+#endif
             for(unsigned int j=0; j<pConf->sinoSize; j++) pSino[j]=sino[j];
         }
 
@@ -894,8 +924,16 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         fclose(f);
 #endif
 
-        for(int i=0; i<pConf->np; i++)
+        for(int i=0; i<pConf->np; i++){
+#if DEBUG
+            if(i==10)
+                rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize,-1);
+            else
+                rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize,0);
+#else
             rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
+#endif
+        }
 
         //for(int j=0; j<(pConf->prjWidth+1)/2; j++){
         //    bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
@@ -1056,7 +1094,8 @@ int backwardTest( void ) {
 
 #if DEBUG
     FILE* f = fopen("sinogram.data","rb");
-    fread(sino,sizeof(ft),config.sinoSize,f);
+    if(fread(sino,sizeof(ft),config.sinoSize,f))
+        perror("cannot read from sinogram.data\n");
     fclose(f);
 #endif
 
@@ -1151,7 +1190,7 @@ int main(int argc, char *argv[]){
         else
             signal[i]=0;
     }
-    rampFilter(signal, 1024, 1);
+    //rampFilter(signal, 1024, 1);
     return 0;
 
 }

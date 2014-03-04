@@ -139,10 +139,9 @@ function args = parseInputs(varargin)
 
                 mPrj(0,conf,'config');
                 maskIdx=1:numel(args.trueImg);
-                args.operators.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*Ts;
-                args.operators.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*Ts;
-                args.operators.FBP =@(s) FBPFunc7(s,args.prjFull,args.prjNum,Ts,maskIdx)*Ts;
-                %args.operators.FBP =@(s) FBPFunc8(s,conf,obj.Ts,maskIdx)*obj.Ts;
+                args.operators.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward');
+                args.operators.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx);
+                args.operators.FBP =@(s) mPrj(s,0,'FBP');
             otherwise
                 fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                 return;

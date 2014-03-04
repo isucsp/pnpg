@@ -45,6 +45,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         config.dSize=(float)mxGetScalar(mxGetField(prhs[1],0,"dSize"));
         config.effectiveRate=(float)mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
         config.d=(float)mxGetScalar(mxGetField(prhs[1],0,"d"));
+#if DEBUG
         printf("\nConfiguring the operator...\n");
         printf("config.n=%d\n",config.n);
         printf("config.prjWidth=%d\n",config.prjWidth);
@@ -53,6 +54,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         printf("config.dSize=%g\n",config.dSize);
         printf("config.effectiveRate=%g\n",config.effectiveRate);
         printf("config.d=%g\n",config.d);
+#endif
 
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
     }else{
