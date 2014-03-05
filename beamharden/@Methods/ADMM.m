@@ -1,20 +1,22 @@
-function SpaRSA(obj)
+function FISTA(obj)
     pp=0; obj.converged = false; obj.warned = false; needBreak = false;
     while(pp<obj.maxStepNum)
-        obj.p = obj.p + 1;
+        obj.p = obj.p+1;
         pp=pp+1;
-        si = obj.Psit(obj.alpha);
+
+        y = obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
+        si = obj.Psit(y);
 
         if(obj.p==1)
-            [oldCost,grad,hessian] = obj.func(obj.alpha);
+            [oldCost,grad,hessian] = obj.func(y);
             deltaNormAlpha=grad'*grad;
             obj.t = hessian(grad,2)/deltaNormAlpha;
         else
-            [oldCost,grad] = obj.func(obj.alpha);
-            obj.t = abs((grad-obj.preG)'*(obj.alpha-obj.preAlpha)/...
-                ((obj.alpha-obj.preAlpha)'*(obj.alpha-obj.preAlpha)));
+            [oldCost,grad] = obj.func(y);
+            obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
+                ((y-obj.preY)'*(y-obj.preY)));
         end
-        obj.oldCost = [oldCost+obj.u*sum(abs(si)); obj.oldCost(1:obj.M-1)];
+        %oldCost = oldCost+obj.u*sum(abs(si));
         dsi = obj.Psit(grad);
 
         % start of line Search
@@ -28,10 +30,10 @@ function SpaRSA(obj)
 
             newCost=obj.func(newX);
             obj.fVal(3) = sum(abs(newSi));
-            newCost = newCost+obj.u*obj.fVal(3);
+            %newCost = newCost+obj.u*obj.fVal(3);
 
             % the following is the core of SpaRSA method
-            if((newCost <= max(obj.oldCost) - obj.sigma*obj.t/2*difAlpha)...
+            if((newCost <= oldCost + grad'*(newX-y) + obj.t/2*(norm(newX-y)^2))...
                     || (ppp>10))
                 break;
             else
@@ -44,7 +46,7 @@ function SpaRSA(obj)
                 end
             end
         end
-        obj.preG = grad; obj.preAlpha = obj.alpha;
+        obj.preG = grad; obj.preAlpha = obj.alpha; obj.preY = y;
         obj.cost = newCost; obj.alpha = newX;
     end
 end

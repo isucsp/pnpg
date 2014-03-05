@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 04 Mar 2014 04:11:41 PM CST
+%   $Revision: 0.3 $ $Date: Wed 05 Mar 2014 10:24:54 AM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -113,7 +113,6 @@ else
         Ie(Ie<0)=0;
     end
 end
-keyboard
 
 polymodel = Spline(opt.spectBasis,mu);
 polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
@@ -157,13 +156,13 @@ switch lower(opt.alphaStep)
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
         alphaStep.method = 'NCG_PR';
-    case lower('SpaRSA')
+    case {lower('SpaRSA'),lower('FISTA')}
         alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
-        alphaStep.method = 'SpaRSA';
+        alphaStep.method = opt.alphaStep;
         alphaStep.Psi = Psi;
         alphaStep.Psit = Psit;
         alphaStep.M = 5;

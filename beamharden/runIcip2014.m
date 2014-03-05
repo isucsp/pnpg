@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 04 Mar 2014 04:17:39 PM CST
+%   $Revision: 0.2 $ $Date: Wed 05 Mar 2014 10:51:28 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -28,23 +28,25 @@ end
 if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    conf.imgSize = 1024;
+    conf.prjWidth = 1024;
+    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
     conf.imgSize = 256;
     conf.prjWidth = 256;
-    %'realct'; 
-    %'pellet'; %
+    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    %'realct'; 'pellet'; %
     opt.muLustig=logspace(-15,-6,5);
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;
-    %opt.skipIe=true;
+    opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    %opt.alphaStep='SpaRSA'; %'NCG_PR';
-    conf.prjFull = 360/1;
+    opt.alphaStep='FISTA'; %'SpaRSA'; %'NCG_PR'; %
+    conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
-    conf.PhiModeGen='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
+    %conf.PhiModeGen='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
     %opt.maxIeSteps = 100;
     opt=conf.setup(opt);
     prefix='BeamHard';

@@ -30,7 +30,7 @@ mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
 
 cpuPrj: cpuPrj.c common/kiss_fft.c prj.h
-	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
+	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread # -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h
 	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu

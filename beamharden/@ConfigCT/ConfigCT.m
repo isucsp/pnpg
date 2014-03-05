@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Tue 04 Mar 2014 09:34:12 AM CST
+% $Revision: 0.2 $ $Date: Tue 04 Mar 2014 11:01:44 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -83,7 +83,7 @@ classdef ConfigCT < handle
             Wt=@(z) mdwt(z,obj.wav,obj.dwt_L);
 
             obj.Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,obj.imgSize)),maskIdx);
-            obj.Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,obj.imgSize)),maskIdx);
+            obj.Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,obj.imgSize)),wvltIdx);
             fprintf('Configuration Finished!\n');
         end
 
@@ -119,7 +119,7 @@ classdef ConfigCT < handle
             maskIdx = find(obj.mask~=0);
             obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
             obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
-            obj.FBP =@(s) mPrj(s,0,'FBP')*obj.Ts;
+            obj.FBP =@(s) mPrj(s,0,'FBP')/obj.Ts;
         end
         function genOperators(obj)
             switch lower(obj.PhiMode)

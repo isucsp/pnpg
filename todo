@@ -1,0 +1,17 @@
+
+be care for the mask of the wavelate, as the PsiM and PsiMt are not square.
+
+check the convergence criteria
+considering less use of operators, efficiency, i.e. SpaRSA
+
+check the wavelet, it is very suspicious
+
+
+
+Noticed that:
+
+1. continuation.
+2. the direct implementation continue decreasing the cost function, while
+the fourier transform implementation stack at certain point, although the
+two share the same path before the point.
+The RSE can reach unblievable precision. 4e-5; for less than 1000 iterations

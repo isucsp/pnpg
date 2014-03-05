@@ -24,7 +24,7 @@ function [CTdata, args] = genBeamHarden(varargin)
     for i=1:length(symbols)
         if(strcmpi(args.symbol,symbols{i}))
             massAttenCoef=mac{i};
-            %density = zaid(i,3);
+            density = zaid(i,3);
             break;
         end
     end
@@ -50,17 +50,27 @@ function [CTdata, args] = genBeamHarden(varargin)
     epsilon=epsilon(:);
     temp = [epsilon(1);(epsilon(1:end-1)+epsilon(2:end))/2;epsilon(end)];
     deltaEpsilon = temp(2:end)-temp(1:end-1);
-    PhiAlpha=Phi(args.trueImg*);
+    y=Phi(args.trueImg*density);
+    Ts = 1;
 
-    Imea=0;
-    for i=1:length(epsilon)
-        Imea=Imea+exp(-PhiAlpha*kappa(i))*args.iota(i)*deltaEpsilon(i);
+    while(1)
+        PhiAlpha = y * Ts; 
+        Imea=0;
+        for i=1:length(epsilon)
+            Imea=Imea+exp(-PhiAlpha*kappa(i))*args.iota(i)*deltaEpsilon(i);
+        end
+
+        temp = max(Imea(:));
+        Imea = Imea/temp;
+        args.iota = args.iota/temp;
+        if(min(Imea(:))<args.scale) Ts = Ts*0.8;
+        else break;
+        end
     end
 
-    temp = max(Imea(:));
-    Imea = Imea/temp;
-    args.iota = args.iota/temp;
+    fprintf('Sampling rate is determined to be %g\n',Ts);
 
+    args.Ts = Ts;
     args.kappa = kappa;
     args.s = PhiAlpha;
     CTdata=reshape(Imea,args.prjWidth,[]);
@@ -76,6 +86,7 @@ end
 
 function args = parseInputs(varargin)
     args.symbol = 'Fe';
+    args.scale = 1e-7;
     args.spark = true;
     args.epsilon = (20:1:150)'; %keV
     args.showImg = true;
@@ -93,7 +104,7 @@ function args = parseInputs(varargin)
         args.trueImg=double(imread('binaryCasting.bmp'));
     else
         if(~isfield(args,'imgSize'))
-            args.imgSize=floor(sqrt(length(args.trueImg(:))));
+            args.imgSize=ceil(sqrt(length(args.trueImg(:))));
         end
         if(~isfield(args,'prjWidth'))
             args.prjWidth = args.imgSize/args.dSize;

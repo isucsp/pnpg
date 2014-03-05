@@ -31,6 +31,10 @@ classdef Methods < handle
         M = 5;  % keep the record of objective from the last M iterations
         oldCost
         cost;
+
+        % for FISTA
+        p = 0;
+        preY = 0;
     end
     methods
         function obj = Methods(n,alpha)
@@ -83,6 +87,10 @@ classdef Methods < handle
         end
         function set.method(obj,method)
             switch lower(method)
+                case lower('FISTA')
+                    obj.mainFunc=@(o) o.FISTA();
+                    obj.method = 'FISTA';
+                    fprintf('use FISTA method\n');
                 case lower('sparsa')
                     obj.mainFunc=@(o) o.SpaRSA();
                     obj.method = 'SpaRSA';
