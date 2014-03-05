@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 03 Mar 2014 12:13:10 PM CST
+%   $Revision: 0.3 $ $Date: Tue 04 Mar 2014 04:11:41 PM CST
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -87,34 +87,33 @@ for i=1:opt.K-1
     mu(:,i)=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
 end
 
+temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
+temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];
+temp1 = temp1(2:end)-temp1(1:end-1);
+temp2 = temp2(2:end)-temp2(1:end-1);
+opt.trueUpiota=abs(opt.trueIota.*temp1./temp2);
+opt.trueIota=opt.trueIota/(opt.trueIota'*temp1);
+clear 'temp1' 'temp2'
+
 % find the best intial Ie ends
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
 else
     if(opt.skipIe)  % it is better to use dis or b-1 spline
-        opt.trueUpiota=abs(opt.trueIota(1:end-1)...
-            .*(opt.epsilon(2:end)-opt.epsilon(1:end-1))...
-            ./(opt.trueKappa(2:end)-opt.trueKappa(1:end-1)));
         if(strcmp(opt.spectBasis,'dis'))
-            % extend to bigger end
-            % number of point is suspicious
-            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota,mu(:),'spline');
-            temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
+            Ie=interp1(opt.trueKappa, opt.trueUpiota,mu(:),'spline');
+            temp = [mu(1);(mu(1:end-1)+mu(2:end))/2;mu(end)];
+            temp = temp(2:end)-temp(1:end-1);
             Ie = Ie.*temp;
         elseif(strcmp(opt.spectBasis,'b0'))
-            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
-                mu(1:end-1),'spline');
+            Ie=interp1(opt.trueKappa, opt.trueUpiota,mu(1:end-1),'spline');
         elseif(strcmp(opt.spectBasis,'b1'))
-            Ie=interp1(opt.trueKappa(1:end-1), opt.trueUpiota, ...
-                mu(2:end-1),'spline');
+            Ie=interp1(opt.trueKappa, opt.trueUpiota,mu(2:end-1),'spline');
         end
         % there will be some points interplated negative and need to be removed
         Ie(Ie<0)=0;
     end
 end
-
-deltaEpsilon=mean([opt.epsilon(:) [opt.epsilon(2:end); opt.epsilon(end)]],2)-...
-    mean([opt.epsilon(:) [opt.epsilon(1); opt.epsilon(1:end-1)]],2);
-opt.trueIota=opt.trueIota/(opt.trueIota'*deltaEpsilon);
+keyboard
 
 polymodel = Spline(opt.spectBasis,mu);
 polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);

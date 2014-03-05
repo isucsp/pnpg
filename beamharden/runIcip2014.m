@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 03 Mar 2014 08:44:22 PM CST
+%   $Revision: 0.2 $ $Date: Tue 04 Mar 2014 04:17:39 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -37,7 +37,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
     opt.stepShrnk = 0.9;
-    opt.skipIe=true;
+    %opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
     %opt.alphaStep='SpaRSA'; %'NCG_PR';

@@ -117,9 +117,9 @@ classdef ConfigCT < handle
             mPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
             maskIdx = find(obj.mask~=0);
-            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward'); %*obj.Ts;
-            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx); %*obj.Ts;
-            obj.FBP =@(s) mPrj(s,0,'FBP'); %*obj.Ts;
+            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            obj.FBP =@(s) mPrj(s,0,'FBP')*obj.Ts;
         end
         function genOperators(obj)
             switch lower(obj.PhiMode)

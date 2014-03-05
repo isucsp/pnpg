@@ -50,7 +50,7 @@ function [CTdata, args] = genBeamHarden(varargin)
     epsilon=epsilon(:);
     temp = [epsilon(1);(epsilon(1:end-1)+epsilon(2:end))/2;epsilon(end)];
     deltaEpsilon = temp(2:end)-temp(1:end-1);
-    PhiAlpha=Phi(args.trueImg);
+    PhiAlpha=Phi(args.trueImg*);
 
     Imea=0;
     for i=1:length(epsilon)
@@ -100,7 +100,7 @@ function args = parseInputs(varargin)
         end
     end
     if(~isfield(args,'operators'))
-        Ts = 0.008;
+        Ts = 1;
         theta = (0:args.prjNum-1)'*360/args.prjFull; % theta's in degree
         switch lower(args.PhiMode)
             case 'basic'
@@ -139,9 +139,9 @@ function args = parseInputs(varargin)
 
                 mPrj(0,conf,'config');
                 maskIdx=1:numel(args.trueImg);
-                args.operators.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward');
-                args.operators.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx);
-                args.operators.FBP =@(s) mPrj(s,0,'FBP');
+                args.operators.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*Ts;
+                args.operators.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*Ts;
+                args.operators.FBP =@(s) mPrj(s,0,'FBP')*Ts;
             otherwise
                 fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                 return;
