@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Wed 05 Mar 2014 10:51:28 AM CST
+%   $Revision: 0.2 $ $Date: Thu 06 Mar 2014 10:22:08 AM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -42,7 +42,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='FISTA'; %'SpaRSA'; %'NCG_PR'; %
+    opt.alphaStep='SpaRSA'; %'NCG_PR'; %'FISTA'; %
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
@@ -53,7 +53,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
     initSig=conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
+    initSig = initSig'*opt.trueAlpha/(norm(opt.trueAlpha)^2)*opt.trueAlpha;
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
