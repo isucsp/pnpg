@@ -35,6 +35,9 @@ classdef Methods < handle
         % for FISTA
         p = 0;
         preY = 0;
+
+        % for ADMM
+
     end
     methods
         function obj = Methods(n,alpha)

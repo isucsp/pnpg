@@ -1,53 +1,55 @@
-function FISTA(obj)
+function ADMM(obj)
     pp=0; obj.converged = false; obj.warned = false; needBreak = false;
     while(pp<obj.maxStepNum)
         obj.p = obj.p+1;
         pp=pp+1;
 
-        y = obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
-        si = obj.Psit(y);
-
         if(obj.p==1)
-            [oldCost,grad,hessian] = obj.func(y);
-            deltaNormAlpha=grad'*grad;
-            obj.t = hessian(grad,2)/deltaNormAlpha;
+            % initialization
+            Psi_s = Psi(obj.s);
+
+            [oldCost,grad,hessian] = obj.func(obj.alpha);
+            obj.t = hessian(grad,2)/(grad'*grad);
         else
-            [oldCost,grad] = obj.func(y);
-            obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
-                ((y-obj.preY)'*(y-obj.preY)));
+            [oldCost,grad] = obj.func(obj.alpha);
+            obj.t = abs( (grad-obj.preG)'*(obj.alpha-obj.preAlpha)/...
+                ((obj.alpha-obj.preAlpha)'*(obj.alpha-obj.preAlpha)));
         end
-        %oldCost = oldCost+obj.u*sum(abs(si));
-        dsi = obj.Psit(grad);
+        gradSN = norm(grad)^2;
 
         % start of line Search
         ppp=0;
         while(~obj.converged && ~needBreak)
             ppp=ppp+1;
-            wi=si-dsi/obj.t;
-            newSi=Methods.softThresh(wi,obj.u/obj.t);
-            newX = obj.Psi(newSi);
-            difAlpha = (newX-obj.alpha)'*(newX-obj.alpha);
-
+            newX = obj.alpha - grad/t;
             newCost=obj.func(newX);
-            obj.fVal(3) = sum(abs(newSi));
-            %newCost = newCost+obj.u*obj.fVal(3);
 
-            % the following is the core of SpaRSA method
-            if((newCost <= oldCost + grad'*(newX-y) + obj.t/2*(norm(newX-y)^2))...
-                    || (ppp>10))
+            if((newCost<=oldCost+obj.t/2*gradSN) || (ppp>10))
                 break;
             else
                 if(ppp>10)
                     warning('exit iterations for higher convergence criteria: %g\n',difAlpha);
-                    obj.warned = true;
-                    needBreak = true;
+                    obj.warned = true; needBreak = true;
                 else
                     obj.t=obj.t/obj.stepShrnk;
                 end
             end
         end
-        obj.preG = grad; obj.preAlpha = obj.alpha; obj.preY = y;
-        obj.cost = newCost; obj.alpha = newX;
+
+        obj.alpha = (obj.t*newX+ obj.rho*obj.Psi_s - obj.y1)/(obj.t+obj.rho);
+        obj.pa = obj.Psi_s - obj.y2/obj.rho; obj.pa(obj.pa<0) = 0;
+        obj.s = soft(...
+            Psit(obj.alpha+obj.pa+(obj.y1+obj.y2)/obj.rho)/2,...
+            obj.u/obj.t);
+        obj.Psi_s = Psi(obj.s);
+
+        obj.y1 = obj.y1 - obj.rho*(obj.Psi_s-obj.alpha);
+        obj.y2 = obj.y2 - obj.rho*(obj.Psi_s-obj.pa);
+
+        obj.fVal(2) = sum(abs(obj.s));
+
+        obj.preG = grad; obj.preAlpha = obj.alpha;
+        obj.cost = newCost;
     end
 end
 
