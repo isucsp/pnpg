@@ -36,8 +36,6 @@ classdef Methods < handle
         p = 0;
         preY = 0;
 
-        % for ADMM
-
     end
     methods
         function obj = Methods(n,alpha)
@@ -102,8 +100,11 @@ classdef Methods < handle
                     obj.mainFunc=@(o) o.NCG_PR();
                     obj.method = 'NCG_PR';
                     fprintf('use NCG_PR method\n');
+                case {lower('ADMM'), lower('ADMM_N')}
+                    obj.method = 'ADMM';
+                    fprintf('use ADMM method\n');
                 otherwise
-                    error('input method for alpha not found\n');
+                    error('input method for alpha not found');
             end
         end
         function set.M(obj,M)
@@ -112,12 +113,12 @@ classdef Methods < handle
         end
         function set.u(obj,u)
             obj.u = u;
-            obj.coef(3) = u;
+            if(strcmpi(obj.method,'NCG_PR'))
+                obj.coef(obj.n) = u;
+            else
+                obj.coef(obj.n+1)=u;
+            end
         end
-        function u = get.u(obj)
-            u = obj.coef(3);
-        end
-
         function main(obj)
             obj.mainFunc(obj);
         end
@@ -173,10 +174,10 @@ classdef Methods < handle
     end
     methods(Static)
         function y = softThresh(x,thresh)
-            idx = abs(x)<=thresh;
+            idx = abs(x)<thresh;
+            y = zeros(size(x));
             y(x>0) = x(x>0)-thresh;
             y(x<0) = x(x<0)+thresh;
-            y(idx) = 0;
         end
     end
 end

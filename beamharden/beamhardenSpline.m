@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Wed 05 Mar 2014 10:24:54 AM CST
+%   $Revision: 0.3 $ $Date: Sun 09 Mar 2014 03:35:03 AM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -156,6 +156,7 @@ switch lower(opt.alphaStep)
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
         alphaStep.method = 'NCG_PR';
+        out.fVal =zeros(opt.maxItr,3);
     case {lower('SpaRSA'),lower('FISTA')}
         alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
@@ -166,8 +167,16 @@ switch lower(opt.alphaStep)
         alphaStep.Psi = Psi;
         alphaStep.Psit = Psit;
         alphaStep.M = 5;
+        out.fVal =zeros(opt.maxItr,3);
+    case {lower('ADMM')}
+        alphaStep = ADMM(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        out.fVal        =zeros(opt.maxItr,2);
+    case {lower('ADMM_N')}
+        alphaStep = ADMM_N(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep.coef(1:2) = [1; 1];
+        alphaStep.fArray{2} = nonneg;
+        out.fVal  =zeros(opt.maxItr,3);
 end
-out.fVal        =zeros(opt.maxItr,3);
 out.llI         =zeros(opt.maxItr,1);
 out.difAlpha    =zeros(opt.maxItr,1);
 out.cost        =zeros(opt.maxItr,1);
@@ -200,9 +209,9 @@ end
 if(opt.continuation)
     [temp,temp1]=polyIout(0,Ie);
     t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
-    alphaStep.coef(3) = t3*0.1;
+    alphaStep.u = t3*0.1;
 else
-    alphaStep.coef(3) = opt.u;
+    alphaStep.u = opt.u;
 end
 
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )

@@ -47,7 +47,8 @@ function FISTA(obj)
             end
         end
         obj.preG = grad; obj.preAlpha = obj.alpha; obj.preY = y;
-        obj.cost = newCost; obj.alpha = newX;
+        obj.alpha = newX;
+        obj.cost = obj.fVal(:)'*obj.coef(:);
     end
 end
 

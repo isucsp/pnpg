@@ -1190,7 +1190,7 @@ int main(int argc, char *argv[]){
         else
             signal[i]=0;
     }
-    //rampFilter(signal, 1024, 1);
+    rampFilter(signal, 1024, 1);
     return 0;
 
 }
