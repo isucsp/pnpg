@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 11 Mar 2014 09:25:03 AM CDT
+%   $Revision: 0.2 $ $Date: Tue 11 Mar 2014 04:11:59 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -38,11 +38,10 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.muLustig=logspace(-15,-6,5);
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
-    opt.stepShrnk = 0.5;
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='ADMM_N'; %'FISTA'; %'SpaRSA'; %'NCG_PR'; %
+    opt.alphaStep='ADMM'; %'FISTA'; %'SpaRSA'; %'NCG_PR'; %
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
@@ -653,13 +652,11 @@ function [conf, opt] = defaultInit()
     opt.K=2;
     opt.E=17;
     opt.useSparse=0;
-    opt.stepShrnk = 0.8;
     opt.visible=1;
     %opt.t3=0;       % set t3 to ignore value of opt.a
     opt.numCall=1;
     opt.muLustig=1e-13; % logspace(-15,-6,5);
     opt.skipAlpha=0;
-    opt.maxAlphaSteps = 1;
     opt.skipIe=0;
     opt.maxIeSteps = 1;
     opt.showImg=1;

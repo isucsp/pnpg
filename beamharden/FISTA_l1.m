@@ -1,5 +1,9 @@
 classdef FISTA_l1 < Methods
     properties
+        stepShrnk = 0.5;
+        preAlpha=0;
+        preG=[];
+        preY=[];
         s
         Psi_s
     end
@@ -22,7 +26,7 @@ classdef FISTA_l1 < Methods
             obj.preAlpha = obj.alpha;
             si = obj.Psit(y);
 
-            if(obj.p==1)
+            if(isempty(obj.preG))
                 [oldCost,grad,hessian] = obj.func(y);
                 obj.t = hessian(grad,2)/(grad'*grad);
             else

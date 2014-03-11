@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Tue 11 Mar 2014 09:11:29 AM CDT
+%   $Revision: 0.3 $ $Date: Tue 11 Mar 2014 04:13:28 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -35,11 +35,12 @@ if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=5; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
-if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
+if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
 if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'visible')) opt.visible=1; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
@@ -58,6 +59,7 @@ if(opt.showImg)
 else
     figRes=0; figAlpha=0; figIe=0;
 end
+figAlpha=0;
 
 switch lower(opt.sampleMode)
     case 'uniform'
@@ -167,8 +169,8 @@ switch lower(opt.alphaStep)
         alphaStep.Psit = Psit;
         alphaStep.M = 5;
         out.fVal =zeros(opt.maxItr,3);
-    case lower('FISTA')
-        alphaStep=FISTA(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+    case lower('FISTA_l1')
+        alphaStep=FISTA_l1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
         out.fVal=zeros(opt.maxItr,3);
@@ -226,14 +228,12 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     if(~opt.skipAlpha)
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
         alphaStep.fArray{1} = @(aaa) linearModel(aaa,Phi,Phit,y);
-        for i=1:opt.maxAlphaSteps
-            alphaStep.main();
-        end
+        alphaStep.main();
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
         out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
-        out.alphaSearch(p) = alphaStep.ppp;
+        %out.alphaSearch(p) = alphaStep.ppp;
         alpha = alphaStep.alpha;
         if(opt.continuation && p>1 && ...
                 abs(out.cost(p)-out.cost(p-1))/out.cost(p)<1e-3 && ...

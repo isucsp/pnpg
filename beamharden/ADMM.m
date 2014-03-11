@@ -1,5 +1,7 @@
 classdef ADMM < Methods
     properties
+        stepShrnk = 0.5;
+        maxItr=1e2;
         s
         Psi_s
         Psi_sy
@@ -8,12 +10,13 @@ classdef ADMM < Methods
         y1=0;
         y2=0;
         main
+        r_norm
     end
     methods
         function obj = ADMM(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.coef(1) = 1;
-            obj.maxStepNum = maxAlphaSteps;
+            obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi;
             obj.Psit = Psit;
@@ -25,21 +28,30 @@ classdef ADMM < Methods
             fprintf('use ADMM method\n');
 
             obj.main = @obj.main_0;
-            obj.subProb = FISTA(2,alpha);
         end
         function main_0(obj)
             obj.p = obj.p+1; obj.warned = false;
+            for i=1:obj.maxItr
+                subProb = FISTA(obj.n+1,obj.alpha);
+                subProb.fArray = {obj.fArray{:};...
+                    @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);};
+                subProb.coef = [ones(obj.n,1); obj.rho];
+                keyboard
+                obj.alpha = subProb.main();
+                
 
-            obj.alpha = obj.subProb.main();
-            obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
-            obj.s = obj.softThresh(...
-                obj.Psit(obj.alpha+obj.pa+obj.y1+obj.y2)/2,...
-                obj.u/(2*obj.rho));
-            obj.Psi_s = obj.Psi(obj.s);
+                obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
+                obj.s = obj.softThresh(...
+                    obj.Psit(obj.alpha+obj.pa+obj.y1+obj.y2)/2,...
+                    obj.u/(2*obj.rho));
+                obj.Psi_s = obj.Psi(obj.s);
 
-            obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
-            obj.y2 = obj.y2 - (obj.Psi_s-obj.pa);
-
+                obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
+                obj.y2 = obj.y2 - (obj.Psi_s-obj.pa);
+                
+                obj.r_norm = norm([obj.alpha-obj.Psi_s; obj.pa-obj.Psi_s]);
+            end
+            obj.func(obj.alpha);
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
             obj.cost = obj.fVal(:)'*obj.coef(:);
         end
@@ -179,6 +191,20 @@ classdef ADMM < Methods
 
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
             obj.cost = obj.fVal(:)'*obj.coef(:);
+        end
+    end
+    methods(Static)
+        function [f,g,h] = augLag(x,z)
+            g=x-z;
+            f=norm(x-z)^2/2;
+            if(nargout>=3)
+                h = @(xx,opt) hessian(xx,opt);
+            end
+            function hh = hessian(x,opt)
+                if(opt==1) hh = x;
+                else hh = x'*x;
+                end
+            end
         end
     end
 end

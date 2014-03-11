@@ -10,9 +10,9 @@ classdef FISTA < Methods
     methods
         function obj = FISTA(n,alpha)
             obj = obj@Methods(n,alpha);
-            fprintf('use FISTA method\n');
+            %fprintf('use FISTA method\n');
         end
-        function obj.alpha = main(obj)
+        function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
             pp=0;
             while(pp<obj.maxItr)
@@ -43,9 +43,10 @@ classdef FISTA < Methods
                     end
                 end
                 obj.alpha = newX;
-                if(abs(newCost-oldCost)<absTol) break; end
+                if(abs(newCost-oldCost)<obj.absTol) break; end
             end
             obj.cost = obj.fVal(:)'*obj.coef(:);
+            out = obj.alpha;
         end
     end
 end
