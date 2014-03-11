@@ -13,9 +13,6 @@ classdef Methods < handle
         thresh = 1e-8;
         maxStepNum = 1e2;
         stepNum
-        stepShrnk = 0.8;
-        preG=1;
-        preP=0;
         converged = false;
         warned = false;
         % for NCG_PR
@@ -24,7 +21,6 @@ classdef Methods < handle
         Psi     % Psi and Psit are inv dwt transformations
         Psit
         sigma =0.01;    %
-        preAlpha = 0;   
         t=-1;   % suppose be larger than L, largest eigenvalue of Hessian
         u       % coefficient of l1 norm term
         M = 5;  % keep the record of objective from the last M iterations
@@ -34,7 +30,6 @@ classdef Methods < handle
         % for FISTA
         p = 0;
         ppp
-        preY = 0;
 
     end
     methods

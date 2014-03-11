@@ -23,7 +23,25 @@ classdef ADMM < Methods
             obj.Psi_s = alpha;
             obj.Psi_sy = obj.Psi_s;
             fprintf('use ADMM method\n');
-            obj.main = @obj.main_3;
+
+            obj.main = @obj.main_0;
+            obj.subProb = FISTA(2,alpha);
+        end
+        function main_0(obj)
+            obj.p = obj.p+1; obj.warned = false;
+
+            obj.alpha = obj.subProb.main();
+            obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
+            obj.s = obj.softThresh(...
+                obj.Psit(obj.alpha+obj.pa+obj.y1+obj.y2)/2,...
+                obj.u/(2*obj.rho));
+            obj.Psi_s = obj.Psi(obj.s);
+
+            obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
+            obj.y2 = obj.y2 - (obj.Psi_s-obj.pa);
+
+            obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
+            obj.cost = obj.fVal(:)'*obj.coef(:);
         end
         function main_1(obj)
             obj.p = obj.p+1; obj.warned = false;
