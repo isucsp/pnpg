@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 10 Mar 2014 05:18:03 PM CDT
+%   $Revision: 0.3 $ $Date: Tue 11 Mar 2014 09:11:29 AM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -34,13 +34,13 @@ interiorPointIe=0; activeSetIe=1;
 if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=5; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
-if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
+if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'visible')) opt.visible=1; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
@@ -52,8 +52,9 @@ if(isfield(opt,'trueAlpha'))
 end
 
 if(opt.showImg)
-    figRes=1000; figAlpha=1001; figIe=1002;
-    figure(figAlpha); figure(figIe); figure(figRes);
+    figRes=1000; figure(figRes);
+    if(~opt.skipAlpha) figAlpha=1001; figure(figAlpha); else figAlpha=0; end
+    if(~opt.skipIe) figIe=1002; figure(figIe); else figIe=0; end
 else
     figRes=0; figAlpha=0; figIe=0;
 end
@@ -127,7 +128,7 @@ polyIout = polymodel.polyIout;
 % Ie = Ie*0;
 % Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
-p=0; thresh=1e-4; str='';
+p=0; thresh=1e-4; str=''; strlen=0;
 t1=0; thresh1=1e-8;
 t2=0; thresh2Lim=1e-10;
 if(interiorPointIe) 
@@ -219,15 +220,20 @@ end
 
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     p=p+1;
+    str=sprintf([str '\np=%-4d '],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
-        alphaStep.main();
+        alphaStep.fArray{1} = @(aaa) linearModel(aaa,Phi,Phit,y);
+        for i=1:opt.maxAlphaSteps
+            alphaStep.main();
+        end
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
         out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
+        out.alphaSearch(p) = alphaStep.ppp;
         alpha = alphaStep.alpha;
         if(opt.continuation && p>1 && ...
                 abs(out.cost(p)-out.cost(p-1))/out.cost(p)<1e-3 && ...
@@ -240,51 +246,65 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
         end
+
+        str=sprintf([str 'cost=%-10g RSE=%-10g ',...
+            'dAlpha=%-10g aSearch=%d '],...
+            out.cost(p),out.RMSE(p), out.difAlpha(p), ...
+            alphaStep.ppp);
+        if(p>1)
+            str=sprintf([str 'pdObjAlpha=%g%% '],...
+                (out.cost(p-1)-out.cost(p))/out.cost(p)*100);
+        end
     end
     % end optimizing over alpha
     
     %if(out.delta<=1e-4) maxPP=5; end
-    if(((~opt.skipAlpha && max(IeStep.zmf(:))<1) || (opt.skipAlpha)) && ~opt.skipIe)
+    if(~opt.skipIe && ((~opt.skipAlpha && max(IeStep.zmf(:))<1) || (opt.skipAlpha)))
         % update the object fuction w.r.t. Ie
         IeStep.func = @(III) gaussLI(Imea,polyIout(Phi(alpha),[]),III);
-        IeStep.main();
+        for i=1:opt.maxIeSteps
+            IeStep.main();
+        end
         Ie = IeStep.Ie;
         out.llI(p) = IeStep.cost;
         out.IeSteps(p)= IeStep.stepNum;
         out.course{p} = IeStep.course;
-        out.difObjIe(p) = IeStep.deltaNormIe;
+        %out.IeSearch(p) = IeStep.ppp;
+        str=sprintf([str 'dObjIe=%-10g zmf=(%g,%g) IeSteps=%-3d'],...
+            out.difObjIe(p),...
+            IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
     end
 
     if(opt.showImg && p>1)
         set(0,'CurrentFigure',figRes);
         if(~opt.skipAlpha)
             subplot(2,1,1);
-            loglog(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
+            semilogy(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
             if(length(out.fVal(p,:))>1)
-                loglog(p-1:p,out.fVal(p-1:p,2),'g');
+                semilogy(p-1:p,out.fVal(p-1:p,2),'g');
             end
             if(length(out.fVal(p,:))>2)
-                loglog(p-1:p,out.fVal(p-1:p,3),'b');
+                semilogy(p-1:p,out.fVal(p-1:p,3),'b');
             end
         end
         if(~opt.skipIe)
-            loglog(p-1:p,out.llI(p-1:p),'c'); hold on;
+            semilogy(p-1:p,out.llI(p-1:p),'c'); hold on;
             if(isfield(out,'penIe'))
-                loglog(p-1:p,out.penIe(p-1:p),'m:');
+                semilogy(p-1:p,out.penIe(p-1:p),'m:');
             end
         end
-        loglog(p-1:p,out.cost(p-1:p),'k');
+        semilogy(p-1:p,out.cost(p-1:p),'k');
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
         if(~opt.skipAlpha && isfield(opt,'trueAlpha'))
             subplot(2,1,2);
-            loglog(p-1:p,out.RMSE(p-1:p)); hold on;
+            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
             title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
         end
         drawnow;
     end
     
-    if(figIe)
+    if(figIe && ~opt.skipIe)
         set(0,'CurrentFigure',figIe);
         polymodel.plotSpectrum(Ie);
         title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
@@ -295,23 +315,20 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         %showImgMask(Qmask-Qmask1/2,opt.mask);
         %title(['size of Q=' num2str(length(Q))]);
-        title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+        if(~isempty(IeStep.zmf))
+            title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+        end
         drawnow;
     end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    if(opt.visible)
-        strlen = length(str);
-        str=sprintf(['\np=%-4d cost=%-10g RSE=%-10g ',...
-            'dAlpha=%-10g dObjAlpha=%-10g dObjIe=%-10g ',...
-            'zmf=(%g,%g) IeSteps=%-3d'],...
-            p,out.cost(p),out.RMSE(p), out.difAlpha(p), ...
-            out.difObjAlpha(p), out.difObjIe(p),...
-            IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
+    if(opt.visible && p>1)
         if(alphaStep.warned || IeStep.warned)
             fprintf('%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
         end
+        strlen = length(str);
+        str='';
     end
     if(p >= opt.maxItr) break; end
     out.time(p)=toc;
@@ -421,6 +438,25 @@ function [f,g,h] = huber(alpha,mu,Psi,Psit)
             y(idx) = y(idx)/mu; y(~idx) = 0; hh=Psi(y);
         else
             y = y(idx); hh = y'*y/mu;
+        end
+    end
+end
+
+function [f,g,h] = linearModel(alpha,Phi,Phit,y)
+    PhiAlpha=Phi(alpha);
+    f=norm(y-PhiAlpha)^2/2;
+    if(nargout>=2)
+        g=Phit(PhiAlpha-y);
+        if(nargout>=3)
+            h=@(x,opt) hessian(x,opt);
+        end
+    end
+    function hh = hessian(x,opt)
+        yy = Phi(x);
+        if(opt==1)
+            hh = Phit(yy);
+        else
+            hh = yy'*yy;
         end
     end
 end

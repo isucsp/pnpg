@@ -34,11 +34,13 @@ classdef ADMM_N < Methods
                     ((y-obj.preY)'*(y-obj.preY)));
             end
             obj.preY = y; obj.preG = grad;
-            extra = obj.rho*(obj.Psi_s-obj.y1);
+            extra = obj.rho*(obj.Psi_s-obj.y1-y)-grad;
 
             % start of line Search
+            obj.ppp=0;
             while(1)
-                newX = y + (-obj.rho*y-grad+extra)/(obj.t+obj.rho);
+                obj.ppp = obj.ppp+1;
+                newX = y + (extra)/(obj.t+obj.rho);
                 newCost=obj.func(newX);
                 if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
                     break;
@@ -47,15 +49,16 @@ classdef ADMM_N < Methods
             end
             obj.alpha = newX;
 
-            obj.s = obj.softThresh(...
-                obj.Psit(obj.alpha+obj.y1),...
-                obj.u/(obj.rho));
-            obj.Psi_s = obj.Psi(obj.s);
+            if(abs(newCost-oldCost)/oldCost<1e+5)
+                obj.s = obj.softThresh(...
+                    obj.Psit(obj.alpha+obj.y1),...
+                    obj.u/(obj.rho));
+                obj.Psi_s = obj.Psi(obj.s);
 
-            obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
+                obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
+            end
 
-            obj.fVal(obj.n+1) = sum(abs(obj.s));
-
+            obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
             obj.cost = obj.fVal(:)'*obj.coef(:);
         end
     end

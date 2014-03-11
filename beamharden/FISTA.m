@@ -49,7 +49,7 @@ classdef FISTA < Methods
                 end
             end
             obj.alpha = newX;
-            obj.fVal(3) = sum(abs(newSi));
+            obj.fVal(obj.n+1) = sum(abs(newSi));
             obj.cost = obj.fVal(:)'*obj.coef(:);
         end
     end

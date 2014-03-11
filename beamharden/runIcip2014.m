@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 10 Mar 2014 05:14:41 PM CDT
+%   $Revision: 0.2 $ $Date: Tue 11 Mar 2014 09:25:03 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -38,20 +38,21 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.muLustig=logspace(-15,-6,5);
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
     opt.spectBasis = 'dis';
-    opt.stepShrnk = 0.9;
+    opt.stepShrnk = 0.5;
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='FISTA'; %'SpaRSA'; %'NCG_PR'; %'ADMM_N'; %
+    opt.alphaStep='ADMM_N'; %'FISTA'; %'SpaRSA'; %'NCG_PR'; %
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
     %conf.PhiModeGen='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
-    %opt.maxIeSteps = 100;
+    opt.maxIeSteps = 100;
     opt=conf.setup(opt);
     prefix='BeamHard';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y);
+    conf.y = conf.Phi(opt.trueAlpha);
+    initSig = conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
     %initSig = out0.alpha;
     %initSig = initSig'*opt.trueAlpha/(norm(opt.trueAlpha)^2)*opt.trueAlpha;
