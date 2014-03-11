@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 09 Mar 2014 03:35:03 AM CDT
+%   $Revision: 0.3 $ $Date: Mon 10 Mar 2014 05:18:03 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -155,27 +155,30 @@ switch lower(opt.alphaStep)
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
-        alphaStep.method = 'NCG_PR';
         out.fVal =zeros(opt.maxItr,3);
-    case {lower('SpaRSA'),lower('FISTA')}
+    case {lower('SpaRSA')}
         alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
         alphaStep.maxStepNum = opt.maxAlphaSteps;
         alphaStep.stepShrnk = opt.stepShrnk;
-        alphaStep.method = opt.alphaStep;
         alphaStep.Psi = Psi;
         alphaStep.Psit = Psit;
         alphaStep.M = 5;
         out.fVal =zeros(opt.maxItr,3);
+    case lower('FISTA')
+        alphaStep=FISTA(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep.coef(1:2) = [1; 1];
+        alphaStep.fArray{2} = nonneg;
+        out.fVal=zeros(opt.maxItr,3);
     case {lower('ADMM')}
-        alphaStep = ADMM(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        out.fVal        =zeros(opt.maxItr,2);
+        alphaStep=ADMM(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        out.fVal=zeros(opt.maxItr,2);
     case {lower('ADMM_N')}
         alphaStep = ADMM_N(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
-        out.fVal  =zeros(opt.maxItr,3);
+        out.fVal=zeros(opt.maxItr,3);
 end
 out.llI         =zeros(opt.maxItr,1);
 out.difAlpha    =zeros(opt.maxItr,1);

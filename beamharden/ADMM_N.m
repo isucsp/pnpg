@@ -3,7 +3,7 @@ classdef ADMM_N < Methods
         s
         Psi_s
         pa
-        rho = 0.01;
+        rho = 0.1;
         y1=0;
     end
     methods
@@ -15,60 +15,48 @@ classdef ADMM_N < Methods
             obj.Psi = Psi;
             obj.Psit = Psit;
             obj.s = obj.Psit(alpha);
-            obj.method = 'ADMM_N';
+            obj.Psi_s = obj.Psi(obj.s);
+            fprintf('use ADMM_N method\n');
         end
         function main(obj)
-            pp=0; obj.converged = false; obj.warned = false; needBreak = false;
-            while(pp<obj.maxStepNum)
-                obj.p = obj.p+1;
-                pp=pp+1;
+            obj.p = obj.p+1; obj.warned = false;
 
-                if(obj.p==1)
-                    % initialization
-                    obj.Psi_s = obj.Psi(obj.s);
+            y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
+            %y=obj.alpha;
+            obj.preAlpha = obj.alpha;
 
-                    [oldCost,grad,hessian] = obj.func(obj.alpha);
-                    obj.t = hessian(grad,2)/(grad'*grad);
-                else
-                    [oldCost,grad] = obj.func(obj.alpha);
-                    obj.t = abs( (grad-obj.preG)'*(obj.alpha-obj.preAlpha)/...
-                        ((obj.alpha-obj.preAlpha)'*(obj.alpha-obj.preAlpha)));
-                end
-                gradSN = norm(grad)^2;
-
-                % start of line Search
-                ppp=0;
-                while(~obj.converged && ~needBreak)
-                    ppp=ppp+1;
-                    newX = obj.alpha - grad/obj.t;
-                    newCost=obj.func(newX);
-
-                    if((newCost<=oldCost-gradSN/2/obj.t) || (ppp>10))
-                        break;
-                    else
-                        if(ppp>10)
-                            warning('exit iterations for higher convergence criteria: %g\n',difAlpha);
-                            obj.warned = true; needBreak = true;
-                        else
-                            obj.t=obj.t/obj.stepShrnk;
-                        end
-                    end
-                end
-
-                obj.preAlpha = obj.alpha;
-                obj.alpha = (obj.t*newX+ obj.rho*obj.Psi_s - obj.y1)/(obj.t+obj.rho);
-                obj.s = ADMM.softThresh(...
-                    obj.Psit(obj.alpha+obj.y1/obj.rho),...
-                    obj.u/(obj.rho));
-                obj.Psi_s = obj.Psi(obj.s);
-
-                obj.y1 = obj.y1 - obj.rho*(obj.Psi_s-obj.alpha);
-
-                obj.fVal(obj.n+1) = sum(abs(obj.s));
-
-                obj.preG = grad;
-                obj.cost = obj.fVal(:)'*obj.coef(:);
+            if(obj.p==1)
+                [oldCost,grad,hessian] = obj.func(y);
+                obj.t = hessian(grad,2)/(grad'*grad);
+            else
+                [oldCost,grad] = obj.func(y);
+                obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
+                    ((y-obj.preY)'*(y-obj.preY)));
             end
+            obj.preY = y; obj.preG = grad;
+            extra = obj.rho*(obj.Psi_s-obj.y1);
+
+            % start of line Search
+            while(1)
+                newX = y + (-obj.rho*y-grad+extra)/(obj.t+obj.rho);
+                newCost=obj.func(newX);
+                if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
+                    break;
+                else obj.t=obj.t/obj.stepShrnk;
+                end
+            end
+            obj.alpha = newX;
+
+            obj.s = obj.softThresh(...
+                obj.Psit(obj.alpha+obj.y1),...
+                obj.u/(obj.rho));
+            obj.Psi_s = obj.Psi(obj.s);
+
+            obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
+
+            obj.fVal(obj.n+1) = sum(abs(obj.s));
+
+            obj.cost = obj.fVal(:)'*obj.coef(:);
         end
     end
 end

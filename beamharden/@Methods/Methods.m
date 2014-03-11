@@ -2,12 +2,11 @@ classdef Methods < handle
     properties
         % for common purpose
         mainFunc = @(o) NCG_PR(o);
-        method = 'NCG_PR';
         alpha
         n = 3;
         fArray
         fVal
-        coef
+        coef=1;
         hArray
         difAlpha
         difObj
@@ -86,43 +85,18 @@ classdef Methods < handle
 
             end
         end
-        function set.method(obj,method)
-            switch lower(method)
-                case lower('FISTA')
-                    obj.mainFunc=@(o) o.FISTA();
-                    obj.method = 'FISTA';
-                    fprintf('use FISTA method\n');
-                case lower('sparsa')
-                    obj.mainFunc=@(o) o.SpaRSA();
-                    obj.method = 'SpaRSA';
-                    fprintf('use SpaRSA method\n');
-                case lower('NCG_PR')
-                    obj.mainFunc=@(o) o.NCG_PR();
-                    obj.method = 'NCG_PR';
-                    fprintf('use NCG_PR method\n');
-                case {lower('ADMM'), lower('ADMM_N')}
-                    obj.method = 'ADMM';
-                    fprintf('use ADMM method\n');
-                otherwise
-                    error('input method for alpha not found');
-            end
-        end
         function set.M(obj,M)
             obj.M = M;
             obj.oldCost = zeros(obj.M,1);
         end
         function set.u(obj,u)
             obj.u = u;
-            if(strcmpi(obj.method,'NCG_PR'))
+            if(strcmpi(class(obj),'NCG_PR'))
                 obj.coef(obj.n) = u;
             else
                 obj.coef(obj.n+1)=u;
             end
         end
-        function main(obj)
-            obj.mainFunc(obj);
-        end
-
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 
             % min c'*x+1/2 atHessianA(x)
