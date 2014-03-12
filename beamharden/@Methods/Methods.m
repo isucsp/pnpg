@@ -148,6 +148,7 @@ classdef Methods < handle
             y = zeros(size(x));
             y(x>0) = x(x>0)-thresh;
             y(x<0) = x(x<0)+thresh;
+            y(idx) = 0;
         end
     end
 end

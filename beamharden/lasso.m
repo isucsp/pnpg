@@ -3,7 +3,7 @@ function h = lasso
 %% Problem data
 
 s = RandStream.create('mt19937ar','seed',0);
-RandStream.setDefaultStream(s);
+RandStream.setGlobalStream(s);
 
 m = 500;       % number of examples
 n = 2500;      % number of features
@@ -58,7 +58,7 @@ xprev = x;
 for k = 1:MAX_ITER
     while 1
         grad_x = AtA*x - Atb;
-        z = prox_l1(x - lambda*grad_x, lambda*gamma);
+        z = Methods.softThresh(x - lambda*grad_x, lambda*gamma);
         if f(z) <= f(x) + grad_x'*(z - x) + (1/(2*lambda))*sum_square(z - x)
             break;
         end
@@ -89,7 +89,7 @@ for k = 1:MAX_ITER
     y = x + (k/(k+3))*(x - xprev);
     while 1
         grad_y = AtA*y - Atb;
-        z = prox_l1(y - lambda*grad_y, lambda*gamma);
+        z = Methods.softThresh(y - lambda*grad_y, lambda*gamma);
         if f(z) <= f(y) + grad_y'*(z - y) + (1/(2*lambda))*sum_square(z - y)
             break;
         end
@@ -133,7 +133,7 @@ for k = 1:MAX_ITER
 
     % z-update
     zold = z;
-    z = prox_l1(x + u, lambda*gamma);
+    z = Methods.softThresh(x + u, lambda*gamma);
 
     % u-update
     u = u + x - z;
@@ -198,4 +198,8 @@ function [L U] = factor(A, rho)
     end
     L = sparse(L);
     U = sparse(L');
+end
+
+function out = sum_square(x)
+    out = x(:)'*x(:);
 end

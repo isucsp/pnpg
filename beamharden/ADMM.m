@@ -36,7 +36,6 @@ classdef ADMM < Methods
                 subProb.fArray = {obj.fArray{:};...
                     @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);};
                 subProb.coef = [ones(obj.n,1); obj.rho];
-                keyboard
                 obj.alpha = subProb.main();
                 
 

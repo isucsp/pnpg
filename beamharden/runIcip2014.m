@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 11 Mar 2014 04:11:59 PM CDT
+%   $Revision: 0.2 $ $Date: Wed 12 Mar 2014 09:23:26 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -41,7 +41,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='ADMM'; %'FISTA'; %'SpaRSA'; %'NCG_PR'; %
+    opt.alphaStep='FISTA_l1'; %'SpaRSA'; %'NCG_PR'; %'ADMM'; %
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
