@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Wed 12 Mar 2014 03:49:04 PM CDT
+% $Revision: 0.2 $ $Date: Thu 13 Mar 2014 02:53:07 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -50,7 +50,6 @@ classdef ConfigCT < handle
         Ts
 
         % parameters for operators
-
     end 
     methods
         function obj = ConfigCT(in,mt,ot)

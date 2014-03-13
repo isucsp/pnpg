@@ -1,243 +1,178 @@
-function h = lasso
+function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
+%lasso    Solve a linear problem
+%
+%                          0.5*||Φα-y||^2 + u*||Ψ'α||_1
+%
+%   where x can be anything, if opt.nu is set to be positive, x is assumed to be nonnegative.
+%
+%   Phi         The projection matrix implementation function handle
+%   Phit        Transpose of Phi
+%   Psi         Inverse wavelet transform matrix from wavelet coefficients
+%               to image.
+%   Psit        Transpose of Psi
+%   y           Log scale of CT measurement y=-log(I^{mea}/I_0),
+%   xInit       Initial value for the algorithm
+%   opt         Structure for the configuration of this algorithm (refer to
+%               the code for detail)
+%
+%   Reference:
+%   Author: Renliang Gu (renliang@iastate.edu)
+%   $Revision: 0.1 $ $Date: Thu 13 Mar 2014 04:01:48 PM CDT
+%
 
-%% Problem data
+if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+if(~isfield(opt,'showImg')) opt.showImg=false; end
+if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
+if(~isfield(opt,'continuation')) opt.continuation=false; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=0.5; end
+if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+if(~isfield(opt,'maxItr')) opt.thresh=1e3; end
+% default to not use nonnegative constraints.
+if(~isfield(opt,'nu')) opt.nu=0; end
+if(~isfield(opt,'u')) opt.u=1e-4; end
+if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 
-s = RandStream.create('mt19937ar','seed',0);
-RandStream.setGlobalStream(s);
+alpha=xInit(:);
 
-m = 500;       % number of examples
-n = 2500;      % number of features
+if(isfield(opt,'trueAlpha'))
+    trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
+end
 
-x0 = sprandn(n,1,0.05);
-x0 = abs(x0);
-A = randn(m,n);
-A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-v = 0*sqrt(0.001)*randn(m,1);
-b = A*x0 + v;
+if(opt.showImg)
+    figRes=1000; figure(figRes);
+    figAlpha=1001; figure(figAlpha);
+else figRes=0; figAlpha=0;
+end
 
-fprintf('solving instance with %d examples, %d variables\n', m, n);
-fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
-
-gamma_max = norm(A'*b,'inf');
-gamma = 0.1*gamma_max;
-
-% cached computations for all methods
-AtA = A'*A;
-Atb = A'*b;
-
-%% Global constants and defaults
-
-MAX_ITER = 500;
-ABSTOL   = 1e-9;
-RELTOL   = 1e-8;
-
-figCost = 1000;
-figure(figCost);
-
-%% CVX
-
-tic
-
-cvx_begin quiet
-    cvx_precision low
-    variable x(n)
-    minimize(0.5*sum_square(A*x - b) + gamma*norm(x,1))
-cvx_end
-
-h.x_cvx = x;
-h.p_cvx = cvx_optval;
-h.cvx_toc = toc;
-
-%% Proximal gradient
-
-f = @(u) 0.5*sum_square(A*u-b);
-lambda = 1;
-beta = 0.5;
-
-tic;
-
-x = zeros(n,1);
-xprev = x;
-
-for k = 1:MAX_ITER
-    while 1
-        grad_x = AtA*x - Atb;
-        z = Methods.softThresh(x - lambda*grad_x, lambda*gamma);
-        if f(z) <= f(x) + grad_x'*(z - x) + (1/(2*lambda))*sum_square(z - x)
-            break;
+%max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
+if(interiorPointAlpha)
+    nonneg=@nonnegLogBarrier; 
+else nonneg=@nonnegPen; 
+end
+switch lower(opt.alphaStep)
+    case lower('NCG_PR')
+        alphaStep = NCG_PR(3,alpha);
+        if(isfield(opt,'muHuber'))
+            fprintf('use huber approximation for l1 norm\n');
+            alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
         end
-        lambda = beta*lambda;
-    end
-    xprev = x;
-    x = z;
-
-    h.prox_optval(k) = objective(A, b, gamma, x, x);
-    h.prox_cosval(k) = norm(A*x-b)^2/2;
-    h.prox_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
-    if k > 1 && abs(h.prox_optval(k) - h.prox_optval(k-1)) < ABSTOL
-        break;
-    end
-    if(k>1 && figCost)
-        set(0,'CurrentFigure',figCost);
-        subplot(2,1,1);
-        semilogy(k-1:k,[h.prox_optval(k-1), h.prox_optval(k)],'r');
-        hold on;
-        semilogy(k-1:k,[h.prox_cosval(k-1), h.prox_cosval(k)],'r--');
-        subplot(2,1,2);
-        semilogy(k-1:k,[h.prox_error(k-1), h.prox_error(k)],'r:');
-        hold on;
-        drawnow;
-    end
-end
-
-h.x_prox = x;
-h.p_prox = h.prox_optval(end);
-h.prox_grad_toc = toc;
-
-%% Fast proximal gradient
-
-lambda = 1;
-
-tic;
-
-x = zeros(n,1);
-xprev = x;
-for k = 1:MAX_ITER
-    y = x + (k/(k+3))*(x - xprev);
-    while 1
-        grad_y = AtA*y - Atb;
-        z = Methods.softThresh(y - lambda*grad_y, lambda*gamma);
-        if f(z) <= f(y) + grad_y'*(z - y) + (1/(2*lambda))*sum_square(z - y)
-            break;
+        if(isfield(opt,'muLustig'))
+            fprintf('use lustig approximation for l1 norm\n');
+            alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
-        lambda = beta*lambda;
-    end
-    xprev = x;
-    x = z;
+    case {lower('SpaRSA')}
+        alphaStep=SpaRSA(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit,alphaStep.M);
+    case lower('FISTA_L1')
+        alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep.coef(1:2) = [1; 0];
+        alphaStep.fArray{2} = nonneg;
+        out.fVal=zeros(opt.maxItr,3);
+    case {lower('ADMM_NNL1')}
+        alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        out.fVal=zeros(opt.maxItr,2);
+    case {lower('ADMM_L1')}
+        alphaStep = ADMM_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep.coef(1:2) = [1; 0];
+        alphaStep.fArray{2} = nonneg;
+        out.fVal=zeros(opt.maxItr,3);
+end
+alphaStep.fArray{1} = @(aaa) linearModel(aaa,Phi,Phit,y);
+alphaStep.fArray{2} = nonneg;
+alphaStep.stepShrnk = opt.stepShrnk;
+alphaStep.coef(1:3) = [1; opt.nu; opt.u];
 
-    h.fast_optval(k) = objective(A, b, gamma, x, x);
-    h.fast_cosval(k) = norm(A*x-b)^2/2;
-    h.fast_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
-    if k > 1 && abs(h.fast_optval(k) - h.fast_optval(k-1)) < ABSTOL
-        break;
+if(opt.continuation)
+    alphaStep.u = 0.1*max(abs(Psit(Phit(y))));
+else alphaStep.u = opt.u;
+end
+
+tic; p=0; str=''; strlen=0;
+while(true)
+    p=p+1;
+    str=sprintf([str '\np=%d '],p);
+    
+    alphaStep.main();
+
+    out.fVal(p,:) = (alphaStep.fVal(:))';
+    out.cost(p) = alphaStep.cost;
+    out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
+    out.alphaSearch(p) = alphaStep.ppp;
+    alpha = alphaStep.alpha;
+
+    if(opt.continuation && p>1 && ...
+            abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.contCrtrn && ...
+            alphaStep.u*opt.contShrnk>opt.u)
+        alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
+        fprintf('\nnew u= %g\n',alphaStep.u);
+        alphaStep.warned = true;
     end
-    if(k>1 && figCost)
-        set(0,'CurrentFigure',figCost);
-        subplot(2,1,1);
-        semilogy(k-1:k,[h.fast_optval(k-1), h.fast_optval(k)],'g');
-        semilogy(k-1:k,[h.fast_cosval(k-1), h.fast_cosval(k)],'g--');
-        subplot(2,1,2);
-        semilogy(k-1:k,[h.fast_error(k-1), h.fast_error(k)],'g:');
+    %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
+    if(isfield(opt,'trueAlpha'))
+        out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
+    end
+
+    str=sprintf([str 'cost=%-10g RSE=%-10g ',...
+        'dAlpha=%-10g aSearch=%d '],...
+        out.cost(p),out.RMSE(p), out.difAlpha(p), ...
+        alphaStep.ppp);
+    if(p>1)
+        str=sprintf([str 'pdObjAlpha=%g%% '],...
+            (out.cost(p-1)-out.cost(p))/out.cost(p)*100);
+    end
+    
+    if(opt.showImg && p>1)
+        set(0,'CurrentFigure',figRes);
+        subplot(2,2,1);
+        semilogy(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
+        semilogy(p-1:p,out.cost(p-1:p),'k');
+        title(sprintf('cost(%d)=%g',p,out.cost(p)));
+
+        subplot(2,2,2);
+        if(length(out.fVal(p,:))>1)
+            semilogy(p-1:p,out.fVal(p-1:p,2),'g');
+        end
+        if(length(out.fVal(p,:))>2)
+            semilogy(p-1:p,out.fVal(p-1:p,3),'b');
+        end
+
+        if(isfield(opt,'trueAlpha'))
+            subplot(2,1,2);
+            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
+            title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
+        end
         drawnow;
     end
-end
-
-h.x_fast = x;
-h.p_fast = h.fast_optval(end);
-h.fast_toc = toc;
-
-%% ADMM
-
-lambda = 1;
-rho = 1/lambda;
-
-tic;
-
-x = zeros(n,1);
-z = zeros(n,1);
-u = zeros(n,1);
-
-[L U] = factor(A, rho);
-
-for k = 1:MAX_ITER
-
-    % x-update
-    q = Atb + rho*(z - u);
-    if m >= n
-       x = U \ (L \ q);
-    else
-       x = lambda*(q - lambda*(A'*(U \ ( L \ (A*q) ))));
-    end
-
-    % z-update
-    zold = z;
-    z = Methods.softThresh(x + u, lambda*gamma);
-
-    % u-update
-    u = u + x - z;
-
-    % diagnostics, reporting, termination checks
-    h.admm_optval(k)   = objective(A, b, gamma, x, z);
-    h.admm_cosval(k) = norm(A*x-b)^2/2;
-    h.admm_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
-    h.r_norm(k)   = norm(x - z);
-    h.s_norm(k)   = norm(-rho*(z - zold));
-    h.eps_pri(k)  = sqrt(n)*ABSTOL + RELTOL*max(norm(x), norm(-z));
-    h.eps_dual(k) = sqrt(n)*ABSTOL + RELTOL*norm(rho*u);
-
-    if h.r_norm(k) < h.eps_pri(k) && h.s_norm(k) < h.eps_dual(k)
-         break;
-    end
-    if(k>1 && figCost)
-        set(0,'CurrentFigure',figCost);
-        subplot(2,1,1);
-        semilogy(k-1:k,[h.admm_optval(k-1), h.admm_optval(k)],'b');
-        semilogy(k-1:k,[h.admm_cosval(k-1), h.admm_cosval(k)],'b--');
-        subplot(2,1,2);
-        semilogy(k-1:k,[h.admm_error(k-1), h.admm_error(k)],'b:');
+    
+    if(figAlpha)
+        set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
+        %showImgMask(Qmask-Qmask1/2,opt.mask);
+        %title(['size of Q=' num2str(length(Q))]);
+        if(~isempty(IeStep.zmf))
+            title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+        end
         drawnow;
     end
-end
-
-h.x_admm = z;
-h.p_admm = h.admm_optval(end);
-h.admm_toc = toc;
-
-%% Timing
-
-fprintf('CVX time elapsed: %.2f seconds.\n', h.cvx_toc);
-fprintf('Proximal gradient time elapsed: %.2f seconds.\n', h.prox_grad_toc);
-fprintf('Fast prox gradient time elapsed: %.2f seconds.\n', h.fast_toc);
-fprintf('ADMM time elapsed: %.2f seconds.\n', h.admm_toc);
-
-%% Plots
-
-h.prox_iter = length(h.prox_optval);
-h.fast_iter = length(h.fast_optval);
-h.admm_iter = length(h.admm_optval);
-K = max([h.prox_iter h.fast_iter h.admm_iter]);
-h.cvx_optval  = h.p_cvx*ones(K,1);
-h.prox_optval = padarray(h.prox_optval', K-h.prox_iter, h.p_prox, 'post');
-h.fast_optval = padarray(h.fast_optval', K-h.fast_iter, h.p_fast, 'post');
-h.admm_optval = padarray(h.admm_optval', K-h.admm_iter, h.p_admm, 'post');
-fig = figure;
-
-semilogy(1:K, h.cvx_optval,  'k--', ...
-    1:K, h.prox_optval, 'r-', ...
-    1:K, h.fast_optval, 'g-', ...
-    1:K, h.admm_optval, 'b-');
-
-xlim([0 75]);
-legend('True', 'Proximal gradient', 'Accelerated', 'ADMM');
-print -depsc lasso_comp.eps;
-
-end
-
-function p = objective(A, b, gamma, x, z)
-    p = 0.5*sum_square(A*x - b) + gamma*norm(z,1);
-end
-
-function [L U] = factor(A, rho)
-    [m, n] = size(A);
-    if m >= n
-       L = chol(A'*A + rho*speye(n), 'lower');
-    else
-       L = chol(speye(m) + 1/rho*(A*A'), 'lower');
+    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
+    if(opt.visible && p>1)
+        if(alphaStep.warned || IeStep.warned)
+            fprintf('%s',str);
+        else
+            fprintf([repmat('\b',1,strlen) '%s'],str);
+        end
+        strlen = length(str);
+        str='';
     end
-    L = sparse(L);
-    U = sparse(L');
+    out.time(p)=toc;
+    if(p >= opt.maxItr) break; end
+    if(p>1 && abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.thresh)
+        break
+    end
 end
 
-function out = sum_square(x)
-    out = x(:)'*x(:);
+out.alpha=alpha; out.p=p; out.opt = opt;
+fprintf('\n');
+
 end
+

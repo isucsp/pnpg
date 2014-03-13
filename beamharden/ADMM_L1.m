@@ -8,9 +8,10 @@ classdef ADMM_L1 < Methods
         s
         Psi_s
         pa
-        rho = 1;
+        rho = 0.1;
         y1=0;
         main
+        absTol=1e-4;
     end
     methods
         function obj = ADMM_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -27,13 +28,15 @@ classdef ADMM_L1 < Methods
         end
         function main_0(obj)
             obj.p = obj.p+1; obj.warned = false;
-
-            subProb = FISTA(obj.n+1,obj.alpha);
+            if(obj.rho<10) obj.rho = obj.rho*1.1; end
+            if(obj.absTol>1e-10) obj.absTol=obj.absTol*0.5; end
+            subProb = FISTA_NN(obj.n+1,obj.alpha);
+            subProb.absTol = obj.absTol;
             for j=1:obj.n
                 subProb.fArray{j} = obj.fArray{j};
             end
             subProb.fArray{obj.n+1} = @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);
-            subProb.coef = [ones(obj.n,1); obj.rho];
+            subProb.coef = [obj.coef(1:obj.n); obj.rho];
             obj.alpha = subProb.main();
 
             obj.s = obj.softThresh(...

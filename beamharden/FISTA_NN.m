@@ -1,4 +1,4 @@
-classdef FISTA < Methods
+classdef FISTA_NN < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -8,7 +8,7 @@ classdef FISTA < Methods
         absTol=1e-4;
     end
     methods
-        function obj = FISTA(n,alpha)
+        function obj = FISTA_NN(n,alpha)
             obj = obj@Methods(n,alpha);
         end
         function out = main(obj)
@@ -35,8 +35,9 @@ classdef FISTA < Methods
                 while(1)
                     obj.ppp=obj.ppp+1;
                     newX = y - grad/obj.t;
+                    newX(newX<0)=0;
                     newCost=obj.func(newX);
-                    if(newCost<=oldCost-grad'*grad/2/obj.t)
+                    if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2))
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end

@@ -43,8 +43,12 @@ classdef FISTA_L1 < Methods
             while(1)
                 obj.ppp=obj.ppp+1;
                 wi=si-dsi/obj.t;
+
+                %newX=obj.Psi(wi); newX(newX<0)=0; wi=obj.Psit(newX);
+
                 newSi=obj.softThresh(wi,obj.u/obj.t);
                 newX = obj.Psi(newSi);
+                newX(newX<0)=0;
                 newCost=obj.func(newX);
 
                 if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2))
