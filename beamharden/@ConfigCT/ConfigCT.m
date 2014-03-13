@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 13 Mar 2014 02:53:07 PM CDT
+% $Revision: 0.2 $ $Date: Thu 13 Mar 2014 05:36:48 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -40,6 +40,7 @@ classdef ConfigCT < handle
         maskk
 
         % for generating polychromatic measurements
+        beamharden = false;
         trueIota
         epsilon
         trueKappa
@@ -68,11 +69,12 @@ classdef ConfigCT < handle
             loadMeasurements(obj);
             genOperators(obj);
 
-            opt.trueKappa= obj.trueKappa;
-            opt.trueIota= obj.trueIota;
-            opt.epsilon= obj.epsilon;
+            if(obj.beamharden)
+                opt.trueKappa= obj.trueKappa;
+                opt.trueIota= obj.trueIota;
+                opt.epsilon= obj.epsilon;
+            end
             opt.mask=obj.mask;
-
             maskIdx = find(obj.mask~=0);
             wvltIdx = find(obj.maskk~=0);
             opt.trueAlpha=obj.trueImg(maskIdx);
@@ -183,13 +185,6 @@ classdef ConfigCT < handle
                 case 'lasso'
                     loadLasso(obj);
             end
-
-            % before this, make sure max(CTdata)==1
-            temp=size(obj.CTdata,1);
-            obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),obj.prjNum);...
-                obj.CTdata;...
-                zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
-            obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
         end
 
         function fan2parallel()

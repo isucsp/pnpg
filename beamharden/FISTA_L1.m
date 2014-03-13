@@ -46,7 +46,7 @@ classdef FISTA_L1 < Methods
 
                 %newX=obj.Psi(wi); newX(newX<0)=0; wi=obj.Psit(newX);
 
-                newSi=obj.softThresh(wi,obj.u/obj.t);
+                newSi=Utils.softThresh(wi,obj.u/obj.t);
                 newX = obj.Psi(newSi);
                 newX(newX<0)=0;
                 newCost=obj.func(newX);

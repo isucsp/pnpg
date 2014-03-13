@@ -5,17 +5,17 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 13 Mar 2014 03:28:40 PM CDT
+%   $Revision: 0.2 $ $Date: Thu 13 Mar 2014 05:31:22 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
-if(nargin~=0 && ~isempty(runList))
+if(nargin==0 || ~isempty(runList))
     filename = [mfilename '.mat'];
     if( exist(filename,'file') ) load(filename);
     else save(filename,'filename');
     end
 end
 
-if(nargin==0) runList = [];
+if(nargin==0) runList = [0];
 elseif(isempty(runList))
     [conf, opt] = defaultInit();
     opt = conf.setup(opt);
@@ -54,8 +54,6 @@ function [conf, opt] = defaultInit()
     conf.PhiMode='basic'; %'filtered'; %'weighted'; %
     conf.PhiModeGen='parPrj'; %'cpuPrj'; %'basic';
 
-    conf.beamharden=false;
-
     opt.continuation = false;
     % from 0 to 7, the higher, the more information is printed. Set to 0 to turn off.
     opt.debugLevel = 7;
@@ -64,6 +62,6 @@ function [conf, opt] = defaultInit()
     opt.nu=1;           % nonzero nu means to use nonnegativity constraints
     opt.u=1e-4;         % nonzero u means using sparse
     %opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
-    opt.showImg=false;
+    opt.showImg=true;
 end
 

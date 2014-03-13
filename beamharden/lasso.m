@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Thu 13 Mar 2014 04:01:48 PM CDT
+%   $Revision: 0.1 $ $Date: Thu 13 Mar 2014 05:40:11 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -42,15 +42,11 @@ end
 
 if(opt.showImg)
     figRes=1000; figure(figRes);
-    figAlpha=1001; figure(figAlpha);
-else figRes=0; figAlpha=0;
+    figCost=1001; figure(figCost);
+    figAlpha=1002; figure(figAlpha);
+else figRes=0; figAlpha=0; figCost=0;
 end
 
-%max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
-if(interiorPointAlpha)
-    nonneg=@nonnegLogBarrier; 
-else nonneg=@nonnegPen; 
-end
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
         alphaStep = NCG_PR(3,alpha);
@@ -63,23 +59,20 @@ switch lower(opt.alphaStep)
             alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
     case {lower('SpaRSA')}
-        alphaStep=SpaRSA(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit,alphaStep.M);
+        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,alphaStep.M);
     case lower('FISTA_L1')
-        alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep=FISTA_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
         alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = nonneg;
-        out.fVal=zeros(opt.maxItr,3);
+        alphaStep.fArray{2} = @Utils.nonnegPen;
     case {lower('ADMM_NNL1')}
-        alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        out.fVal=zeros(opt.maxItr,2);
+        alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
-        alphaStep = ADMM_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep = ADMM_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
         alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = nonneg;
-        out.fVal=zeros(opt.maxItr,3);
+        alphaStep.fArray{2} = @Utils.nonnegPen;
 end
-alphaStep.fArray{1} = @(aaa) linearModel(aaa,Phi,Phit,y);
-alphaStep.fArray{2} = nonneg;
+alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.stepShrnk = opt.stepShrnk;
 alphaStep.coef(1:3) = [1; opt.nu; opt.u];
 
@@ -122,20 +115,12 @@ while(true)
             (out.cost(p-1)-out.cost(p))/out.cost(p)*100);
     end
     
-    if(opt.showImg && p>1)
-        set(0,'CurrentFigure',figRes);
-        subplot(2,2,1);
+    if(opt.showImg && p>1 && opt.debugLevel>=2)
+        set(0,'CurrentFigure',figCost);
+        subplot(2,1,1);
         semilogy(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
         semilogy(p-1:p,out.cost(p-1:p),'k');
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
-
-        subplot(2,2,2);
-        if(length(out.fVal(p,:))>1)
-            semilogy(p-1:p,out.fVal(p-1:p,2),'g');
-        end
-        if(length(out.fVal(p,:))>2)
-            semilogy(p-1:p,out.fVal(p-1:p,3),'b');
-        end
 
         if(isfield(opt,'trueAlpha'))
             subplot(2,1,2);
@@ -144,19 +129,26 @@ while(true)
         end
         drawnow;
     end
-    
-    if(figAlpha)
-        set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
-        %showImgMask(Qmask-Qmask1/2,opt.mask);
-        %title(['size of Q=' num2str(length(Q))]);
-        if(~isempty(IeStep.zmf))
-            title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+
+    if(figRes && length(out.fVal(p,:))>1 && p>1 && opt.debugLevel>=3)
+        set(0,'CurrentFigure',figRes);
+        if(length(out.fVal(p,:))>2) subplot(2,1,1); end
+        semilogy(p-1:p,out.fVal(p-1:p,2),'g'); hold on;
+        if(length(out.fVal(p,:))>2)
+            subplot(2,1,2);
+            semilogy(p-1:p,out.fVal(p-1:p,3),'b');
+            hold on;
         end
         drawnow;
     end
+    
+    if(figAlpha && opt.debugLevel>=6)
+        set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
+        drawnow;
+    end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    if(opt.visible && p>1)
-        if(alphaStep.warned || IeStep.warned)
+    if(opt.debugLevel>=1 && p>1)
+        if(alphaStep.warned)
             fprintf('%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);

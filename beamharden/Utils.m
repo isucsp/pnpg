@@ -1,4 +1,4 @@
-classdef Methods < handle
+classdef Utils < handle
     methods(Static)
         function y = softThresh(x,thresh)
             idx = abs(x)<thresh;

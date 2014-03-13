@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 13 Mar 2014 03:47:02 PM CDT
+%   $Revision: 0.3 $ $Date: Thu 13 Mar 2014 04:05:31 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -28,7 +28,6 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               optimize the form of Phi[t]Func51.m in subfuction
 %
 
-tic;
 interiorPointAlpha=0; prpCGAlpha=1;
 interiorPointIe=0; activeSetIe=1;
 if(~isfield(opt,'K')) opt.K=2; end
@@ -45,6 +44,8 @@ if(~isfield(opt,'showImg')) opt.showImg=0; end
 if(~isfield(opt,'visible')) opt.visible=1; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=0.5; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -130,9 +131,6 @@ polyIout = polymodel.polyIout;
 % Ie = Ie*0;
 % Ie(idx) = exp(-mean(y+log(R(:,idx))));
 
-p=0; thresh=1e-4; str=''; strlen=0;
-t1=0; thresh1=1e-8;
-t2=0; thresh2Lim=1e-10;
 if(interiorPointIe) 
     thresh2=1; t2Lim=1e-10;
 else thresh2=1e-8; end
@@ -220,9 +218,10 @@ else
     alphaStep.u = opt.u;
 end
 
+tic; p=0; str=''; strlen=0;
 while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
     p=p+1;
-    str=sprintf([str '\np=%-4d '],p);
+    str=sprintf([str '\np=%d '],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
@@ -236,9 +235,9 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         %out.alphaSearch(p) = alphaStep.ppp;
         alpha = alphaStep.alpha;
         if(opt.continuation && p>1 && ...
-                abs(out.cost(p)-out.cost(p-1))/out.cost(p)<1e-3 && ...
-                alphaStep.u>opt.u)
-            alphaStep.u = max(alphaStep.u*0.2,opt.u);
+                abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.contCrtrn && ...
+                alphaStep.u*opt.contShrnk>opt.u)
+            alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             fprintf('\nnew u= %g\n',alphaStep.u);
             alphaStep.warned = true;
         end
@@ -330,21 +329,15 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         strlen = length(str);
         str='';
     end
-    if(p >= opt.maxItr) break; end
     out.time(p)=toc;
+    if(p >= opt.maxItr) break; end
+    if(p>1 && abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.thresh)
+        break
+    end
 end
 
-out.fVal(p+1:end,:) = [];
-out.llI(p+1:end)=[]; out.time(p+1:end)=[]; out.RMSE(p+1:end)=[];
-out.IeSteps(p+1:end)=[];
-out.course(p+1:end) = []; out.difAlpha(p+1:end)=[];
-out.difObjAlpha(p+1:end)=[]; out.difObjIe(p+1:end)=[];
 out.Ie=Ie; out.mu=mu; out.alpha=alpha; out.cpuTime=toc; out.p=p;
-
 out.opt = opt;
-
-%if(activeSetIe && ~opt.skipIe) out.ASactive=ASactive; end
-out.t2=t2; out.t1=t1;
 
 fprintf('\n');
 

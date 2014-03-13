@@ -10,15 +10,6 @@ function loadPhantom_1(obj)
     idx = sqrt((x-0.62*obj.imgSize).^2+(y-obj.imgSize*0.62).^2) < 0.12*obj.imgSize;
     obj.trueImg(idx)=0;
 
-    [obj.CTdata,args] = genBeamHarden('showImg',false,...
-        'spark', obj.spark, 'trueImg',obj.trueImg, ...
-        'prjNum', obj.prjNum, 'prjFull', obj.prjFull,...
-        'PhiMode',obj.PhiModeGen);
-    obj.trueIota = args.iota(:);
-    obj.epsilon = args.epsilon(:);
-    obj.trueKappa = args.kappa(:);
-    obj.Ts = args.Ts;
-
     daub = 2;
     obj.wav=daubcqf(daub);
     obj.dwt_L=6;        %levels of wavelet transform
@@ -37,5 +28,35 @@ function loadPhantom_1(obj)
         end
     end
     obj.mask = mask; obj.maskk= maskk;
+
+    if(obj.beamharden)
+        [obj.CTdata,args] = genBeamHarden('showImg',false,...
+            'spark', obj.spark, 'trueImg',obj.trueImg, ...
+            'prjNum', obj.prjNum, 'prjFull', obj.prjFull,...
+            'PhiMode',obj.PhiModeGen);
+        obj.trueIota = args.iota(:);
+        obj.epsilon = args.epsilon(:);
+        obj.trueKappa = args.kappa(:);
+        obj.Ts = args.Ts;
+        
+        % before this, make sure max(CTdata)==1
+        temp=size(obj.CTdata,1);
+        obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),obj.prjNum);...
+            obj.CTdata;...
+            zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
+        obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
+    else
+        obj.Ts=1;
+        conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
+        conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
+        conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
+        conf.effectiveRate=obj.effectiveRate;
+        conf.d=obj.dist;
+
+        mPrj(0,conf,'config');
+        maskIdx = find(obj.mask~=0);
+        Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+        obj.y = Phi(obj.trueImg(obj.mask~=0));
+    end
 end
 
