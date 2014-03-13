@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Tue 04 Mar 2014 11:01:44 PM CST
+% $Revision: 0.2 $ $Date: Wed 12 Mar 2014 03:49:04 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -159,6 +159,8 @@ classdef ConfigCT < handle
                     Phi=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
                     Phit=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
                     FBP=Phit;
+                case 'lasso'
+                    fprintf('lasso done');
                 otherwise
                     fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
                     return;
@@ -179,6 +181,8 @@ classdef ConfigCT < handle
                     loadRealCT(obj);
                 case 'pellet'
                     loadPellet(obj);
+                case 'lasso'
+                    loadLasso(obj);
             end
 
             % before this, make sure max(CTdata)==1

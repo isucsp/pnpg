@@ -9,9 +9,10 @@ m = 500;       % number of examples
 n = 2500;      % number of features
 
 x0 = sprandn(n,1,0.05);
+x0 = abs(x0);
 A = randn(m,n);
 A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-v = sqrt(0.001)*randn(m,1);
+v = 0*sqrt(0.001)*randn(m,1);
 b = A*x0 + v;
 
 fprintf('solving instance with %d examples, %d variables\n', m, n);
@@ -26,9 +27,12 @@ Atb = A'*b;
 
 %% Global constants and defaults
 
-MAX_ITER = 100;
-ABSTOL   = 1e-4;
-RELTOL   = 1e-2;
+MAX_ITER = 500;
+ABSTOL   = 1e-9;
+RELTOL   = 1e-8;
+
+figCost = 1000;
+figure(figCost);
 
 %% CVX
 
@@ -68,8 +72,21 @@ for k = 1:MAX_ITER
     x = z;
 
     h.prox_optval(k) = objective(A, b, gamma, x, x);
+    h.prox_cosval(k) = norm(A*x-b)^2/2;
+    h.prox_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
     if k > 1 && abs(h.prox_optval(k) - h.prox_optval(k-1)) < ABSTOL
         break;
+    end
+    if(k>1 && figCost)
+        set(0,'CurrentFigure',figCost);
+        subplot(2,1,1);
+        semilogy(k-1:k,[h.prox_optval(k-1), h.prox_optval(k)],'r');
+        hold on;
+        semilogy(k-1:k,[h.prox_cosval(k-1), h.prox_cosval(k)],'r--');
+        subplot(2,1,2);
+        semilogy(k-1:k,[h.prox_error(k-1), h.prox_error(k)],'r:');
+        hold on;
+        drawnow;
     end
 end
 
@@ -99,8 +116,19 @@ for k = 1:MAX_ITER
     x = z;
 
     h.fast_optval(k) = objective(A, b, gamma, x, x);
+    h.fast_cosval(k) = norm(A*x-b)^2/2;
+    h.fast_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
     if k > 1 && abs(h.fast_optval(k) - h.fast_optval(k-1)) < ABSTOL
         break;
+    end
+    if(k>1 && figCost)
+        set(0,'CurrentFigure',figCost);
+        subplot(2,1,1);
+        semilogy(k-1:k,[h.fast_optval(k-1), h.fast_optval(k)],'g');
+        semilogy(k-1:k,[h.fast_cosval(k-1), h.fast_cosval(k)],'g--');
+        subplot(2,1,2);
+        semilogy(k-1:k,[h.fast_error(k-1), h.fast_error(k)],'g:');
+        drawnow;
     end
 end
 
@@ -140,6 +168,8 @@ for k = 1:MAX_ITER
 
     % diagnostics, reporting, termination checks
     h.admm_optval(k)   = objective(A, b, gamma, x, z);
+    h.admm_cosval(k) = norm(A*x-b)^2/2;
+    h.admm_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
     h.r_norm(k)   = norm(x - z);
     h.s_norm(k)   = norm(-rho*(z - zold));
     h.eps_pri(k)  = sqrt(n)*ABSTOL + RELTOL*max(norm(x), norm(-z));
@@ -148,7 +178,15 @@ for k = 1:MAX_ITER
     if h.r_norm(k) < h.eps_pri(k) && h.s_norm(k) < h.eps_dual(k)
          break;
     end
-
+    if(k>1 && figCost)
+        set(0,'CurrentFigure',figCost);
+        subplot(2,1,1);
+        semilogy(k-1:k,[h.admm_optval(k-1), h.admm_optval(k)],'b');
+        semilogy(k-1:k,[h.admm_cosval(k-1), h.admm_cosval(k)],'b--');
+        subplot(2,1,2);
+        semilogy(k-1:k,[h.admm_error(k-1), h.admm_error(k)],'b:');
+        drawnow;
+    end
 end
 
 h.x_admm = z;
@@ -174,10 +212,10 @@ h.fast_optval = padarray(h.fast_optval', K-h.fast_iter, h.p_fast, 'post');
 h.admm_optval = padarray(h.admm_optval', K-h.admm_iter, h.p_admm, 'post');
 fig = figure;
 
-plot(1:K, h.cvx_optval,  'k--', ...
-     1:K, h.prox_optval, 'r-', ...
-     1:K, h.fast_optval, 'g-', ...
-     1:K, h.admm_optval, 'b-');
+semilogy(1:K, h.cvx_optval,  'k--', ...
+    1:K, h.prox_optval, 'r-', ...
+    1:K, h.fast_optval, 'g-', ...
+    1:K, h.admm_optval, 'b-');
 
 xlim([0 75]);
 legend('True', 'Proximal gradient', 'Accelerated', 'ADMM');

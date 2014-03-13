@@ -1,4 +1,4 @@
-classdef FISTA_l1 < Methods
+classdef FISTA_L1 < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -8,7 +8,7 @@ classdef FISTA_l1 < Methods
         Psi_s
     end
     methods
-        function obj = FISTA_l1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.coef(1) = 1;
             obj.maxStepNum = maxAlphaSteps;
@@ -17,7 +17,7 @@ classdef FISTA_l1 < Methods
             obj.Psit = Psit;
             obj.s = obj.Psit(alpha);
             obj.Psi_s = obj.Psi(obj.s);
-            fprintf('use FISTA method\n');
+            fprintf('use FISTA_L1 method\n');
         end
         function main(obj)
             obj.p = obj.p+1; obj.warned = false;

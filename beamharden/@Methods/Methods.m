@@ -150,6 +150,18 @@ classdef Methods < handle
             y(x<0) = x(x<0)+thresh;
             y(idx) = 0;
         end
+        function [f,g,h] = augLag(x,z)
+            g=x-z;
+            f=norm(x-z)^2/2;
+            if(nargout>=3)
+                h = @(xx,opt) hessian(xx,opt);
+            end
+            function hh = hessian(x,opt)
+                if(opt==1) hh = x;
+                else hh = x'*x;
+                end
+            end
+        end
     end
 end
 

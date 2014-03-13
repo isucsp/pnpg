@@ -1,4 +1,4 @@
-classdef ADMM < Methods
+classdef ADMM_NNL1 < Methods
     properties
         stepShrnk = 0.5;
         maxItr=1e2;
@@ -13,7 +13,7 @@ classdef ADMM < Methods
         r_norm
     end
     methods
-        function obj = ADMM(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.coef(1) = 1;
             obj.maxItr = maxAlphaSteps;
@@ -25,7 +25,7 @@ classdef ADMM < Methods
             obj.s = obj.Psit(alpha);
             obj.Psi_s = alpha;
             obj.Psi_sy = obj.Psi_s;
-            fprintf('use ADMM method\n');
+            fprintf('use ADMM_NNL1 method\n');
 
             obj.main = @obj.main_0;
         end
@@ -33,11 +33,12 @@ classdef ADMM < Methods
             obj.p = obj.p+1; obj.warned = false;
             for i=1:obj.maxItr
                 subProb = FISTA(obj.n+1,obj.alpha);
-                subProb.fArray = {obj.fArray{:};...
-                    @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);};
+                for j=1:obj.n
+                    subProb.fArray{j} = obj.fArray{j};
+                end
+                subProb.fArray{obj.n+1} = @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);
                 subProb.coef = [ones(obj.n,1); obj.rho];
                 obj.alpha = subProb.main();
-                
 
                 obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
                 obj.s = obj.softThresh(...
@@ -190,20 +191,6 @@ classdef ADMM < Methods
 
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
             obj.cost = obj.fVal(:)'*obj.coef(:);
-        end
-    end
-    methods(Static)
-        function [f,g,h] = augLag(x,z)
-            g=x-z;
-            f=norm(x-z)^2/2;
-            if(nargout>=3)
-                h = @(xx,opt) hessian(xx,opt);
-            end
-            function hh = hessian(x,opt)
-                if(opt==1) hh = x;
-                else hh = x'*x;
-                end
-            end
         end
     end
 end
