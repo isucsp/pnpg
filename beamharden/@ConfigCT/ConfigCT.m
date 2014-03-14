@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 13 Mar 2014 05:36:48 PM CDT
+% $Revision: 0.2 $ $Date: Fri 14 Mar 2014 12:02:10 AM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle

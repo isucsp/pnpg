@@ -13,10 +13,7 @@ classdef FISTA < Methods
         end
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            pp=0;
-            while(pp<obj.maxItr)
-                pp=pp+1;
-
+            for pp=1:obj.maxItr
                 y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
                 obj.preAlpha = obj.alpha;
 
@@ -44,7 +41,7 @@ classdef FISTA < Methods
                 obj.alpha = newX;
                 if(abs(newCost-oldCost)<obj.absTol) break; end
             end
-            obj.cost = obj.fVal(:)'*obj.coef(:);
+            obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
             out = obj.alpha;
         end
     end

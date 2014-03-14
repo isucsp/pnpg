@@ -38,15 +38,15 @@ figure(figCost);
 
 tic
 
-cvx_begin quiet
-    cvx_precision low
-    variable x(n)
-    minimize(0.5*sum_square(A*x - b) + gamma*norm(x,1))
-cvx_end
-
-h.x_cvx = x;
-h.p_cvx = cvx_optval;
-h.cvx_toc = toc;
+%cvx_begin quiet
+%    cvx_precision low
+%    variable x(n)
+%    minimize(0.5*sum_square(A*x - b) + gamma*norm(x,1))
+%cvx_end
+%
+%h.x_cvx = x;
+%h.p_cvx = cvx_optval;
+%h.cvx_toc = toc;
 
 %% Proximal gradient
 
@@ -62,7 +62,7 @@ xprev = x;
 for k = 1:MAX_ITER
     while 1
         grad_x = AtA*x - Atb;
-        z = Methods.softThresh(x - lambda*grad_x, lambda*gamma);
+        z = Utils.softThresh(x - lambda*grad_x, lambda*gamma);
         if f(z) <= f(x) + grad_x'*(z - x) + (1/(2*lambda))*sum_square(z - x)
             break;
         end
@@ -106,7 +106,7 @@ for k = 1:MAX_ITER
     y = x + (k/(k+3))*(x - xprev);
     while 1
         grad_y = AtA*y - Atb;
-        z = Methods.softThresh(y - lambda*grad_y, lambda*gamma);
+        z = Utils.softThresh(y - lambda*grad_y, lambda*gamma);
         if f(z) <= f(y) + grad_y'*(z - y) + (1/(2*lambda))*sum_square(z - y)
             break;
         end
@@ -161,13 +161,13 @@ for k = 1:MAX_ITER
 
     % z-update
     zold = z;
-    z = Methods.softThresh(x + u, lambda*gamma);
+    z = Utils.softThresh(x + u, lambda*gamma);
 
     % u-update
     u = u + x - z;
 
     % diagnostics, reporting, termination checks
-    h.admm_optval(k)   = objective(A, b, gamma, x, z);
+    h.admm_optval(k)   = objective(A, b, gamma, x, x);
     h.admm_cosval(k) = norm(A*x-b)^2/2;
     h.admm_error(k) = 1-(x'*x0/norm(x)/norm(x0))^2;
     h.r_norm(k)   = norm(x - z);

@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Thu 13 Mar 2014 05:40:11 PM CDT
+%   $Revision: 0.1 $ $Date: Fri 14 Mar 2014 01:26:59 AM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -26,9 +26,9 @@ if(~isfield(opt,'showImg')) opt.showImg=false; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
-if(~isfield(opt,'contCrtrn')) opt.contCrtrn=0.5; end
-if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
-if(~isfield(opt,'maxItr')) opt.thresh=1e3; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
+if(~isfield(opt,'thresh')) opt.thresh=1e-7; end
+if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
@@ -40,12 +40,9 @@ if(isfield(opt,'trueAlpha'))
     trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
 end
 
-if(opt.showImg)
-    figRes=1000; figure(figRes);
-    figCost=1001; figure(figCost);
-    figAlpha=1002; figure(figAlpha);
-else figRes=0; figAlpha=0; figCost=0;
-end
+if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
+if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
+if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
@@ -62,19 +59,21 @@ switch lower(opt.alphaStep)
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,alphaStep.M);
     case lower('FISTA_L1')
         alphaStep=FISTA_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
-        alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = @Utils.nonnegPen;
+    case lower('FISTA_NN')
+        alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
+    case lower('FISTA_NNL1')
+        alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
         alphaStep = ADMM_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
-        alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = @Utils.nonnegPen;
+    case {lower('ADMM_NN')}
+        alphaStep = ADMM_NN(2,alpha,1,opt.stepShrnk,Psi,Psit);
 end
 alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
 alphaStep.fArray{2} = @Utils.nonnegPen;
-alphaStep.stepShrnk = opt.stepShrnk;
-alphaStep.coef(1:3) = [1; opt.nu; opt.u];
+alphaStep.coef(1:2) = [1; opt.nu;];
+alphaStep.u = opt.u;
 
 if(opt.continuation)
     alphaStep.u = 0.1*max(abs(Psit(Phit(y))));
@@ -84,7 +83,7 @@ end
 tic; p=0; str=''; strlen=0;
 while(true)
     p=p+1;
-    str=sprintf([str '\np=%d '],p);
+    str=sprintf([str '\np=%d'],p);
     
     alphaStep.main();
 
@@ -92,10 +91,10 @@ while(true)
     out.cost(p) = alphaStep.cost;
     out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
     out.alphaSearch(p) = alphaStep.ppp;
+    if(p>1) out.relDifCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
     alpha = alphaStep.alpha;
 
-    if(opt.continuation && p>1 && ...
-            abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.contCrtrn && ...
+    if(opt.continuation && p>1 && out.relDifCost(p)<opt.contCrtrn && ...
             alphaStep.u*opt.contShrnk>opt.u)
         alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
         fprintf('\nnew u= %g\n',alphaStep.u);
@@ -106,20 +105,18 @@ while(true)
         out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
     end
 
-    str=sprintf([str 'cost=%-10g RSE=%-10g ',...
-        'dAlpha=%-10g aSearch=%d '],...
+    str=sprintf([str ' cost=%-10g RSE=%-10g',...
+        ' dAlpha=%-10g aSearch=%d'],...
         out.cost(p),out.RMSE(p), out.difAlpha(p), ...
         alphaStep.ppp);
     if(p>1)
-        str=sprintf([str 'pdObjAlpha=%g%% '],...
-            (out.cost(p-1)-out.cost(p))/out.cost(p)*100);
+        str=sprintf([str ' pdObjAlpha=%g'], out.relDifCost(p));
     end
     
     if(opt.showImg && p>1 && opt.debugLevel>=2)
         set(0,'CurrentFigure',figCost);
-        subplot(2,1,1);
-        semilogy(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
-        semilogy(p-1:p,out.cost(p-1:p),'k');
+        if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
+        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
         if(isfield(opt,'trueAlpha'))
@@ -130,19 +127,17 @@ while(true)
         drawnow;
     end
 
-    if(figRes && length(out.fVal(p,:))>1 && p>1 && opt.debugLevel>=3)
+    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
         set(0,'CurrentFigure',figRes);
-        if(length(out.fVal(p,:))>2) subplot(2,1,1); end
-        semilogy(p-1:p,out.fVal(p-1:p,2),'g'); hold on;
-        if(length(out.fVal(p,:))>2)
-            subplot(2,1,2);
-            semilogy(p-1:p,out.fVal(p-1:p,3),'b');
-            hold on;
+        style={'r','g','b'};
+        for i=1:length(out.fVal(p,:))
+            subplot(3,1,i);
+            semilogy(p-1:p,out.fVal(p-1:p,i),style{i}); hold on;
         end
         drawnow;
     end
     
-    if(figAlpha && opt.debugLevel>=6)
+    if(opt.debugLevel>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         drawnow;
     end
@@ -158,11 +153,10 @@ while(true)
     end
     out.time(p)=toc;
     if(p >= opt.maxItr) break; end
-    if(p>1 && abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.thresh)
+    if(p>1 && out.difAlpha(p)<opt.thresh)
         break
     end
 end
-
 out.alpha=alpha; out.p=p; out.opt = opt;
 fprintf('\n');
 

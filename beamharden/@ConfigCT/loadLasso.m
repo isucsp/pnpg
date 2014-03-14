@@ -9,7 +9,7 @@ function opt=loadLasso(obj,opt)
     x0 = abs(x0);
     A = randn(m,n);
     A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-    v = 0*sqrt(0.001)*randn(m,1);
+    v = sqrt(0.001)*randn(m,1);
     b = A*x0 + v;
 
     fprintf('solving instance with %d examples, %d variables\n', m, n);
@@ -24,12 +24,14 @@ function opt=loadLasso(obj,opt)
 
     obj.trueImg = x0;
     obj.mask = 1:length(x0);
+    obj.mask = obj.mask(:);
     obj.y = b;
 
-    obj.Phi = @(xx) A*xx;
-    obj.Phit = @(xx) A'*xx;
-    obj.Psi = @(xx) xx;
-    obj.Psit = @(xx) xx;
+    obj.Phi = @(xx) A*xx(:);
+    obj.Phit = @(xx) A'*xx(:);
+    obj.FBP = @(xx) A'*xx(:);
+    obj.Psi = @(xx) xx(:);
+    obj.Psit = @(xx) xx(:);
 
     opt.u = gamma;
     opt.trueAlpha=x0;

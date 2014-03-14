@@ -29,7 +29,7 @@ classdef Methods < handle
 
         % for FISTA
         p = 0;
-        ppp
+        ppp = 0;
 
     end
     methods

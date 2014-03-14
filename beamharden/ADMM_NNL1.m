@@ -6,7 +6,7 @@ classdef ADMM_NNL1 < Methods
         Psi_s
         Psi_sy
         pa
-        rho = 1;
+        rho = 0.1;
         y1=0;
         y2=0;
         main
@@ -36,12 +36,12 @@ classdef ADMM_NNL1 < Methods
                 for j=1:obj.n
                     subProb.fArray{j} = obj.fArray{j};
                 end
-                subProb.fArray{obj.n+1} = @(aaa) obj.augLag(aaa,obj.Psi_s-obj.y1);
+                subProb.fArray{obj.n+1} = @(aaa) Utils.augLag(aaa,obj.Psi_s-obj.y1);
                 subProb.coef = [ones(obj.n,1); obj.rho];
                 obj.alpha = subProb.main();
 
                 obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
-                obj.s = obj.softThresh(...
+                obj.s = Utils.softThresh(...
                     obj.Psit(obj.alpha+obj.pa+obj.y1+obj.y2)/2,...
                     obj.u/(2*obj.rho));
                 obj.Psi_s = obj.Psi(obj.s);
@@ -53,7 +53,7 @@ classdef ADMM_NNL1 < Methods
             end
             obj.func(obj.alpha);
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
-            obj.cost = obj.fVal(:)'*obj.coef(:);
+            obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n)+obj.u*obj.fVal(obj.n+1);
         end
         function main_1(obj)
             obj.p = obj.p+1; obj.warned = false;
