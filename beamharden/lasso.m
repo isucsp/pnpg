@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 14 Mar 2014 01:26:59 AM CDT
+%   $Revision: 0.1 $ $Date: Fri 14 Mar 2014 08:46:41 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -80,6 +80,9 @@ if(opt.continuation)
 else alphaStep.u = opt.u;
 end
 
+optimumCost = alphaStep.func(opt.trueAlpha) + opt.u*sum(abs(Psit(opt.trueAlpha)));
+optimumCost=optimumCost*0.9;
+
 tic; p=0; str=''; strlen=0;
 while(true)
     p=p+1;
@@ -89,6 +92,7 @@ while(true)
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
+    out.relCost(p) = (out.cost(p)-optimumCost);
     out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
     out.alphaSearch(p) = alphaStep.ppp;
     if(p>1) out.relDifCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
@@ -116,7 +120,7 @@ while(true)
     if(opt.showImg && p>1 && opt.debugLevel>=2)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
+        semilogy(p-1:p,out.relCost(p-1:p),'k'); hold on;
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
         if(isfield(opt,'trueAlpha'))

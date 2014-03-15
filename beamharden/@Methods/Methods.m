@@ -72,13 +72,13 @@ classdef Methods < handle
                 for j = 1:obj.n
                     hh = hh + obj.hArray{j}(x,opt)*obj.coef(j);
                 end
-                if(hh<=0)
-                    warning(['fAlpha: obj function is non-convex over alpha,'...
-                        '%g'],hh);
+                if(length(hh)==1 && hh<=0)
+                    warning(['\n%s: obj function is non-convex over alpha, '...
+                        'x''*H*x=%g, replace it by 1'],class(obj),hh);
                     keyboard
                     obj.warned = true;
+                    hh=1;
                 end
-
             end
         end
         function set.M(obj,M)

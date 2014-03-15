@@ -41,8 +41,12 @@ classdef FISTA_NN < Methods
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
+                obj.difAlpha=norm(newX-obj.alpha).^2/length(newX);
                 obj.alpha = newX;
-                if(abs(newCost-oldCost)<obj.absTol) break; end
+                set(0,'CurrentFigure',123);
+                subplot(2,1,1); semilogy(pp,newCost,'.'); hold on;
+                subplot(2,1,2); semilogy(pp,obj.difAlpha,'.'); hold on;
+                if(obj.difAlpha<obj.absTol) break; end
             end
             obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
             out = obj.alpha;

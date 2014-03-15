@@ -19,12 +19,14 @@ classdef ADMM_NN < Methods
             obj.pa = alpha;
             obj.pa(obj.pa<0)=0;
             fprintf('use ADMM_NN method\n');
+            figure(123); figure(386);
         end
         function main(obj)
             obj.p = obj.p+1; obj.warned = false;
             for i=1:obj.maxItr
                 subProb = FISTA_L1(2,obj.alpha,1e3,obj.stepShrnk,obj.Psi,obj.Psit);
                 subProb.u=obj.u;
+                subProb.absTol = 1e-14;
                 subProb.fArray{1} = obj.fArray{1};
                 subProb.fArray{2} = @(aaa) Utils.augLag(aaa,obj.pa-obj.y1);
                 subProb.coef = [1; obj.rho];
@@ -33,6 +35,8 @@ classdef ADMM_NN < Methods
                 obj.pa = obj.alpha + obj.y1; obj.pa(obj.pa<0) = 0;
 
                 obj.y1 = obj.y1 - (obj.pa-obj.alpha);
+                set(0,'CurrentFigure',386);
+            semilogy(obj.p,norm(obj.pa-obj.alpha),'.'); hold on;
                 
                 obj.r_norm = norm(obj.alpha-obj.pa);
             end

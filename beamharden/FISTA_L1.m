@@ -19,7 +19,7 @@ classdef FISTA_L1 < Methods
             obj.Psit = Psit;
             obj.s = obj.Psit(alpha);
             obj.Psi_s = obj.Psi(obj.s);
-            fprintf('use FISTA_L1 method\n');
+            %fprintf('use FISTA_L1 method\n');
         end
         function out= main(obj)
             obj.p = obj.p+1; obj.warned = false;
@@ -54,8 +54,12 @@ classdef FISTA_L1 < Methods
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
+                obj.difAlpha=norm(newX-obj.alpha).^2/length(newX);
                 obj.alpha = newX;
-                if(abs(newCost-oldCost)<obj.absTol) break; end
+                set(0,'CurrentFigure',123);
+                subplot(2,1,1); semilogy(pp,newCost,'.'); hold on;
+                subplot(2,1,2); semilogy(pp,obj.difAlpha,'.'); hold on;
+                if(obj.difAlpha<obj.absTol) break; end
             end
             obj.fVal(obj.n+1) = sum(abs(newSi));
             obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n)+obj.u*obj.fVal(obj.n+1);
