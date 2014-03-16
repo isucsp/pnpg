@@ -8,7 +8,7 @@ classdef ADMM_L1 < Methods
         s
         Psi_s
         pa
-        rho = 1;
+        rho = 0.03;
         y1=0;
         main
         absTol=1e-4;
@@ -32,7 +32,7 @@ classdef ADMM_L1 < Methods
             %if(obj.rho<10) obj.rho = obj.rho*1.1; end
             %if(obj.absTol>1e-10) obj.absTol=obj.absTol*0.5; end
             subProb = FISTA_NN(2,obj.alpha);
-            subProb.absTol = 1e-14;
+            subProb.absTol = 1e-13;
             subProb.fArray{1} = obj.fArray{1};
             subProb.fArray{2} = @(aaa) Utils.augLag(aaa,obj.Psi_s-obj.y1);
             subProb.coef = [1; obj.rho];
@@ -46,6 +46,7 @@ classdef ADMM_L1 < Methods
             obj.y1 = obj.y1 - (obj.Psi_s-obj.alpha);
             set(0,'CurrentFigure',386);
             semilogy(obj.p,norm(obj.Psi_s-obj.alpha),'.'); hold on;
+            drawnow;
 
             obj.func(obj.alpha);
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));

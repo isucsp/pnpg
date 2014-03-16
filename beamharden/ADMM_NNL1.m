@@ -6,11 +6,12 @@ classdef ADMM_NNL1 < Methods
         Psi_s
         Psi_sy
         pa
-        rho = 0.1;
+        rho = 0.015;
         y1=0;
         y2=0;
         main
         r_norm
+        absTol=1e-4;
     end
     methods
         function obj = ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -33,11 +34,10 @@ classdef ADMM_NNL1 < Methods
             obj.p = obj.p+1; obj.warned = false;
             for i=1:obj.maxItr
                 subProb = FISTA(obj.n+1,obj.alpha);
-                for j=1:obj.n
-                    subProb.fArray{j} = obj.fArray{j};
-                end
-                subProb.fArray{obj.n+1} = @(aaa) Utils.augLag(aaa,obj.Psi_s-obj.y1);
-                subProb.coef = [ones(obj.n,1); obj.rho];
+                subProb.absTol = 1e-13;
+                subProb.fArray{1} = obj.fArray{1};
+                subProb.fArray{2} = @(aaa) Utils.augLag(aaa,obj.Psi_s-obj.y1);
+                subProb.coef = [1; obj.rho];
                 obj.alpha = subProb.main();
 
                 obj.pa = obj.Psi_s - obj.y2; obj.pa(obj.pa<0) = 0;
@@ -50,6 +50,9 @@ classdef ADMM_NNL1 < Methods
                 obj.y2 = obj.y2 - (obj.Psi_s-obj.pa);
                 
                 obj.r_norm = norm([obj.alpha-obj.Psi_s; obj.pa-obj.Psi_s]);
+                set(0,'CurrentFigure',386);
+                semilogy(obj.p,obj.r_norm,'.'); hold on;
+                drawnow;
             end
             obj.func(obj.alpha);
             obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));

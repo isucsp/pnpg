@@ -10,7 +10,6 @@ classdef Methods < handle
         hArray
         difAlpha
         difObj
-        thresh = 1e-8;
         maxStepNum = 1e2;
         stepNum
         converged = false;

@@ -40,6 +40,7 @@ classdef FISTA_NNL1 < Methods
 
             % start of line Search
             obj.ppp=0;
+            %while(obj.ppp<1)
             while(1)
                 obj.ppp=obj.ppp+1;
                 wi=si-dsi/obj.t;
@@ -57,7 +58,7 @@ classdef FISTA_NNL1 < Methods
             obj.alpha = newX;
             obj.fVal(obj.n+1) = sum(abs(newSi));
             obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n)+obj.u*obj.fVal(obj.n+1);
+            out = obj.alpha;
         end
     end
 end
-

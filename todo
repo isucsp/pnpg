@@ -13,3 +13,10 @@ Noticed that:
 the fourier transform implementation stack at certain point, although the
 two share the same path before the point.
 The RSE can reach unblievable precision. 4e-5; for less than 1000 iterations
+
+
+The line search for FISTA speed up the convergence in terms of number of outer
+iterations.
+
+FISTA_NNL1 and FISTA_ADMM_NNL1 are almost equivalent, which means with/without
+line search, their convergence curve are the same.

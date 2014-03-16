@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 14 Mar 2014 08:46:41 PM CDT
+%   $Revision: 0.1 $ $Date: Sat 15 Mar 2014 10:12:29 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -27,7 +27,7 @@ if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
-if(~isfield(opt,'thresh')) opt.thresh=1e-7; end
+if(~isfield(opt,'thresh')) opt.thresh=1e-14; end
 if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
@@ -63,6 +63,8 @@ switch lower(opt.alphaStep)
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('FISTA_ADMM_NNL1')
+        alphaStep=FISTA_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
@@ -84,6 +86,7 @@ optimumCost = alphaStep.func(opt.trueAlpha) + opt.u*sum(abs(Psit(opt.trueAlpha))
 optimumCost=optimumCost*0.9;
 
 tic; p=0; str=''; strlen=0;
+figure(123); figure(386);
 while(true)
     p=p+1;
     str=sprintf([str '\np=%d'],p);
@@ -93,7 +96,7 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
     out.relCost(p) = (out.cost(p)-optimumCost);
-    out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
+    out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))^2/length(alpha(:));
     out.alphaSearch(p) = alphaStep.ppp;
     if(p>1) out.relDifCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
     alpha = alphaStep.alpha;
@@ -146,7 +149,7 @@ while(true)
         drawnow;
     end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    if(opt.debugLevel>=1 && p>1)
+    if(opt.debugLevel>=1)
         if(alphaStep.warned)
             fprintf('%s',str);
         else
