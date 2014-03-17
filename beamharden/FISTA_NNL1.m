@@ -4,22 +4,16 @@ classdef FISTA_NNL1 < Methods
         preAlpha=0;
         preG=[];
         preY=[];
-        s
-        Psi_s
     end
     methods
         function obj = FISTA_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
-            obj.coef(1) = 1;
             obj.maxStepNum = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.Psi = Psi;
-            obj.Psit = Psit;
-            obj.s = obj.Psit(alpha);
-            obj.Psi_s = obj.Psi(obj.s);
+            obj.Psi = Psi; obj.Psit = Psit;
             fprintf('use FISTA_NNL1 method\n');
         end
-        function main(obj)
+        function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
 
             y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);

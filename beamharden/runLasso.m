@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 16 Mar 2014 09:13:37 AM CDT
+%   $Revision: 0.2 $ $Date: Sun 16 Mar 2014 11:47:34 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -34,11 +34,13 @@ if(any(runList==0)) % reserved for debug and for the best result
 
     opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     
+    opt.fOpt = 0.189830191072360;       % Optimum of the cost function
     opt.nu=0;
     opt.u=1e-4;
     opt.thresh=1e-14;
     opt.debugLevel=5;
     opt=conf.setup(opt);
+    opt.fOpt
     %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
     %opt=conf.loadLasso(opt);
     prefix='Lasso';
@@ -64,6 +66,7 @@ if(any(runList==1)) % FISTA_NNL1
 
     opt.alphaStep='FISTA_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     
+    opt.fOpt = 0.189830191072360;       % Optimum of the cost function
     opt.nu=0;
     opt.u=1e-4;
     opt.thresh=1e-14;
