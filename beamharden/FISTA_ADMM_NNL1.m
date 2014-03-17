@@ -41,22 +41,20 @@ classdef FISTA_ADMM_NNL1 < Methods
             while(true)
                 obj.ppp = obj.ppp+1;
                 newX = y - (grad)/(obj.t);
-                %newX = obj.innerADMM_v5(newX,obj.t,obj.u);
-
+                newX = obj.innerADMM_v5(newX,obj.t,obj.u,1e-13);
 
                 %newX(newX<0)=0;
-                temp(:,1) = obj.innerADMM_v4(newX,obj.t,obj.u);
-                temp(:,2) = obj.innerADMM_v5(newX,obj.t,obj.u);
-                temp(:,3) = obj.innerProjection(newX,obj.t,obj.u);
-                temp(:,4) = obj.innerProjection2(newX,obj.t,obj.u);
-                for(i=1:4)
-                    co(i) = obj.evaluate(newX,temp(:,i));
-                end
-                co
-                keyboard                
-                idx=find(co==min(co));
-                newX=temp(:,idx(1));
-
+                %temp(:,1) = obj.innerADMM_v4(newX,obj.t,obj.u,1e-13);
+                %temp(:,2) = obj.innerADMM_v5(newX,obj.t,obj.u,1e-13);
+                %temp(:,3) = obj.innerProjection(newX,obj.t,obj.u);
+                %temp(:,4) = obj.innerProjection2(newX,obj.t,obj.u);
+                %for(i=1:4)
+                %    co(i) = obj.evaluate(newX,temp(:,i));
+                %end
+                %co
+                %keyboard                
+                %idx=find(co==min(co));
+                %newX=temp(:,idx(1));
 
                 newCost=obj.func(newX);
                 if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
@@ -70,12 +68,11 @@ classdef FISTA_ADMM_NNL1 < Methods
             obj.cost = obj.fVal(1:obj.n)'*obj.coef(1:obj.n)+obj.u*obj.fVal(obj.n+1);
             out = obj.alpha;
         end
-        function alpha = innerADMM_v4(obj,newX,t,u)
+        function alpha = innerADMM_v4(obj,newX,t,u,absTol)
             % solve 0.5*t*||α-α_0||_2 + I(α>=0) + u*||Ψ'*α||_1
             % α_0 is newX;
             % start an ADMM inside the FISTA
-            alpha=newX; Psi_s=alpha; y1=0; rho=1;
-            pppp=0; absTol=1e-20;
+            alpha=newX; Psi_s=alpha; y1=0; rho=1; pppp=0;
             while(true)
                 pppp=pppp+1;
 
@@ -90,21 +87,20 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 y1 = y1 - (Psi_s-alpha);
 
-                set(0,'CurrentFigure',123);
-                semilogy(pppp,difAlpha,'r.',pppp,difPsi_s,'g.'); hold on;
-                drawnow;
+                %set(0,'CurrentFigure',123);
+                %semilogy(pppp,difAlpha,'r.',pppp,difPsi_s,'g.'); hold on;
+                %drawnow;
 
                 if(difAlpha<absTol && difPsi_s<absTol) break; end
             end
             % end of the ADMM inside the FISTA
         end
-        function p = innerADMM_v5(obj,newX,t,u)
+        function p = innerADMM_v5(obj,newX,t,u,absTol)
             % solve 0.5*t*||α-α_0||_2 + u*||Ψ'*α||_1 + I(α>=0) 
             % α_0 is newX;
             % start an ADMM inside the FISTA
-            alpha=newX; p=alpha; p(p<0)=0;
-            y1=0; rho=1;
-            pppp=0; absTol=1e-20;
+            alpha=newX; p=alpha; p(p<0)=0; y1=alpha-p;
+            rho=1; pppp=0;
             %while(pppp<1)
             while(true)
                 pppp=pppp+1;
@@ -118,9 +114,9 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 y1 = y1 +alpha-p;
 
-                set(0,'CurrentFigure',123);
-                semilogy(pppp,difAlpha,'b.',pppp,difP,'c.'); hold on;
-                drawnow;
+                %set(0,'CurrentFigure',123);
+                %semilogy(pppp,difAlpha,'b.',pppp,difP,'c.'); hold on;
+                %drawnow;
 
                 if(difAlpha<absTol && difP<absTol) break; end
             end
