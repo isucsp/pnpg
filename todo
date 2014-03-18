@@ -20,3 +20,5 @@ iterations.
 
 FISTA_NNL1 and FISTA_ADMM_NNL1 are almost equivalent, which means with/without
 line search, their convergence curve are the same.
+
+Restarting in FISTA is not better.

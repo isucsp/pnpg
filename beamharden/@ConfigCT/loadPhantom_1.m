@@ -46,6 +46,7 @@ function loadPhantom_1(obj)
             zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
         obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
     else
+        % u=1e-4 is recommended for this image
         obj.Ts=0.023;
         conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
         conf.np=obj.prjNum; conf.prjFull=obj.prjFull;

@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sun 16 Mar 2014 11:47:51 PM CDT
+%   $Revision: 0.1 $ $Date: Mon 17 Mar 2014 10:13:14 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -27,7 +27,8 @@ if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
-if(~isfield(opt,'thresh')) opt.thresh=1e-14; end
+% Threshold for relative difference between two consecutive α
+if(~isfield(opt,'thresh')) opt.thresh=1e-9; end
 if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
@@ -82,26 +83,25 @@ if(opt.continuation)
 else alphaStep.u = opt.u;
 end
 
-if(~isfield(opt,'fOpt'))
-    opt.fOpt = alphaStep.func(opt.trueAlpha) + opt.u*sum(abs(Psit(opt.trueAlpha)));
-end
-
 tic; p=0; str=''; strlen=0;
-figure(123); figure(386);
+%figure(123); figure(386);
 while(true)
     p=p+1;
+    if(mod(p,1000)==0) alphaStep.u=alphaStep.u*0.1; end
     str=sprintf([str '\np=%d'],p);
     
     alphaStep.main();
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
-    out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))^2/length(alpha(:));
     out.alphaSearch(p) = alphaStep.ppp;
-    if(p>1) out.relDifCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
+
+    out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))/norm(alpha);
+    if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
+
     alpha = alphaStep.alpha;
 
-    if(opt.continuation && p>1 && out.relDifCost(p)<opt.contCrtrn && ...
+    if(opt.continuation && p>1 && out.difCost(p)<opt.contCrtrn && ...
             alphaStep.u*opt.contShrnk>opt.u)
         alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
         fprintf('\nnew u= %g\n',alphaStep.u);
@@ -113,17 +113,17 @@ while(true)
     end
 
     str=sprintf([str ' cost=%-10g RSE=%-10g',...
-        ' dAlpha=%-10g aSearch=%d'],...
+        ' difAlpha=%-10g aSearch=%d'],...
         out.cost(p),out.RMSE(p), out.difAlpha(p), ...
         alphaStep.ppp);
     if(p>1)
-        str=sprintf([str ' pdObjAlpha=%g'], out.relDifCost(p));
+        str=sprintf([str ' difCost=%g'], out.difCost(p));
     end
     
     if(opt.showImg && p>1 && opt.debugLevel>=2)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        semilogy(p-1:p,(out.cost(p-1:p)-opt.fOpt)/opt.fOpt,'k'); hold on;
+        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
         if(isfield(opt,'trueAlpha'))

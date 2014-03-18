@@ -28,7 +28,7 @@
 % =                                  Inputs                                   =
 % =============================================================================
 % Required Inputs:
-%	y               Degraded observations.  For this documenation, we say
+%   y               Degraded observations.  For this documenation, we say
 %                   that y has m total elements.
 %
 %   A               Sensing / observation matrix.  For this documentation, 
@@ -104,25 +104,6 @@
 %                   the other output variables, the length of solutionpath
 %                   will be iter + 1.
 %
-
-clc
-display('Now SPIRAL_G');
-tau_SPIRAL=1e-5*max(abs(Ht(y)));
-maxiter=2000;
-miniter=0;
-stopcriterion=5;
-tolerance=thresh;
-verbose=100;
-z_init=zeros(m,1);
-subtolerance=1e-5;
-[Img1D_SPIRAL,Count_SPIRAL]=SPIRALTAP_mod(y,Phi,tau_SPIRAL,'penalty','ONB','AT',Phit,'W',W,'WT',Wt,'noisetype','gaussian',...
-    'initialization',z_init,'maxiter',maxiter,'miniter',miniter,'stopcriterion',stopcriterion,'tolerance',tolerance,...
-    'subtolerance',subtolerance,'monotone',0,'saveobjective',0,'savereconerror',0,'savecputime',1,...
-    'savesolutionpath',0,'verbose',verbose);
-Img2D_SPIRAL=reshape(Img1D_SPIRAL,[my mx]);
-PSNR_SPIRAL=psnr(Img2D,Img2D_SPIRAL,scale);
-error_SPIRAL(ii)=norm(Img2D_SPIRAL(:)-Img2D(:))^2/m;
-
 
 function [x, varargout] = SPIRALTAP(y, A, tau, varargin)
 % ==== Set default/initial parameter values ====
@@ -562,6 +543,9 @@ if savereconerror
         case 1 % Relative absolute error
             normtrue = sum( abs(truth(:)) );
             computereconerror = @(x) sum( abs (x(:) + mu - truth(:)) )./normtrue;
+        case 2  % Relative Square Error
+            normtrue = norm(truth(:));
+            computereconerror = @(x) 1-(x(:)'*truth(:)/norm(x(:))/normtrue)^2;
     end
     reconerror(iter) = computereconerror(xinit);
 end

@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 16 Mar 2014 11:47:34 PM CDT
+%   $Revision: 0.2 $ $Date: Mon 17 Mar 2014 11:03:43 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -30,19 +30,15 @@ if(any(runList==0)) % reserved for debug and for the best result
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    conf.imageName='phantom'; %'castSim'; %'phantom' %'twoMaterials'; 
 
-    opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    
-    opt.fOpt = 0.189830191072360;       % Optimum of the cost function
-    opt.nu=0;
+    opt.alphaStep='FISTA_L1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt=conf.setup(opt);
     opt.u=1e-4;
     opt.thresh=1e-14;
-    opt.debugLevel=5;
-    opt=conf.setup(opt);
-    opt.fOpt
+    opt.maxItr=1e3;
+    opt.debugLevel=6;
     %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
-    %opt=conf.loadLasso(opt);
     prefix='Lasso';
     fprintf('%s, i=%d, j=%d\n',prefix,i,j);
     initSig = conf.FBP(conf.y);
@@ -54,6 +50,8 @@ if(any(runList==0)) % reserved for debug and for the best result
     save(filename,'out0','-append');
 end
 
+% This section is used to compare different methods for lasso *with* 
+% non-negativity constraints
 if(any(runList==1)) % FISTA_NNL1
     [conf, opt] = defaultInit();
     i=1; j=1;
@@ -62,16 +60,50 @@ if(any(runList==1)) % FISTA_NNL1
     conf.prjFull = 360/6;
     conf.prjNum = conf.prjFull/2;
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    conf.imageName='phantom'; %'castSim'; %'phantom' %'twoMaterials'; 
 
-    opt.alphaStep='FISTA_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    
-    opt.fOpt = 0.189830191072360;       % Optimum of the cost function
-    opt.nu=0;
-    opt.u=1e-4;
-    opt.thresh=1e-14;
-    opt.debugLevel=5;
     opt=conf.setup(opt);
+
+    opt.u=1e-4;
+    opt.debugLevel=1;
+    opt.alphaStep='FISTA_ADMM_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
+    %opt=conf.loadLasso(opt);
+    prefix='Lasso';
+    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
+    initSig = conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
+    opt.maxItr=1000;
+    %initSig = out1.alpha;
+    opt.u=1e-2;
+    for i=1:9
+        opt.u=opt.u*0.1;
+        out2{i}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        initSig=out2{i}.alpha;
+        save(filename,'out2','-append');
+    end
+end
+
+% This section is used to compare different methods for lasso *without* 
+% non-negativity constraints
+if(any(runList==2))
+    [conf, opt] = defaultInit();
+    i=1; j=1;
+    conf.imgSize = 256;
+    conf.prjWidth = 256;
+    conf.prjFull = 360/6;
+    conf.prjNum = conf.prjFull/2;
+    conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
+    conf.imageName='phantom'; %'castSim'; %'phantom' %'twoMaterials'; 
+
+    opt=conf.setup(opt);
+
+    opt.u=1e-4;
+    opt.debugLevel=6;
+    opt.alphaStep='FISTA_L1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    
     %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
     %opt=conf.loadLasso(opt);
     prefix='Lasso';
@@ -80,10 +112,27 @@ if(any(runList==1)) % FISTA_NNL1
     initSig = initSig(opt.mask~=0);
     %initSig = opt.trueAlpha;
     %initSig = out0.alpha;
-    out1=lasso(conf.Phi,conf.Phit,...
+    out2=lasso(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out1','-append');
+    save(filename,'out2','-append');
+
+    subtolerance=1e-6;
+    [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
+        out.solutionpath] = ...
+        SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+        'AT',conf.Phit,'W',W,'WT',Wt,'noisetype','gaussian',...
+        'initialization',initSig,'maxiter',opt.maxItr,...
+        'miniter',0,'stopcriterion',3,...
+        'tolerance',opt.thresh,...
+        'subtolerance',subtolerance,'monotone',0,...
+        'saveobjective',1,'savereconerror',1,'savecputime',1,...
+        'reconerrortype',2,
+        'savesolutionpath',1,'verbose',100);
 end
+
+if(any(runList==1002))
+end
+
 end
 
 % Don't change the default values arbitrarily, it will cause the old code 
@@ -92,7 +141,7 @@ function [conf, opt] = defaultInit()
     conf = ConfigCT();
     conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
     conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-    conf.PhiMode='basic'; %'filtered'; %'weighted'; %
+    conf.PhiMode='cpuPrj'; %'filtered'; %'weighted'; %
     conf.PhiModeGen='parPrj'; %'cpuPrj'; %'basic';
 
     opt.continuation = false;
