@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Mon 17 Mar 2014 10:13:14 PM CDT
+%   $Revision: 0.1 $ $Date: Tue 18 Mar 2014 01:07:13 AM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -87,7 +87,6 @@ tic; p=0; str=''; strlen=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    if(mod(p,1000)==0) alphaStep.u=alphaStep.u*0.1; end
     str=sprintf([str '\np=%d'],p);
     
     alphaStep.main();

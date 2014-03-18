@@ -7,9 +7,9 @@ classdef FISTA_ADMM_NNL1 < Methods
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
-        admmTol=1e-9;
+        admmTol=1e-8;
         cumu=0;
-        cumuTol=2;
+        cumuTol=4;
     end
     methods
         function obj = FISTA_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)

@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 17 Mar 2014 11:03:43 PM CDT
+%   $Revision: 0.2 $ $Date: Tue 18 Mar 2014 01:23:49 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -112,22 +112,49 @@ if(any(runList==2))
     initSig = initSig(opt.mask~=0);
     %initSig = opt.trueAlpha;
     %initSig = out0.alpha;
+
     out2=lasso(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out2','-append');
+end
 
+if(any(runList==3)) % SPIRAL-G
+    [conf, opt] = defaultInit();
+    i=1; j=1;
+    conf.imgSize = 256;
+    conf.prjWidth = 256;
+    conf.prjFull = 360/6;
+    conf.prjNum = conf.prjFull/2;
+    conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
+    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+
+    opt=conf.setup(opt);
+
+    opt.u=1e-4;
+    opt.debugLevel=1;
+    initSig = conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    %initSig = opt.trueAlpha;
+    %initSig = out1.alpha;
+    opt.alphaStep='FISTA_ADMM_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     subtolerance=1e-6;
+    out=[];
     [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
         out.solutionpath] = ...
         SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
-        'AT',conf.Phit,'W',W,'WT',Wt,'noisetype','gaussian',...
+        'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
         'initialization',initSig,'maxiter',opt.maxItr,...
         'miniter',0,'stopcriterion',3,...
-        'tolerance',opt.thresh,...
-        'subtolerance',subtolerance,'monotone',0,...
+        'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+        'subtolerance',subtolerance,'monotone',1,...
         'saveobjective',1,'savereconerror',1,'savecputime',1,...
-        'reconerrortype',2,
+        'reconerrortype',2,...
         'savesolutionpath',1,'verbose',100);
+    out_phantom_1_spiral_monotone=out;
+    save(filename,'out_phantom_1_spiral_monotone','-append');
+    out_phantom_1_FISTA_ADMM_NNL1_a8=lasso(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out_phantom_1_FISTA_ADMM_NNL1_a8','-append');
 end
 
 if(any(runList==1002))

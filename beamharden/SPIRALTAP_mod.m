@@ -121,9 +121,9 @@ recenter = 0;
 mu = 0;
 
 % Add a path to the denoising methods folder
-spiraltapdir = which('SPIRALTAP');
-[spiraltapdir dummy] = fileparts(spiraltapdir);
-path([spiraltapdir,'/denoise'],path)
+%spiraltapdir = which('SPIRALTAP');
+%[spiraltapdir dummy] = fileparts(spiraltapdir);
+%path([spiraltapdir,'/denoise'],path)
 
 % ---- Noise Type ----
 noisetype = 'Poisson';
@@ -394,12 +394,12 @@ switch lower(penalty)
                     'method to compute W''*x matrix-vector products.'])
             else % WT was provided
         if isa(WT, 'function_handle') % W and WT are function calls
-            try dummy = y + A(WT(W(AT(y))));
+            try dummy = y + A(W(WT(AT(y))));
             catch exception; 
                 error('Size incompatability between ''W'' and ''WT''.')
             end
         else % W is a function call, WT is a matrix        
-            try dummy = y + A(WT*W(AT(y)));
+            try dummy = y + A(W*WT(AT(y)));
             catch exception
                 error('Size incompatability between ''W'' and ''WT''.')
             end
