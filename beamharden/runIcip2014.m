@@ -49,7 +49,7 @@ if(any(runList==0)) % reserved for debug and for the best result
 
     opt=conf.setup(opt);
     initSig = conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0)*0;
+    initSig = initSig(opt.mask~=0);
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');

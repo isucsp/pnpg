@@ -12,7 +12,7 @@ function loadCastSim(obj)
     obj.epsilon = args.epsilon(:);
     obj.trueKappa = args.kappa(:);
     obj.Ts = args.Ts;
-
+        
     daub = 2;
     obj.wav=daubcqf(daub);
     obj.dwt_L=6;        %levels of wavelet transform
@@ -31,5 +31,12 @@ function loadCastSim(obj)
         end
     end
     obj.mask = mask; obj.maskk= maskk;
+    
+    % before this, make sure max(CTdata)==1
+    temp=size(obj.CTdata,1);
+    obj.CTdata=[zeros(ceil((obj.prjWidth-temp)/2),obj.prjNum);...
+        obj.CTdata;...
+        zeros(floor((obj.prjWidth-temp)/2),obj.prjNum)];
+    obj.y=-log(obj.CTdata(:)/max(obj.CTdata(:)));
 end
 

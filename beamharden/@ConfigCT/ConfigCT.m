@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Fri 14 Mar 2014 12:02:10 AM CDT
+% $Revision: 0.2 $ $Date: Tue 18 Mar 2014 09:59:35 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -66,7 +66,23 @@ classdef ConfigCT < handle
         end
 
         function opt=setup(obj,opt)
-            loadMeasurements(obj);
+            fprintf('Loading data...\n');
+            switch lower(obj.imageName)
+                case 'phantom_1'
+                    loadPhantom_1(obj);
+                case 'phantom'
+                    loadPhantom(obj);
+                case lower('castSim')
+                    loadCastSim(obj);
+                case lower('twoMaterials')
+                    loadTwoMaterials(obj);
+                case 'realct'
+                    loadRealCT(obj);
+                case 'pellet'
+                    loadPellet(obj);
+                case 'lasso'
+                    loadLasso(obj);
+            end
             genOperators(obj);
 
             if(obj.beamharden)
@@ -167,26 +183,6 @@ classdef ConfigCT < handle
                     return;
             end
         end
-        function loadMeasurements(obj)
-            fprintf('Loading data...\n');
-            switch lower(obj.imageName)
-                case 'phantom_1'
-                    loadPhantom_1(obj);
-                case 'phantom'
-                    loadPhantom(obj);
-                case lower('castSim')
-                    loadCastSim(obj);
-                case lower('twoMaterials')
-                    loadTwoMaterials(obj);
-                case 'realct'
-                    loadRealCT(obj);
-                case 'pellet'
-                    loadPellet(obj);
-                case 'lasso'
-                    loadLasso(obj);
-            end
-        end
-
         function fan2parallel()
             [temp1, ploc1, ptheta1]=...
                 fan2paraM(CTdata,dist*Ts,'FanSensorGeometry','line',...
