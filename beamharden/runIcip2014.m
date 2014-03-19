@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 18 Mar 2014 09:16:04 PM CDT
+%   $Revision: 0.2 $ $Date: Tue 18 Mar 2014 11:10:52 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -53,6 +53,37 @@ if(any(runList==0)) % reserved for debug and for the best result
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
+end
+
+if(any(runList==0.01)) % reserved for debug and for the best result
+    [conf, opt] = defaultInit();
+    i=1; j=1;
+    conf.prjFull = 80;
+    conf.prjNum = conf.prjFull/2;
+    conf.imgSize = 1024;
+    conf.prjWidth = 1024;
+    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
+    %'realct'; 'pellet'; %
+    opt.muLustig=logspace(-15,-6,5);
+    opt.muLustig=opt.muLustig(3); 3.1623e-11;
+    opt.spectBasis = 'dis';
+    opt.skipIe=true;
+    %opt.continuation = true;
+    opt.u = 1e-4;
+    opt.mu=1;
+    opt.debugLevel=1;
+    opt.maxIeSteps = 100;
+    opt=conf.setup(opt);
+    initSig = conf.FBP(conf.y);
+    initSig = initSig(opt.mask~=0);
+    opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    out_knownIe_FISTA=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out_knownIe_FISTA','-append');
+    opt.alphaStep = 'NCG_PR';
+    out_knownIe_NCG_PR=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out_knownIe_NCG_PR','-append');
 end
 
 if(any(runList==0.1)) % reserved for debug and for the best result
