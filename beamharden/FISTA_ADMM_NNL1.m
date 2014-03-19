@@ -52,7 +52,6 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 % start of line Search
                 obj.ppp=0;
-                %while(obj.ppp<1)
                 while(true)
                     obj.ppp = obj.ppp+1;
                     newX = y - (grad)/(obj.t);

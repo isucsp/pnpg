@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 13 Mar 2014 01:49:51 PM CDT
+%   $Revision: 0.2 $ $Date: Tue 18 Mar 2014 09:16:04 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin~=0 && ~isempty(runList))
@@ -28,12 +28,14 @@ end
 if(any(runList==0)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
-    conf.imgSize = 1024;
-    conf.prjWidth = 1024;
-    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
+    conf.prjFull = 360/6;
+    conf.prjNum = conf.prjFull/2;
     conf.imgSize = 256;
     conf.prjWidth = 256;
     conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
+    conf.imgSize = 1024;
+    conf.prjWidth = 1024;
+    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
     %'realct'; 'pellet'; %
     opt.muLustig=logspace(-15,-6,5);
     opt.muLustig=opt.muLustig(3); 3.1623e-11;
@@ -41,20 +43,13 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.skipIe=true;
     %opt.continuation = true;
     opt.u = 1e-4;
-    opt.alphaStep='FISTA_L1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    conf.prjFull = 360/6;
-    conf.prjNum = conf.prjFull/2;
-    conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
-    %conf.PhiModeGen='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
+    opt.mu=1;
+    opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     opt.maxIeSteps = 100;
+
     opt=conf.setup(opt);
-    prefix='BeamHard';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    conf.y = conf.Phi(opt.trueAlpha);
     initSig = conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0)*0;
-    %initSig = out0.alpha;
-    %initSig = initSig'*opt.trueAlpha/(norm(opt.trueAlpha)^2)*opt.trueAlpha;
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
@@ -632,9 +627,10 @@ function [conf, opt] = defaultInit()
     conf = ConfigCT();
     conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
     conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-    conf.PhiMode='basic'; %'filtered'; %'weighted'; %
-    conf.PhiModeGen='parPrj'; %'cpuPrj'; %'basic';
+    conf.PhiMode='cpuPrj'; %'filtered'; %'weighted'; %
+    conf.PhiModeGen='cpuPrj'; %'cpuPrj'; %'basic';
     %
+    conf.beamharden=true;
     conf.spark=0;
 
     % the higher, the more information. Set to 0 to turn off.

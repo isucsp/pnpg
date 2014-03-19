@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 13 Mar 2014 04:05:31 PM CDT
+%   $Revision: 0.3 $ $Date: Tue 18 Mar 2014 09:16:28 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -32,7 +32,10 @@ interiorPointAlpha=0; prpCGAlpha=1;
 interiorPointIe=0; activeSetIe=1;
 if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=5; end
+% default to not use nonnegative constraints.
+if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
+if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=0; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'skipIe')) opt.skipIe=0; end
@@ -40,12 +43,16 @@ if(~isfield(opt,'skipIe')) opt.skipIe=0; end
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='exponential'; end
 if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
-if(~isfield(opt,'showImg')) opt.showImg=0; end
+if(~isfield(opt,'showImg')) opt.showImg=false; end
+if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'visible')) opt.visible=1; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=0.5; end
+% Threshold for relative difference between two consecutive α
+if(~isfield(opt,'thresh')) opt.thresh=1e-9; end
+if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -53,14 +60,9 @@ if(isfield(opt,'trueAlpha'))
     trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
 end
 
-if(opt.showImg)
-    figRes=1000; figure(figRes);
-    %if(~opt.skipAlpha) figAlpha=1001; figure(figAlpha); else figAlpha=0; end
-    if(~opt.skipIe) figIe=1002; figure(figIe); else figIe=0; end
-else
-    figRes=0; figAlpha=0; figIe=0;
-end
-figAlpha=0;
+if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
+if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
+if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)
     case 'uniform'
@@ -130,33 +132,23 @@ polyIout = polymodel.polyIout;
 % idx = find(temp==min(temp));
 % Ie = Ie*0;
 % Ie(idx) = exp(-mean(y+log(R(:,idx))));
-
-if(interiorPointIe) 
-    thresh2=1; t2Lim=1e-10;
-else thresh2=1e-8; end
-
 %max(Imea./(exp(-atten(Phi,alpha)*mu')*Ie))
-if(interiorPointAlpha) 
-    nonneg=@nonnegLogBarrier; 
-else 
-    nonneg=@nonnegPen; 
+
+if(interiorPointAlpha) nonneg=@nonnegLogBarrier; 
+else nonneg=@nonnegPen; 
 end
+
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
-        alphaStep = Methods(3,alpha);
-        alphaStep.fArray{2} = nonneg;
+        alphaStep = NCG_PR(3,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
         if(isfield(opt,'muLustig'))
             fprintf('use lustig approximation for l1 norm\n');
-            alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
+            alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
         if(isfield(opt,'muHuber'))
             fprintf('use huber approximation for l1 norm\n');
-            alphaStep.fArray{3} = @(aaa) huber(aaa,opt.muHuber,Psi,Psit);
+            alphaStep.fArray{3} = @(aaa) Utils.huber(aaa,opt.muHuber,Psi,Psit);
         end
-        alphaStep.coef(1:2) = [1; 1];
-        alphaStep.maxStepNum = opt.maxAlphaSteps;
-        alphaStep.stepShrnk = opt.stepShrnk;
-        out.fVal =zeros(opt.maxItr,3);
     case {lower('SpaRSA')}
         alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
@@ -166,30 +158,17 @@ switch lower(opt.alphaStep)
         alphaStep.Psi = Psi;
         alphaStep.Psit = Psit;
         alphaStep.M = 5;
-        out.fVal =zeros(opt.maxItr,3);
     case lower('FISTA_L1')
         alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = nonneg;
-        out.fVal=zeros(opt.maxItr,3);
+    case lower('FISTA_ADMM_NNL1')
+        alphaStep=FISTA_ADMM_NNL1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        out.fVal=zeros(opt.maxItr,2);
     case {lower('ADMM_L1')}
         alphaStep = ADMM_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        alphaStep.coef(1:2) = [1; 0];
-        alphaStep.fArray{2} = nonneg;
-        out.fVal=zeros(opt.maxItr,3);
 end
-out.llI         =zeros(opt.maxItr,1);
-out.difAlpha    =zeros(opt.maxItr,1);
-out.cost        =zeros(opt.maxItr,1);
-out.course      = cell(opt.maxItr,1);
-out.time        =zeros(opt.maxItr,1);
-out.IeSteps     =zeros(opt.maxItr,1);
-out.RMSE        =zeros(opt.maxItr,1);
-out.difObjAlpha =zeros(opt.maxItr,1);
-out.difObjIe    =zeros(opt.maxItr,1);
+alphaStep.fArray{2} = @Utils.nonnegPen;
+alphaStep.coef(1:2) = [1; opt.nu;];
 
 PsitPhitz=Psit(Phit(y));
 PsitPhit1=Psit(Phit(ones(length(y),1)));
@@ -219,40 +198,39 @@ else
 end
 
 tic; p=0; str=''; strlen=0;
-while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skipIe)) )
+while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1;
     str=sprintf([str '\np=%d '],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
-        %alphaStep.fArray{1} = @(aaa) linearModel(aaa,Phi,Phit,y);
         alphaStep.main();
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
-        out.difAlpha(p) = norm(alphaStep.alpha(:)-alpha(:))^2;
-        %out.alphaSearch(p) = alphaStep.ppp;
+        out.alphaSearch(p) = alphaStep.ppp;
+
+        out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))/norm(alpha);
+        if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
         alpha = alphaStep.alpha;
-        if(opt.continuation && p>1 && ...
-                abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.contCrtrn && ...
+
+        if(opt.continuation && p>1 && out.difCost(p)<opt.contCrtrn && ...
                 alphaStep.u*opt.contShrnk>opt.u)
             alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             fprintf('\nnew u= %g\n',alphaStep.u);
             alphaStep.warned = true;
         end
-        %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
         end
 
-        str=sprintf([str 'cost=%-10g RSE=%-10g ',...
-            'dAlpha=%-10g aSearch=%d '],...
+        str=sprintf([str ' cost=%-10g RSE=%-10g',...
+            ' difAlpha=%-10g aSearch=%d'],...
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);
         if(p>1)
-            str=sprintf([str 'pdObjAlpha=%g%% '],...
-                (out.cost(p-1)-out.cost(p))/out.cost(p)*100);
+            str=sprintf([str ' difCost=%g'], out.difCost(p));
         end
     end
     % end optimizing over alpha
@@ -274,28 +252,13 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
             IeStep.zmf(1), IeStep.zmf(2), out.IeSteps(p));
     end
 
-    if(opt.showImg && p>1)
-        set(0,'CurrentFigure',figRes);
-        if(~opt.skipAlpha)
-            subplot(2,1,1);
-            semilogy(p-1:p,out.fVal(p-1:p,1),'r'); hold on;
-            if(length(out.fVal(p,:))>1)
-                semilogy(p-1:p,out.fVal(p-1:p,2),'g');
-            end
-            if(length(out.fVal(p,:))>2)
-                semilogy(p-1:p,out.fVal(p-1:p,3),'b');
-            end
-        end
-        if(~opt.skipIe)
-            semilogy(p-1:p,out.llI(p-1:p),'c'); hold on;
-            if(isfield(out,'penIe'))
-                semilogy(p-1:p,out.penIe(p-1:p),'m:');
-            end
-        end
-        semilogy(p-1:p,out.cost(p-1:p),'k');
+    if(opt.showImg && p>1 && opt.debugLevel>=2)
+        set(0,'CurrentFigure',figCost);
+        if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
+        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
         title(sprintf('cost(%d)=%g',p,out.cost(p)));
 
-        if(~opt.skipAlpha && isfield(opt,'trueAlpha'))
+        if(isfield(opt,'trueAlpha'))
             subplot(2,1,2);
             semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
             title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
@@ -303,24 +266,30 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
         drawnow;
     end
     
-    if(figIe && ~opt.skipIe)
+    if(~opt.skipIe && opt.debugLevel>=3)
         set(0,'CurrentFigure',figIe);
         polymodel.plotSpectrum(Ie);
         title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end
-    
-    if(~opt.skipAlpha && figAlpha)
+    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
+        set(0,'CurrentFigure',figRes);
+        style={'r','g','b'};
+        for i=1:length(out.fVal(p,:))
+            subplot(3,1,i);
+            semilogy(p-1:p,out.fVal(p-1:p,i),style{i}); hold on;
+        end
+        drawnow;
+    end
+    if(opt.debugLevel>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
-        %showImgMask(Qmask-Qmask1/2,opt.mask);
-        %title(['size of Q=' num2str(length(Q))]);
         if(~isempty(IeStep.zmf))
             title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
         end
         drawnow;
     end
-    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    if(opt.visible && p>1)
+    
+    if(opt.debugLevel>=1)
         if(alphaStep.warned || IeStep.warned)
             fprintf('%s',str);
         else
@@ -331,7 +300,7 @@ while( ~((alphaStep.converged || opt.skipAlpha) && (IeStep.converged || opt.skip
     end
     out.time(p)=toc;
     if(p >= opt.maxItr) break; end
-    if(p>1 && abs(out.cost(p)-out.cost(p-1))/out.cost(p)<opt.thresh)
+    if(p>1 && out.difAlpha(p)<opt.thresh)
         break
     end
 end

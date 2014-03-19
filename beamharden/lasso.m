@@ -17,13 +17,13 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Tue 18 Mar 2014 01:07:13 AM CDT
+%   $Revision: 0.1 $ $Date: Tue 18 Mar 2014 04:55:17 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'showImg')) opt.showImg=false; end
-if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
+if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
@@ -106,7 +106,6 @@ while(true)
         fprintf('\nnew u= %g\n',alphaStep.u);
         alphaStep.warned = true;
     end
-    %if(out.stepSz~=s1) fprintf('lineSearch is useful!!\n'); end
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
     end
