@@ -71,7 +71,7 @@ classdef Methods < handle
                 for j = 1:obj.n
                     hh = hh + obj.hArray{j}(x,opt)*obj.coef(j);
                 end
-                if(length(hh)==1 && hh<=0)
+                if(length(hh)==1 && hh<0)
                     warning(['\n%s: obj function is non-convex over alpha, '...
                         'x''*H*x=%g, replace it by 1'],class(obj),hh);
                     keyboard

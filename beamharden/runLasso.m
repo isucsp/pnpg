@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Tue 18 Mar 2014 01:23:49 AM CDT
+%   $Revision: 0.2 $ $Date: Mon 24 Mar 2014 12:49:05 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -157,28 +157,33 @@ if(any(runList==3)) % SPIRAL-G
     save(filename,'out_phantom_1_FISTA_ADMM_NNL1_a8','-append');
 end
 
-if(any(runList==1002))
-end
+if(any(runList==999))
+    % compare DORE version and FISTA for naive lasso
+    conf=ConfigCT();
+    conf.beamharden=false;
+    conf.prjFull = 360/6;
+    conf.prjNum = conf.prjFull/2;
+    conf.imgSize = 256;
+    conf.prjWidth = 256;
+    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
 
-end
-
-% Don't change the default values arbitrarily, it will cause the old code 
-% unrunnable
-function [conf, opt] = defaultInit()
-    conf = ConfigCT();
-    conf.maskType='CircleMask'; %'cvxHull'; %'TightMask'; %
-    conf.imageName='castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-    conf.PhiMode='cpuPrj'; %'filtered'; %'weighted'; %
-    conf.PhiModeGen='parPrj'; %'cpuPrj'; %'basic';
-
-    opt.continuation = false;
-    % from 0 to 7, the higher, the more information is printed. Set to 0 to turn off.
-    opt.debugLevel = 5;
-    opt.thresh=1e-10;
+    opt=conf.setup();
+    opt.thresh=1e-14;
     opt.maxItr=2e3;
-    opt.nu=0;           % nonzero nu means to use nonnegativity constraints
-    opt.u=1e-4;         % nonzero u means using sparse
-    %opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
+    opt.debugLevel=5;
     opt.showImg=true;
+    opt.alphaStep='FISTA_L1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.u=1e-4;
+    initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+    %initSig=opt.trueAlpha;
+    out999=lasso(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out999','-append');
+    % Conlusion: Double overrelaxation is worse than one overrelaxation.  
+    % when there is not sparsity constraints. And one overrelaxation is 
+    % equivalent to FISTA. Of course, all are better than gradient method.
+    %
+    % When apply the sparsity constraints, 
+end
 end
 

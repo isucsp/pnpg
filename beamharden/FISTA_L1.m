@@ -9,6 +9,8 @@ classdef FISTA_L1 < Methods
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
+        cumu=0;
+        cumuTol=4;
         main;
     end
     methods
@@ -19,14 +21,17 @@ classdef FISTA_L1 < Methods
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
             obj.preAlpha=alpha;
-            main=main_DORE;
+            obj.prePreAlpha=alpha;
+            obj.main=@obj.main_FISTA;
         end
         function out = main_FISTA(obj)
             obj.p = obj.p+1; obj.warned = false;
             for pp=1:obj.maxItr
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                test=(obj.theta -1)/temp;
                 obj.theta = temp;
+                %y=obj.alpha;
                 %y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
                 obj.preAlpha = obj.alpha;
                 si = obj.Psit(y);
@@ -80,7 +85,8 @@ classdef FISTA_L1 < Methods
                 %    obj.theta=0; obj.preAlpha=obj.alpha;
                 %end
                 obj.cost = temp;
-                %set(0,'CurrentFigure',123);
+                set(0,'CurrentFigure',123);
+                plot(obj.p,test,'.'); hold on;
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<obj.thresh) break; end
@@ -96,6 +102,7 @@ classdef FISTA_L1 < Methods
                 if(temp==0) c=0;
                 else c=-grad'*(obj.alpha-obj.preAlpha)/temp;
                 end
+                test=c;
                 alphaBar=obj.alpha+c*(obj.alpha-obj.preAlpha);
                 [oldCost,grad,hessian] = obj.func(alphaBar);
                 temp=hessian(alphaBar-obj.prePreAlpha,2);
@@ -103,6 +110,8 @@ classdef FISTA_L1 < Methods
                 else c=-grad'*(alphaBar-obj.prePreAlpha)/temp;
                 end
                 y=alphaBar+c*(alphaBar-obj.prePreAlpha);
+                y=alphaBar;
+                
                 obj.prePreAlpha=obj.preAlpha; obj.preAlpha=obj.alpha;
 
                 si = obj.Psit(y);
@@ -119,6 +128,7 @@ classdef FISTA_L1 < Methods
                 if(obj.t==-1)
                     [oldCost,grad,hessian] = obj.func(y);
                     obj.t = hessian(grad,2)/(grad'*grad);
+                    if(isnan(obj.t)) obj.t=1; end
                 else
                     [oldCost,grad] = obj.func(y);
                 end
@@ -133,7 +143,7 @@ classdef FISTA_L1 < Methods
                     newX = obj.Psi(newSi);
                     newCost=obj.func(newX);
 
-                    if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2))
+                    if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -156,7 +166,8 @@ classdef FISTA_L1 < Methods
                 %    obj.theta=0; obj.preAlpha=obj.alpha;
                 %end
                 obj.cost = temp;
-                %set(0,'CurrentFigure',123);
+                set(0,'CurrentFigure',123);
+                plot(obj.p,test,'r.'); hold on;
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<obj.thresh) break; end
