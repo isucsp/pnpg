@@ -73,7 +73,8 @@ classdef Utils < handle
             if(nargout>=2)
                 g=Psi(s./sqrtSSqrMu);
                 if(nargout>=3)
-                    h = @(x,opt) hessian(xi./(sqrtSSqrMu.^3),x,opt);
+                    weight = xi./(sqrtSSqrMu.^3);
+                    h = @(x,opt) hessian(weight,x,opt);
                 end
             end
             function hh = hessian(weight,x,opt)

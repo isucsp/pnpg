@@ -1,41 +1,42 @@
 classdef FISTA_Simplex < handle
     properties
         stepShrnk = 0.5;
-        preAlpha=0;
+        preIe=0;
         preG=[];
         preY=[];
-        thresh=1e-4;
+        thresh=1e-9;
         maxItr=1e3;
         theta = 0;
         admmTol=1e-8;
+        zmf;
+        Ie
+        difIe
+        cost
+        func
+        p=0;
+        ppp
+        warned = false;
+        t=-1;
         cumu=0;
         cumuTol=4;
         B
         b
     end
     methods
-        function obj = FISTA_Simplex(B,b,alpha,maxItr,stepShrnk)
-            obj = obj@Methods(1,alpha);
+        function obj = FISTA_Simplex(B,b,Ie,maxItr,stepShrnk)
+            obj.Ie=Ie;
             obj.B = B; obj.b = b;
-            if(nargin>=3) obj.maxItr=maxItr; end
-            if(nargin>=4) obj.stepShrnk=stepShrnk; end
+            if(nargin>=4) obj.maxItr=maxItr; end
+            if(nargin>=5) obj.stepShrnk=stepShrnk; end
+            obj.preIe=obj.Ie;
         end
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
             for pp=1:obj.maxItr
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
-                y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                y=obj.Ie+(obj.theta -1)/temp*(obj.Ie-obj.preIe);
                 obj.theta = temp;
-                obj.preAlpha = obj.alpha;
-                %if(isempty(obj.preG))
-                %    [oldCost,grad,hessian] = obj.func(y);
-                %    obj.t = hessian(grad,2)/(grad'*grad);
-                %else
-                %    [oldCost,grad] = obj.func(y);
-                %    obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
-                %        ((y-obj.preY)'*(y-obj.preY)));
-                %end
-                %obj.preG = grad; obj.preY = y;
+                obj.preIe = obj.Ie;
                 if(obj.t==-1)
                     [oldCost,grad,hessian] = obj.func(y);
                     obj.t = hessian(grad,2)/(grad'*grad);
@@ -47,8 +48,7 @@ classdef FISTA_Simplex < handle
                 obj.ppp=0;
                 while(true)
                     obj.ppp = obj.ppp+1;
-                    newX = y - grad/obj.t;
-                    newX(newX<0)=0;
+                    newX = obj.adjust(y - grad/obj.t);
                     newCost=obj.func(newX);
                     if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2))
                         break;
@@ -63,19 +63,24 @@ classdef FISTA_Simplex < handle
                     end
                 else obj.cumu=0;
                 end
-                obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
-                obj.alpha = newX;
+                obj.difIe=norm(newX-obj.Ie)/norm(newX);
+                obj.Ie = newX;
                 %if(newCost>obj.cost)
-                %    obj.theta=0; obj.preAlpha=obj.alpha;
+                %    obj.theta=0; obj.preIe=obj.Ie;
                 %end
                 obj.cost = newCost;
-                %set(0,'CurrentFigure',123);
-                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
-                %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
-                %drawnow;
-                if(obj.difAlpha<obj.thresh) break; end
+                set(0,'CurrentFigure',123);
+                subplot(2,1,1); semilogy(pp,newCost,'.'); hold on;
+                subplot(2,1,2); semilogy(pp,obj.difIe,'.'); hold on;
+                drawnow;
+                if(obj.difIe<obj.thresh)
+                    set(0,'CurrentFigure',123);
+                    subplot(2,1,1); hold off;
+                    subplot(2,1,2); hold off;
+                    break;
+                end
             end
-            out = obj.alpha;
+            out = obj.Ie;
         end
         function Ie=adjust(obj,Ie)
             Ie(Ie<0)=0;

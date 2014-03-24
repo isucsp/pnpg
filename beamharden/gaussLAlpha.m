@@ -15,18 +15,18 @@ function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,Phi,Phit,polyIout,obj)
     if(nargout>=2)
         g=-Phit(Err.*sBLI./BLI);
         if(nargout>=3)
-            h=@(x,opt) hessian(Phi, Phit,...
-                (1-Err).*((sBLI./BLI).^2)+Err.*ssBLI./BLI,...
-                x,opt);
+            weight=(1-Err).*((sBLI./BLI).^2)+Err.*ssBLI./BLI;
+            h=@(x,opt) hessian(Phi, Phit, weight, x,opt);
         end
     end
 end
 
 function h = hessian(Phi, Phit, weight, x, opt)
-    y = Phi(x); h = weight.*y;
+    y = Phi(x);
     if(opt==1)
-        h = Phit(h);
+        h = Phit(weight.*y);
     else
-        h= y'*y;
+        h= weight'*(y.*y);
     end
 end
+

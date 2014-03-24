@@ -3,10 +3,13 @@ classdef FISTA_L1 < Methods
         stepShrnk = 0.5;
         preAlpha=0;
         preG=[];
+        prePreAlpha=0;
+        prePreG=[];
         preY=[];
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
+        main;
     end
     methods
         function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -16,8 +19,9 @@ classdef FISTA_L1 < Methods
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
             obj.preAlpha=alpha;
+            main=main_DORE;
         end
-        function out = main(obj)
+        function out = main_FISTA(obj)
             obj.p = obj.p+1; obj.warned = false;
             for pp=1:obj.maxItr
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
@@ -25,6 +29,82 @@ classdef FISTA_L1 < Methods
                 obj.theta = temp;
                 %y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
                 obj.preAlpha = obj.alpha;
+                si = obj.Psit(y);
+
+                %if(isempty(obj.preG))
+                %    [oldCost,grad,hessian] = obj.func(y);
+                %    obj.t = hessian(grad,2)/(grad'*grad);
+                %else
+                %    [oldCost,grad] = obj.func(y);
+                %    obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
+                %        ((y-obj.preY)'*(y-obj.preY)));
+                %end
+                %obj.preG = grad; obj.preY = y;
+                if(obj.t==-1)
+                    [oldCost,grad,hessian] = obj.func(y);
+                    obj.t = hessian(grad,2)/(grad'*grad);
+                else
+                    [oldCost,grad] = obj.func(y);
+                end
+                dsi = obj.Psit(grad);
+
+                % start of line Search
+                obj.ppp=0;
+                while(1)
+                    obj.ppp=obj.ppp+1;
+                    wi=si-dsi/obj.t;
+                    newSi=Utils.softThresh(wi,obj.u/obj.t);
+                    newX = obj.Psi(newSi);
+                    newCost=obj.func(newX);
+
+                    if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2))
+                        break;
+                    else obj.t=obj.t/obj.stepShrnk;
+                    end
+                end
+                if(obj.ppp==1)
+                    obj.cumu=obj.cumu+1;
+                    if(obj.cumu>=obj.cumuTol)
+                        obj.t=obj.t*obj.stepShrnk;
+                        obj.cumu=0;
+                    end
+                else obj.cumu=0;
+                end
+                obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
+                obj.alpha = newX;
+
+                % decide whether to restart
+                obj.fVal(obj.n+1) = sum(abs(newSi));
+                temp = newCost+obj.u*obj.fVal(obj.n+1);
+                %if(temp>obj.cost)
+                %    obj.theta=0; obj.preAlpha=obj.alpha;
+                %end
+                obj.cost = temp;
+                %set(0,'CurrentFigure',123);
+                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
+                %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
+                if(obj.difAlpha<obj.thresh) break; end
+            end
+            out = obj.alpha;
+        end
+
+        function out = main_DORE(obj)
+            obj.p = obj.p+1; obj.warned = false;
+            for pp=1:obj.maxItr
+                [oldCost,grad,hessian] = obj.func(obj.alpha);
+                temp=hessian(obj.alpha-obj.preAlpha,2);
+                if(temp==0) c=0;
+                else c=-grad'*(obj.alpha-obj.preAlpha)/temp;
+                end
+                alphaBar=obj.alpha+c*(obj.alpha-obj.preAlpha);
+                [oldCost,grad,hessian] = obj.func(alphaBar);
+                temp=hessian(alphaBar-obj.prePreAlpha,2);
+                if(temp==0) c=0;
+                else c=-grad'*(alphaBar-obj.prePreAlpha)/temp;
+                end
+                y=alphaBar+c*(alphaBar-obj.prePreAlpha);
+                obj.prePreAlpha=obj.preAlpha; obj.preAlpha=obj.alpha;
+
                 si = obj.Psit(y);
 
                 %if(isempty(obj.preG))

@@ -4,8 +4,9 @@ function [f,g,h] = gaussLI(Imea,A,Ie)
     if(nargout>1) g=A'*(Err./Ir); end
     if(nargout>2)
         %Err=Err*0;
-        %h=2*A'*(repmat((1-Err)./(Ir.^2),1,length(Ie)).*A);
-        h = @(x,opt) hessian(A,(1-Err)./(Ir.^2),x,opt);
+        %h=A'*(repmat((1-Err)./(Ir.^2),1,length(Ie)).*A);
+        weight=(1-Err)./(Ir.^2);
+        h = @(x,opt) hessian(A,weight,x,opt);
     end
     %if(nargout>3)
     %    zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
@@ -13,11 +14,13 @@ function [f,g,h] = gaussLI(Imea,A,Ie)
 end
 
 function h = hessian(A,weight,x,opt)
-    y = A*x; h=(repmat(weight,1,size(x,2)).*y);
+    y = A*x;
     if(opt==1)
-        h = A'*h;
+        h = A'*(weight.*y);
+    elseif(opt==2) h = weight'*(y.*y);
     else
-        h = y'*h;
+        n=length(weight);
+        h=y'*sparse(1:n,1:n,weight,n,n)*y;
     end
 end
 

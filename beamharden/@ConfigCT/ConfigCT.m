@@ -4,20 +4,20 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Tue 18 Mar 2014 09:59:35 PM CDT
+% $Revision: 0.2 $ $Date: Sun 23 Mar 2014 06:21:07 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
     properties
         imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-        maskType = 'CircleMask';
+        maskType = 'CircleMask'; %'cvxHull'; %'TightMask'; %
 
-        PhiMode = 'basic'; %'gpuPrj'; %'cpuPrj'; %'parPrj';
-        PhiModeGen = 'parPrj';
+        PhiMode = 'cpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
+        PhiModeGen='cpuPrj'; %'parPrj'; %'basic';
         imgSize = 1024;
         prjWidth = 1024;
-        prjNum = 180;
         prjFull = 360;
+        prjNum = 180;
         dSize = 1;
         effectiveRate = 1;
         dist = 0;       % default to be parallel beam
@@ -40,11 +40,11 @@ classdef ConfigCT < handle
         maskk
 
         % for generating polychromatic measurements
-        beamharden = false;
+        beamharden = true;
+        spark = false;
         trueIota
         epsilon
         trueKappa
-        spark   
 
         % generated data for further usage
         trueImg

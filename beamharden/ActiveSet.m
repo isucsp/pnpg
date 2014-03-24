@@ -4,12 +4,12 @@ classdef ActiveSet < handle
         func
         B
         b
-        epsilon = 1e-14;
+        epsilon = 1e-15;
         Q
         Z
         Ie
         zmf
-        maxStepNum = 1e2; % default max # of iterations
+        maxItr = 1e2; % default max # of iterations
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
@@ -22,12 +22,15 @@ classdef ActiveSet < handle
     end 
 
     methods
-        function obj = ActiveSet(B, b, Ie, epsilon)
+        function obj = ActiveSet(B,b,Ie,maxItr,stepShrnk)
             % Method help here
             if(nargin>0)
                 obj.B = B; obj.b = b;
                 if(nargin>=3)
-                    if(nargin>=4) obj.epsilon = epsilon; end
+                    if(nargin>=4)
+                        obj.maxItr = maxItr;
+                        if(nargin>=5) obj.stepShrnk=stepShrnk; end
+                    end
                     obj.init(Ie);
                 end
             end
@@ -40,18 +43,26 @@ classdef ActiveSet < handle
         end
 
         function main(obj)
-            pp=0; obj.converged = false; obj.course = [];
+            obj.converged = false; obj.course = [];
             obj.warned = false; needBreak = false;
-            while(pp<obj.maxStepNum)
-                pp=pp+1;
+            for pp=1:obj.maxItr
                 [oldCost,grad,hessian] = obj.func(obj.Ie);
-                ppp=1;
                 k = -1*ones(20,1); q = k;
-                while(ppp<20)
-                    ppp=ppp+1;
-                    zhz=hessian(obj.Z,2);
-                    if(min(eig(zhz))<0)
-                        keyboard
+                for ppp=2:20
+                    zhz=hessian(obj.Z,3);
+                    temp=eig(zhz);
+                    maxEig=max(abs(temp)); minEig=min(abs(temp));
+                    if((~isempty(temp)) && (min(temp)<0 || (minEig/maxEig)<obj.epsilon))
+                        if(~obj.warned)
+                            warning(['ActiveSet: current Hessian is not',...
+                                ' positive definite or has bad COND']);
+                            obj.warned = true;
+                        end
+                        while(min(temp)<0 || (minEig/maxEig)<obj.epsilon)
+                            zhz = zhz + eye(size(zhz))*(2*obj.epsilon*maxEig-minEig)/(1-2*obj.epsilon);
+                            temp=eig(zhz);
+                            maxEig=max(abs(temp)); minEig=min(abs(temp));
+                        end
                     end
 
                     deltaIe=obj.Z*(zhz\(obj.Z'*grad));
@@ -145,6 +156,7 @@ classdef ActiveSet < handle
                                 obj.Ie = obj.adjust(newIe);
                                 obj.cost = newCost;
                             else
+                                warning('ActiveSet: Ie converged\n');
                                 obj.cost = oldCost;
                                 obj.converged = true;
                             end
