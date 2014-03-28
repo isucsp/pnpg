@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 24 Mar 2014 12:49:05 AM CDT
+%   $Revision: 0.2 $ $Date: Mon 24 Mar 2014 02:16:45 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -180,8 +180,9 @@ if(any(runList==999))
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out999','-append');
     % Conlusion: Double overrelaxation is worse than one overrelaxation.  
-    % when there is not sparsity constraints. And one overrelaxation is 
-    % equivalent to FISTA. Of course, all are better than gradient method.
+    % when there is not sparsity constraints. And overrelaxations are 
+    % equivalent or even better than FISTA. Of course, all are better than 
+    % gradient method.
     %
     % When apply the sparsity constraints, 
 end

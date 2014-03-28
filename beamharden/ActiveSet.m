@@ -53,11 +53,12 @@ classdef ActiveSet < handle
                     temp=eig(zhz);
                     maxEig=max(abs(temp)); minEig=min(abs(temp));
                     if((~isempty(temp)) && (min(temp)<0 || (minEig/maxEig)<obj.epsilon))
-                        if(~obj.warned)
-                            warning(['ActiveSet: current Hessian is not',...
-                                ' positive definite or has bad COND']);
-                            obj.warned = true;
-                        end
+                        % As this issue is handled gracely, no need to show warning message
+                        % if(~obj.warned)
+                        %     warning(['\nActiveSet: current Hessian is not',...
+                        %         ' positive definite or has bad COND'],0);
+                        %     obj.warned = true;
+                        % end
                         while(min(temp)<0 || (minEig/maxEig)<obj.epsilon)
                             zhz = zhz + eye(size(zhz))*(2*obj.epsilon*maxEig-minEig)/(1-2*obj.epsilon);
                             temp=eig(zhz);
@@ -88,7 +89,7 @@ classdef ActiveSet < handle
                             if(obj.debugLevel)
                                 keyboard
                             end
-                            warning('current Ie violate B*I>=b constraints');
+                            warning('\ncurrent Ie violate B*I>=b constraints',0);
                             obj.warned = true;
                         end
                         temp = obj.B*deltaIe;
@@ -119,7 +120,7 @@ classdef ActiveSet < handle
                     end
                 end
                 if(ppp>=20)
-                    warning('Cannot find stable active set, stop at: %s',...
+                    warning('\nCannot find stable active set, stop at: %s',...
                         sprintf('%s\n', char(obj.Q(:)'+'0') ));
                     obj.warned = true;
                 end
@@ -151,12 +152,12 @@ classdef ActiveSet < handle
                         break;
                     else
                         if(ppp>10)
-                            warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
+                            warning('\nexit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
                             if(oldCost>=newCost)
                                 obj.Ie = obj.adjust(newIe);
                                 obj.cost = newCost;
                             else
-                                warning('ActiveSet: Ie converged\n');
+                                warning('\nActiveSet: Ie converged\n',0);
                                 obj.cost = oldCost;
                                 obj.converged = true;
                             end

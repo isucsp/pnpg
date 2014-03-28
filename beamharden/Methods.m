@@ -8,7 +8,7 @@ classdef Methods < handle
         fVal
         coef=1;
         hArray
-        difAlpha
+        difAlpha=1;
         difObj
         maxStepNum = 1e2;
         stepNum

@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Tue 18 Mar 2014 04:55:17 PM CDT
+%   $Revision: 0.1 $ $Date: Mon 24 Mar 2014 10:10:48 AM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -33,6 +33,7 @@ if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
+if(~isfield(opt,'uMode')) opt.uMode='abs'; end
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 
 alpha=xInit(:);
@@ -80,7 +81,12 @@ alphaStep.u = opt.u;
 
 if(opt.continuation)
     alphaStep.u = 0.1*max(abs(Psit(Phit(y))));
-else alphaStep.u = opt.u;
+else
+    if(strcmpi(opt.uMode,'abs'))
+        alphaStep.u = opt.u;
+    else
+        alphaStep.u = opt.u*max(abs(Psit(Phit(y))));
+    end
 end
 
 tic; p=0; str=''; strlen=0;

@@ -7,7 +7,8 @@ classdef FISTA_ADMM_NNL1 < Methods
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
-        admmTol=1e-8;
+        admmAbsTol=1e-9;
+        admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
     end
@@ -46,6 +47,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                 if(obj.t==-1)
                     [oldCost,grad,hessian] = obj.func(y);
                     obj.t = hessian(grad,2)/(grad'*grad);
+                    if(isnan(obj.t)) obj.t=1; end
                 else
                     [oldCost,grad] = obj.func(y);
                 end
@@ -55,9 +57,10 @@ classdef FISTA_ADMM_NNL1 < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
                     newX = y - (grad)/(obj.t);
-                    newX = obj.innerADMM_v5(newX,obj.t,obj.u,obj.admmTol);
+                    newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
+                        max(obj.admmTol*obj.difAlpha,obj.admmAbsTol));
                     newCost=obj.func(newX);
-                    if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
+                    if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2 || obj.ppp>20)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end

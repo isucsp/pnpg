@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 23 Mar 2014 06:21:07 PM CDT
+% $Revision: 0.2 $ $Date: Thu 27 Mar 2014 05:49:45 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -67,6 +67,7 @@ classdef ConfigCT < handle
 
         function opt=setup(obj,opt)
             fprintf('Loading data...\n');
+            opt.machine=evalc('!uname -a');
             switch lower(obj.imageName)
                 case 'phantom_1'
                     loadPhantom_1(obj);

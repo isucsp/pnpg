@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sun 23 Mar 2014 08:57:51 PM CDT
+%   $Revision: 0.3 $ $Date: Thu 27 Mar 2014 08:59:00 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -33,7 +33,9 @@ if(~isfield(opt,'K')) opt.K=2; end
 if(~isfield(opt,'E')) opt.E=17; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
-if(~isfield(opt,'u')) opt.u=1e-4; end
+if(~isfield(opt,'u')) opt.u=1e-3; end
+if(~isfield(opt,'uMode')) opt.uMode='abs'; end
+if(~isfield(opt,'a')) opt.a=1e-6; end
 % the number of non-zeros in the transform domain
 if(~isfield(opt,'rInit')) opt.rInit=5000; end
 if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
@@ -47,15 +49,17 @@ if(~isfield(opt,'skipIe')) opt.skipIe=false; end
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='logspan'; end
 if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
-if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=100; end
+if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
 if(~isfield(opt,'showImg')) opt.showImg=false; end
 % the higher, the more information. Set to 0 to turn off.
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-if(~isfield(opt,'alphaStep')) opt.alphaStep='NCG_PR'; end
+if(~isfield(opt,'verbose')) opt.verbose=100; end
+% 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_ADMM_NNL1'; end
 if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
-if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
-if(~isfield(opt,'contCrtrn')) opt.contCrtrn=0.5; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
@@ -68,8 +72,8 @@ end
 
 if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
 if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
-if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 if(opt.showImg && opt.debugLevel>=3) figIe=1003; figure(figIe); end
+if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)
     case 'uniform'
@@ -182,22 +186,23 @@ end
 
 PsitPhitz=Psit(Phit(y));
 PsitPhit1=Psit(Phit(ones(length(y),1)));
-
-if(opt.continuation)
-    [temp,temp1]=polyIout(0,Ie);
-    t3=max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
-    alphaStep.u = t3*0.1;
-else
-    [temp,temp1]=polyIout(0,Ie);
-    u=10^(-5)*max(abs(PsitPhitz+PsitPhit1*log(temp)))*temp1/temp;
-    disp(['use opt.u=' num2str(u)]);
-    alphaStep.u = u;
+if(strcmpi(opt.uMode,'relative'))
+    temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
+    opt.u=opt.a*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
 end
+if(opt.continuation)
+    temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
+    alphaStep.u=0.1*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
+    % This makes sure that the regulator settles after 300 iterations
+    alphaStep.u = min(alphaStep.u,opt.u*1000);
+else alphaStep.u=opt.u;
+end
+disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 
 tic; p=0; str=''; strlen=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1;
-    str=sprintf([str '\np=%d '],p);
+    str=sprintf([str 'p=%d '],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
@@ -212,11 +217,19 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
         alpha = alphaStep.alpha;
 
-        if(opt.continuation && p>1 && out.difCost(p)<opt.contCrtrn && ...
-                alphaStep.u*opt.contShrnk>opt.u)
-            alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
-            fprintf('\nnew u= %g\n',alphaStep.u);
-            alphaStep.warned = true;
+        str=sprintf([str ' u=%-10g'],alphaStep.u);
+        if(opt.continuation || strcmpi(opt.uMode,'relative'))
+            out.uRecord(p,:)=[opt.u,alphaStep.u];
+        end
+        if(strcmpi(opt.uMode,'relative') && ~opt.skipIe)
+            temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
+            opt.u=opt.a*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
+        end
+        if(opt.continuation)
+            %if(p>1 && opt.difCost(p)<opt.contCrtrn)
+                alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
+            %end
+        else alphaStep.u=opt.u;
         end
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
@@ -305,7 +318,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
         end
-        strlen = length(str);
+        if(mod(p,opt.verbose)==0)
+            strlen=0; fprintf('\n');
+        else strlen = length(str);
+        end
         str='';
     end
     out.time(p)=toc;

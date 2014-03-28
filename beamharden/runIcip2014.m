@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 23 Mar 2014 10:15:25 PM CDT
+%   $Revision: 0.2 $ $Date: Thu 27 Mar 2014 09:18:57 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -17,9 +17,13 @@ end
 
 if(nargin==0) runList = [0];
 elseif(isempty(runList))
-    conf=ConfigCT();
-    opt = conf.setup();
+    conf=ConfigCT(); opt = conf.setup(); return;
 end
+
+% runList rules, abc
+% a:
+%       0: castSim
+%       9: phantom_1
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 if(any(runList==0)) % reserved for debug and for the best result
@@ -104,33 +108,36 @@ if(any(runList==0.2)) % reserved for debug and for the best result
     save(filename,'out02','-append');
 end
 
-if(any(runList==1)) % dis, single AS step,
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    opt.spectBasis = 'dis';
+% dis, known Ie,
+if(any(runList==001))
+    conf=ConfigCT();
     opt.skipIe=true;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
+    opt.maxItr=1e3;
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    u = 10.^[-1 -2 -3 -4 -5 -6 -7];
+    for i=5:6
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
-        prefix='BeamHard known Ie';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out1{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out1','-append');
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+        for j=1:7
+            opt.u=u(j);
+            out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out001','-append');
+            initSig=out001{i,j}.alpha;
+        end
     end
 end
 
 if(any(runList==2))     % FPCAS
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1;
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     aArray=[-10:-4];
     for i=1:length(intval)
         for j=1:length(aArray)
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
             opt.a = aArray(j);
-            conf.theta = (0:intval(i):179)';
+            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
             opt=conf.setup(opt);
 
             A = @(xx) conf.Phi(conf.Psi(xx));
@@ -140,10 +147,10 @@ if(any(runList==2))     % FPCAS
             option.x0=conf.FBP(conf.y);
             option.x0 = conf.Psit(option.x0(opt.mask~=0));
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-            out2{i,j}=out; out2{i,j}.alpha = conf.Psi(s);
-            out2{i,j}.opt = opt;
-            out2{i,j}.RMSE=1-(out2{i,j}.alpha'*opt.trueAlpha/norm(out2{i,j}.alpha)/norm(opt.trueAlpha))^2;
-            save(filename,'out2','-append');
+            out002{i,j}=out; out002{i,j}.alpha = conf.Psi(s);
+            out002{i,j}.opt = opt;
+            out002{i,j}.RMSE=1-(out002{i,j}.alpha'*opt.trueAlpha/norm(out002{i,j}.alpha)/norm(opt.trueAlpha))^2;
+            save(filename,'out002','-append');
         end
     end
 end
@@ -267,9 +274,6 @@ if(any(runList==8)) % reserved for debug and for the best result
     [conf, opt] = defaultInit();
     i=1; j=1;
     opt.spectBasis = 'b1';
-    %opt.skipIe = true;
-    conf.PhiMode='cpuFanPar'; %'basic'; %'filtered'; %'weighted'; %
-    conf.PhiModeGen='cpuFanPar'; %'filtered'; %'weighted'; %
     %opt.maxIeSteps = 100;
     %conf.theta = (0:6:179)';
     opt=conf.setup(opt);
@@ -311,17 +315,16 @@ if(any(runList==11)) % dis, single AS step,
     end
 end
 
-if(any(runList==12)) % dis, max AS step,
-    [conf, opt] = defaultInit();
-    opt.maxIeSteps = 100;
-    intval = 6:-1:1; j=1;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
+% dis, max 20 (default) AS steps, CastSim, FISTA_ADMM_NNL1(default)
+if(any(runList==012))
+    conf=ConfigCT();
+    opt.debugLevel=5; opt.showImg=true;
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    for i=1:1
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+        opt.u=1e-6;
         out12{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out12','-append');
@@ -638,8 +641,8 @@ if(any(runList==32)) % Huber function test for best muHuber
     end
 end
 
+% Test difference between FISTA_Simplex and ActiveSet for IeStep
 if(any(runList==999))
-    % Test difference between FISTA_Simplex and ActiveSet for IeStep
     conf=ConfigCT();
     conf.prjFull = 360/2;
     conf.prjNum = conf.prjFull/2;
@@ -649,17 +652,35 @@ if(any(runList==999))
     opt=conf.setup();
     opt.maxIeSteps=20;
     opt.maxItr=2000;
-    opt.debugLevel=5;
+    opt.debugLevel=1;
     opt.showImg=true;
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     
     opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    for i=3:4
-        opt.u=10^(-(i+2));
+    opt.uMode='abs';
+    % 1:3, where i=2 (i.e. u=1e-3 gives the best solution
+    for i=1:-3
+        opt.u=10^(-(i+1));
         out999{i}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out999','-append');
     end
+    opt.uMode='relative';
+    % 4:6, where i=4 (i.e. opt.a=1e-6, -> u=1.58e-3) gives the best 
+    % solution. However, this round has opt.u not updated while running.
+    % 7, opt=1e-6, with updating opt.u, not as good as i=4;
+    opt.continuation=true;
+    opt.uMode='abs';
+    opt.maxIeSteps=1;
+    opt.skipIe=true;
+    for i=9:9
+        opt.u=2e-3;
+        out999{i}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out999','-append');
+    end
+    save(filename,'out999','-append');
+
     % Conclusion: Although the two methods converge to the same place, the
     % FISTA version needs too many iterations to reach the point, while
     % Active Set converges quickly. The reason must be the large condition
