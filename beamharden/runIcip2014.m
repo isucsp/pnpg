@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 27 Mar 2014 09:18:57 PM CDT
+%   $Revision: 0.2 $ $Date: Thu 27 Mar 2014 09:34:01 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -129,11 +129,11 @@ if(any(runList==001))
     end
 end
 
-if(any(runList==2))     % FPCAS
+if(any(runList==002))     % FPCAS
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     aArray=[-10:-4];
-    for i=1:length(intval)
+    for i=2:3
         for j=1:length(aArray)
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
             opt.a = aArray(j);
@@ -155,30 +155,30 @@ if(any(runList==2))     % FPCAS
     end
 end
 
-if(any(runList==3)) %solve by Back Projection
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    for i=1:length(intval)
+if(any(runList==003)) %solve by Back Projection
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    for i=1:length(prjFull)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        out3{i}.img=conf.FBP(conf.y);
-        out3{i}.alpha=out3{i}.img(opt.mask~=0);
-        out3{i}.RSE=norm(conf.y-conf.Phi(out3{i}.alpha))/norm(conf.y);
-        out3{i}.RMSE=1-(out3{i}.alpha'*opt.trueAlpha/norm(out3{i}.alpha)/norm(opt.trueAlpha))^2;
-        save(filename,'out3','-append');
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt=conf.setup();
+        out003{i}.img=conf.FBP(conf.y);
+        out003{i}.alpha=out003{i}.img(opt.mask~=0);
+        out003{i}.RSE=norm(conf.y-conf.Phi(out003{i}.alpha))/norm(conf.y);
+        out003{i}.RMSE=1-(out003{i}.alpha'*opt.trueAlpha/norm(out003{i}.alpha)/norm(opt.trueAlpha))^2;
+        save(filename,'out003','-append');
     end
 end
 
-if(any(runList==4))     % FPCAS after linearization
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1;
+if(any(runList==004))     % FPCAS after linearization
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     aArray=[-10:-4];
-    for i=1:length(intval)
+    for i=2:3
         for j=1:length(aArray)
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
             opt.a = aArray(j);
-            conf.theta = (0:intval(i):179)';
+            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
             opt=conf.setup(opt);
 
             A = @(xx) conf.Phi(conf.Psi(xx));
@@ -189,27 +189,27 @@ if(any(runList==4))     % FPCAS after linearization
             option.x0=conf.FBP(y);
             option.x0 = conf.Psit(option.x0(opt.mask~=0));
             [s, out] = FPC_AS(length(At(y)),AO,y,mu,[],option);
-            out4{i,j}=out; out4{i,j}.alpha = conf.Psi(s);
-            out4{i,j}.opt = opt;
-            out4{i,j}.RMSE=1-(out4{i,j}.alpha'*opt.trueAlpha/norm(out4{i,j}.alpha)/norm(opt.trueAlpha))^2;
-            save(filename,'out4','-append');
+            out004{i,j}=out; out004{i,j}.alpha = conf.Psi(s);
+            out004{i,j}.opt = opt;
+            out004{i,j}.RMSE=1-(out004{i,j}.alpha'*opt.trueAlpha/norm(out004{i,j}.alpha)/norm(opt.trueAlpha))^2;
+            save(filename,'out004','-append');
         end
     end
 end
 
-if(any(runList==5)) %solve by Back Projection after linearization
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    for i=1:length(intval)
+if(any(runList==005)) %solve by Back Projection after linearization
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    for i=1:length(prjFull)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt=conf.setup();
         y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-        out5{i}.img=conf.FBP(y);
-        out5{i}.alpha=out5{i}.img(opt.mask~=0);
-        out5{i}.RSE=norm(y-conf.Phi(out5{i}.alpha))/norm(y);
-        out5{i}.RMSE=1-(out5{i}.alpha'*opt.trueAlpha/norm(out5{i}.alpha)/norm(opt.trueAlpha))^2;
-        save(filename,'out5','-append');
+        out005{i}.img=conf.FBP(y);
+        out005{i}.alpha=out005{i}.img(opt.mask~=0);
+        out005{i}.RSE=norm(y-conf.Phi(out005{i}.alpha))/norm(y);
+        out005{i}.RMSE=1-(out005{i}.alpha'*opt.trueAlpha/norm(out005{i}.alpha)/norm(opt.trueAlpha))^2;
+        save(filename,'out005','-append');
     end
 end
 
