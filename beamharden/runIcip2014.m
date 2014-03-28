@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Thu 27 Mar 2014 10:11:30 PM CDT
+%   $Revision: 0.2 $ $Date: Thu 27 Mar 2014 10:21:08 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -113,13 +113,15 @@ if(any(runList==001))
     conf=ConfigCT();
     opt.skipIe=true;
     opt.maxItr=1e3;
+    opt.showImg=true; opt.debugLevel=5;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    for i=5:6
+    for i=1:1
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=1:7
+        for j=3:7
+            fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
             opt.u=u(j);
             out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);

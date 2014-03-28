@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 27 Mar 2014 08:59:00 PM CDT
+%   $Revision: 0.3 $ $Date: Thu 27 Mar 2014 10:17:27 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -72,7 +72,7 @@ end
 
 if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
 if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
-if(opt.showImg && opt.debugLevel>=3) figIe=1003; figure(figIe); end
+if(opt.showImg && opt.debugLevel>=3 && ~opt.skipIe) figIe=1003; figure(figIe); end
 if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)

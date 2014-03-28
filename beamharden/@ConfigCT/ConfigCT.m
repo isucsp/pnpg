@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 27 Mar 2014 05:49:45 PM CDT
+% $Revision: 0.2 $ $Date: Thu 27 Mar 2014 10:54:50 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -132,12 +132,27 @@ classdef ConfigCT < handle
             conf.effectiveRate=obj.effectiveRate;
             conf.d=obj.dist;
 
-            mPrj(0,conf,'config');
+            cpuPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
             maskIdx = find(obj.mask~=0);
-            obj.Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            obj.Phit=@(s) maskFunc(mPrj(s,0,'backward'),maskIdx)*obj.Ts;
-            obj.FBP =@(s) mPrj(s,0,'FBP')/obj.Ts;
+            obj.Phi =@(s) cpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            obj.Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            obj.FBP =@(s) cpuPrj(s,0,'FBP')/obj.Ts;
+        end
+        function gpuFanParOps(obj)
+            conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
+            conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
+            conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
+            conf.effectiveRate=obj.effectiveRate;
+            conf.d=obj.dist;
+
+            gpuPrj(0,conf,'config');
+            %mPrj(0,0,'showConf');
+            maskIdx = find(obj.mask~=0);
+            obj.Phi =@(s) gpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            obj.Phit=@(s) maskFunc(gpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            %cpuPrj(0,conf,'config');
+            obj.FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
         function genOperators(obj)
             switch lower(obj.PhiMode)
@@ -146,6 +161,9 @@ classdef ConfigCT < handle
                 case lower('cpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
                     cpuFanParOps(obj);
+                case lower('gpuPrj')
+                    % can be cpu or gpu, with both fan or parallel projections
+                    gpuFanParOps(obj);
                 case lower('parPrj')
                     conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
                     conf.theta = (0:obj.prjNum-1)*360/obj.prjFull;
