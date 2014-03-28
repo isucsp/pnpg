@@ -18,7 +18,7 @@ CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-poin
 #LFLAGS = -Wall
 #COPTIMFLAGS = -O3 -funroll-loops -msse2
  
-all: mParPrj solveTriDiag mCPUPrj mGPUPrj cpuPrj
+all: mParPrj solveTriDiag mCPUPrj cpuPrj #mGPUPrj
 
 mGPUPrj: mPrj.c gpuPrj.o prj.h
 	$(MEX) gpuPrj.o mPrj.c -DGPU=1 -L. -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
