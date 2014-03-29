@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 28 Mar 2014 09:49:00 PM CDT
+%   $Revision: 0.2 $ $Date: Fri 28 Mar 2014 09:59:00 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -112,19 +112,19 @@ end
 if(any(runList==001))
     conf=ConfigCT();
     opt.skipIe=true;
-    opt.maxItr=1e3;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    for i=5:6
+    for i=1:1
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=1:7
+        for j=2:7
+            fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
             opt.u=u(j);
             out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'out001','-append');
-            initSig=out001{i,j}.alpha;
+            %initSig=out001{i,j}.alpha;
         end
     end
 end
@@ -298,6 +298,43 @@ if(any(runList==8)) % reserved for debug and for the best result
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out8','-append');
 end
+
+if(any(runList==009))     % FPCAS after linearization
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    u=10.^[-1 -2 -3 -4 -5 -6 -7];
+    for i=1:6
+        for j=1:7
+            fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
+            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+            opt.u = u(j);
+            opt=conf.setup(opt);
+            opt.maxItr=2e3;
+            opt.thresh=1e-12;
+
+            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+
+            initSig = conf.FBP(conf.y);
+            initSig = initSig(opt.mask~=0);
+            subtolerance=1e-6;
+            out=[];
+            [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
+                out.solutionpath] = ...
+                SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+                'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+                'initialization',initSig,'maxiter',opt.maxItr,...
+                'miniter',0,'stopcriterion',3,...
+                'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+                'subtolerance',subtolerance,'monotone',1,...
+                'saveobjective',1,'savereconerror',1,'savecputime',1,...
+                'reconerrortype',2,...
+                'savesolutionpath',1,'verbose',100);
+            out.opt=opt; out009{i,j}=out;
+            save(filename,'out009','-append');
+        end
+    end
+end
+
 
 if(any(runList==11)) % dis, single AS step,
     [conf, opt] = defaultInit();
