@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 12:07:07 AM CDT
+%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 04:23:38 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -202,6 +202,8 @@ end
 if(any(runList==005)) %solve by Back Projection after linearization
     load(filename,'out005');
     conf=ConfigCT();
+    conf.PhiMode='basic';
+conf.PhiModeGen='basic';
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     for i=1:length(prjFull)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
@@ -214,6 +216,8 @@ if(any(runList==005)) %solve by Back Projection after linearization
         out005{i}.RMSE=1-(out005{i}.alpha'*opt.trueAlpha/norm(out005{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out005','-append');
     end
+    aa=showResult(out005,2,'RMSE')
+    keyboard
 end
 
 if(any(runList==6)) % b0, known Ie,

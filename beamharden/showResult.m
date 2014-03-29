@@ -1,4 +1,4 @@
-function summary = plotVector(out,oMode,field,plotf)
+function summary = showResult(out,oMode,field,plotf)
     color  = {'r' ,'g' ,'b' ,'k' ,'c' ,'y' ,'m'};
     lines  = {'-' ,'--',':' ,'-.'};
     style2 = {'b-*','r-*','b:o','r:o','b--s','r--s'};
@@ -41,8 +41,15 @@ function summary = plotVector(out,oMode,field,plotf)
             end
             str{i}=num2str(i);
         end
-
+    elseif(oMode==2) % extract the last element of each field from cell array
+        summary=zeros(size(out));
+        for i=1:length(out(:))
+            if(~isempty(out{i}))
+                res{i}=getfield(out{i},field);
+                summary(i)=res{i}(end);
+            end
+        end
+        summary=reshape(summary,size(out));
     end
-
     
 end
