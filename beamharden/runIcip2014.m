@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 28 Mar 2014 09:59:00 PM CDT
+%   $Revision: 0.2 $ $Date: Fri 28 Mar 2014 10:04:13 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -132,9 +132,9 @@ end
 if(any(runList==002))     % FPCAS
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    aArray=[-10:-4];
+    aArray=[-10:-2];
     for i=[1, 4, 5, 6]
-        for j=1:length(aArray)
+        for j=3:length(aArray)
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
             opt.a = aArray(j);
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
