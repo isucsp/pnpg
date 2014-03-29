@@ -5,14 +5,12 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Fri 28 Mar 2014 10:06:45 PM CDT
+%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 12:07:07 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
     filename = [mfilename '.mat'];
-    if( exist(filename,'file') ) load(filename);
-    else save(filename,'filename');
-    end
+    if(~exist(filename,'file') ) save(filename,'filename'); end
 end
 
 if(nargin==0) runList = [0];
@@ -110,15 +108,16 @@ end
 
 % dis, known Ie,
 if(any(runList==001))
+    load(filename,'out001');
     conf=ConfigCT();
     opt.skipIe=true;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    for i=1:1
+    for i=2
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=2:7
+        for j=4:6
             fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
             opt.u=u(j);
             out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
@@ -130,6 +129,7 @@ if(any(runList==001))
 end
 
 if(any(runList==002))     % FPCAS
+    load(filename,'out002');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     aArray=[-10:-2];
@@ -156,6 +156,7 @@ if(any(runList==002))     % FPCAS
 end
 
 if(any(runList==003)) %solve by Back Projection
+    load(filename,'out003');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     for i=1:length(prjFull)
@@ -171,6 +172,7 @@ if(any(runList==003)) %solve by Back Projection
 end
 
 if(any(runList==004))     % FPCAS after linearization
+    load(filename,'out004');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     aArray=[-10:-2];
@@ -198,6 +200,7 @@ if(any(runList==004))     % FPCAS after linearization
 end
 
 if(any(runList==005)) %solve by Back Projection after linearization
+    load(filename,'out005');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     for i=1:length(prjFull)
@@ -214,6 +217,7 @@ if(any(runList==005)) %solve by Back Projection after linearization
 end
 
 if(any(runList==6)) % b0, known Ie,
+    load(filename,'out006');
     [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
     opt.spectBasis = 'b0';
