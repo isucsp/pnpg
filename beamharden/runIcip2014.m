@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 09:07:43 PM CDT
+%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 12:27:58 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -113,11 +113,12 @@ if(any(runList==001))
     opt.skipIe=true;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    for i=2
+    opt.maxItr=300;
+    for i=5
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=4:6
+        for j=4:4
             fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
             opt.u=u(j);
             out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
@@ -365,7 +366,7 @@ if(any(runList==012))
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u  =  10.^[-5  -4   -4   -4   -4   -4];
-    opt.continuation=false;
+    opt.continuation=false; opt.maxIeSteps=1;
     for i=1:6
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
@@ -504,25 +505,36 @@ if(any(runList==16)) % b1, max AS step,
     end
 end
 
-if(any(runList==21)) % dis, single AS step,
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1;
-    aArray=[-6.5, -9:-4];
-    for j=4:length(aArray)
-        opt.a = aArray(j);
-        for i=1:length(intval)
-            conf.prjFull = 360/intval(i);
-            conf.prjNum = conf.prjFull/2;
-            opt=conf.setup(opt);
-            prefix='BeamHard';
-            fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-            initSig=conf.FBP(conf.y);
-            initSig = initSig(opt.mask~=0);
-            out21{j,i}=beamhardenSpline(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out21','-append');
-        end
-    end
+% dis, compare the FISTA_ADMM_NNL1 and NCG_PR for both continuation and 
+% non-continuation
+if(any(runList==021))
+    load(filename,'out021');
+    conf=ConfigCT();
+    conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u =  1e-4;
+    opt=conf.setup(opt);
+    initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+    opt.maxIeSteps=1;
+    opt.continuation=false;
+    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
+
+    i=1; j=2; opt.alphaStep='NCG_PR';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
+
+    opt.continuation=false;
+    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
+
+    i=2; j=2; opt.alphaStep='NCG_PR';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
 end
 
 if(any(runList==22)) % dis, max AS step,

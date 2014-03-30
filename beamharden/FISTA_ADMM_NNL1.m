@@ -26,7 +26,9 @@ classdef FISTA_ADMM_NNL1 < Methods
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            for pp=1:obj.maxItr
+            pp=0;
+            while(pp<obj.maxItr)
+                pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
                 obj.theta = temp;
@@ -74,14 +76,15 @@ classdef FISTA_ADMM_NNL1 < Methods
                 else obj.cumu=0;
                 end
                 obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
-                obj.alpha = newX;
 
-                obj.fVal(obj.n+1) = sum(abs(obj.Psit(obj.alpha)));
+                obj.fVal(obj.n+1) = sum(abs(obj.Psit(newX)));
                 temp = newCost+obj.u*obj.fVal(obj.n+1);
 
-                %if(temp>obj.cost)
-                %    obj.theta=0; obj.preAlpha=obj.alpha;
-                %end
+                if(temp>obj.cost)
+                    keyboard;
+                    obj.theta=0; pp=pp-1; continue;
+                end
+                obj.alpha = newX;
                 obj.cost = temp;
                 %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
