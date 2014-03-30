@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 04:23:38 PM CDT
+%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 08:58:24 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -199,11 +199,10 @@ if(any(runList==004))     % FPCAS after linearization
     end
 end
 
-if(any(runList==005)) %solve by Back Projection after linearization
+%solve by Back Projection after linearization
+if(any(runList==005))
     load(filename,'out005');
     conf=ConfigCT();
-    conf.PhiMode='basic';
-conf.PhiModeGen='basic';
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     for i=1:length(prjFull)
         fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
@@ -216,8 +215,6 @@ conf.PhiModeGen='basic';
         out005{i}.RMSE=1-(out005{i}.alpha'*opt.trueAlpha/norm(out005{i}.alpha)/norm(opt.trueAlpha))^2;
         save(filename,'out005','-append');
     end
-    aa=showResult(out005,2,'RMSE')
-    keyboard
 end
 
 if(any(runList==6)) % b0, known Ie,
@@ -307,7 +304,8 @@ if(any(runList==8)) % reserved for debug and for the best result
     save(filename,'out8','-append');
 end
 
-if(any(runList==009))     % FPCAS after linearization
+% SPIRAL-TAP after linearization
+if(any(runList==009))
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-1 -2 -3 -4 -5 -6 -7];
@@ -343,7 +341,6 @@ if(any(runList==009))     % FPCAS after linearization
     end
 end
 
-
 if(any(runList==11)) % dis, single AS step,
     [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
@@ -361,18 +358,30 @@ if(any(runList==11)) % dis, single AS step,
 end
 
 % dis, max 20 (default) AS steps, CastSim, FISTA_ADMM_NNL1(default)
+% Also compare the continuation and non-continuation
 if(any(runList==012))
+    load(filename,'out012');
     conf=ConfigCT();
-    opt.debugLevel=5; opt.showImg=true;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    for i=1:1
+    u  =  10.^[-5  -4   -4   -4   -4   -4];
+    for i=1:6
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        opt.u=1e-6;
-        out12{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        opt.u=u(i);
+        out012{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out12','-append');
+        save(filename,'out012','-append');
+    end
+    j=2; opt.continuation=true;
+    for i=1:6
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt=conf.setup(opt);
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+        opt.u=u(i);
+        out012{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out012','-append');
     end
 end
 

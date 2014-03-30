@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Thu 27 Mar 2014 10:17:27 PM CDT
+%   $Revision: 0.3 $ $Date: Sat 29 Mar 2014 09:00:03 PM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -217,9 +217,9 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
         alpha = alphaStep.alpha;
 
-        str=sprintf([str ' u=%-10g'],alphaStep.u);
         if(opt.continuation || strcmpi(opt.uMode,'relative'))
             out.uRecord(p,:)=[opt.u,alphaStep.u];
+            str=sprintf([str ' u=%g'],alphaStep.u);
         end
         if(strcmpi(opt.uMode,'relative') && ~opt.skipIe)
             temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
@@ -235,8 +235,8 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
         end
 
-        str=sprintf([str ' cost=%-10g RSE=%-10g',...
-            ' difAlpha=%-10g aSearch=%d'],...
+        str=sprintf([str ' cost=%g RSE=%g',...
+            ' difAlpha=%g aSearch=%d'],...
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);
         if(p>1)
@@ -270,9 +270,9 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
         if(p>1) out.difllI(p)=abs(out.llI(p)-out.llI(p-1))/out.llI(p); end
         Ie = IeStep.Ie;
-        str=sprintf([str ' difIe=%-10g zmf=(%g,%g)'],...
+        str=sprintf([str ' difIe=%g zmf=(%g,%g)'],...
             out.difIe(p),IeStep.zmf(1), IeStep.zmf(2));
-        if(p>1) str=sprintf([str ' difllI=%-10g'],out.difllI(p)); end
+        if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end
     end
 
     if(opt.showImg && p>1 && opt.debugLevel>=2)
