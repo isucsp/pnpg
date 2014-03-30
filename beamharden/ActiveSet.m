@@ -89,7 +89,7 @@ classdef ActiveSet < handle
                             if(obj.debugLevel)
                                 keyboard
                             end
-                            warning('\ncurrent Ie violate B*I>=b constraints',0);
+                            fprintf('\n'); warning('current Ie violate B*I>=b constraints',0);
                             obj.warned = true;
                         end
                         temp = obj.B*deltaIe;
@@ -120,7 +120,7 @@ classdef ActiveSet < handle
                     end
                 end
                 if(ppp>=20)
-                    warning('\nCannot find stable active set, stop at: %s',...
+                    fprintf('\n'); warning('Cannot find stable active set, stop at: %s',...
                         sprintf('%s\n', char(obj.Q(:)'+'0') ));
                     obj.warned = true;
                 end
@@ -152,12 +152,12 @@ classdef ActiveSet < handle
                         break;
                     else
                         if(ppp>10)
-                            warning('\nexit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
+                            fprintf('\n'); warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
                             if(oldCost>=newCost)
                                 obj.Ie = obj.adjust(newIe);
                                 obj.cost = newCost;
                             else
-                                warning('\nActiveSet: Ie converged\n',0);
+                                fprintf('\n'); warning('ActiveSet: Ie converged\n',0);
                                 obj.cost = oldCost;
                                 obj.converged = true;
                             end
