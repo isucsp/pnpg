@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 12:27:58 AM CDT
+%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 02:14:25 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -511,6 +511,7 @@ if(any(runList==021))
     load(filename,'out021');
     conf=ConfigCT();
     conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u =  1e-4;
+    opt.thresh=-1;
     opt=conf.setup(opt);
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1;
