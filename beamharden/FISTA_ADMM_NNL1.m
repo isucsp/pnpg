@@ -25,7 +25,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         % method No.4 with ADMM inside FISTA for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false;
+            obj.p = obj.p+1; obj.warned = false; restarted=false;
             pp=0;
             while(pp<obj.maxItr)
                 pp=pp+1;
@@ -81,8 +81,9 @@ classdef FISTA_ADMM_NNL1 < Methods
                 temp = newCost+obj.u*obj.fVal(obj.n+1);
 
                 % restart
-                if(temp>obj.cost)
-                    obj.theta=0; pp=pp-1; continue;
+                if(temp>obj.cost & ~restarted)
+                    obj.theta=0; pp=pp-1; restarted=true;
+                    continue;
                 end
                 obj.alpha = newX;
                 obj.cost = temp;
