@@ -80,8 +80,8 @@ classdef FISTA_ADMM_NNL1 < Methods
                 obj.fVal(obj.n+1) = sum(abs(obj.Psit(newX)));
                 temp = newCost+obj.u*obj.fVal(obj.n+1);
 
+                % restart
                 if(temp>obj.cost)
-                    keyboard;
                     obj.theta=0; pp=pp-1; continue;
                 end
                 obj.alpha = newX;
