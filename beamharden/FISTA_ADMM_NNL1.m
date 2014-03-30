@@ -26,7 +26,9 @@ classdef FISTA_ADMM_NNL1 < Methods
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            for pp=1:obj.maxItr
+            pp=0;
+            while(pp<obj.maxItr)
+                pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
                 obj.theta = temp;
