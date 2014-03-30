@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 12:27:58 AM CDT
+%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 02:11:54 AM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -367,6 +367,7 @@ if(any(runList==012))
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u  =  10.^[-5  -4   -4   -4   -4   -4];
     opt.continuation=false; opt.maxIeSteps=1;
+    opt.thresh=-1;
     for i=1:6
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
