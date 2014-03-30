@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 12:07:07 AM CDT
+%   $Revision: 0.2 $ $Date: Sat 29 Mar 2014 09:07:43 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -106,7 +106,7 @@ if(any(runList==0.2)) % reserved for debug and for the best result
     save(filename,'out02','-append');
 end
 
-% dis, known Ie,
+% dis, known Ie, See the following experiments in Sec. 012
 if(any(runList==001))
     load(filename,'out001');
     conf=ConfigCT();
@@ -199,7 +199,8 @@ if(any(runList==004))     % FPCAS after linearization
     end
 end
 
-if(any(runList==005)) %solve by Back Projection after linearization
+%solve by Back Projection after linearization
+if(any(runList==005))
     load(filename,'out005');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -303,7 +304,8 @@ if(any(runList==8)) % reserved for debug and for the best result
     save(filename,'out8','-append');
 end
 
-if(any(runList==009))     % FPCAS after linearization
+% SPIRAL-TAP after linearization
+if(any(runList==009))
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-1 -2 -3 -4 -5 -6 -7];
@@ -339,7 +341,6 @@ if(any(runList==009))     % FPCAS after linearization
     end
 end
 
-
 if(any(runList==11)) % dis, single AS step,
     [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;
@@ -357,18 +358,42 @@ if(any(runList==11)) % dis, single AS step,
 end
 
 % dis, max 20 (default) AS steps, CastSim, FISTA_ADMM_NNL1(default)
+% Also compare the continuation and non-continuation
+% This section has very strong connection with 001
 if(any(runList==012))
+    load(filename,'out012');
     conf=ConfigCT();
-    opt.debugLevel=5; opt.showImg=true;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    for i=1:1
+    u  =  10.^[-5  -4   -4   -4   -4   -4];
+    opt.continuation=false;
+    for i=1:6
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        opt.u=1e-6;
-        out12{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        opt.u=u(i);
+        out012{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out12','-append');
+        save(filename,'out012','-append');
+    end
+    j=2; opt.continuation=true;
+    for i=1:6
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt=conf.setup(opt);
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+        opt.u=u(i);
+        out012{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out012','-append');
+    end
+    j=3; opt.continuation=true; opt.skipIe=true;
+    for i=1:6
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt=conf.setup(opt);
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+        opt.u=u(i);
+        out012{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out012','-append');
     end
 end
 

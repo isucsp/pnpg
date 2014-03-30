@@ -340,7 +340,9 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             bw = qe*beamWidth*cosB/d;
             weight=getWeight(dist,bw,cosR,sinR);
 
+            // method provide by the books
             //if(conf->cmd & FBP_BIT) weight = weight*d*d/qe/qe;
+            // The one I think should be
             if(conf->cmd & FBP_BIT) weight = weight*d/qa;
             //if(conf->cmd & FBP_BIT) weight = weight*d/qe;
 
