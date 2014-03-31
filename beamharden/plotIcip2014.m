@@ -17,6 +17,8 @@ if(1)
     rse=[];
     for i=1:6; rse(i)=out{i,1}.RMSE(end); end
     toPlot=[toPlot rse(:)];
+    temp=[];
+    for i=1:6; temp(i)=out{i,4}.RMSE(end); end
 
     % known-Ie CPLS
     load(filename,'out001');
@@ -74,6 +76,8 @@ if(1)
     end
     toPlot=[toPlot min(rse,[],2)];
     clear('out004');
+
+    toPlot=[toPlot, temp(:)];
 
     save('RSEvsPrjNum.data','toPlot','-ascii');
 end
