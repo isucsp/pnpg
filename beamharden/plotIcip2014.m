@@ -74,136 +74,74 @@ if(1)
     save('RSEvsPrjNum.data','toPlot','-ascii');
 end
 
-if(0)
-    %% show the comparison between different method on different number of projections
-    aa=0;
-    prj = zeros(6,1);
-    intval = 6:-1:1;
-    for i=1:length(intval)
-        prj(i) = length((0:intval(i):179));
-    end
-    figure;
-    for k=1:6
-        eval(sprintf('out=out1%d;',k));
-        rse = zeros(size(out));
-        for i=1:size(out,1)
-            for j=1:size(out,2)
-                if(~isempty(out{i,j}))
-                    rse(i,j)=min(out{i,j}.RMSE);
-                end
-            end
-        end
-        if(length(prj)==length(rse))
-            semilogy(prj,rse,style2{k}); hold on;
-            aa=aa+1;
-            legStr{aa} = ['unknown Ie by ' num2str(k)];
-        end
-        eval(sprintf('rse2%d=rse;',k));
-    end
-    out=out1;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    plot(prj,rse,'r:<');
-    aa=aa+1; legStr{aa}='known Ie by dis';
-    out=out6;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    plot(prj,rse,'r:>','linewidth',2);
-    aa=aa+1; legStr{aa}='known Ie by b0';
-    out=out7;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    plot(prj,rse,'r:h');
-    aa=aa+1; legStr{aa}='known Ie by b1';
+%% Compare the convergence speed between Old algorithm and the new for 180 parallel beam 
+filename='runNDE2014_1.mat';
+t=1; cost(:,t)=1:2000; rmse(:,t)=1:2000; time(:,t)=1:2000;
 
-    out=out3;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    plot(prj,rse,'g:^');
-    aa=aa+1; legStr{aa}='direct FBP';
+% FISTA, no restart, skipIe, no continuation,
+load(filename,'out001');
+out=out001{6,4}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
 
-    out=out5;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    plot(prj,rse,'c-.p');
-    aa=aa+1; legStr{aa}='FBP after linearization';
+load(filename,'out012');
+% FISTA, restart, no skipIe, no continuation
+out=out012{6,1}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
+% FISTA, restart, no skipIe, continuation
+out=out012{6,2}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
+% FISTA, restart, skipIe, continuation
+out=out012{6,3}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
+% FISTA, restart, skipIe, no continuation
+out=out012{6,4}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
 
-    out=out2;
-    rse = zeros(size(out));
-    for i=1:size(out,1)
-        for j=1:size(out,2)
-            if(~isempty(out{i,j}))
-                rse(i,j)=min(out{i,j}.RMSE);
-            end
-        end
-    end
-    semilogy(prj,min(rse'),'k--d'); hold on;
-    eval(sprintf('rsel%d=rse;',k));
-    aa=aa+1; legStr{aa}='FPCAS';
+load(filename,'out021');
+% FISTA, restart, no skipIe, no continuation
+out=out021{1,1}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
+% NCG, no skipIe, no continuation
+out=out021{1,2}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
+% FISTA, restart, no skipIe, continuation
+out=out021{2,1}; t=t+1;
+cost(1:length(out.cost),t)=out.cost; rmse(1:length(out.RMSE),t)=out.RMSE; time(1:length(out.time),t)=out.time;
 
-    out=out4;
-    rse = ones(size(out));
-    for i=1:size(out,1)
-        for j=1:size(out,2)
-            if(~isempty(out{i,j}))
-                rse(i,j)=min(out{i,j}.RMSE);
-            end
-        end
-    end
-    semilogy(prj,min(rse'),'r--d'); hold on;
-    eval(sprintf('rse%d=rse;',4));
-    aa=aa+1; legStr{aa}='FPCAS after linearization';
+mincost=reshape(cost(:,2:end),[],1);
+mincost=min(mincost(mincost>0));
+% compare restart for FISTA, restart gives smaller cost, although rmse is
+% not the minimum
+figure; subplot(2,1,1); semilogy(cost(:,2)-mincost); hold on; plot(cost(:,6)-mincost,'r');
+legend('no restart','restart'); title(sprintf('%g, %g',min(cost(cost(:,2)>0,2)),min(cost(cost(:,6)>0,6))));
+subplot(2,1,2); semilogy(rmse(:,2)); hold on; plot(rmse(:,6),'r');
+legend('no restart','restart'); title(sprintf('%g, %g',min(rmse(rmse(:,2)>0,2)),min(rmse(rmse(:,6)>0,6))));
 
-    legend(legStr);
-end
+% compare skipIe(restart, no continuation), skip to achieve better rmse,
+% while keeping higher cost
+figure; subplot(2,1,1); semilogy(cost(:,3)-mincost); hold on; plot(cost(:,6)-mincost,'r');plot(cost(:,7)-mincost,'g');legend('noskip','skip','noskip');
+title(sprintf('%g, %g, %g',min(cost(cost(:,3)>0,3)),min(cost(cost(:,6)>0,6)),min(cost(cost(:,7)>0,7))));
+subplot(2,1,2); semilogy(rmse(:,3)); hold on; plot(rmse(:,6),'r');plot(rmse(:,7),'g');legend('noskip','skip','noskip');
+title(sprintf('%g, %g, %g',min(rmse(rmse(:,3)>0,3)),min(rmse(rmse(:,6)>0,6)),min(rmse(rmse(:,7)>0,7))));
 
+% compare skipIe(restart, continuation), see above for conclusion
+figure; subplot(2,1,1); semilogy(cost(:,4)-mincost); hold on; plot(cost(:,5)-mincost,'r');plot(cost(:,9)-mincost,'g');legend('noskip','skip','noskip');
+title(sprintf('%g, %g, %g',min(cost(cost(:,4)>0,4)),min(cost(cost(:,5)>0,5)),min(cost(cost(:,9)>0,9))));
+subplot(2,1,2); semilogy(rmse(:,4)); hold on; plot(rmse(:,5),'r');plot(rmse(:,9),'g');legend('noskip','skip','noskip');
+title(sprintf('%g, %g, %g',min(rmse(rmse(:,4)>0,4)),min(rmse(rmse(:,5)>0,5)),min(rmse(rmse(:,9)>0,9))));
 
-if(0)
-    for i = 1:1
-        for j=1:6
-            for k=1:6
-                figure(1);
-                eval(sprintf('semilogy(1:out2%1$d{i,j}.p,out2%1$d{i,j}.RMSE,style{k})',k));
-                hold on;
-                figure(2);
-                eval(sprintf('semilogy(1:out2%1$d{i,j}.p,out2%1$d{i,j}.cost,style{k})',k));
-                hold on;
-                figure(3);
-                eval(sprintf('semilogy(1:out2%1$d{i,j}.p,out2%1$d{i,j}.llAlpha,style{k})',k));
-                hold on;
-                figure(4);
-                eval(sprintf('semilogy(1:out2%1$d{i,j}.p,out2%1$d{i,j}.penAlpha,style{k})',k));
-                hold on;
-            end
-            pause;
-            close all;
-        end
-    end
+% compare continuation (restart, skipIe)
+figure; subplot(2,1,1); semilogy(cost(:,5)-mincost); hold on; plot(cost(:,6)-mincost,'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(cost(cost(:,5)>0,5)),min(cost(cost(:,6)>0,6))));
+subplot(2,1,2); semilogy(rmse(:,5)); hold on; plot(rmse(:,6),'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,5)>0,5)),min(rmse(rmse(:,6)>0,6))));
 
-    %% Find out that when a=-6.5, it give the lowest RSE
-    for k=1:6
-        eval(sprintf('out=out2%d;',k));
-        rse = zeros(size(out));
-        for i=1:size(out,1)
-            for j=1:size(out,2)
-                if(~isempty(out{i,j}))
-                    rse(i,j)=min(out{i,j}.RMSE);
-                end
-            end
-        end
-        eval(sprintf('rse2%d=rse;',k));
-    end
-end
+% compare continuation(restart, no skipIe)
+figure; subplot(2,1,1); semilogy(cost(:,4)-mincost); hold on; plot(cost(:,9)-mincost,'g');plot(cost(:,3)-mincost,'r');plot(cost(:,7)-mincost,'k');legend('conti','conti','no conti','no conti');
+title(sprintf('%g, %g, %g, %g',min(cost(cost(:,4)>0,4)),min(cost(cost(:,9)>0,9)),min(cost(cost(:,3)>0,3)),min(cost(cost(:,7)>0,7))));
+subplot(2,1,2); semilogy(rmse(:,4)); hold on; plot(rmse(:,9),'g');plot(rmse(:,3),'r');plot(rmse(:,7),'r');legend('conti','conti','no conti','no conti');
+title(sprintf('%g, %g, %g, %g',min(rmse(rmse(:,4)>0,4)),min(rmse(rmse(:,9)>0,9)),min(rmse(rmse(:,3)>0,3)),min(rmse(rmse(:,7)>0,7))));
+
 
 %% runlist = 30
 if(0)
