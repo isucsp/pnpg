@@ -17,19 +17,20 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Mon 24 Mar 2014 10:10:48 AM CDT
+%   $Revision: 0.1 $ $Date: Sat 29 Mar 2014 10:03:07 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'showImg')) opt.showImg=false; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
+if(~isfield(opt,'verbose')) opt.verbose=100; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
-if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-9; end
-if(~isfield(opt,'maxItr')) opt.maxItr=1e3; end
+if(~isfield(opt,'maxItr')) opt.maxItr=1.5e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
@@ -77,23 +78,21 @@ end
 alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
-alphaStep.u = opt.u;
 
+if(strcmpi(opt.uMode,'relative'))
+    opt.u=opt.a*max(abs(Psit(Phit(y))));
+end
 if(opt.continuation)
     alphaStep.u = 0.1*max(abs(Psit(Phit(y))));
-else
-    if(strcmpi(opt.uMode,'abs'))
-        alphaStep.u = opt.u;
-    else
-        alphaStep.u = opt.u*max(abs(Psit(Phit(y))));
-    end
+    alphaStep.u = min(alphaStep.u,opt.u*1000);
+else alphaStep.u = opt.u;
 end
 
 tic; p=0; str=''; strlen=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf([str '\np=%d'],p);
+    str=sprintf([str 'p=%d'],p);
     
     alphaStep.main();
 
@@ -106,18 +105,17 @@ while(true)
 
     alpha = alphaStep.alpha;
 
-    if(opt.continuation && p>1 && out.difCost(p)<opt.contCrtrn && ...
-            alphaStep.u*opt.contShrnk>opt.u)
+    if(opt.continuation)
+        out.uRecord(p,:)=[opt.u,alphaStep.u];
+        str=sprintf([str ' u=%g'],alphaStep.u);
         alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
-        fprintf('\nnew u= %g\n',alphaStep.u);
-        alphaStep.warned = true;
     end
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
     end
 
-    str=sprintf([str ' cost=%-10g RSE=%-10g',...
-        ' difAlpha=%-10g aSearch=%d'],...
+    str=sprintf([str ' cost=%g RSE=%g',...
+        ' difAlpha=%g aSearch=%d'],...
         out.cost(p),out.RMSE(p), out.difAlpha(p), ...
         alphaStep.ppp);
     if(p>1)
@@ -159,7 +157,10 @@ while(true)
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
         end
-        strlen = length(str);
+        if(mod(p,opt.verbose)==0)
+            strlen=0; fprintf('\n');
+        else strlen = length(str);
+        end
         str='';
     end
     out.time(p)=toc;

@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 08:51:50 PM CDT
+%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 08:57:46 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -309,7 +309,7 @@ end
 if(any(runList==009))
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    u=10.^[-1 -2 -3 -4 -5 -6 -7];
+    u=10.^[-1 -2 -3 -4];
     for i=1:6
         for j=1:7
             fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
@@ -323,7 +323,7 @@ if(any(runList==009))
 
             initSig = conf.FBP(conf.y);
             initSig = initSig(opt.mask~=0);
-            subtolerance=1e-6;
+            subtolerance=1e-5;
             out=[];
             [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
                 out.solutionpath] = ...
@@ -341,6 +341,9 @@ if(any(runList==009))
         end
     end
 end
+
+    out999=lasso(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
 
 if(any(runList==11)) % dis, single AS step,
     [conf, opt] = defaultInit();
