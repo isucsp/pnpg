@@ -82,6 +82,7 @@ if(1)
 
     save('RSEvsPrjNum.data','toPlot','-ascii');
 end
+return;
 
 %% Compare the convergence speed between Old algorithm and the new for 180 parallel beam 
 filename='runNDE2014_1.mat';
@@ -151,6 +152,15 @@ title(sprintf('%g, %g, %g, %g',min(cost(cost(:,4)>0,4)),min(cost(cost(:,9)>0,9))
 subplot(2,1,2); semilogy(rmse(:,4)); hold on; plot(rmse(:,9),'g');plot(rmse(:,3),'r');plot(rmse(:,7),'r');legend('conti','conti','no conti','no conti');
 title(sprintf('%g, %g, %g, %g',min(rmse(rmse(:,4)>0,4)),min(rmse(rmse(:,9)>0,9)),min(rmse(rmse(:,3)>0,3)),min(rmse(rmse(:,7)>0,7))));
 
+% Compare the methods
+figure; subplot(2,1,1); semilogy(cost(:,7)-mincost); hold on; plot(cost(:,8)-mincost,'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(cost(cost(:,7)>0,7)),min(cost(cost(:,8)>0,8))));
+subplot(2,1,2); semilogy(rmse(:,7)); hold on; plot(rmse(:,8),'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,7)>0,7)),min(rmse(rmse(:,8)>0,8))));
+figure; subplot(2,1,1); semilogy(time(:,7),cost(:,7)-mincost); hold on; plot(time(:,8),cost(:,8)-mincost,'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(cost(cost(:,7)>0,7)),min(cost(cost(:,8)>0,8))));
+subplot(2,1,2); semilogy(time(:,7),rmse(:,7)); hold on; plot(time(:,8),rmse(:,8),'r');
+legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,7)>0,7)),min(rmse(rmse(:,8)>0,8))));
 
 %% runlist = 30
 if(0)
