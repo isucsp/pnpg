@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 31 Mar 2014 12:17:22 PM CDT
+%   $Revision: 0.2 $ $Date: Mon 31 Mar 2014 12:30:23 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -307,6 +307,7 @@ end
 
 % SPIRAL-TAP after linearization
 if(any(runList==009))
+    load(filename,'out009');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-1 -2 -3 -4];
@@ -342,14 +343,16 @@ if(any(runList==009))
 end
 
 if(any(runList==010))
+    load(filename,'out010');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-1 -2 -3 -4];
-    for i=1:6
+    for i=1
         for j=1:4
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2; opt.u = u(j);
             opt=conf.setup(opt);
+            opt.alphaStep='FISTA_ADMM_NNL1';
             y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
             initSig = maskFunc(conf.FBP(y),opt.mask~=0);
             out010{i,j}=lasso(conf.Phi,conf.Phit,...
