@@ -10,6 +10,15 @@ if(1)
     toPlot=[];
     prj = [60, 80, 100, 120, 180, 360]/2;
     toPlot=[toPlot prj(:)];
+
+    % unkown Ie, CPLS
+    load(filename,'out012');
+    out=out012;
+    rse=[];
+    for i=1:6; rse(i)=out{i,1}.RMSE(end); end
+    toPlot=[toPlot rse(:)];
+
+    % known-Ie CPLS
     load(filename,'out001');
     figure;
     out=out001;
@@ -20,11 +29,6 @@ if(1)
          out{5,4}.RMSE(end);
          out{6,4}.RMSE(end);];
     toPlot=[toPlot rse(:)];
-
-
-    toPlot=[toPlot rse(:)];
-
-
     clear('out001');
 
     load(filename,'out003');
