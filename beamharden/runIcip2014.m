@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 02:14:25 AM CDT
+%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 01:24:15 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -367,6 +367,7 @@ if(any(runList==012))
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u  =  10.^[-5  -4   -4   -4   -4   -4];
     opt.continuation=false; opt.maxIeSteps=1;
+    opt.thresh=-1;
     for i=1:6
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
@@ -515,18 +516,18 @@ if(any(runList==021))
     opt=conf.setup(opt);
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1;
-    opt.continuation=false;
-    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    %opt.continuation=false;
+    %i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    %out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %    conf.Psi,conf.Psit,conf.y,initSig,opt);
+    %save(filename,'out021','-append');
 
-    i=1; j=2; opt.alphaStep='NCG_PR';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    %i=1; j=2; opt.alphaStep='NCG_PR';
+    %out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %    conf.Psi,conf.Psit,conf.y,initSig,opt);
+    %save(filename,'out021','-append');
 
-    opt.continuation=false;
+    opt.continuation=true;
     i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
