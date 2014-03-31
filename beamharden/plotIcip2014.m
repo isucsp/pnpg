@@ -1,141 +1,77 @@
 
 style1 = {'b-','r-','b:','r:','b--','r--','-','*','.','+','d'};
 style2 = {'b-*','r-*','b:o','r:o','b--s','r--s'};
+filename='runNDE2014_1.mat';
 
 %% NDE report plot
 if(1)
     aa=0;
     legStr=[];
     toPlot=[];
-    prj = zeros(6,1);
-    intval = 6:-1:1;
-    for i=1:length(intval)
-        prj(i) = length((0:intval(i):179));
-    end
+    prj = [60, 80, 100, 120, 180, 360]/2;
     toPlot=[toPlot prj(:)];
+    load(filename,'out001');
     figure;
-    for k=[5]
-        eval(sprintf('out=out1%d;',k));
-        rse = zeros(size(out));
-        for i=1:size(out,1)
-            for j=1:size(out,2)
-                if(~isempty(out{i,j}))
-                    rse(i,j)=min(out{i,j}.RMSE);
-                end
-            end
-        end
-        if(length(prj)==length(rse))
-            semilogy(prj,rse,style2{k}); hold on;
-        end
-        eval(sprintf('rse2%d=rse;',k));
-        toPlot=[toPlot rse(:)];
-    end
-    aa=1;
-    legStr{1} = ['unknown Ie by dis'];
-    legStr{2} = ['unknown Ie by b0'];
-    legStr{1} = ['unknown Ie by b1'];
+    out=out001;
+    rse=[out{1,5}.RMSE(end);
+         out{2,4}.RMSE(end);
+         out{3,4}.RMSE(end);
+         out{4,4}.RMSE(end);
+         out{5,4}.RMSE(end);
+         out{6,4}.RMSE(end);];
+    toPlot=[toPlot rse(:)];
 
-    %out=out1;
-    %rse=zeros(size(out));
-    %for i=1:length(out)
-    %    rse(i)=min(out{i}.RMSE);
-    %end
-    %plot(prj,rse,'r:<');
-    %aa=aa+1; legStr{aa}='known Ie by dis';
-    %out=out6;
-    %rse=zeros(size(out));
-    %for i=1:length(out)
-    %    rse(i)=min(out{i}.RMSE);
-    %end
-    %plot(prj,rse,'r:>','linewidth',2);
-    %aa=aa+1; legStr{aa}='known Ie by b0';
-    out=out7;
+
+    toPlot=[toPlot rse(:)];
+
+
+    clear('out001');
+
+    load(filename,'out003');
+    out=out003;
     rse=zeros(size(out));
     for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
+        rse(i)=out{i}.RMSE;
     end
     toPlot=[toPlot rse(:)];
-    plot(prj,rse,'r:h');
-    aa=aa+1; legStr{aa}='known Ie by b1';
+    clear('out003');
 
-    out=out3;
+    load(filename,'out005');
+    out=out005;
     rse=zeros(size(out));
     for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
+        rse(i)=out{i}.RMSE;
     end
     toPlot=[toPlot rse(:)];
-    plot(prj,rse,'g:^');
-    aa=aa+1; legStr{aa}='direct FBP';
+    clear('out005');
 
-    out=out5;
-    rse=zeros(size(out));
-    for i=1:length(out)
-        rse(i)=min(out{i}.RMSE);
-    end
-    toPlot=[toPlot rse(:)];
-    plot(prj,rse,'c-.p');
-    aa=aa+1; legStr{aa}='FBP after linearization';
-
-    out=out2;
-    rse = zeros(size(out));
+    load(filename,'out002');
+    out=out002;
+    rse = ones(size(out))*inf;
     for i=1:size(out,1)
         for j=1:size(out,2)
             if(~isempty(out{i,j}))
-                rse(i,j)=min(out{i,j}.RMSE);
+                rse(i,j)=out{i,j}.RMSE(end);
             end
         end
     end
-    %semilogy(prj,rse(:,5),'k--d'); hold on;
-    %toPlot=[toPlot rse(:,5)];
     toPlot=[toPlot min(rse,[],2)];
-    semilogy(prj,min(rse'),'k--d'); hold on;
-    eval(sprintf('rse%d=rse;',2));
-    aa=aa+1; legStr{aa}='FPCAS';
+    clear('out002');
 
-    out=out4;
-    rse = ones(size(out));
+    load(filename,'out004');
+    out=out004;
+    rse = ones(size(out))*inf;
     for i=1:size(out,1)
         for j=1:size(out,2)
             if(~isempty(out{i,j}))
-                rse(i,j)=min(out{i,j}.RMSE);
+                rse(i,j)=out{i,j}.RMSE(end);
             end
         end
     end
-    %semilogy(prj,rse(:,5),'r--d'); hold on;
-    %toPlot=[toPlot rse(:,5)];
-    semilogy(prj,min(rse'),'r--d'); hold on;
     toPlot=[toPlot min(rse,[],2)];
-    eval(sprintf('rse%d=rse;',4));
-    aa=aa+1; legStr{aa}='FPCAS after linearization';
+    clear('out004');
 
-    legend(legStr);
     save('RSEvsPrjNum.data','toPlot','-ascii');
-
-    %for k=1:2:6
-    %    eval(sprintf('out=out1%d;',k));
-    %    rse = zeros(size(out));
-    %    for i=1:size(out,1)
-    %        for j=1:size(out,2)
-    %            if(~isempty(out{i,j}))
-    %                figure((i-1)*size(out,2)+j);
-    %                subplot(2,1,1);
-    %                loglog(1:out{i,j}.p, out{i,j}.cost,style1{k}); hold on;
-    %                subplot(2,1,2);
-    %                loglog(1:out{i,j}.p, out{i,j}.RMSE,style1{k});
-    %                hold on;
-    %            end
-    %        end
-    %    end
-    %end
-
-    % plot Phi alpha vs I^out
-    [conf, opt]=runIcip2014([]);
-    alpha=conf.FBP(conf.y);
-    alpha=alpha(opt.mask~=0);
-    phialpha0=conf.Phi(opt.trueAlpha);
-    phialpha1=conf.Phi(alpha);
-    phialpha2=conf.Phi(out15{end}.alpha);
-    Imea = out15{end}.
 end
 
 if(0)
