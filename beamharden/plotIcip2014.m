@@ -19,6 +19,7 @@ if(1)
     toPlot=[toPlot rse(:)];
     temp=[];
     for i=1:6; temp(i)=out{i,4}.RMSE(end); end
+    clear('out012');
 
     % known-Ie CPLS
     load(filename,'out001');
