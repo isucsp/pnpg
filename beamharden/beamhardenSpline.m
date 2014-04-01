@@ -13,7 +13,6 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Mon 31 Mar 2014 11:39:55 AM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -204,7 +203,7 @@ disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 tic; p=0; str=''; strlen=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1;
-    str=sprintf([str 'p=%d '],p);
+    str=sprintf([str 'p=%-4d'],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
@@ -221,7 +220,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         if(opt.continuation || strcmpi(opt.uMode,'relative'))
             out.uRecord(p,:)=[opt.u,alphaStep.u];
-            str=sprintf([str ' u=%g'],alphaStep.u);
+            str=sprintf([str ' u=%-6g'],alphaStep.u);
         end
         if(strcmpi(opt.uMode,'relative') && ~opt.skipIe)
             temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
@@ -237,7 +236,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
         end
 
-        str=sprintf([str ' cost=%g RSE=%g',...
+        str=sprintf([str ' cost=%-6g RSE=%g',...
             ' difAlpha=%g aSearch=%d'],...
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);

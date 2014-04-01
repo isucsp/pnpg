@@ -8,9 +8,9 @@
  *
  *   v_0.1:     first draft
  */
+#define GPU 1
 
 /*#include <unistd.h>*/
-#define GPU 1
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -21,9 +21,13 @@
 #include <stddef.h>
 #include <string.h>
 
+#ifdef __cplusplus
 extern "C"{
+#endif
 #include "prj.h"
+#ifdef __cplusplus
 }
+#endif
 
 #if EXE_PROF
 #if GPU
@@ -135,21 +139,215 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
         }else
             weight=height*(rshoulder+hbeamW)+areaT;
     }else{
-        if(-hbeamW<=rfoot)
+        if(-hbeamW<=rfoot){
             if(hbeamW<=rfoot)
                 weight=(height)*(rfoot)*beamWidth/(bias2-bias1);
             else{
                 temp=rfoot+hbeamW;
                 weight=0.5*height*temp*temp/(bias2-bias1);
             }
+        }
     }
     return weight;
 }
 
-#if GPU
-__global__
-#endif
-void pixelDrive(ft* img, ft* sino){
+__global__ void pixelDrivePar(ft* img, ft* sino){
+    //printf("entering pixelDrive\n");
+    // detector array is of odd size with the center at the middle
+    ft theta, thetal, thetar;       // the current angle, range in [0 45]
+    int thetaIdx, thetalIdx, thetarIdx; // index counts from 0
+    prjConf* conf = &dConf;
+
+    int pC = conf->prjWidth/2;
+    int N=conf->n;
+
+    // make sure the border is set to be zero when size of image is odd
+    if(blockIdx.x==0 && threadIdx.x==0 && N%2==0){
+        for(int i=0; i<N; i++){
+            img[i]=0; img[i*N]=0;
+        }
+    }
+
+    int tileSz = sqrtf(blockDim.x);
+    int tileX=0, tileY=blockIdx.x;
+    while(tileY>tileX){ tileX++; tileY-=tileX; }
+
+    int xl=tileX*tileSz, yt=tileY*tileSz;
+
+    int x=xl+threadIdx.x/tileSz,
+        y=yt+threadIdx.x%tileSz;
+
+    ft cosT, sinT;  // cosine and sine of theta
+    ft cosTl, sinTl;  // cosine and sine of theta
+    ft cosTr, sinTr;  // cosine and sine of theta
+    ft tileSzSinTl, tileSzCosTl, tileSzSinTr, tileSzCosTr;
+
+    // for each point (x,y) on the ray is
+    // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
+    // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
+    ft oc;
+    ft beamWidth = conf->dSize*conf->effectiveRate;
+    ft bw;
+
+    ft dist, weight;
+    int temp, imgIdx;
+    ft imgt[8];
+    ft t, tl, tr, tll, trr;
+    int dt, dtl, dtr, dtll, dtrr;
+    for(int i=0; i<8; i++) imgt[i]=0;
+    __shared__ volatile ft shared[8][ANG_BLK][4*TILE_SZ];
+    for(thetaIdx=threadIdx.y; thetaIdx<conf->prjFull;thetaIdx+=blockDim.y){
+
+        thetalIdx=threadIdx.y*blockDim.y;
+        thetarIdx=thetalIdx+blockDim.y-1;
+
+        theta  = thetaIdx *2*PI/conf->prjFull;
+        thetal = thetalIdx*2*PI/conf->prjFull;
+        thetar = thetarIdx*2*PI/conf->prjFull;
+
+        cosT = cos(theta ); sinT = sin(theta );
+        cosTl= cos(thetal); sinTl= sin(thetal);
+        cosTr= cos(thetar); sinTr= sin(thetar);
+
+        tileSzCosTl=tileSz*cosTl; tileSzSinTl=tileSz*sinTl;
+        tileSzCosTr=tileSz*cosTr; tileSzSinTr=tileSz*sinTr;
+
+        // up left
+        oc = (xl-0.5)*cosTl + (yt-0.5)*sinTl; tll = oc;
+
+        // up right
+        //qe = (xr+0.5)*sinTl - (yt-0.5)*cosTl + d;
+        //oc = (xr+0.5)*cosTl + (yt-0.5)*sinTl;
+        oc = oc+tileSzCosTl; tll = min(tll, oc);
+
+        // bottom right
+        //qe = (xr+0.5)*sinTl - (yb+0.5)*cosTl + d;
+        //oc = (xr+0.5)*cosTl + (yb+0.5)*sinTl;
+        oc = oc+tileSzSinTl; tll = min(tll, oc);
+
+        // bottom left
+        //qe = (xl-0.5)*sinTl - (yb+0.5)*cosTl + d;
+        //oc = (xl-0.5)*cosTl + (yb+0.5)*sinTl;
+        oc = oc-tileSzCosTl; tll = min(tll, oc);
+
+        // up letf
+        oc = (xl-0.5)*cosTr + (yt-0.5)*sinTr; trr = oc;
+
+        // up right
+        //qe = (xr+0.5)*sinTr - (yt-0.5)*cosTr + d;
+        //oc = (xr+0.5)*cosTr + (yt-0.5)*sinTr;
+        oc = oc+tileSzCosTr; trr = max(trr, oc);
+
+        // bottom right
+        //qe = (xr+0.5)*sinTr - (yb+0.5)*cosTr + d;
+        //oc = (xr+0.5)*cosTr + (yb+0.5)*sinTr;
+        oc = oc+tileSzSinTr; trr = max(trr, oc);
+
+        // bottom left
+        //qe = (xl-0.5)*sinTr - (yb+0.5)*cosTr + d;
+        //oc = (xl-0.5)*cosTr + (yb+0.5)*sinTr;
+        oc = oc-tileSzCosTr; trr = max(trr, oc);
+
+        // up letf
+        oc = (x-0.5)*cosT + (y-0.5)*sinT;
+        tl = oc; tr = tl;
+
+        // up right
+        //qe = (x+0.5)*sinT - (y-0.5)*cosT + d;
+        //oc = (x+0.5)*cosT + (y-0.5)*sinT;
+        oc = oc + cosT; t = oc;
+        tl = min(tl, t); tr=max(tr,t);
+
+        // bottom right
+        //qe = (x+0.5)*sinT - (y+0.5)*cosT + d;
+        //oc = (x+0.5)*cosT + (y+0.5)*sinT;
+        oc=oc+sinT; t = oc;
+        tl = min(tl, t); tr=max(tr,t);
+
+        // bottom left
+        //qe = (x-0.5)*sinT - (y+0.5)*cosT + d;
+        //oc = (x-0.5)*cosT + (y+0.5)*sinT;
+        oc = oc-cosT; t = oc;
+        tl = min(tl, t); tr=max(tr,t);
+
+        dtll=max((int)round((tll+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
+        dtrr=min((int)round((trr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+
+        dtl = max((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
+        dtr = min((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+        dtl = max(dtl,dtll); dtr=min(dtr,dtrr);
+
+        __syncthreads();
+        for(dt=dtll+threadIdx.x; dt<=dtrr; dt+=blockDim.x){
+
+            if(thetaIdx<conf->np){
+                shared[0][threadIdx.y][dt-dtll]=sino[thetaIdx*conf->prjWidth+dt+pC];
+                shared[2][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
+            }
+
+            temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
+            if(temp<conf->np){
+                shared[1][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
+                shared[3][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
+            }
+
+            temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
+            if(temp<conf->np){
+                shared[2][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
+                shared[0][threadIdx.y][dt-dtll]=sino[thetaIdx*conf->prjWidth+dt+pC];
+
+            temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
+            shared[3][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth+dt+pC];
+
+            temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
+            shared[4][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            shared[5][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(conf->prjFull-thetaIdx)%conf->prjFull;
+            shared[6][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
+
+            temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
+            shared[7][threadIdx.y][dt-dtll]=sino[temp*conf->prjWidth-dt+pC];
+        }
+        __syncthreads();
+
+        for(dt=dtl; dt<=dtr; dt++){
+            t = dt*conf->dSize;
+            bq=sqrt(d*d+t*t);
+            cosB=d/bq; sinB=t/bq; //, tanB=t/d;
+            cosR=cosB*cosT-sinB*sinT;
+            sinR=sinB*cosT+cosB*sinT;
+            dist=x*cosR+y*sinR-d*t/bq;
+            bw = qe*beamWidth*cosB/d;
+            weight=getWeight(dist,bw,cosR,sinR);
+
+            imgt[0] += weight*shared[0][threadIdx.y][dt-dtll];
+            imgt[1] += weight*shared[1][threadIdx.y][dt-dtll];
+            imgt[2] += weight*shared[2][threadIdx.y][dt-dtll];
+            imgt[3] += weight*shared[3][threadIdx.y][dt-dtll];
+            imgt[4] += weight*shared[4][threadIdx.y][dt-dtll];
+            imgt[5] += weight*shared[5][threadIdx.y][dt-dtll];
+            imgt[6] += weight*shared[6][threadIdx.y][dt-dtll];
+            imgt[7] += weight*shared[7][threadIdx.y][dt-dtll];
+
+        }
+    }
+    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
+    if(x<=(N-1)/2 && y<=(N-1)/2){
+    imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3]/conf->effectiveRate;
+    imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4]/conf->effectiveRate;
+    imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5]/conf->effectiveRate;
+    imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6]/conf->effectiveRate;
+    imgIdx = (-x+N/2)*N-y+N/2; img[imgIdx] = imgt[7]/conf->effectiveRate;
+    }
+}
+
+__global__ void pixelDriveFan(ft* img, ft* sino){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta, thetal, thetar;       // the current angle, range in [0 45]
@@ -345,7 +543,183 @@ void pixelDrive(ft* img, ft* sino){
     }
 }
 
-__global__ void rayDrive(ft* img, ft* sino){
+__global__ void rayDrivePar(ft* img, ft* sino){
+    //printf("entering rayDrive\n");
+    // detector array is of odd size with the center at the middle
+    prjConf* conf = &dConf;
+    int tIdx, thetaIdx; // index counts from 0
+    int sinoIdx;
+    //tIdx = blockIdx.y;
+    //thetaIdx = blockIdx.x;
+    thetaIdx = blockIdx.x;
+    tIdx = blockIdx.y*blockDim.x+threadIdx.x;
+    int tllIdx = blockIdx.y*blockDim.x;
+    int trrIdx = blockIdx.y*blockDim.x+blockDim.x-1;
+
+    //printf("tIdx=%d, thetaIdx=%d\n",tIdx, thetaIdx);
+
+    //if(blockIdx.x==0 && blockIdx.y==0)
+    //    printf("gridDim=(%d, %d)\t blockDim=(%d, %d)\n",
+    //            gridDim.x, gridDim.y, blockDim.x, blockDim.y);
+
+    ft theta;       // the current angle, range in [0 45]
+    ft t;           // position of current detector
+    ft d;           // the distance from rotating center to X-ray source in pixel
+
+    int N =conf->n;// N is of size NxN centering at (N/2,N/2)
+    int pC = conf->prjWidth/2;
+    ft beamWidth = conf->dSize*conf->effectiveRate;
+    ft hbeamW = beamWidth/2;
+
+    // adding shared memory improves performance from 2.1s to 1.3s in 
+    // Quadro 600
+    // improves from 0.2s to 0.08s in Tesla K20
+    // improves from 0.2s to 0.18s in Tesla K10
+
+    __shared__ volatile ft shared[8][2*THRD_SZ];
+    // the length should be at least blockDim.x*sqrt(2)*(1+N/2/d)
+
+    theta = thetaIdx*2*PI/conf->prjFull;
+    t = (tIdx-pC)*conf->dSize;
+    ft tl = t-hbeamW+EPS,
+       tr = t+hbeamW-EPS,
+       tll = (tllIdx-pC)*conf->dSize-hbeamW+EPS,
+       trr = (trrIdx-pC)*conf->dSize+hbeamW-EPS;
+    d = conf->d;
+
+    ft cosT, sinT;  // cosine and sine of theta
+    cosT=cos(theta); sinT=sin(theta);
+
+    // for each point (x,y) on the ray is
+    // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
+    // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
+    ft bq=sqrt(d*d+t*t);
+    ft cosB=d/bq, sinB=t/bq; //, tanB=t/d;
+    ft cosR=cosB*cosT-sinB*sinT; // cosR and sinR are based on t
+    ft sinR=sinB*cosT+cosB*sinT;
+    ft beamwidthCosB=beamWidth*cosB;
+
+    //if(tIdx==pC && thetaIdx==30){
+    //    printf("theta=%f,cosT=%f, sinT=%f\n",theta,cosT,sinT);
+    //    printf("cosB=%f, sinB=%f\n",cosB,sinB);
+    //}
+
+    ft dtl=d*tl, dtll=d*tll, dtr=d*tr, dtrr=d*trr;
+    ft QxBxl = tl *cosT+d*sinT, QxBxr = tr *cosT+d*sinT,
+       QxBxll= tll*cosT+d*sinT, QxBxrr= trr*cosT+d*sinT;
+
+    ft QyByl =-tl *sinT+d*cosT, QyByr =-tr *sinT+d*cosT,
+       QyByll=-tll*sinT+d*cosT, QyByrr=-trr*sinT+d*cosT;
+
+    ft   xl, xll, xr, xrr;
+    int dxl,dxll,dxr,dxrr;
+
+    int x,y=(N-1)/2;
+    //xc = xc + y*slopeXYc;
+
+    // beamw is based on the position of this pixel
+    ft bw, dist, weight;
+    int temp;
+    ft sinot[8];
+    for(int i=0; i<8; i++) sinot[i]=0;
+    for(y=(N-1)/2; y>=-(N-1)/2; y--){
+        if(QxBxl>0) xl = (dtl -QxBxl *(y+0.5f))/QyByl;
+        else xl = (dtl -QxBxl *(y-0.5f))/QyByl;
+
+        if(QxBxll>0) xll= (dtll-QxBxll*(y+0.5f))/QyByll;
+        else xll= (dtll-QxBxll*(y-0.5f))/QyByll;
+
+        xr = (dtr - QxBxr *(y-0.5f))/QyByr;
+        xrr= (dtrr- QxBxrr*(y-0.5f))/QyByrr;
+
+        dxll=max((int)round(xll),-(N-1)/2);
+        dxrr=min((int)round(xrr), (N-1)/2);
+        dxl =max((int)round(xl ),-(N-1)/2);
+        dxr =min((int)round(xr ), (N-1)/2);
+        dxl =max(dxl,dxll); dxr=min(dxr,dxrr);
+
+        __syncthreads();
+        for(x=dxll+threadIdx.x, temp=threadIdx.x; x<=dxrr;
+                x+=blockDim.x, temp+=blockDim.x){
+            shared[0][temp] = img[( y+N/2)*N+x+N/2];
+            shared[1][temp] = img[( x+N/2)*N-y+N/2];
+            shared[2][temp] = img[(-y+N/2)*N-x+N/2];
+            shared[3][temp] = img[(-x+N/2)*N+y+N/2];
+            shared[4][temp] = img[(-y+N/2)*N+x+N/2];
+            shared[5][temp] = img[( x+N/2)*N+y+N/2];
+            shared[6][temp] = img[( y+N/2)*N-x+N/2];
+            shared[7][temp] = img[(-x+N/2)*N-y+N/2];
+        }
+        __syncthreads();
+        //if(thetaIdx==45 && blockIdx.y==1 && threadIdx.x==0){
+        //    printf("\nthetaIdx=%d, t=%f, y=%d, %d->%d\n \t",
+        //            thetaIdx,t,y,dxll,dxrr);
+        //    for(temp=0; temp<=dxrr-dxll; temp++){
+        //        if(shared[1][temp]>0)
+        //            printf("%d: %d: %f",temp,temp+dxll,shared[1][temp]);
+        //    }
+        //}
+        for(x=dxl; x<=dxr; x++){
+
+            dist=x*cosR+y*sinR-d*t/bq;
+            bw=beamwidthCosB + (x*sinT-y*cosT)*beamwidthCosB/d;
+            weight=getWeight(dist,bw,cosR,sinR);
+
+            sinot[0]+=weight*shared[0][x-dxll];
+
+            //if(thetaIdx==42 && blockIdx.y==4 && threadIdx.x==0){
+            //    printf("%d %d %e %e %e\n",y,x,weight, weight*shared[0][x-dxll],sinot[0]);
+            //}
+
+            //temp=thetaIdx+conf->prjFull/4;
+            sinot[1]+=weight*shared[1][x-dxll]; //img[imgIdx];
+            //temp+=conf->prjFull/4;
+            sinot[2]+=weight*shared[2][x-dxll]; //img[imgIdx];
+            //temp+=conf->prjFull/4;
+            sinot[3]+=weight*shared[3][x-dxll]; //img[imgIdx];
+            //temp=conf->prjFull/2-thetaIdx;
+            sinot[4]+=weight*shared[4][x-dxll]; //img[imgIdx];
+            //temp=3*conf->prjFull/4-thetaIdx;
+            sinot[5]+=weight*shared[5][x-dxll]; //img[imgIdx];
+            //temp=conf->prjFull-thetaIdx;
+            sinot[6]+=weight*shared[6][x-dxll]; //img[imgIdx];
+            //temp=conf->prjFull/4-thetaIdx;
+            sinot[7]+=weight*shared[7][x-dxll]; //img[imgIdx];
+        }
+    }
+
+    if(tIdx>=conf->prjWidth) return;
+
+    sinoIdx=thetaIdx*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[0];
+
+    sinoIdx=(thetaIdx+conf->prjFull/4)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[1];
+
+    sinoIdx=(thetaIdx+conf->prjFull/2)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[2];
+
+    sinoIdx=(thetaIdx+3*conf->prjFull/4)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[3];
+
+    temp = (2*pC-tIdx);
+    tIdx = temp%conf->prjWidth;
+    temp = 1-temp/conf->prjWidth;
+
+    sinoIdx=(conf->prjFull/2-thetaIdx)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[4]*temp;
+
+    sinoIdx=(3*conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[5]*temp;
+
+    sinoIdx=(conf->prjFull-thetaIdx)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[6]*temp;
+
+    sinoIdx=(conf->prjFull/4-thetaIdx)*conf->prjWidth+tIdx;
+    sino[sinoIdx]=sinot[7]*temp;
+}
+
+__global__ void rayDriveFan(ft* img, ft* sino){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
     prjConf* conf = &dConf;
@@ -532,16 +906,35 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
     config.imgSize=config.n*config.n;
     config.sinoSize=config.prjWidth*config.np;
 
-    fGrid = dim3(
-            min(pConf->np, pConf->prjFull/8+1),
-            (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
-            );
-    fThread = dim3(THRD_SZ,LYR_BLK);
+    if(config.d>0){
+        rayDrive = rayDriveFan;
+        pixelDrive = pixelDriveFan;
 
-    // use the last block to make frame zero.
-    int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
-    bGrid = dim3((1+temp)*temp/2);
-    bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+        fGrid = dim3(
+                min(pConf->np, pConf->prjFull/8+1),
+                (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
+                );
+        fThread = dim3(THRD_SZ,LYR_BLK);
+
+        // use the last block to make frame zero.
+        int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
+        bGrid = dim3((1+temp)*temp/2);
+        bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+    }else{
+        rayDrive = rayDrivePar;
+        pixelDrive = pixelDrivePar;
+
+        fGrid = dim3(
+                min(pConf->np, pConf->prjFull/8+1),
+                (pConf->prjWidth+THRD_SZ-1)/THRD_SZ
+                );
+        fThread = dim3(THRD_SZ,LYR_BLK);
+
+        // use the last block to make frame zero.
+        int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
+        bGrid = dim3((1+temp)*temp/2);
+        bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
+    }
 
     cudaDeviceReset();
     HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
