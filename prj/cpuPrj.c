@@ -1,6 +1,6 @@
 /*
  *   Description: use CPU to calculate parallel beam, fan beam projection 
- *   and corresponding back projection.
+ *   and their corresponding back projection.
  *
  *   Reference:
  *   Author: Renliang Gu (renliang@iastate.edu)
@@ -14,13 +14,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-
-#if EXE_PROF
-#if GPU
-#include <cuda_profiler_api.h>
-#endif
-#endif
-
 #include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
@@ -143,6 +136,7 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
 
     int x=0, y=threadIdx;
     while(y>x){ x++; y-=x; }
+    // make sure the border is set to be zero when size of image is odd
     if(x==N/2 && N%2==0){
         for(int i=0; i<N; i++){
             img[i]=0; img[i*N]=0;
@@ -169,7 +163,7 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
         theta  = thetaIdx *2*PI/conf->prjFull;
         cosT = cos(theta ); sinT = sin(theta );
 
-        // up letf
+        // up left
         oc = (x-0.5)*cosT + (y-0.5)*sinT;
         tl = oc; tr = tl;
 
