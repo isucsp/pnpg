@@ -166,16 +166,19 @@ legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,7)>0,7)),min(
 clear;
 filename='runNDE2014_1.mat';
 load(filename,'out012');
-i=4;
+i=2;
 out=out012{i,1};
 polymodel = Spline(out.opt.spectBasis,out.kappa);
 polymodel.setPlot(out.opt.trueKappa,out.opt.trueIota,out.opt.epsilon);
 [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out.Ie);
 %loglog(tK,tU); hold on; loglog(kappa/1.81,Ie,'r*-'); hold off;
 temp=[tK,tU];
-save('trueI.data','temp','-ascii');
-temp=[kappa,Ie];
+save('continuousI.data','temp','-ascii');
+temp=[kappa(Ie>0),Ie(Ie>0)];
 save('estI.data','temp','-ascii');
+[tK,tU,kappa,Ie]=polymodel.plotSpectrum(out012{i,4}.Ie);
+temp=[kappa,Ie];
+save('trueI.data','temp','-ascii');
 fprintf('FISTA_ADMM: %g\n',out.RMSE(end));
 img=showImgMask(out.alpha,out.opt.mask);
 imwrite(img/max(img(:)),'FISTA_ADMM.png','png');
@@ -221,7 +224,7 @@ save('costRmseTime.data','noSkiped','-ascii');
 
 t=1; skipped(:,t)=1:2000;
 for i=1:3
-    out=out021{1,i};
+    out=out021{2,i};
     t=t+1; skipped(1:length(out.cost),t)=out.cost;
     t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
     t=t+1; skipped(1:length(out.time),t)=out.time;

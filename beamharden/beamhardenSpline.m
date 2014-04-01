@@ -203,7 +203,7 @@ disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 tic; p=0; str=''; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1;
-    str=sprintf([str 'p=%-4d '],p);
+    str=sprintf([str 'p=%-4d'],p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
