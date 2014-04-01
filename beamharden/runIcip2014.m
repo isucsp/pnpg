@@ -5,7 +5,6 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 31 Mar 2014 05:19:01 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))

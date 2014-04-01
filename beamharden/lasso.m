@@ -17,7 +17,6 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Mon 31 Mar 2014 12:26:42 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -92,7 +91,7 @@ tic; p=0; str=''; strlen=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf([str 'p=%d'],p);
+    str=sprintf([str 'p=%-4d'],p);
     
     alphaStep.main();
 
@@ -107,14 +106,14 @@ while(true)
 
     if(opt.continuation)
         out.uRecord(p,:)=[opt.u,alphaStep.u];
-        str=sprintf([str ' u=%g'],alphaStep.u);
+        str=sprintf([str ' u=%-6g'],alphaStep.u);
         alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
     end
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
     end
 
-    str=sprintf([str ' cost=%g RSE=%g',...
+    str=sprintf([str ' cost=%-6g RSE=%g',...
         ' difAlpha=%g aSearch=%d'],...
         out.cost(p),out.RMSE(p), out.difAlpha(p), ...
         alphaStep.ppp);

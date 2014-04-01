@@ -162,6 +162,75 @@ legend('conti','no conti'); title(sprintf('%g, %g',min(cost(cost(:,7)>0,7)),min(
 subplot(2,1,2); semilogy(time(:,7),rmse(:,7)); hold on; plot(time(:,8),rmse(:,8),'r');
 legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,7)>0,7)),min(rmse(rmse(:,8)>0,8))));
 
+%% plot the the estimated spectrum, images and everything for display
+clear;
+filename='runNDE2014_1.mat';
+load(filename,'out012');
+i=2;
+out=out012{i,1};
+polymodel = Spline(out.opt.spectBasis,out.kappa);
+polymodel.setPlot(out.opt.trueKappa,out.opt.trueIota,out.opt.epsilon);
+[tK,tU,kappa,Ie]=polymodel.plotSpectrum(out.Ie);
+%loglog(tK,tU); hold on; loglog(kappa/1.81,Ie,'r*-'); hold off;
+temp=[tK,tU];
+save('continuousI.data','temp','-ascii');
+temp=[kappa(Ie>0),Ie(Ie>0)];
+save('estI.data','temp','-ascii');
+[tK,tU,kappa,Ie]=polymodel.plotSpectrum(out012{i,4}.Ie);
+temp=[kappa,Ie];
+save('trueI.data','temp','-ascii');
+fprintf('FISTA_ADMM: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FISTA_ADMM.png','png');
+clear out012;
+
+load(filename,'out002'); out=out002; o2=showResult(out,2,'RMSE');
+j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
+out=out002{i,j};
+fprintf('FPCAS: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FPCAS.png','png');
+
+load(filename,'out003'); out=out003{i};
+fprintf('FBP: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out002{i,j}.opt.mask);
+imwrite(img/max(img(:)),'FBP.png','png');
+clear out003;clear out002;
+
+load(filename,'out004'); out=out004; o2=showResult(out,2,'RMSE');
+j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
+out=out004{i,j};
+fprintf('FPCASwLin: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FPCASwLin.png','png');
+clear out004;
+
+load(filename,'out021');
+fprintf('for non skiped Ie\n');
+t=1; noSkiped(:,t)=1:2000;
+for i=1:3
+    out=out021{1,i};
+    t=t+1; noSkiped(1:length(out.cost),t)=out.cost;
+    t=t+1; noSkiped(1:length(out.RMSE),t)=out.RMSE;
+    t=t+1; noSkiped(1:length(out.time),t)=out.time;
+end
+mincost=reshape(noSkiped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
+noSkiped(:,[2,5,8])=noSkiped(:,[2,5,8])-mincost;
+save('costRmseTime.data','noSkiped','-ascii');
+
+t=1; skipped(:,t)=1:2000;
+for i=1:3
+    out=out021{2,i};
+    t=t+1; skipped(1:length(out.cost),t)=out.cost;
+    t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
+    t=t+1; skipped(1:length(out.time),t)=out.time;
+end
+mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
+skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
+save('costRmseTime_fixedI.data','skipped','-ascii');
+
+!find ./ \( -iname "*.png" -o -iname "*.data" \) -a -mmin -30 -exec mv -v {} /home/renliang/research/NDEReports/NDE2014_1/poster/ \;
+
 %% runlist = 30
 if(0)
     figure;
