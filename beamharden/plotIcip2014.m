@@ -192,7 +192,11 @@ load(filename,'out003'); out=out003{i};
 fprintf('FBP: %g\n',out.RMSE(end));
 img=showImgMask(out.alpha,out002{i,j}.opt.mask);
 imwrite(img/max(img(:)),'FBP.png','png');
-clear out003;clear out002;
+load(filename,'out005'); out=out005{i};
+fprintf('FBPwLin: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out002{i,j}.opt.mask);
+imwrite(img/max(img(:)),'FBPwLin.png','png');
+clear out003, out005; clear out002;
 
 load(filename,'out004'); out=out004; o2=showResult(out,2,'RMSE');
 j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
