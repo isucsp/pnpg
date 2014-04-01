@@ -308,31 +308,37 @@ classdef Spline < handle
             end
         end
 
-        function plotB1Upiota(trueMu, trueUpiota, mu, Ie)
-            loglog(trueMu,trueUpiota,'r.-'); hold on;
-            loglog(mu,[0; Ie; 0],'*-'); hold off;
-            %ylim([1e-10 1]);
-            xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+        function [trueMu,trueUpiota,mu,Ie]= plotB1Upiota(trueMu, trueUpiota, mu, Ie)
+            Ie=[0; Ie; 0];
+            if(nargout>0)
+                loglog(trueMu,trueUpiota,'r.-'); hold on;
+                loglog(mu,Ie,'*-'); hold off;
+                %ylim([1e-10 1]);
+                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+            end
         end
 
-        function plotB0Upiota(trueMu, trueUpiota, mu, Ie)
-            loglog(trueMu,trueUpiota,'r.-'); hold on;
+        function [trueMu,trueUpiota,mu,Ie]=plotB0Upiota(trueMu, trueUpiota, mu, Ie)
             mu=reshape([mu(:)';mu(:)'],[],1);
             mu(1)=[]; mu(end)=[];
             Ie=reshape([Ie(:)';Ie(:)'],[],1);
-            loglog(mu,Ie,'*-'); hold off;
-            %ylim([1e-10 1]);
-            xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+            if(nargout>0)
+                loglog(trueMu,trueUpiota,'r.-'); hold on;
+                loglog(mu,Ie,'*-'); hold off;
+                %ylim([1e-10 1]);
+                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+            end
         end
 
-        function plotDisUpiota(trueMu, trueUpiota, mu, Ie)
-            loglog(trueMu,trueUpiota,'r.-'); hold on;
+        function [trueMu,trueUpiota,mu,Ie]=plotDisUpiota(trueMu,trueUpiota,mu,Ie)
             temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
             Ie = Ie./temp;
-            loglog(mu,Ie,'*-'); hold off;
-            %ylim([1e-10 1]);
-            xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+            if(nargout>0)
+                loglog(trueMu,trueUpiota,'r.-'); hold on;
+                loglog(mu,Ie,'*-'); hold off;
+                %ylim([1e-10 1]);
+                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+            end
         end
     end
-
 end

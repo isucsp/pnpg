@@ -151,6 +151,48 @@ title(sprintf('%g, %g, %g, %g',min(cost(cost(:,4)>0,4)),min(cost(cost(:,9)>0,9))
 subplot(2,1,2); semilogy(rmse(:,4)); hold on; plot(rmse(:,9),'g');plot(rmse(:,3),'r');plot(rmse(:,7),'r');legend('conti','conti','no conti','no conti');
 title(sprintf('%g, %g, %g, %g',min(rmse(rmse(:,4)>0,4)),min(rmse(rmse(:,9)>0,9)),min(rmse(rmse(:,3)>0,3)),min(rmse(rmse(:,7)>0,7))));
 
+%% plot the the estimated spectrum, images and everything for display
+clear;
+filename='runNDE2014_1.mat';
+load(filename,'out012');
+i=4;
+out=out012{i,1};
+polymodel = Spline(out.opt.spectBasis,out.kappa);
+polymodel.setPlot(out.opt.trueKappa,out.opt.trueIota,out.opt.epsilon);
+[tK,tU,kappa,Ie]=polymodel.plotSpectrum(out.Ie);
+%loglog(tK,tU); hold on; loglog(kappa/1.81,Ie,'r*-'); hold off;
+save('estI.data',[tK,tU,kappa,Ie],'-ascii');
+fprintf('FISTA_ADMM: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FISTA_ADMM.png','png');
+clear;out012;
+
+load(filename,'out002'); out=out002; o2=showResult(out,2,'RMSE');
+j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
+out=out002(i,j);
+fprintf('FPCAS: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FPCAS.png','png');
+clear out002;
+
+load(filename,'out003'); out=out003{i};
+fprintf('FBP: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FBP.png','png');
+clear out003;
+
+load(filename,'out004'); out=out004; o2=showResult(out,2,'RMSE');
+j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
+out=out004(i,j);
+fprintf('FPCASwLin: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'FPCASwLin.png','png');
+clear out004;
+
+load(filename,'out021');
+fprintf('for non skiped Ie\n');
+
+
 
 %% runlist = 30
 if(0)
