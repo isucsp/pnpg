@@ -13,7 +13,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.3 $ $Date: Sat 29 Mar 2014 09:00:03 PM CDT
+%   $Revision: 0.3 $ $Date: Mon 31 Mar 2014 11:39:55 AM CDT
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
@@ -167,6 +167,8 @@ switch lower(opt.alphaStep)
         alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
         alphaStep=FISTA_ADMM_NNL1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+    case lower('IST_ADMM_NNL1')
+        alphaStep=IST_ADMM_NNL1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}

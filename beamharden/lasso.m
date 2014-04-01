@@ -17,7 +17,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sat 29 Mar 2014 10:03:07 PM CDT
+%   $Revision: 0.1 $ $Date: Mon 31 Mar 2014 12:26:42 PM CDT
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
@@ -29,7 +29,7 @@ if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
-if(~isfield(opt,'thresh')) opt.thresh=1e-9; end
+if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=1.5e3; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end

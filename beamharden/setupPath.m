@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 27 Mar 2014 11:03:43 PM CDT
+% $Revision: 0.3 $ $Date: Mon 31 Mar 2014 11:54:25 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -17,7 +17,7 @@ addpath([pathstr '/../FPC_AS/prob_gen']);
 addpath([pathstr '/../FPC_AS/prob_gen/classes']);
 addpath([pathstr '/../prj']);
 cd '../prj'
-!make clean
+%!make clean
 !make
 cd(pathstr)
 addpath([pathstr '/../irt/nufft']);

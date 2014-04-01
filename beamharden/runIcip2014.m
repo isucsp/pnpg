@@ -5,7 +5,7 @@ function [conf,opt] = runIcip2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Sun 30 Mar 2014 08:57:46 PM CDT
+%   $Revision: 0.2 $ $Date: Mon 31 Mar 2014 12:30:23 PM CDT
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -307,11 +307,12 @@ end
 
 % SPIRAL-TAP after linearization
 if(any(runList==009))
+    load(filename,'out009');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-1 -2 -3 -4];
     for i=1:6
-        for j=1:7
+        for j=1:4
             fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
             opt.u = u(j);
@@ -320,14 +321,12 @@ if(any(runList==009))
             opt.thresh=1e-12;
 
             y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-
-            initSig = conf.FBP(conf.y);
-            initSig = initSig(opt.mask~=0);
+            initSig = maskFunc(conf.FBP(y),opt.mask~=0);
             subtolerance=1e-5;
             out=[];
             [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
                 out.solutionpath] = ...
-                SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+                SPIRALTAP_mod(y,conf.Phi,opt.u,'penalty','ONB',...
                 'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
                 'initialization',initSig,'maxiter',opt.maxItr,...
                 'miniter',0,'stopcriterion',3,...
@@ -340,10 +339,28 @@ if(any(runList==009))
             save(filename,'out009','-append');
         end
     end
+
 end
 
-    out999=lasso(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
+if(any(runList==010))
+    load(filename,'out010');
+    conf=ConfigCT();
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    u=10.^[-1 -2 -3 -4];
+    for i=1
+        for j=1:4
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2; opt.u = u(j);
+            opt=conf.setup(opt);
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+            initSig = maskFunc(conf.FBP(y),opt.mask~=0);
+            out010{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,y,initSig,opt);
+            save(filename,'out010','-append');
+        end
+    end
+end
 
 if(any(runList==11)) % dis, single AS step,
     [conf, opt] = defaultInit();
@@ -526,28 +543,35 @@ if(any(runList==021))
     load(filename,'out021');
     conf=ConfigCT();
     conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u =  1e-4;
-    opt.thresh=-1;
-    opt=conf.setup(opt);
-    initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+    opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1;
-    %opt.continuation=false;
-    %i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
-    %out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-    %    conf.Psi,conf.Psit,conf.y,initSig,opt);
-    %save(filename,'out021','-append');
+    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
 
-    %i=1; j=2; opt.alphaStep='NCG_PR';
-    %out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-    %    conf.Psi,conf.Psit,conf.y,initSig,opt);
-    %save(filename,'out021','-append');
+    i=1; j=2; opt.alphaStep='NCG_PR';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
 
-    opt.continuation=true;
+    i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
+
+    opt.skipIe=true;
     i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
 
     i=2; j=2; opt.alphaStep='NCG_PR';
+    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out021','-append');
+
+    i=2; j=3; opt.alphaStep='IST_ADMM_NNL1';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');

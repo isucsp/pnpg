@@ -31,7 +31,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //double *maskIdx;
     char* cmd;
     if(nrhs!=3){
-        printf("number of input arguments are: %d\n",nrhs);
+        mexPrintf("number of input arguments are: %d\n",nrhs);
         return;
     }
     cmd=mxArrayToString(prhs[2]);
@@ -46,14 +46,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         config.effectiveRate=(float)mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
         config.d=(float)mxGetScalar(mxGetField(prhs[1],0,"d"));
 #if DEBUG
-        printf("\nConfiguring the operator...\n");
-        printf("config.n=%d\n",config.n);
-        printf("config.prjWidth=%d\n",config.prjWidth);
-        printf("config.np=%d\n",config.np);
-        printf("config.prjFull=%d\n",config.prjFull);
-        printf("config.dSize=%g\n",config.dSize);
-        printf("config.effectiveRate=%g\n",config.effectiveRate);
-        printf("config.d=%g\n",config.d);
+        mexPrintf("\nConfiguring the operator...\n");
+        mexPrintf("config.n=%d\n",config.n);
+        mexPrintf("config.prjWidth=%d\n",config.prjWidth);
+        mexPrintf("config.np=%d\n",config.np);
+        mexPrintf("config.prjFull=%d\n",config.prjFull);
+        mexPrintf("config.dSize=%g\n",config.dSize);
+        mexPrintf("config.effectiveRate=%g\n",config.effectiveRate);
+        mexPrintf("config.d=%g\n",config.d);
 #endif
 
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
@@ -104,14 +104,14 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                     imgt[i*pConf->n+j]=img[i+j*pConf->n];
         }else{
             showSetup();
-            printf("\nPrinting the current configuration ...\n");
-            printf("config.n=%d\n",pConf->n);
-            printf("config.prjWidth=%d\n",pConf->prjWidth);
-            printf("config.np=%d\n",pConf->np);
-            printf("config.prjFull=%d\n",pConf->prjFull);
-            printf("config.dSize=%g\n",pConf->dSize);
-            printf("config.effectiveRate=%g\n",pConf->effectiveRate);
-            printf("config.d=%g\n",pConf->d);
+            mexPrintf("\nPrinting the current configuration ...\n");
+            mexPrintf("config.n=%d\n",pConf->n);
+            mexPrintf("config.prjWidth=%d\n",pConf->prjWidth);
+            mexPrintf("config.np=%d\n",pConf->np);
+            mexPrintf("config.prjFull=%d\n",pConf->prjFull);
+            mexPrintf("config.dSize=%g\n",pConf->dSize);
+            mexPrintf("config.effectiveRate=%g\n",pConf->effectiveRate);
+            mexPrintf("config.d=%g\n",pConf->d);
         }
     }
     return;
