@@ -87,7 +87,7 @@ if(opt.continuation)
 else alphaStep.u = opt.u;
 end
 
-tic; p=0; str=''; strlen=0;
+tic; p=0; str=''; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
@@ -165,8 +165,9 @@ while(true)
     out.time(p)=toc;
     if(p >= opt.maxItr) break; end
     if(p>1 && out.difAlpha(p)<opt.thresh)
-        break
+        convThresh=convThresh+1;
     end
+    if(convThresh>10) break; end
 end
 out.alpha=alpha; out.p=p; out.opt = opt;
 fprintf('\n');
