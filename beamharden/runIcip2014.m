@@ -310,7 +310,7 @@ if(any(runList==009))
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u=10.^[-6 -5 -5 -5 -5 -5];
-    for i=2
+    for i=2:2
         fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt.u = u(i);
@@ -333,6 +333,7 @@ if(any(runList==009))
             'reconerrortype',2,...
             'savesolutionpath',0,'verbose',100);
         out.opt=opt; out009{i,j}=out;
+        keyboard
         save(filename,'out009','-append');
     end
 end

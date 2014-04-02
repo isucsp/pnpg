@@ -34,7 +34,7 @@ function [CTdata, args] = genBeamHarden(varargin)
     idx = massAttenCoef(:,1)>=min(epsilon) & massAttenCoef(:,1)<=max(epsilon);
     idx1= find(idx, 1 )-1; idx2 = find(idx, 1, 'last' )+1;
     kappa=exp(interp1(log(massAttenCoef(idx1:idx2,1)),...
-        log(massAttenCoef(idx1:idx2,2)), log(epsilon),'linear'));
+        log(massAttenCoef(idx1:idx2,2)), log(epsilon),'spline'));
 
     if(args.showImg)
         %figure; loglog(massAttenCoef(:,1),massAttenCoef(:,2));

@@ -200,7 +200,7 @@ else alphaStep.u=opt.u;
 end
 disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 
-tic; p=0; str=''; strlen=0;
+tic; p=0; str=''; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1;
     str=sprintf([str 'p=%-4d'],p);
@@ -327,9 +327,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     end
     out.time(p)=toc;
     if(p >= opt.maxItr) break; end
-    if(p>1 && out.difAlpha(p)<opt.thresh)
-        break
+    if(p>1 && out.difAlpha(p)<opt.thresh && (opt.skipIe || (out.difIe(p)<opt.thresh)) )
+        convThresh=convThresh+1;
     end
+    if(convThresh>10) break; end
 end
 
 out.Ie=Ie; out.kappa=kappa; out.alpha=alpha; out.cpuTime=toc; out.p=p;

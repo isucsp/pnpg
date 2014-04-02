@@ -174,7 +174,7 @@ polymodel.setPlot(out.opt.trueKappa,out.opt.trueIota,out.opt.epsilon);
 %loglog(tK,tU); hold on; loglog(kappa/1.81,Ie,'r*-'); hold off;
 temp=[tK,tU];
 save('continuousI.data','temp','-ascii');
-temp=[kappa(Ie>0),Ie(Ie>0)];
+temp=[kappa,Ie];
 save('estI.data','temp','-ascii');
 [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out012{i,4}.Ie);
 temp=[kappa,Ie];
@@ -183,6 +183,12 @@ fprintf('FISTA_ADMM: %g\n',out.RMSE(end));
 img=showImgMask(out.alpha,out.opt.mask);
 imwrite(img/max(img(:)),'FISTA_ADMM.png','png');
 clear out012;
+
+load(filename,'out010'); out=out010;
+out=out010{i,5};
+fprintf('NPGwLin: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'NPGwLin.png','png');
 
 load(filename,'out002'); out=out002; o2=showResult(out,2,'RMSE');
 j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
@@ -195,7 +201,11 @@ load(filename,'out003'); out=out003{i};
 fprintf('FBP: %g\n',out.RMSE(end));
 img=showImgMask(out.alpha,out002{i,j}.opt.mask);
 imwrite(img/max(img(:)),'FBP.png','png');
-clear out003;clear out002;
+load(filename,'out005'); out=out005{i};
+fprintf('FBPwLin: %g\n',out.RMSE(end));
+img=showImgMask(out.alpha,out002{i,j}.opt.mask);
+imwrite(img/max(img(:)),'FBPwLin.png','png');
+clear out003, out005; clear out002;
 
 load(filename,'out004'); out=out004; o2=showResult(out,2,'RMSE');
 j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
