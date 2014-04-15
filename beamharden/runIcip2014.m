@@ -308,33 +308,34 @@ end
 if(any(runList==009))
     load(filename,'out009');
     conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    prjFull = [60, 80, 100, 120, 180, 360];
     u=10.^[-6 -5 -5 -5 -5 -5];
-    for i=2:2
-        fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
-        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-        opt.u = u(i);
-        opt=conf.setup(opt);
-        opt.maxItr=2e3;
-        opt.thresh=1e-12;
+    subt=[1e-5 1e-6];
+    for j=2;
+        for i=[5, 1, 2]
+            subtolerance=subt(j); conf.prjFull = prjFull(i); opt.u = u(i);
+            conf.prjNum = conf.prjFull/2;
+            opt=conf.setup(opt);
+            opt.maxItr=2e3;
+            opt.thresh=1e-12;
 
-        y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-        initSig = maskFunc(conf.FBP(y),opt.mask~=0);
-        subtolerance=1e-5;
-        out=[];
-        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-            SPIRALTAP_mod(y,conf.Phi,opt.u,'penalty','ONB',...
-            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
-            'initialization',initSig,'maxiter',opt.maxItr,...
-            'miniter',0,'stopcriterion',3,...
-            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-            'subtolerance',subtolerance,'monotone',1,...
-            'saveobjective',1,'savereconerror',1,'savecputime',1,...
-            'reconerrortype',2,...
-            'savesolutionpath',0,'verbose',100);
-        out.opt=opt; out009{i,j}=out;
-        keyboard
-        save(filename,'out009','-append');
+            fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
+            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+            initSig = maskFunc(conf.FBP(y),opt.mask~=0);
+            out=[];
+            [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+                SPIRALTAP_mod(y,conf.Phi,opt.u,'penalty','ONB',...
+                'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+                'initialization',initSig,'maxiter',opt.maxItr,...
+                'miniter',0,'stopcriterion',3,...
+                'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+                'subtolerance',subtolerance,'monotone',1,...
+                'saveobjective',1,'savereconerror',1,'savecputime',1,...
+                'reconerrortype',2,...
+                'savesolutionpath',0,'verbose',100);
+            out.opt=opt; out009{i,j}=out;
+            save(filename,'out009','-append');
+        end
     end
 end
 
