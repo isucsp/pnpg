@@ -16,3 +16,8 @@
     fSize = min(pConf->np, pConf->prjFull/8+1)*pConf->prjWidth;
 
 - need to divie the effectiveRate for gpuPrj.cu
+
+- reorganize the order of multi-thread
+
+make FBP part parallel
+

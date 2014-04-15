@@ -333,7 +333,6 @@ if(any(runList==009))
             'reconerrortype',2,...
             'savesolutionpath',0,'verbose',100);
         out.opt=opt; out009{i,j}=out;
-        keyboard
         save(filename,'out009','-append');
     end
 end

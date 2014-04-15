@@ -80,11 +80,21 @@ if(1)
 
     toPlot=[toPlot, temp(:)];
 
-    save('RSEvsPrjNum.data','toPlot','-ascii');
+    % linearized SPIRAL-G
+    load(filename,'out009');
+    out=out009;
+    rse=zeros(size(out));
+    for i=1:length(out)
+        rse(i)=out{i}.reconerror(end);
+    end
+    toPlot=[toPlot rse(:)];
+    clear('out009');
+
+    save('rseVsPrjNum.data','toPlot','-ascii');
 end
-return;
 
 %% Compare the convergence speed between Old algorithm and the new for 180 parallel beam 
+if(0)
 filename='runNDE2014_1.mat';
 t=1; cost(:,t)=1:2000; rmse(:,t)=1:2000; time(:,t)=1:2000;
 
@@ -161,6 +171,7 @@ figure; subplot(2,1,1); semilogy(time(:,7),cost(:,7)-mincost); hold on; plot(tim
 legend('conti','no conti'); title(sprintf('%g, %g',min(cost(cost(:,7)>0,7)),min(cost(cost(:,8)>0,8))));
 subplot(2,1,2); semilogy(time(:,7),rmse(:,7)); hold on; plot(time(:,8),rmse(:,8),'r');
 legend('conti','no conti'); title(sprintf('%g, %g',min(rmse(rmse(:,7)>0,7)),min(rmse(rmse(:,8)>0,8))));
+end
 
 %% plot the the estimated spectrum, images and everything for display
 clear;
@@ -189,6 +200,12 @@ out=out010{i,5};
 fprintf('NPGwLin: %g\n',out.RMSE(end));
 img=showImgMask(out.alpha,out.opt.mask);
 imwrite(img/max(img(:)),'NPGwLin.png','png');
+
+load(filename,'out009'); out=out009;
+out=out009{i};
+fprintf('SPIRALwLin: %g\n',out.reconerror(end));
+img=showImgMask(out.alpha,out.opt.mask);
+imwrite(img/max(img(:)),'SPIRALwLin.png','png');
 
 load(filename,'out002'); out=out002; o2=showResult(out,2,'RMSE');
 j=find(o2(i,:)==min(o2(i,o2(i,:)>0)));
@@ -240,6 +257,8 @@ skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
 save('costRmseTime_fixedI.data','skipped','-ascii');
 
 !find ./ \( -iname "*.png" -o -iname "*.data" \) -a -mmin -30 -exec mv -v {} /home/renliang/research/NDEReports/NDE2014_1/poster/ \;
+
+return
 
 %% runlist = 30
 if(0)

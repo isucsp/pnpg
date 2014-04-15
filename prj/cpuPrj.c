@@ -33,7 +33,6 @@ extern "C"{
 #include "./common/cpu_bitmap.h"
 #endif
 
-
 struct prjConf config;
 struct prjConf* pConf = &config;
 
@@ -42,87 +41,6 @@ static int fSize, bSize;
 static ft *pImg, *pSino;
 void (*rayDrive)(ft*, ft*, int);
 void (*pixelDrive)(ft*, ft*, int);
-
-ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
-    // range of gamma is in [-alpha,pi/4+alpha], where alpha is small
-    //ft temp=abs(fmod(theta,90)-45)*PI/180; /* test value of temp */
-    cosR = cosR<0 ? -cosR : cosR;
-    sinR = sinR<0 ? -sinR : sinR;
-    ft temp;
-    if(cosR<sinR){
-        temp=cosR; cosR=sinR; sinR=temp;
-    }
-
-    ft height=1/cosR;
-    ft bias2=(cosR+sinR)/2;    //bias2 should be larger.
-    ft bias1=fabs(cosR-sinR)/2;
-
-    ft areaT=0.5*height*(bias2-bias1);
-    ft areaR=height*bias1*2;
-    ft area=height*(bias1+bias2);
-    ft weight=0;
-
-    // if pixel is to the right of the ray, dist > 0, otherwise dist<=0
-    // due to the symmetry, take the abs of dist
-    dist = dist < 0 ? -dist : dist;
-    ft lfoot=dist-bias2, rfoot=dist+bias2;
-    ft lshoulder = dist-bias1, rshoulder=dist+bias1;
-    //printf("lf ls rs rf: (%f, %f, %f, %f)\n",lfoot, lshoulder, rshoulder, rfoot);
-    ft hbeamW = beamWidth/2;
-    if(-hbeamW<=lfoot){
-        //printf("test1\n");
-        if (hbeamW<=lfoot) weight=0;
-        else if(hbeamW<=lshoulder){
-            temp = (hbeamW-(lfoot));
-            weight = 0.5*temp*temp*height/(bias2-bias1);
-        }else if(hbeamW<=rshoulder){
-            weight=areaT+height*(hbeamW-lshoulder);
-            //printf("areaT=%f, height=%f, weight=%f\n",areaT, height, weight);
-        }else if(hbeamW<=rfoot){
-            temp = rfoot-hbeamW;
-            weight=areaT+areaR+areaT
-                   -0.5*temp*temp*height/(bias2-bias1);
-        }else weight=area;
-    }else if(-hbeamW<=lshoulder){
-        if(hbeamW<=lshoulder)
-            weight=height*(-lfoot)*beamWidth/(bias2-bias1);
-        else if(hbeamW<=rshoulder){
-            temp = -hbeamW-lfoot;
-            weight=areaT +height*(hbeamW-(lshoulder))
-                - 0.5*temp*height*temp/(bias2-bias1);
-        }else if(hbeamW<=rfoot){
-            temp = -hbeamW-lfoot;
-            weight=areaT + areaR
-                - 0.5*temp*height*temp/(bias2-bias1);
-            temp = rfoot - hbeamW;
-            weight = weight + areaT
-                - 0.5*temp*height*temp/(bias2-bias1);
-        }else{
-            temp = -hbeamW-lfoot;
-            weight=areaT - 0.5*temp*height*temp/(bias2-bias1)
-                +areaR+areaT;
-        }
-    }else if(-hbeamW<=rshoulder){
-        if(hbeamW<=rshoulder)
-            weight=height*beamWidth;
-        else if(hbeamW<=rfoot){
-            temp=rfoot-hbeamW;
-            weight=height*(rshoulder+hbeamW)+ areaT
-                - 0.5*temp*height*temp/(bias2-bias1);
-        }else
-            weight=height*(rshoulder+hbeamW)+areaT;
-    }else{
-        if(-hbeamW<=rfoot){
-            if(hbeamW<=rfoot)
-                weight=(height)*(rfoot)*beamWidth/(bias2-bias1);
-            else{
-                temp=rfoot+hbeamW;
-                weight=0.5*height*temp*temp/(bias2-bias1);
-            }
-        }
-    }
-    return weight;
-}
 
 void pixelDrivePar(ft* img, ft* sino, int threadIdx){
     //printf("entering pixelDrive\n");
@@ -186,8 +104,8 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
         tl = MIN(tl, t); tr=MAX(tr,t);
 
         //qe = d+x*sinT-y*cosT; // positive direction is qo
-        dtl = MAX((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
-        dtr = MIN((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+        dtl = MAX((int)round((tl)/conf->dSize),-(conf->prjWidth-1)/2);
+        dtr = MIN((int)round((tr)/conf->dSize), (conf->prjWidth-1)/2);
 
         for(dt=dtl; dt<=dtr; dt++){
             t = dt*conf->dSize;
@@ -243,15 +161,18 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
         }
     }
     if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
+    if(x>(N-1)/2 || y>(N-1)/2) return;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
     imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
     imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3]/conf->effectiveRate;
+    if(y==0 || y>=x) return;
     imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5]/conf->effectiveRate;
     imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6]/conf->effectiveRate;
     imgIdx = (-x+N/2)*N-y+N/2; img[imgIdx] = imgt[7]/conf->effectiveRate;
 }
+
 void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
@@ -265,12 +186,6 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
 
     int x=0, y=threadIdx;
     while(y>x){ x++; y-=x; }
-    if(x==N/2 && N%2==0){
-        for(int i=0; i<N; i++){
-            img[i]=0; img[i*N]=0;
-        }
-        return;
-    }
 
     ft cosT, sinT;  // cosine and sine of theta
 
@@ -320,8 +235,8 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
 
         //qe = d+x*sinT-y*cosT; // positive direction is qo
         qe = qe + sinT/2 +cosT/2;
-        dtl = MAX((int)round((tl+EPS)/conf->dSize),-(conf->prjWidth-1)/2);
-        dtr = MIN((int)round((tr-EPS)/conf->dSize), (conf->prjWidth-1)/2);
+        dtl = MAX((int)round((tl)/conf->dSize),-(conf->prjWidth-1)/2);
+        dtr = MIN((int)round((tr)/conf->dSize), (conf->prjWidth-1)/2);
         qa = sqrt(2*d*qe-d*d+x*x+y*y);
 
         for(dt=dtl; dt<=dtr; dt++){
@@ -380,10 +295,12 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
         }
     }
     if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
+    if(x>(N-1)/2 || y>(N-1)/2) return;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
     imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
     imgIdx = (-x+N/2)*N+y+N/2; img[imgIdx] = imgt[3]/conf->effectiveRate;
+    if(y==0 || y>=x) return;
     imgIdx = (-y+N/2)*N+x+N/2; img[imgIdx] = imgt[4]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N+y+N/2; img[imgIdx] = imgt[5]/conf->effectiveRate;
     imgIdx = ( y+N/2)*N-x+N/2; img[imgIdx] = imgt[6]/conf->effectiveRate;
@@ -420,8 +337,8 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
 
     theta = thetaIdx*2*PI/conf->prjFull;
     t = (tIdx-pC)*conf->dSize;
-    ft tl = t-hbeamW+EPS,
-       tr = t+hbeamW-EPS;
+    ft tl = t-hbeamW,
+       tr = t+hbeamW;
 
     ft cosT, sinT;  // cosine and sine of theta
     cosT=cos(theta); sinT=sin(theta);
@@ -477,6 +394,8 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
         }
     }
 
+    if(tIdx>pC) return;
+
     if(thetaIdx<conf->np){
         sinoIdx=thetaIdx*conf->prjWidth;
         sino[sinoIdx+tIdx]=sinot[0]/conf->effectiveRate;
@@ -503,7 +422,7 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
         sino[sinoIdx+tIdx]=sinot[3]/conf->effectiveRate;
         sino[sinoIdx+2*pC-tIdx]=sinot[1]/conf->effectiveRate;
     }
-    
+
     if(thetaIdx>0 && thetaIdx<conf->prjFull*0.125f){
         tIdx = 2*pC-tIdx;
 
@@ -535,22 +454,15 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
             sino[sinoIdx+2*pC-tIdx]=sinot[5]/conf->effectiveRate;
         }
     }
-//        printf("before establishing threads...\n");
 }
 
 void rayDriveFan(ft* img, ft* sino, int threadIdx){
     //printf("entering rayDrive\n");
     // detector array is of odd size with the center at the middle
-    int temp;
     const struct prjConf * conf = pConf;
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
-        if(threadIdx==fSize-1){
-            for(int i=0; i<conf->np; i++)
-                sino[i*conf->prjWidth]=0;
-            return;
-        }
         thetaIdx= threadIdx/(pConf->prjWidth-1);
         tIdx = threadIdx%(pConf->prjWidth-1)+1;
     }else{
@@ -574,8 +486,8 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
 
     theta = thetaIdx*2*PI/conf->prjFull;
     t = (tIdx-pC)*conf->dSize;
-    ft tl = t-hbeamW+EPS,
-       tr = t+hbeamW-EPS;
+    ft tl = t-hbeamW,
+       tr = t+hbeamW;
     d = conf->d;
 
     ft cosT, sinT;  // cosine and sine of theta
@@ -607,13 +519,14 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
 
     // beamw is based on the position of this pixel
     ft bw, dist, weight;
+    int temp;
     ft sinot[8];
     for(int i=0; i<8; i++) sinot[i]=0;
     for(y=(N-1)/2; y>=-(N-1)/2; y--){
-        if(QxBxl>0) xl = (dtl -QxBxl *(y+0.5f))/QyByl;
+        if(QxBxl>0) xl = (dtl - QxBxl *(y+0.5f))/QyByl;
         else xl = (dtl -QxBxl *(y-0.5f))/QyByl;
-
-        xr = (dtr - QxBxr *(y-0.5f))/QyByr;
+        if(QxBxr>0) xr = (dtr - QxBxr *(y-0.5f))/QyByr;
+        else xr = (dtr - QxBxr *(y+0.5f))/QyByr;
 
         dxl =MAX((int)round(xl ),-(N-1)/2);
         dxr =MIN((int)round(xr ), (N-1)/2);
@@ -676,7 +589,7 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
     if(temp<conf->np){
         sino[temp*conf->prjWidth+tIdx]=sinot[3]/conf->effectiveRate;
     }
-    
+
     if(thetaIdx>0 && thetaIdx<conf->prjFull*0.125f){
         tIdx = 2*pC-tIdx;
 
@@ -696,7 +609,6 @@ void rayDriveFan(ft* img, ft* sino, int threadIdx){
         if(temp<conf->np)
             sino[temp*conf->prjWidth+tIdx]=sinot[7]/conf->effectiveRate;
     }
-//        printf("before establishing threads...\n");
 }
 
 void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft 
@@ -715,28 +627,24 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
 
         fSize = MIN(pConf->np, pConf->prjFull/8+1);
         if(pConf->prjWidth%2==0)
-            fSize = fSize*(pConf->prjWidth-1)+1;
+            fSize = fSize*(pConf->prjWidth-1);
         else
             fSize = fSize*pConf->prjWidth;
         bSize = (pConf->n+1)/2;
         bSize = (1+bSize)*bSize/2;
-        if(pConf->n%2==0) bSize++;
     }else{
         rayDrive = rayDrivePar;
         pixelDrive = pixelDrivePar;
 
         fSize = MIN(pConf->np, pConf->prjFull/8+1);
-        if(pConf->prjWidth%2==0)
-            fSize = fSize*(pConf->prjWidth/2)+1;
-        else
-            fSize = fSize*((pConf->prjWidth+1)/2);
+        fSize = fSize*((pConf->prjWidth+1)/2);
         bSize = (pConf->n+1)/2;
         bSize = (1+bSize)*bSize/2;
         if(pConf->n%2==0) bSize++;
     }
 
-
 #if DEBUG
+    printf("fsize=%d, bsize=%d, nthread=%d\n", fSize,bSize,nthread);
     printf("setup done\n");
 #endif
 }
@@ -765,96 +673,11 @@ void *parPrjBack(void *arg){
     return 0;
 }
 
-#if DEBUG
-void rampFilter(ft *signal, int size, ft Ts, int test){
-    FILE * f;
-#else
-void rampFilter(ft *signal, int size, ft Ts){
-#endif
-    int N = 2*size;
-    kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
-    kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
-    kiss_fft_cpx ramp[N];
-    kiss_fft_cpx hann[N];
-    kiss_fft_cpx proj[N];
-    for(int i=0; i<N; i++){
-        //hamming=0.54+0.46*cos(2*pi*n'/N);
-        //hann=0.5+0.5*cos(2*pi*n'/N);
-        //sinc=sin(pi*n'/N)./(pi*n'/N);
-        if(i<N/2){
-            ramp[i].r = (ft)i/N;
-            proj[i].r = signal[i];
-        }else{
-            ramp[i].r = (ft)(N-i)/N;
-            proj[i].r = 0;
-        }
-        hann[i].r = 0.5+0.5*cos(2*PI*i/N);
-        ramp[i].i = 0;
-        proj[i].i = 0;
-        hann[i].i = 0;
-    }
-    // use double length of ramp filter to get the best performance.
-    for(int i=1; i<N; i++){
-        if(i%2==0)
-            ramp[i].r=0;
-        else{
-            if(i<N/2)
-                ramp[i].r = -1.0/PI/PI/i/i;
-            else
-                ramp[i].r = -1.0/PI/PI/(N-i)/(N-i);
-        }
-        //if(i>=N/4 && i<N*3/4) ramp[i].r=0;
-    }
-    ramp[0].r=0.25;
-    kiss_fft( cfgFFT , ramp, ramp );
-
-#if DEBUG
-    if(test==-1){
-        f = fopen("test.data","w");
-        for(int i=0; i<N; i++){
-            //printf("%g\n",ramp[i].r);
-            fprintf(f,"%g\n",(ft)ramp[i].r);
-        }
-        fprintf(f,"\n");
-    }
-#endif
-
-    kiss_fft( cfgFFT , proj, proj );
-    for(int i=0; i<N; i++){
-        proj[i].r=proj[i].r*ramp[i].r*hann[i].r;
-        proj[i].i=proj[i].i*ramp[i].r*hann[i].r;
-    }
-    // the kiss_fft inverse fft doesn't divide N
-    kiss_fft( cfgIFFT, proj, proj );
-#if DEBUG
-    if(test==-1){
-        for(int i=0; i<N; i++){
-            //printf("%g\n",ramp[i].r);
-            fprintf(f,"%g\n",(ft)proj[i].r);
-        }
-        fprintf(f,"\n");
-        fclose(f);
-    }
-#endif
-
-    for(int i=0; i<N/2; i++){
-        signal[i] = proj[i].r/N;
-    }
-
-    //kiss_fft( cfgIFFT , ramp, ramp );
-    //for(int i=0; i<N; i++){
-    //    printf("%d, %g, %g, %g, %g, %g\n",i,ramp[i].r/N,ramp[i].i, hann[i].r, hann[i].i, proj[i].r);
-    //}
-
-    free(cfgFFT); free(cfgIFFT);
-}
-
 int cpuPrj(ft* img, ft* sino, char cmd){
 #if EXE_PROF
     // add some instruction for cpu execution profile
 #endif
-    pImg = img;
-    pSino = sino;
+    pImg = img; pSino = sino;
 
 #if EXE_TIME
     // start the timers
@@ -868,6 +691,9 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 
     a_thread=(pthread_t*)calloc(nthread,sizeof(pthread_t));
     if(cmd & FWD_BIT){
+#if DEBUG
+        printf("Forward projecting ...\n");
+#endif
         for(size_t i=0; i<nthread; i++){
             res = pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
             if (res != 0) {
@@ -876,7 +702,21 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             }
         }
         /*printf("Waiting for thread to finish...\n");*/
+    }else if(cmd & BWD_BIT){
+#if DEBUG
+        printf("Backward projecting ...\n");
+#endif
+        for(size_t i=0; i<nthread; i++){
+            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
+            if (res != 0) {
+                perror("Thread creation failed");
+                exit(EXIT_FAILURE);
+            }
+        }
     }else if(cmd & FBP_BIT){
+#if DEBUG
+        printf("Filtered Backprojecting ...\n");
+#endif
         pConf->cmd = FBP_BIT; //when put this don't foget to remove it later
         pSino = (ft*) calloc(pConf->sinoSize,sizeof(ft));
         ft bq;
@@ -911,7 +751,7 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #if DEBUG
             printf("reconstructing by FBP (parallel beam) ... \n");
 #endif
-            for(unsigned int j=0; j<pConf->sinoSize; j++) pSino[j]=sino[j];
+            memcpy(pSino,sino,pConf->sinoSize*sizeof(ft));
         }
 
 #if DEBUG
@@ -921,31 +761,8 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #endif
 
         for(int i=0; i<pConf->np; i++){
-#if DEBUG
-            if(i==10)
-                rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize,-1);
-            else
-                rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize,0);
-#else
             rampFilter(pSino+i*pConf->prjWidth, pConf->prjWidth, pConf->dSize);
-#endif
         }
-
-        //for(int j=0; j<(pConf->prjWidth+1)/2; j++){
-        //    bq = sqrt(pConf->d*pConf->d + j*j*pConf->dSize*pConf->dSize);
-        //    for(int i=0, idx1=pC-j, idx2=pC+j; i<pConf->np;
-        //            i++, idx1+=pConf->prjWidth, idx2+=pConf->prjWidth){
-        //        pSino[idx1]=pSino[idx1]*pConf->d / bq;
-        //        pSino[idx2]=pSino[idx2]*pConf->d / bq;
-        //    }
-        //}
-        //if(pConf->prjWidth%2==0){
-        //    bq = sqrt(pConf->d*pConf->d + pC*pC*pConf->dSize*pConf->dSize);
-        //    for(int i=0, idx1=0; i<pConf->np;
-        //            i++, idx1+=pConf->prjWidth){
-        //        pSino[idx1]=pSino[idx1]*pConf->d / bq;
-        //    }
-        //}
 
 #if DEBUG
         f = fopen("sinogram_2.data","wb");
@@ -961,14 +778,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             }
         }
 
-    }else{
-        for(size_t i=0; i<nthread; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
-            }
-        }
     }
     /*printf("Waiting for thread to finish...\n");*/
     for(size_t i=0; i<nthread; i++){
@@ -1090,7 +899,7 @@ int backwardTest( void ) {
 
 #if DEBUG
     FILE* f = fopen("sinogram.data","rb");
-    if(fread(sino,sizeof(ft),config.sinoSize,f))
+    if(!fread(sino,sizeof(ft),config.sinoSize,f))
         perror("cannot read from sinogram.data\n");
     fclose(f);
 #endif
@@ -1121,7 +930,7 @@ int backwardTest( void ) {
     }*/
     //sinogram.display_and_exit();
 
-    cpuPrj(img,sino, RENEW_MEM | FBP_BIT);
+    cpuPrj(img,sino, RENEW_MEM | BWD_BIT);
 
 #if DEBUG
     f = fopen("reImg.data","wb");
@@ -1140,10 +949,8 @@ int backwardTest( void ) {
     for(int i=0; i < config.n; i++){
         for(int j=0; j < config.n; j++){
             offset = i*config.n+j;
-            if(img[offset]>0)
-                value = (unsigned char)(255 * img[offset]/temp);
-            else
-                value = 0;
+            if(img[offset]>0) value = (unsigned char)(255 * img[offset]/temp);
+            else value = 0;
             offset = (config.n-1-i)*config.n+j;
             ptr[(offset<<2)+0] = value;
             ptr[(offset<<2)+1] = value;
