@@ -28,13 +28,13 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(21))=0;
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    m = 500;       % number of examples
+    m = 400;       % number of examples
     n = length(x);      % number of features
 
     x0=x(:);
     A = randn(m,n);
     A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-    v = sqrt(0.001)*randn(m,1);
+    v = sqrt(0.001)*randn(m,1)*0;
     b = A*x0 + v;
 
     fprintf('solving instance with %d examples, %d variables\n', m, n);
@@ -43,20 +43,16 @@ function opt=loadLinear(obj,opt)
     gamma_max = norm(A'*b,'inf');
     gamma = 0.1*gamma_max;
 
-    % cached computations for all methods
-    AtA = A'*A;
-    Atb = A'*b;
-
     obj.trueImg = x0;
-    obj.mask = 1:length(x0);
-    obj.mask = obj.mask(:);
     obj.y = b;
 
     obj.Phi = @(xx) A*xx(:);
     obj.Phit = @(xx) A'*xx(:);
-    obj.FBP = @(xx) A'*xx(:);
-    obj.Psi = @(xx) xx(:);
-    obj.Psit = @(xx) xx(:);
+
+    obj.dwt_L=8;        %levels of wavelet transform
+    [wav,L] = wavedec(x0,obj.dwt_L,'db1');
+    obj.Psi = @(xx) waverec(xx,L,'db1');
+    obj.Psit = @(xx) wavedec(xx,obj.dwt_L,'db1');
 
     opt.u = gamma;
     opt.trueAlpha=x0;

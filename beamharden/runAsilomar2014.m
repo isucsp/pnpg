@@ -29,25 +29,18 @@ if(any(runList==001))
     load(filename,'out001');
     conf=ConfigCT();
     opt=loadLinear(conf);
-
-    keyboard
-
-    opt.skipIe=true;
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    opt.maxItr=300;
+    opt.maxItr=2e3;
+    j=1;
     for i=5
-        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-        opt=conf.setup(opt);
-        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=4:4
-            fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
-            opt.u=u(j);
-            out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out001','-append');
-            %initSig=out001{i,j}.alpha;
-        end
+        fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
+        opt.u = u(i);
+        opt.alphaStep='FISTA_ADMM_NNL1';
+        initSig = conf.Phit(conf.y)*0;
+        out001{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out001','-append');
+        %initSig=out001{i,j}.alpha;
     end
 end
 
