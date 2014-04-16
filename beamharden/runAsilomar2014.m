@@ -1,4 +1,4 @@
-function [conf,opt] = runIcip2014(runList)
+function [conf,opt] = runAsilomar2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %      Beam Hardening correction of CT Imaging via Mass attenuation 
 %                        coefficient discretizati
@@ -23,92 +23,15 @@ end
 %       1: wrist example
 
 %%%%%%%%%%%%%%%%%%%%%%%%
-if(any(runList==0)) % reserved for debug and for the best result
-    conf=ConfigCT();
-    conf.prjFull = 360/2;
-    conf.prjNum = conf.prjFull/2;
-    conf.imgSize = 256;
-    conf.prjWidth = 256;
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
-    opt=conf.setup();
-    opt.maxIeSteps=2e3;
-    opt.maxItr=2000;
-    opt.debugLevel=3;
-    opt.u = 1e-3;
-    initSig = conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    out0=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out0','-append');
-end
 
-if(any(runList==0.01)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    i=1; j=1;
-    conf.prjFull = 80;
-    conf.prjNum = conf.prjFull/2;
-    conf.imgSize = 1024;
-    conf.prjWidth = 1024;
-    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
-    %'realct'; 'pellet'; %
-    opt.muLustig=logspace(-15,-6,5);
-    opt.muLustig=opt.muLustig(3); 3.1623e-11;
-    opt.spectBasis = 'dis';
-    opt.skipIe=true;
-    %opt.continuation = true;
-    opt.debugLevel=1;
-    opt.maxIeSteps = 100;
-    opt=conf.setup(opt);
-    initSig = conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    for i=1:3
-        opt.u = 10^(-i);
-        opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-        out_knownIe_FISTA{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out_knownIe_FISTA','-append');
-        opt.alphaStep = 'NCG_PR';
-        out_knownIe_NCG_PR{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out_knownIe_NCG_PR','-append');
-    end
-end
-
-if(any(runList==0.1)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    i=1; j=1;
-    opt.muLustig=3.1623e-11;
-    opt.spectBasis = 'b1';
-    opt.a=opt.a+log10(0.5);
-    opt=conf.setup(opt);
-    prefix='BeamHard';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out01=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out01','-append');
-end
-
-if(any(runList==0.2)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    opt.muLustig=3.1623e-11;
-    opt.spectBasis = 'b1';
-    opt=conf.setup(opt);
-    i=1; j=1;
-    fprintf('%s, i=%d, j=%d\n','beamharden',i,j);
-    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out02=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out02','-append');
-end
-
-% dis, known Ie, See the following experiments in Sec. 012
+% 
 if(any(runList==001))
     load(filename,'out001');
     conf=ConfigCT();
+    opt=loadLinear(conf);
+
+    keyboard
+
     opt.skipIe=true;
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
