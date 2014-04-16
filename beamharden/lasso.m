@@ -35,11 +35,18 @@ if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'uMode')) opt.uMode='abs'; end
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
+if(~isfield(opt,'errorType')) opt.errorType='MSE'; end
 
 alpha=xInit(:);
 
 if(isfield(opt,'trueAlpha'))
-    trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
+    trueAlphaNorm=norm(opt.trueAlpha);
+    if(strcmpi(opt.errorType,'RMSE'))
+        trueAlpha = opt.trueAlpha/trueAlphaNorm;
+        computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+    else
+        computError = @(xxx) norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm;
+    end
 end
 
 if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
@@ -110,7 +117,7 @@ while(true)
         alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
     end
     if(isfield(opt,'trueAlpha'))
-        out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
+        out.RMSE(p)=computError(alpha);
     end
 
     str=sprintf([str ' cost=%-6g RSE=%g',...

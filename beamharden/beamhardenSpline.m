@@ -62,11 +62,18 @@ if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+if(~isfield(opt,'errorType')) opt.errorType='RMSE'; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
-    trueAlpha = opt.trueAlpha/norm(opt.trueAlpha);
+    trueAlphaNorm=norm(opt.trueAlpha);
+    if(strcmpi(opt.errorType,'RMSE'))
+        trueAlpha = opt.trueAlpha/trueAlphaNorm;
+        computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+    else
+        computError = @(xxx) norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm;
+    end
 end
 
 if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
@@ -233,7 +240,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         else alphaStep.u=opt.u;
         end
         if(isfield(opt,'trueAlpha'))
-            out.RMSE(p)=1-(alpha'*trueAlpha/norm(alpha))^2;
+            out.RMSE(p)=computError(alpha);
         end
 
         str=sprintf([str ' cost=%-6g RSE=%g',...
