@@ -1,4 +1,4 @@
-function opt=loadLinear(obj,opt)
+function opt=loadLinear(obj,opt,m,snr)
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
 
@@ -28,13 +28,19 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(21))=0;
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    m = 400;       % number of examples
+    if(nargin<3)
+        m = 500;       % number of examples
+    end
     n = length(x);      % number of features
 
     x0=x(:);
     A = randn(m,n);
     A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-    v = sqrt(0.001)*randn(m,1)*0;
+    if(nargin<4)
+        snr=inf;
+    end
+    v = randn(m,1);
+    v = v/norm(v)*(norm(A*x0)/sqrt(snr));
     b = A*x0 + v;
 
     fprintf('solving instance with %d examples, %d variables\n', m, n);

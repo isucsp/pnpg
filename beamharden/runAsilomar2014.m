@@ -28,19 +28,50 @@ end
 if(any(runList==001))
     load(filename,'out001');
     conf=ConfigCT();
+    u = 10.^[-1 -2 -3 -4 -5 -6 -7];
+    opt.maxItr=2e3;
+    m=[500, 600];
+    for j= 1
+        opt=loadLinear(conf,opt,m(j));
+        for i=[2:4]
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            opt.u = u(i);
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            initSig = conf.Phit(conf.y)*0;
+            out001{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out001','-append');
+            %initSig=out001{i,j}.alpha;
+        end
+    end
+end
+
+if(any(runList==002))
+    load(filename,'out002');
+    conf=ConfigCT();
     opt=loadLinear(conf);
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
     opt.maxItr=2e3;
+    opt.thresh=1e-12;
     j=1;
-    for i=5
-        fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
+    for i=[2:3]
+        fprintf('%s, i=%d, j=%d\n','SPIRAL',i,j);
         opt.u = u(i);
-        opt.alphaStep='FISTA_ADMM_NNL1';
         initSig = conf.Phit(conf.y)*0;
-        out001{i,j}=lasso(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out001','-append');
-        %initSig=out001{i,j}.alpha;
+        out=[];
+        subtolerance=1e-6;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',2,...
+            'savesolutionpath',0,'verbose',100);
+        out.opt=opt; out002{i,j}=out;
+        save(filename,'out002','-append');
     end
 end
 
