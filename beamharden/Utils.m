@@ -130,5 +130,27 @@ classdef Utils < handle
             end
         end
 
+        function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
+            eps=1e-15;
+            PhiAlpha=Phi(alpha)+eps;
+            f=sum(PhiAlpha)-y(:)'*log(PhiAlpha);
+            if(nargout>=2)
+                g=Phit(  1-y./(PhiAlpha)  );
+                if(nargout>=3)
+                    weight=y./(PhiAlpha.^2);
+                    h=@(x,opt) hessian(weight,x,opt);
+                end
+            end
+            function hh=hessian(weight,x,opt)
+                y = Phi(x);
+                if(opt==1)
+                    hh = Phit(weight.*y);
+                else
+                    hh = y'*(weight.*y);
+                end
+
+            end
+        end
+
     end
 end

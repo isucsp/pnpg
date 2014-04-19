@@ -24,30 +24,185 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-% 
+% vary the number of the measurements and get the corresponding good u for 
+% each
 if(any(runList==001))
     load(filename,'out001');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    u = 10.^[-1 -2 -3 -4 -5 -6 -7];
     opt.maxItr=2e3;
-    m=[500, 600];
-    for j= 2
-        opt=loadLinear(conf,opt,m(j));
-        for i=[2:4]
+    opt.thresh=1e-6;
+    m=[200, 300, 400, 500, 600, 700, 800]; % should go from 200
+    u = 10.^[-1 -2 -3 -4 -5 -6 -7];
+    snr=[inf 1e6 1e5 2 5 10 100 1e3 inf];
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.continuation=true;
+    for i=1:7
+        opt=loadLinear(conf,opt,m(i),inf);
+        for j=3:6
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-            opt.u = u(i);
-            opt.alphaStep='FISTA_ADMM_NNL1';
+            opt.u = u(j);
             initSig = conf.Phit(conf.y)*0;
             out001{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'out001','-append');
-            %initSig=out001{i,j}.alpha;
+        end
+        %initSig=out001{i,j}.alpha;
+    end
+end
+
+% vary the number of measurements, with continuation
+if(any(runList==002))
+    load(filename,'out002');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=2e3; opt.thresh=1e-6;
+    m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
+    u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.continuation=true;
+    j=1;
+    for i=1:7
+        fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+        opt=loadLinear(conf,opt,m(i),inf); opt.u = u(i);
+        initSig = conf.Phit(conf.y)*0;
+
+        %out002{i,j}=lasso(conf.Phi,conf.Phit,...
+        %    conf.Psi,conf.Psit,conf.y,initSig,opt);
+        %save(filename,'out002','-append');
+
+        subtolerance=1e-5;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',2,...
+            'savesolutionpath',0,'verbose',100);
+        out.opt=opt; spiral002{i,j}=out;
+        save(filename,'spiral002','-append');
+    end
+end
+
+% vary the number of measurements, without continuation
+if(any(runList==003))
+    load(filename,'out003');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=2e3; opt.thresh=1e-6;
+    m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
+    u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    j=1;
+    for i=1:7
+        fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+        opt=loadLinear(conf,opt,m(i),inf); opt.u = u(i);
+        initSig = conf.Phit(conf.y)*0;
+        out003{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out003','-append');
+    end
+end
+
+% vary the SNR of measurements, with continuation (continuation is good) to 
+% find their corresponding good u
+if(any(runList==004))
+    load(filename,'out004');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.continuation=true;
+    m=[600];
+    snr=[1 2 5 10 20 50 100 200 500 1e3 1e4 1e5 1e6];
+    u=[10,1,0.1,1e-2,1e-3,1e-4,1e-5];
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    j=1;
+    for i=1:length(snr)
+        opt=loadLinear(conf,opt,m,snr(i));
+        for j=1:3
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            opt.u = u(j);
+            initSig = conf.Phit(conf.y)*0;
+            out004{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out004','-append');
         end
     end
 end
 
-if(any(runList==002))
-    load(filename,'out002');
+% vary the SNR
+if(any(runList==005))
+    load(filename,'out005');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.continuation=true;
+    m=[600];
+    snr=[10 50 100 200 500 1e3 1e4 1e5 1e6];
+    u=  [1,0.1,0.1,0.1,0.1,1e-2,1e-2,1e-3,1e-3]; % this is for m=600
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    j=1;
+    for i=1:length(snr)
+        opt=loadLinear(conf,opt,m,snr(i));
+            opt.u = u(i);
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            initSig = conf.Phit(conf.y)*0;
+            out005{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'out005','-append');
+    end
+end
+
+% vary the number of measurements, with continuation
+if(any(runList==006))
+    load(filename,'out006');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=2e3; opt.thresh=1e-6;
+    m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
+    u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.noiseType='poisson';
+    j=1;
+    for i=7:7
+        fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+        opt.m=m(i); opt.snr=inf; opt.u = 1e-2;
+        opt=loadLinear(conf,opt);
+        initSig = conf.Phit(conf.y)*0;
+
+        fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
+        out006{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'out006','-append');
+
+        %subtolerance=1e-5;
+        %[out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+        %    SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+        %    'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+        %    'initialization',initSig,'maxiter',opt.maxItr,...
+        %    'miniter',0,'stopcriterion',3,...
+        %    'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+        %    'subtolerance',subtolerance,'monotone',1,...
+        %    'saveobjective',1,'savereconerror',1,'savecputime',1,...
+        %    'reconerrortype',2,...
+        %    'savesolutionpath',0,'verbose',100);
+        %out.opt=opt; spiral006{i,j}=out;
+        %save(filename,'spiral006','-append');
+    end
+end
+
+
+if(any(runList==904))
+    load(filename,'out004');
     conf=ConfigCT();
     opt=loadLinear(conf);
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
@@ -72,8 +227,8 @@ if(any(runList==002))
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
                 'reconerrortype',2,...
                 'savesolutionpath',0,'verbose',100);
-            out.opt=opt; out002{i,j}=out;
-            save(filename,'out002','-append');
+            out.opt=opt; out004{i,j}=out;
+            save(filename,'out004','-append');
         end
     end
 end
@@ -105,7 +260,7 @@ if(any(runList==102))     % FPCAS
     end
 end
 
-if(any(runList==003)) %solve by Back Projection
+if(any(runList==903)) %solve by Back Projection
     load(filename,'out003');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -121,7 +276,7 @@ if(any(runList==003)) %solve by Back Projection
     end
 end
 
-if(any(runList==004))     % FPCAS after linearization
+if(any(runList==904))     % FPCAS after linearization
     load(filename,'out004');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -150,7 +305,7 @@ if(any(runList==004))     % FPCAS after linearization
 end
 
 %solve by Back Projection after linearization
-if(any(runList==005))
+if(any(runList==905))
     load(filename,'out005');
     conf=ConfigCT();
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -167,7 +322,7 @@ if(any(runList==005))
     end
 end
 
-if(any(runList==6)) % b0, known Ie,
+if(any(runList==996)) % b0, known Ie,
     load(filename,'out006');
     [conf, opt] = defaultInit();
     intval = 6:-1:1; j=1;

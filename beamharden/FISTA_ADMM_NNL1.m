@@ -11,6 +11,8 @@ classdef FISTA_ADMM_NNL1 < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
+
+        restart=0;   % make this value negative to disable restart
     end
     methods
         function obj = FISTA_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -25,7 +27,8 @@ classdef FISTA_ADMM_NNL1 < Methods
         % method No.4 with ADMM inside FISTA for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false; restarted=false;
+            obj.p = obj.p+1; obj.warned = false;
+            if(obj.restart>=0) obj.restart=0; end
             pp=0;
             while(pp<obj.maxItr)
                 pp=pp+1;
@@ -62,7 +65,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
                         max(obj.admmTol*obj.difAlpha,obj.admmAbsTol));
                     newCost=obj.func(newX);
-                    if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2 || obj.ppp>20)
+                    if(obj.ppp>20 || newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -81,9 +84,10 @@ classdef FISTA_ADMM_NNL1 < Methods
                 temp = newCost+obj.u*obj.fVal(obj.n+1);
 
                 % restart
-                if(temp>obj.cost & ~restarted)
-                    obj.theta=0; pp=pp-1; restarted=true;
-                    continue;
+                if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)
+                    obj.theta=0; pp=pp-1; obj.t=obj.t/obj.stepShrnk;
+                    obj.restart=obj.restart+1;
+                    if(obj.restart<10) continue; end
                 end
                 obj.alpha = newX;
                 obj.cost = temp;

@@ -1,6 +1,6 @@
-function opt=loadLinear(obj,opt,m,snr)
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+function opt=loadLinear(obj,opt)
+    %s = RandStream.create('mt19937ar','seed',0);
+    %RandStream.setGlobalStream(s);
 
     tics=[0, 40, 230, 254, 290, 310, 370, 390, 420, 470, 540, 610, 660, 690, 700, 790, 800, 830, 850, 920, 990, 1023];
     t=(0:1023); t=t/max(t)*max(tics);
@@ -28,23 +28,32 @@ function opt=loadLinear(obj,opt,m,snr)
     x(t>=tics(21))=0;
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    if(nargin<3)
-        m = 500;       % number of examples
-    end
+    if(~isfield(opt,'m')) opt.m=500; end
+    if(~isfield(opt,'snr')) opt.snr=inf; end
+    if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
     n = length(x);      % number of features
 
     x0=x(:);
-    A = randn(m,n);
-    A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
-    if(nargin<4)
-        snr=inf;
+    if(strcmpi(opt.noiseType,'gaussian'))
+        A = randn(opt.m,n);
+        A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
+        v = randn(opt.m,1);
+        v = v/norm(v)*(norm(A*x0)/sqrt(opt.snr));
+        b = A*x0 + v;
+        fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
+    elseif(strcmpi(opt.noiseType,'poisson'))
+        A = rand(opt.m,n);
+        x0=x0*1000;
+        a=0.7;
+        idx=(A<a);
+        A(idx)=0;
+        A(~idx)=(A(~idx)-a)/(1-a);
+        b = poissrnd(A*x0);
+        %b=A*x0;
+        %figure; showImg(A);
     end
-    v = randn(m,1);
-    v = v/norm(v)*(norm(A*x0)/sqrt(snr));
-    b = A*x0 + v;
 
-    fprintf('solving instance with %d examples, %d variables\n', m, n);
-    fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
+    fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
 
     gamma_max = norm(A'*b,'inf');
     gamma = 0.1*gamma_max;
@@ -55,12 +64,12 @@ function opt=loadLinear(obj,opt,m,snr)
     obj.Phi = @(xx) A*xx(:);
     obj.Phit = @(xx) A'*xx(:);
 
-    obj.dwt_L=8;        %levels of wavelet transform
-    [wav,L] = wavedec(x0,obj.dwt_L,'db1');
-    obj.Psi = @(xx) waverec(xx,L,'db1');
-    obj.Psit = @(xx) wavedec(xx,obj.dwt_L,'db1');
-
-    opt.u = gamma;
+    obj.dwt_L=5;        %levels of wavelet transform
+    obj.daub = 2;
+    wave=sprintf('db%d',obj.daub);
+    [wav,L] = wavedec(x0,obj.dwt_L,wave);
+    obj.Psi = @(xx) waverec(xx,L,wave);
+    obj.Psit = @(xx) wavedec(xx,obj.dwt_L,wave);
     opt.trueAlpha=x0;
 end
 

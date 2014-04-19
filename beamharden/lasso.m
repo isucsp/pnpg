@@ -36,6 +36,8 @@ if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'uMode')) opt.uMode='abs'; end
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 if(~isfield(opt,'errorType')) opt.errorType='MSE'; end
+if(~isfield(opt,'restart')) opt.restart=true; end
+if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 
 alpha=xInit(:);
 
@@ -81,9 +83,16 @@ switch lower(opt.alphaStep)
     case {lower('ADMM_NN')}
         alphaStep = ADMM_NN(2,alpha,1,opt.stepShrnk,Psi,Psit);
 end
-alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+if(strcmpi(opt.noiseType,'gaussian'))
+    alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+else
+    alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y);
+end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
+if(any(strcmp(properties(alphaStep),'restart')) && (~opt.restart))
+    alphaStep.restart=-1;
+end
 
 if(strcmpi(opt.uMode,'relative'))
     opt.u=opt.a*max(abs(Psit(Phit(y))));
@@ -171,7 +180,7 @@ while(true)
     end
     out.time(p)=toc;
     if(p >= opt.maxItr) break; end
-    if(p>1 && out.difAlpha(p)<opt.thresh)
+    if(p>1 && out.difAlpha(p)<opt.thresh && (alphaStep.u==opt.u))
         convThresh=convThresh+1;
     end
     if(convThresh>10) break; end

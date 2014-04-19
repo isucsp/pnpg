@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 27 Mar 2014 10:54:50 PM CDT
+% $Revision: 0.2 $ $Date: Wed 16 Apr 2014 02:23:20 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -29,6 +29,7 @@ classdef ConfigCT < handle
         FBP
 
         % for wavelet configuration
+        daub=2;
         wav = daubcqf(2);
         dwt_L=6;        %levels of wavelet transform
 
