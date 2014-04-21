@@ -76,6 +76,8 @@ switch lower(opt.alphaStep)
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
         alphaStep=FISTA_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('IST_ADMM_NNL1')
+        alphaStep=IST_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}

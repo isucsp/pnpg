@@ -31,6 +31,8 @@ function opt=loadLinear(obj,opt)
     if(~isfield(opt,'m')) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+    if(~isfield(opt,'padZero')) opt.padZero=0; end
+    x=[x(:); zeros(opt.padZero,1)];
     n = length(x);      % number of features
 
     x0=x(:);

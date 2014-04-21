@@ -39,20 +39,32 @@ if(any(runList==001))
     opt.alphaStep='FISTA_ADMM_NNL1';
     opt.continuation=true;
     for i=1:7
-        opt=loadLinear(conf,opt,m(i),inf);
+        opt.m=m(i); opt.snr=inf;
+        opt=loadLinear(conf,opt);
         for j=3:6
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(j);
             initSig = conf.Phit(conf.y)*0;
+
             out001{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'out001','-append');
+
+            A = @(xx) conf.Phi(conf.Psi(xx));
+            At = @(yy) conf.Psit(conf.Phit(yy));
+            AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+            [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+            fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
+            fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
+            fpcas001{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
+            save(filename,'fpcas001','-append');
         end
         %initSig=out001{i,j}.alpha;
     end
 end
 
 % vary the number of measurements, with continuation
+% The ture signal is 376 zeropadded.
 if(any(runList==002))
     load(filename,'out002');
     s = RandStream.create('mt19937ar','seed',0);
@@ -62,16 +74,23 @@ if(any(runList==002))
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
     opt.alphaStep='FISTA_ADMM_NNL1';
-    opt.continuation=true;
+    opt.padZero=376;
     j=1;
     for i=1:7
         fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-        opt=loadLinear(conf,opt,m(i),inf); opt.u = u(i);
+        opt.m=m(i); opt.snr=inf; opt.u = u(i);
+        opt=loadLinear(conf,opt);
         initSig = conf.Phit(conf.y)*0;
 
-        %out002{i,j}=lasso(conf.Phi,conf.Phit,...
-        %    conf.Psi,conf.Psit,conf.y,initSig,opt);
-        %save(filename,'out002','-append');
+        opt.continuation=true;
+        npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'npgC002','-append');
+
+        opt.continuation=false;
+        npg002{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'npg002','-append');
 
         subtolerance=1e-5;
         [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -82,14 +101,23 @@ if(any(runList==002))
             'tolerance',opt.thresh,'truth',opt.trueAlpha,...
             'subtolerance',subtolerance,'monotone',1,...
             'saveobjective',1,'savereconerror',1,'savecputime',1,...
-            'reconerrortype',2,...
+            'reconerrortype',0,...
             'savesolutionpath',0,'verbose',100);
         out.opt=opt; spiral002{i,j}=out;
         save(filename,'spiral002','-append');
+
+        A = @(xx) conf.Phi(conf.Psi(xx));
+        At = @(yy) conf.Psit(conf.Phit(yy));
+        AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+        [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+        fpcas002{i,j}=out; fpcas002{i,j}.alpha = conf.Psi(s);
+        fpcas002{i,j}.opt = opt; alphaHat=fpcas002{i,j}.alpha;
+        fpcas002{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
+        save(filename,'fpcas002','-append');
     end
 end
 
-% vary the number of measurements, without continuation
+% vary the number of measurements, with continuation
 if(any(runList==003))
     load(filename,'out003');
     s = RandStream.create('mt19937ar','seed',0);
@@ -102,11 +130,42 @@ if(any(runList==003))
     j=1;
     for i=1:7
         fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-        opt=loadLinear(conf,opt,m(i),inf); opt.u = u(i);
+        opt.m=m(i); opt.snr=inf; opt.u = u(i);
+        opt=loadLinear(conf,opt);
         initSig = conf.Phit(conf.y)*0;
-        out003{i,j}=lasso(conf.Phi,conf.Phit,...
+
+        opt.continuation=true;
+        npgC003{i,j}=lasso(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out003','-append');
+        save(filename,'npgC003','-append');
+
+        opt.continuation=false;
+        npg003{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'npg003','-append');
+
+        subtolerance=1e-5;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',0,...
+            'savesolutionpath',0,'verbose',100);
+        out.opt=opt; spiral003{i,j}=out;
+        save(filename,'spiral003','-append');
+
+        A = @(xx) conf.Phi(conf.Psi(xx));
+        At = @(yy) conf.Psit(conf.Phit(yy));
+        AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+        [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+        fpcas003{i,j}=out; fpcas003{i,j}.alpha = conf.Psi(s);
+        fpcas003{i,j}.opt = opt; alphaHat=fpcas003{i,j}.alpha;
+        fpcas003{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
+        save(filename,'fpcas003','-append');
     end
 end
 
@@ -125,7 +184,8 @@ if(any(runList==004))
     opt.alphaStep='FISTA_ADMM_NNL1';
     j=1;
     for i=1:length(snr)
-        opt=loadLinear(conf,opt,m,snr(i));
+        opt.m=m; opt.snr=snr(i);
+        opt=loadLinear(conf,opt);
         for j=1:3
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(j);
@@ -144,20 +204,48 @@ if(any(runList==005))
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
     opt.maxItr=2e3; opt.thresh=1e-6;
-    opt.continuation=true;
     m=[600];
     snr=[10 50 100 200 500 1e3 1e4 1e5 1e6];
     u=  [1,0.1,0.1,0.1,0.1,1e-2,1e-2,1e-3,1e-3]; % this is for m=600
     opt.alphaStep='FISTA_ADMM_NNL1';
     j=1;
     for i=1:length(snr)
-        opt=loadLinear(conf,opt,m,snr(i));
-            opt.u = u(i);
-            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-            initSig = conf.Phit(conf.y)*0;
-            out005{i,j}=lasso(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out005','-append');
+        opt.m=m; opt.snr=snr(i); opt.u = u(i);
+        opt=loadLinear(conf,opt);
+        fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+        initSig = conf.Phit(conf.y)*0;
+
+        opt.continuation=true;
+        npgC005{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'npgC005','-append');
+
+        opt.continuation=true;
+        npg005{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'npg005','-append');
+
+        subtolerance=1e-5;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',0,...
+            'savesolutionpath',0,'verbose',100);
+        out.opt=opt; spiral005{i,j}=out;
+        save(filename,'spiral005','-append');
+
+        A = @(xx) conf.Phi(conf.Psi(xx)); At = @(yy) conf.Psit(conf.Phit(yy));
+        AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+        [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+        fpcas005{i,j}=out; fpcas005{i,j}.alpha = conf.Psi(s);
+        fpcas005{i,j}.opt = opt; alphaHat=fpcas005{i,j}.alpha;
+        fpcas005{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
+        save(filename,'fpcas005','-append');
     end
 end
 
@@ -177,26 +265,31 @@ if(any(runList==006))
         fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
         opt.m=m(i); opt.snr=inf; opt.u = 1e-2;
         opt=loadLinear(conf,opt);
-        initSig = conf.Phit(conf.y)*0;
-
+        initSig = conf.Phit(conf.y)*0+1;
         fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
-        out006{i,j}=lasso(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out006','-append');
 
-        %subtolerance=1e-5;
-        %[out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-        %    SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
-        %    'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
-        %    'initialization',initSig,'maxiter',opt.maxItr,...
-        %    'miniter',0,'stopcriterion',3,...
-        %    'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-        %    'subtolerance',subtolerance,'monotone',1,...
-        %    'saveobjective',1,'savereconerror',1,'savecputime',1,...
-        %    'reconerrortype',2,...
-        %    'savesolutionpath',0,'verbose',100);
-        %out.opt=opt; spiral006{i,j}=out;
-        %save(filename,'spiral006','-append');
+        %npg006{i,j}=lasso(conf.Phi,conf.Phit,...
+        %    conf.Psi,conf.Psit,conf.y,initSig,opt);
+        %save(filename,'npg006','-append');
+
+        opt.alphaStep='IST_ADMM_NNL1';
+        ist006{i,j}=lasso(conf.Phi,conf.Phit,...
+            conf.Psi,conf.Psit,conf.y,initSig,opt);
+        save(filename,'ist006','-append');
+
+        subtolerance=1e-5;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','poisson',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',0,...
+            'savesolutionpath',0,'verbose',100);
+        out.opt=opt; spiral006{i,j}=out;
+        save(filename,'spiral006','-append');
     end
 end
 
@@ -225,7 +318,7 @@ if(any(runList==904))
                 'tolerance',opt.thresh,'truth',opt.trueAlpha,...
                 'subtolerance',subtolerance,'monotone',1,...
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
-                'reconerrortype',2,...
+                'reconerrortype',0,...
                 'savesolutionpath',0,'verbose',100);
             out.opt=opt; out004{i,j}=out;
             save(filename,'out004','-append');
@@ -860,50 +953,61 @@ if(any(runList==32)) % Huber function test for best muHuber
     end
 end
 
-% Test difference between FISTA_Simplex and ActiveSet for IeStep
+% Plot the figures, or save the data for gnuplot in the paper
 if(any(runList==999))
-    conf=ConfigCT();
-    conf.prjFull = 360/2;
-    conf.prjNum = conf.prjFull/2;
-    conf.imgSize = 256;
-    conf.prjWidth = 256;
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
-    opt=conf.setup();
-    opt.maxIeSteps=20;
-    opt.maxItr=2000;
-    opt.debugLevel=1;
-    opt.showImg=true;
-    initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-    
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    opt.uMode='abs';
-    % 1:3, where i=2 (i.e. u=1e-3 gives the best solution
-    for i=1:-3
-        opt.u=10^(-(i+1));
-        out999{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out999','-append');
-    end
-    opt.uMode='relative';
-    % 4:6, where i=4 (i.e. opt.a=1e-6, -> u=1.58e-3) gives the best 
-    % solution. However, this round has opt.u not updated while running.
-    % 7, opt=1e-6, with updating opt.u, not as good as i=4;
-    opt.continuation=true;
-    opt.uMode='abs';
-    opt.maxIeSteps=1;
-    opt.skipIe=true;
-    for i=9:9
-        opt.u=2e-3;
-        out999{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out999','-append');
-    end
-    save(filename,'out999','-append');
+    load(filename); j=1;
+    m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
+    for j=1:size(npg002,2)
+        for i=1:size(npg002,1)
+            npgTime(i,j)=npg002{i,j}.time(end);
+            npgCTime(i,j)=npgC002{i,j}.time(end);
+            spiralTime(i,j)=spiral002{i,j}.time(end);
+            fpcasTime(i,j)=fpcas002{i,j}.cpu(end);
 
-    % Conclusion: Although the two methods converge to the same place, the
-    % FISTA version needs too many iterations to reach the point, while
-    % Active Set converges quickly. The reason must be the large condition
-    % number of the hessian matrix w.r.t. Ie.
+            npgCost(i,j)=npg002{i,j}.cost(end);
+            npgCCost(i,j)=npgC002{i,j}.cost(end);
+            spiralCost(i,j)=spiral002{i,j}.cost(end);
+            fpcasCost(i,j)=fpcas002{i,j}.f(end);
+
+            npgRMSE(i,j)=npg002{i,j}.RMSE(end);
+            npgCRMSE(i,j)=npgC002{i,j}.RMSE(end);
+            spiralRMSE(i,j)=spiral002{i,j}.reconerror(end);
+            fpcasRMSE(i,j)=fpcas002{i,j}.RMSE(end);
+        end
+    end
+    forSave=[npgTime, npgCTime, spiralTime, fpcasTime,...
+        npgCost, npgCCost, spiralCost, fpcasCost, ...
+        npgRMSE, npgCRMSE, spiralRMSE, fpcasRMSE, m(:)];
+    save('varyMeasurement.data','forSave','-ascii');
+
+    clear *Time *Cost *RMSE forSave
+    snr=[10 50 100 200 500 1e3 1e4 1e5 1e6];
+    for i=1:size(npg005,1)
+        npgTime(i,1)=npg005{i,j}.time(end);
+        npgCTime(i,1)=npgC005{i,j}.time(end);
+        spiralTime(i,1)=spiral005{i,j}.time(end);
+        fpcasTime(i,1)=fpcas005{i,j}.cpu(end);
+
+        npgCost(i,1)=npg005{i,j}.cost(end);
+        npgCCost(i,1)=npgC005{i,j}.cost(end);
+        spiralCost(i,1)=spiral005{i,j}.cost(end);
+        fpcasCost(i,1)=fpcas005{i,j}.f(end);
+
+        npgRMSE(i,1)=npg005{i,j}.RMSE(end);
+        npgCRMSE(i,1)=npgC005{i,j}.RMSE(end);
+        spiralRMSE(i,1)=spiral005{i,j}.reconerror(end);
+        fpcasRMSE(i,1)=fpcas005{i,j}.RMSE(end);
+    end
+    forSave=[npgTime, npgCTime, spiralTime, fpcasTime,...
+        npgCost, npgCCost, spiralCost, fpcasCost, ...
+        npgRMSE, npgCRMSE, spiralRMSE, fpcasRMSE, 10*log(snr(:))];
+    save('varySNR.data','forSave','-ascii');
+
+    !cp vary*.data ~/research/myPaper/asilomar2014/
+
+    clear *Time *Cost *RMSE forSave
+    
 end
+
 end
 
