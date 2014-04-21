@@ -956,6 +956,12 @@ end
 % Plot the figures, or save the data for gnuplot in the paper
 if(any(runList==999))
     load(filename); j=1;
+
+    opt.a=0;
+    opt=loadLinear(ConfigCT(),opt);
+    signal=opt.trueAlpha;
+    save('skyline.data','signal','-ascii');
+
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
     for j=1:size(npg002,2)
         for i=1:size(npg002,1)
@@ -1003,7 +1009,7 @@ if(any(runList==999))
         npgRMSE, npgCRMSE, spiralRMSE, fpcasRMSE, 10*log(snr(:))];
     save('varySNR.data','forSave','-ascii');
 
-    !cp vary*.data ~/research/myPaper/asilomar2014/
+    !cp vary*.data skyline.data ~/research/myPaper/asilomar2014/
 
     clear *Time *Cost *RMSE forSave
     
