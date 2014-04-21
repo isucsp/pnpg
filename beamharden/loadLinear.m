@@ -28,7 +28,7 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(21))=0;
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    if(~exist(opt)) opt.m=500; end
+    if(~exist('opt')) opt.m=500; end
     if(~isfield(opt,'m')) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
