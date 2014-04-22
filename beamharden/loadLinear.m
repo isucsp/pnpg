@@ -69,10 +69,12 @@ function opt=loadLinear(obj,opt)
 
     obj.dwt_L=5;        %levels of wavelet transform
     obj.daub = 2;
-    wave=sprintf('db%d',obj.daub);
-    [wav,L] = wavedec(x0,obj.dwt_L,wave);
-    obj.Psi = @(xx) waverec(xx,L,wave);
-    obj.Psit = @(xx) wavedec(xx,obj.dwt_L,wave);
+
+    % caution: don't use the wavelet tools from matlab, it is slow
+    daub_H = daubcqf(obj.daub);
+    obj.Psi = @(xx) midwt(xx,daub_H,obj.dwt_L);
+    obj.Psit= @(xx)  mdwt(xx,daub_H,obj.dwt_L);
+
     opt.trueAlpha=x0;
 end
 

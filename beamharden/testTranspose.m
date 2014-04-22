@@ -25,5 +25,9 @@ function R=testTranspose(A,At,N,m,strA,NN);
         temp=length(str);
         str=sprintf('%d/%d',i,times);
         fprintf([repmat('\b',1,temp) '%s'],str);
+        if(abs((R(i,1)-R(i,2))/(abs(R(i,1))+abs(R(i,2))))>0.1)
+            fprintf('i=%d, @(%d,%d)\n',i,r(i),c(i));
+            str='';
+        end
     end
     fprintf('\nerror=%g%%\n',norm(R(:,1)-R(:,2))/norm(R(:,1))*100);

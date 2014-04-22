@@ -85,7 +85,8 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 % restart
                 if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)
-                    obj.theta=0; pp=pp-1; obj.t=obj.t/obj.stepShrnk;
+                    obj.theta=0; pp=pp-1;
+                    if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
                     obj.restart=obj.restart+1;
                     if(obj.restart<10) continue; end
                 end

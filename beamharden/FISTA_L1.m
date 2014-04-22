@@ -27,10 +27,12 @@ classdef FISTA_L1 < Methods
         end
         function out = main_FISTA(obj)
             obj.p = obj.p+1; obj.warned = false;
-            for pp=1:obj.maxItr
+            if(obj.restart>=0) obj.restart=0; end
+            pp=0;
+            while(pp<obj.maxItr)
+                pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                test=(obj.theta -1)/temp;
                 obj.theta = temp;
                 %y=obj.alpha;
                 %y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
@@ -58,13 +60,12 @@ classdef FISTA_L1 < Methods
                 % start of line Search
                 obj.ppp=0;
                 while(true)
-                    obj.ppp=obj.ppp+1;
+                    obj.ppp = obj.ppp+1;
                     wi=si-dsi/obj.t;
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     newCost=obj.func(newX);
-
-                    if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
+                    if(obj.ppp>20 || newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -78,17 +79,20 @@ classdef FISTA_L1 < Methods
                 else obj.cumu=0;
                 end
                 obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
-                obj.alpha = newX;
 
-                % decide whether to restart
                 obj.fVal(obj.n+1) = sum(abs(newSi));
                 temp = newCost+obj.u*obj.fVal(obj.n+1);
-                %if(temp>obj.cost)
-                %    obj.theta=0; obj.preAlpha=obj.alpha;
-                %end
+
+                % restart
+                if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)
+                    obj.theta=0; pp=pp-1;
+                    if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
+                    obj.restart=obj.restart+1;
+                    if(obj.restart<10) continue; end
+                end
+                obj.alpha = newX;
                 obj.cost = temp;
-                set(0,'CurrentFigure',123);
-                plot(obj.p,test,'.'); hold on;
+                %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<obj.thresh) break; end
