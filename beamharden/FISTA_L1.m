@@ -12,6 +12,7 @@ classdef FISTA_L1 < Methods
         cumu=0;
         cumuTol=4;
         main;
+        restart=0;   % make this value negative to disable restart
     end
     methods
         function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)

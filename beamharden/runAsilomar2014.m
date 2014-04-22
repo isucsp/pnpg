@@ -27,17 +27,15 @@ end
 % vary the number of the measurements and get the corresponding good u for 
 % each
 if(any(runList==001))
-    load(filename,'out001');
+    load(filename,'*001');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=2e3;
-    opt.thresh=1e-6;
+    opt.maxItr=4e3;
+    opt.thresh=1e-7;
     m=[200, 300, 400, 500, 600, 700, 800]; % should go from 200
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
     snr=[inf 1e6 1e5 2 5 10 100 1e3 inf];
-    opt.alphaStep='FISTA_ADMM_NNL1';
-    opt.continuation=true;
     for i=1:7
         opt.m=m(i); opt.snr=inf;
         opt=loadLinear(conf,opt);
@@ -46,9 +44,17 @@ if(any(runList==001))
             opt.u = u(j);
             initSig = conf.Phit(conf.y)*0;
 
-            out001{i,j}=lasso(conf.Phi,conf.Phit,...
+            opt.continuation=true;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npgC001{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out001','-append');
+            save(filename,'npgC001','-append');
+
+            %opt.continuation=true;
+            %opt.alphaStep='FISTA_L1';
+            %FISTAC001{i,j}=lasso(conf.Phi,conf.Phit,...
+            %    conf.Psi,conf.Psit,conf.y,initSig,opt);
+            %save(filename,'FISTAC001','-append');
 
             A = @(xx) conf.Phi(conf.Psi(xx));
             At = @(yy) conf.Psit(conf.Phit(yy));
@@ -70,7 +76,7 @@ if(any(runList==002))
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.maxItr=4e3; opt.thresh=1e-7;
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
     opt.alphaStep='FISTA_ADMM_NNL1';
@@ -125,11 +131,11 @@ end
 % vary the SNR of measurements, with continuation (continuation is good) to 
 % find their corresponding good u
 if(any(runList==004))
-    load(filename,'out004');
+    load(filename,'*004');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.maxItr=4e3; opt.thresh=1e-7;
     opt.continuation=true;
     m=[600];
     snr=[1 2 5 10 20 50 100 200 500 1e3 1e4 1e5 1e6];
@@ -152,11 +158,11 @@ end
 
 % vary the SNR
 if(any(runList==005))
-    load(filename,'out005');
+    load(filename,'*005');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.maxItr=4e3; opt.thresh=1e-7;
     m=[600];
     snr=[10 50 100 200 500 1e3 1e4 1e5 1e6];
     u=  [1,0.1,0.1,0.1,0.1,1e-2,1e-2,1e-3,1e-3]; % this is for m=600
@@ -204,11 +210,11 @@ end
 
 % vary the number of measurements, with continuation
 if(any(runList==006))
-    load(filename,'out006');
+    load(filename,'*006');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=2e3; opt.thresh=1e-6;
+    opt.maxItr=4e3; opt.thresh=1e-7;
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
     opt.alphaStep='FISTA_ADMM_NNL1';
@@ -248,12 +254,12 @@ end
 
 
 if(any(runList==904))
-    load(filename,'out004');
+    load(filename,'*904');
     conf=ConfigCT();
     opt=loadLinear(conf);
     u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    opt.maxItr=2e3;
-    opt.thresh=1e-12;
+    opt.maxItr=4e3;
+    opt.thresh=1e-7;
     m=[500, 600];
     for j= 2
         opt=loadLinear(conf,opt,m(j));
@@ -466,8 +472,8 @@ if(any(runList==009))
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt.u = u(i);
         opt=conf.setup(opt);
-        opt.maxItr=2e3;
-        opt.thresh=1e-12;
+        opt.maxItr=4e3;
+        opt.thresh=1e-7;
 
         y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
         initSig = maskFunc(conf.FBP(y),opt.mask~=0);
@@ -843,7 +849,7 @@ if(any(runList==30)) % Huber function test for best muHuber
     opt.spectBasis = 'dis';
     opt=rmfield(opt,'muLustig');
     muHuber=[logspace(-1,-15,8), 0.2];
-    opt.maxItr=1e3;
+    opt.maxItr=4e3;
     opt=conf.setup(opt);
     initSig=conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
@@ -864,7 +870,7 @@ if(any(runList==31)) % test for different u for lustig
     [conf, opt] = defaultInit();
     j=1;
     opt.spectBasis = 'dis';
-    opt.maxItr=1e3;
+    opt.maxItr=4e3;
     opt=conf.setup(opt);
     initSig=conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
@@ -889,7 +895,7 @@ if(any(runList==32)) % Huber function test for best muHuber
     opt=rmfield(opt,'muLustig');
     muHuber=[1e-16 logspace(-1,-15,8), 1e-16];
     muHuber=muHuber(end:-1:1);
-    opt.maxItr=1e3;
+    opt.maxItr=4e3;
     opt=conf.setup(opt);
     initSig=conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
