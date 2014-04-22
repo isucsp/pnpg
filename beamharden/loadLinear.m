@@ -2,10 +2,10 @@ function opt=loadLinear(obj,opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 
-    tics=[0, 40, 230, 254, 290, 310, 370, 390, 420, 480, 540, 600, 660, 690, 700, 790, 800, 830, 850, 920, 990, 1023];
+    tics=[0, 65, 190, 210, 240, 260, 320, 340, 370, 435, 490, 545, 610, 640, 650, 740, 750, 780, 820, 880, 940, 1023];
     t=(0:1023); t=t/max(t)*max(tics);
     x(t>=tics( 1) & t<tics( 2))=0;
-    x(t>=tics( 2) & t<tics( 3))=linspace(0,3,sum(t>=tics(2) & t<tics(3)));
+    x(t>=tics( 2) & t<tics( 3))=linspace(0,1.4,sum(t>=tics(2) & t<tics(3)));
     x(t>=tics( 3) & t<tics( 4))=0;
     x(t>=tics( 4) & t<tics( 5))=1.5*0;
     x(t>=tics( 5) & t<tics( 6))=0;
@@ -23,8 +23,8 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(16) & t<tics(17))=1.5;
     x(t>=tics(17) & t<tics(18))=linspace(1.5,1.1,sum(t>=tics(17) & t<tics(18)));
     x(t>=tics(18) & t<tics(19))=0;
-    x(t>=tics(19) & t<tics(20))=2.5*((1:sum(t>=tics(19) & t<tics(20)))/sum(t>=tics(19) & t<tics(20))).^2;
-    x(t>=tics(20) & t<tics(21))=2.5*((sum(t>=tics(20) & t<tics(21)):-1:1)/sum(t>=tics(20) & t<tics(21))).^2;
+    x(t>=tics(19) & t<tics(20))=1.8*((1:sum(t>=tics(19) & t<tics(20)))/sum(t>=tics(19) & t<tics(20))).^2;
+    x(t>=tics(20) & t<tics(21))=1.8*((sum(t>=tics(20) & t<tics(21)):-1:1)/sum(t>=tics(20) & t<tics(21))).^2;
     x(t>=tics(21))=0;
 
     %figure(1); plot(t,x); ylim([-2,5]);

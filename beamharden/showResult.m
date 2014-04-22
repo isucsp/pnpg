@@ -51,5 +51,4 @@ function summary = showResult(out,oMode,field,plotf)
         end
         summary=reshape(summary,size(out));
     end
-    
 end

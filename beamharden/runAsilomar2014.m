@@ -66,7 +66,7 @@ end
 % vary the number of measurements, with continuation
 % The ture signal is 376 zeropadded.
 if(any(runList==002))
-    load(filename,'out002');
+    load(filename,'*002');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
@@ -81,19 +81,20 @@ if(any(runList==002))
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
 
-            if(j<=1) continue; end
+            %if(j<=1) continue; end
+            if(i~=5 || j~=9) continue; end
 
-            if((j>2) || (j==2 && i>1))
             opt.continuation=true;
             npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'npgC002','-append');
 
+            return;
+
             opt.continuation=false;
             npg002{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'npg002','-append');
-            end
 
             subtolerance=1e-5;
             [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -915,50 +916,74 @@ if(any(runList==999))
     save('skyline.data','signal','-ascii');
 
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
-    for j=1:size(npg002,2)
-        for i=1:size(npg002,1)
-            npgTime(i,j)=npg002{i,j}.time(end);
-            npgCTime(i,j)=npgC002{i,j}.time(end);
-            spiralTime(i,j)=spiral002{i,j}.time(end);
-            fpcasTime(i,j)=fpcas002{i,j}.cpu(end);
 
-            npgCost(i,j)=npg002{i,j}.cost(end);
-            npgCCost(i,j)=npgC002{i,j}.cost(end);
-            spiralCost(i,j)=spiral002{i,j}.cost(end);
-            fpcasCost(i,j)=fpcas002{i,j}.f(end);
+    npgTime=showResult(npg002,2,'time');
+    npgCTime=showResult(npgC002,2,'time');
+    spiralTime=showResult(spiral002,2,'time');
+    fpcasTime=showResult(fpcas002,2,'cpu');
 
-            npgRMSE(i,j)=npg002{i,j}.RMSE(end);
-            npgCRMSE(i,j)=npgC002{i,j}.RMSE(end);
-            spiralRMSE(i,j)=spiral002{i,j}.reconerror(end);
-            fpcasRMSE(i,j)=fpcas002{i,j}.RMSE(end);
-        end
-    end
-    forSave=[npgTime, npgCTime, spiralTime, fpcasTime,...
-        npgCost, npgCCost, spiralCost, fpcasCost, ...
-        npgRMSE, npgCRMSE, spiralRMSE, fpcasRMSE, m(:)];
+    npgCost=showResult(npg002,2,'cost');
+    npgCCost=showResult(npgC002,2,'cost');
+    spiralCost=showResult(spiral002,2,'cost');
+    fpcasCost=showResult(fpcas002,2,'f');
+
+    npgRMSE=showResult(npg002,2,'RMSE');
+    npgCRMSE=showResult(npgC002,2,'RMSE');
+    spiralRMSE=showResult(spiral002,2,'reconerror');
+    fpcasRMSE=showResult(fpcas002,2,'RMSE');
+
+    forSave=[];
+    forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];
+    forSave=[forSave, sum(npgCTime,2)./sum(npgCTime>0,2)];
+    forSave=[forSave, sum(spiralTime,2)./sum(spiralTime>0,2)];
+    forSave=[forSave, sum(fpcasTime,2)./sum(fpcasTime>0,2)];
+
+    forSave=[forSave, sum(npgCost,2)./sum(npgCost>0,2)];
+    forSave=[forSave, sum(npgCCost,2)./sum(npgCCost>0,2)];
+    forSave=[forSave, sum(spiralCost,2)./sum(spiralCost>0,2)];
+    forSave=[forSave, sum(fpcasCost,2)./sum(fpcasCost>0,2)];
+
+    forSave=[forSave, sum(npgRMSE,2)./sum(npgRMSE>0,2)];
+    forSave=[forSave, sum(npgCRMSE,2)./sum(npgCRMSE>0,2)];
+    forSave=[forSave, sum(spiralRMSE,2)./sum(spiralRMSE>0,2)];
+    forSave=[forSave, sum(fpcasRMSE,2)./sum(fpcasRMSE>0,2)];
+    forSave=[forSave, m(:)];
     save('varyMeasurement.data','forSave','-ascii');
 
     clear *Time *Cost *RMSE forSave
     snr=[10 50 100 200 500 1e3 1e4 1e5 1e6];
-    for i=1:size(npg005,1)
-        npgTime(i,1)=npg005{i,j}.time(end);
-        npgCTime(i,1)=npgC005{i,j}.time(end);
-        spiralTime(i,1)=spiral005{i,j}.time(end);
-        fpcasTime(i,1)=fpcas005{i,j}.cpu(end);
 
-        npgCost(i,1)=npg005{i,j}.cost(end);
-        npgCCost(i,1)=npgC005{i,j}.cost(end);
-        spiralCost(i,1)=spiral005{i,j}.cost(end);
-        fpcasCost(i,1)=fpcas005{i,j}.f(end);
+    npgTime=showResult(npg005,2,'time');
+    npgCTime=showResult(npgC005,2,'time');
+    spiralTime=showResult(spiral005,2,'time');
+    fpcasTime=showResult(fpcas005,2,'cpu');
 
-        npgRMSE(i,1)=npg005{i,j}.RMSE(end);
-        npgCRMSE(i,1)=npgC005{i,j}.RMSE(end);
-        spiralRMSE(i,1)=spiral005{i,j}.reconerror(end);
-        fpcasRMSE(i,1)=fpcas005{i,j}.RMSE(end);
-    end
-    forSave=[npgTime, npgCTime, spiralTime, fpcasTime,...
-        npgCost, npgCCost, spiralCost, fpcasCost, ...
-        npgRMSE, npgCRMSE, spiralRMSE, fpcasRMSE, 10*log(snr(:))];
+    npgCost=showResult(npg005,2,'cost');
+    npgCCost=showResult(npgC005,2,'cost');
+    spiralCost=showResult(spiral005,2,'cost');
+    fpcasCost=showResult(fpcas005,2,'f');
+
+    npgRMSE=showResult(npg005,2,'RMSE');
+    npgCRMSE=showResult(npgC005,2,'RMSE');
+    spiralRMSE=showResult(spiral005,2,'reconerror');
+    fpcasRMSE=showResult(fpcas005,2,'RMSE');
+
+    forSave=[];
+    forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];
+    forSave=[forSave, sum(npgCTime,2)./sum(npgCTime>0,2)];
+    forSave=[forSave, sum(spiralTime,2)./sum(spiralTime>0,2)];
+    forSave=[forSave, sum(fpcasTime,2)./sum(fpcasTime>0,2)];
+
+    forSave=[forSave, sum(npgCost,2)./sum(npgCost>0,2)];
+    forSave=[forSave, sum(npgCCost,2)./sum(npgCCost>0,2)];
+    forSave=[forSave, sum(spiralCost,2)./sum(spiralCost>0,2)];
+    forSave=[forSave, sum(fpcasCost,2)./sum(fpcasCost>0,2)];
+
+    forSave=[forSave, sum(npgRMSE,2)./sum(npgRMSE>0,2)];
+    forSave=[forSave, sum(npgCRMSE,2)./sum(npgCRMSE>0,2)];
+    forSave=[forSave, sum(spiralRMSE,2)./sum(spiralRMSE>0,2)];
+    forSave=[forSave, sum(fpcasRMSE,2)./sum(fpcasRMSE>0,2)];
+    forSave=[forSave, 10*log(snr(:))];
     save('varySNR.data','forSave','-ascii');
 
     !cp vary*.data skyline.data ~/research/myPaper/asilomar2014/
