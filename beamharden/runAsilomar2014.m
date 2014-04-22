@@ -81,6 +81,9 @@ if(any(runList==002))
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
 
+            if(j<=1) continue; end
+
+            if((j>2) || (j==2 && i>1))
             opt.continuation=true;
             npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -90,6 +93,7 @@ if(any(runList==002))
             npg002{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'npg002','-append');
+            end
 
             subtolerance=1e-5;
             [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -114,58 +118,6 @@ if(any(runList==002))
             fpcas002{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
             save(filename,'fpcas002','-append');
         end
-    end
-end
-
-% vary the number of measurements, with continuation
-if(any(runList==003))
-    load(filename,'out003');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
-    conf=ConfigCT();
-    opt.maxItr=2e3; opt.thresh=1e-6;
-    m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
-    u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
-    opt.alphaStep='FISTA_ADMM_NNL1';
-    j=1;
-    for i=1:7
-        fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-        opt.m=m(i); opt.snr=inf; opt.u = u(i);
-        opt=loadLinear(conf,opt);
-        initSig = conf.Phit(conf.y)*0;
-
-        opt.continuation=true;
-        npgC003{i,j}=lasso(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'npgC003','-append');
-
-        opt.continuation=false;
-        npg003{i,j}=lasso(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'npg003','-append');
-
-        subtolerance=1e-5;
-        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
-            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
-            'initialization',initSig,'maxiter',opt.maxItr,...
-            'miniter',0,'stopcriterion',3,...
-            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-            'subtolerance',subtolerance,'monotone',1,...
-            'saveobjective',1,'savereconerror',1,'savecputime',1,...
-            'reconerrortype',0,...
-            'savesolutionpath',0,'verbose',100);
-        out.opt=opt; spiral003{i,j}=out;
-        save(filename,'spiral003','-append');
-
-        A = @(xx) conf.Phi(conf.Psi(xx));
-        At = @(yy) conf.Psit(conf.Phit(yy));
-        AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
-        [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-        fpcas003{i,j}=out; fpcas003{i,j}.alpha = conf.Psi(s);
-        fpcas003{i,j}.opt = opt; alphaHat=fpcas003{i,j}.alpha;
-        fpcas003{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
-        save(filename,'fpcas003','-append');
     end
 end
 

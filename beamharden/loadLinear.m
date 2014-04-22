@@ -41,7 +41,7 @@ function opt=loadLinear(obj,opt)
         A = randn(opt.m,n);
         A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
         v = randn(opt.m,1);
-        v = v/norm(v)*(norm(A*x0)/sqrt(opt.snr));
+        v = v*(norm(A*x0)/sqrt(opt.snr*opt.m));
         b = A*x0 + v;
         fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
     elseif(strcmpi(opt.noiseType,'poisson'))
