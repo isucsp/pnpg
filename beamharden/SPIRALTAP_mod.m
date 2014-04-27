@@ -393,40 +393,40 @@ switch lower(penalty)
                 error(['Parameter ''WT'' not specified.  Please provide a ',...
                     'method to compute W''*x matrix-vector products.'])
             else % WT was provided
-        if isa(WT, 'function_handle') % W and WT are function calls
-            try dummy = y + A(W(WT(AT(y))));
-            catch exception; 
-                error('Size incompatability between ''W'' and ''WT''.')
+                if isa(WT, 'function_handle') % W and WT are function calls
+                    try dummy = y + A(W(WT(AT(y))));
+                    catch exception; 
+                        error('Size incompatability between ''W'' and ''WT''.')
+                    end
+                else % W is a function call, WT is a matrix        
+                    try dummy = y + A(W*WT(AT(y)));
+                    catch exception
+                        error('Size incompatability between ''W'' and ''WT''.')
+                    end
+                    WT = @(x) WT*x; % Define WT as a function call
+                end
             end
-        else % W is a function call, WT is a matrix        
-            try dummy = y + A(W*WT(AT(y)));
-            catch exception
-                error('Size incompatability between ''W'' and ''WT''.')
+        else
+            if isempty(WT) % W is a matrix, and WT not provided.
+                AT = @(x) W'*x; % Just define function calls.
+                A = @(x) W*x;
+            else % W is a matrix, and WT provided, we need to check
+                if isa(WT, 'function_handle') % W is a matrix, WT is a function call            
+                    try dummy = y + A(WT(W*AT(y)));
+                    catch exception
+                        error('Size incompatability between ''W'' and ''WT''.')
+                    end
+                    W = @(x) W*x; % Define W as a function call
+                else % W and WT are matrices
+                    try dummy = y + A(WT(W*(AT(y))));
+                    catch exception
+                        error('Size incompatability between ''W'' and ''WT''.')
+                    end
+                    WT = @(x) WT*x; % Define A and AT as function calls
+                    W = @(x) W*x;
+                end
             end
-            WT = @(x) WT*x; % Define WT as a function call
         end
-    end
-else
-    if isempty(WT) % W is a matrix, and WT not provided.
-        AT = @(x) W'*x; % Just define function calls.
-        A = @(x) W*x;
-    else % W is a matrix, and WT provided, we need to check
-        if isa(WT, 'function_handle') % W is a matrix, WT is a function call            
-            try dummy = y + A(WT(W*AT(y)));
-            catch exception
-                error('Size incompatability between ''W'' and ''WT''.')
-            end
-            W = @(x) W*x; % Define W as a function call
-        else % W and WT are matrices
-            try dummy = y + A(WT(W*(AT(y))));
-            catch exception
-                error('Size incompatability between ''W'' and ''WT''.')
-            end
-            WT = @(x) WT*x; % Define A and AT as function calls
-            W = @(x) W*x;
-        end
-    end
-end
 
 	case 'rdp'
         %todo

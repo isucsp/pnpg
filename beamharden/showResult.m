@@ -50,5 +50,14 @@ function summary = showResult(out,oMode,field,plotf)
             end
         end
         summary=reshape(summary,size(out));
+    elseif(oMode==3) % extract the number of elements
+        summary=zeros(size(out));
+        for i=1:length(out(:))
+            if(~isempty(out{i}))
+                res{i}=getfield(out{i},field);
+                summary(i)=length(res{i});
+            end
+        end
+        summary=reshape(summary,size(out));
     end
 end

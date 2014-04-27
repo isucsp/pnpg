@@ -32,28 +32,37 @@ function opt=loadLinear(obj,opt)
     if(~isfield(opt,'m')) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+    if(~isfield(opt,'matrixType')) opt.matrixType='nonneg'; end
     if(~isfield(opt,'padZero')) opt.padZero=0; end
     x=[x(:); zeros(opt.padZero,1)];
     n = length(x);      % number of features
 
     x0=x(:);
-    if(strcmpi(opt.noiseType,'gaussian'))
+    if(strcmpi(opt.matrixType,'nonneg'))
+        A = rand(opt.m,n);
+        a=0.7;
+        idx=(A<a);
+        A(idx)=0;
+        A(~idx)=(A(~idx)-a)/(1-a);
+    elseif(strcmpi(opt.matrixType,'gaussian'))
         A = randn(opt.m,n);
         A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
+    else
+        error('error input matrixType');
+    end
+
+    if(strcmpi(opt.noiseType,'gaussian'))
         v = randn(opt.m,1);
         v = v*(norm(A*x0)/sqrt(opt.snr*opt.m));
         b = A*x0 + v;
         fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
     elseif(strcmpi(opt.noiseType,'poisson'))
-        A = rand(opt.m,n);
         x0=x0*1000;
-        a=0.7;
-        idx=(A<a);
-        A(idx)=0;
-        A(~idx)=(A(~idx)-a)/(1-a);
         b = poissrnd(A*x0);
         %b=A*x0;
         %figure; showImg(A);
+    else
+        error('wrong input noiseType');
     end
 
     fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
