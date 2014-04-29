@@ -30,15 +30,15 @@ mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c prj.h
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
 
-cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.c utils.h
-	g++ -Wall -fPIC cpuPrj.c utils.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
+cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h
+	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
-gpuPrj.o: gpuPrj.cu prj.h utils.c utils.h
-	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu utils.c common/kiss_fft.c
+gpuPrj.o: gpuPrj.cu prj.h utils.h
+	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu common/kiss_fft.c
 
-gpuPrj: gpuPrj.cu prj.h common/kiss_fft.c utils.c utils.h gpuPrj.o
+gpuPrj: gpuPrj.cu prj.h common/kiss_fft.c utils.h gpuPrj.o
 	nvcc -lglut -lGL gpuPrj.o common/kiss_fft.c -o gpuPrj
-	#nvcc -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu utils.c common/kiss_fft.c -o gpuPrj
+	#nvcc -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu common/kiss_fft.c -o gpuPrj
 
 solveTriDiag:
 	$(MEX) solveTridiag.c
