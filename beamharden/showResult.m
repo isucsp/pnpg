@@ -59,5 +59,21 @@ function summary = showResult(out,oMode,field,plotf)
             end
         end
         summary=reshape(summary,size(out));
+    elseif(oMode==4) % recalculate the error
+        summary=zeros(size(out));
+        for i=1:length(out(:))
+            if(~isempty(out{i}))
+                alpha=out{i}.alpha;
+                trueA=out{i}.opt.trueAlpha;
+                trueAlphaNorm=norm(trueA);
+                if(strcmpi(field,'RMSE'))
+                    trueA= trueA/trueAlphaNorm;
+                    summary(i)= 1-(alpha(:)'*trueA/norm(alpha(:)))^2;
+                else
+                    summary(i) = norm(alpha(:)-trueA)/trueAlphaNorm;
+                end
+            end
+        end
+        summary=reshape(summary,size(out));
     end
 end

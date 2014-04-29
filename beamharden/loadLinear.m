@@ -32,7 +32,7 @@ function opt=loadLinear(obj,opt)
     if(~isfield(opt,'m')) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
-    if(~isfield(opt,'matrixType')) opt.matrixType='nonneg'; end
+    if(~isfield(opt,'matrixType')) opt.matrixType='gaussian'; end
     if(~isfield(opt,'padZero')) opt.padZero=0; end
     x=[x(:); zeros(opt.padZero,1)];
     n = length(x);      % number of features
@@ -40,7 +40,7 @@ function opt=loadLinear(obj,opt)
     x0=x(:);
     if(strcmpi(opt.matrixType,'nonneg'))
         A = rand(opt.m,n);
-        a=0.7;
+        a=0.1;
         idx=(A<a);
         A(idx)=0;
         A(~idx)=(A(~idx)-a)/(1-a);

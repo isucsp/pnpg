@@ -28,6 +28,7 @@ extern "C"{
 #ifdef __cplusplus
 }
 #endif
+#include "utils.h"
 
 #if SHOWIMG
 #include "./common/cpu_bitmap.h"
@@ -54,13 +55,8 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
 
     int x=0, y=threadIdx;
     while(y>x){ x++; y-=x; }
-    // make sure the border is set to be zero when size of image is odd
-    if(x==N/2 && N%2==0){
-        for(int i=0; i<N; i++){
-            img[i]=0; img[i*N]=0;
-        }
-        return;
-    }
+    // stop if go out of border
+    if(x>=(N+1)/2) return;
 
     ft cosT, sinT;  // cosine and sine of theta
 
@@ -186,6 +182,8 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
 
     int x=0, y=threadIdx;
     while(y>x){ x++; y-=x; }
+    // stop if go out of border
+    if(x>=(N+1)/2) return;
 
     ft cosT, sinT;  // cosine and sine of theta
 
@@ -315,11 +313,6 @@ void rayDrivePar(ft* img, ft* sino, int threadIdx){
     int sinoIdx;
     int thetaIdx, tIdx;
     if(conf->prjWidth%2==0){
-        if(threadIdx==fSize-1){
-            for(int i=0; i<conf->np; i++)
-                sino[i*conf->prjWidth]=0;
-            return;
-        }
         thetaIdx= threadIdx/(pConf->prjWidth/2);
         tIdx = threadIdx%(pConf->prjWidth/2)+1;
     }else{
@@ -640,7 +633,6 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
         fSize = fSize*((pConf->prjWidth+1)/2);
         bSize = (pConf->n+1)/2;
         bSize = (1+bSize)*bSize/2;
-        if(pConf->n%2==0) bSize++;
     }
 
 #if DEBUG
@@ -702,6 +694,10 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             }
         }
         /*printf("Waiting for thread to finish...\n");*/
+
+        if(pConf->prjWidth%2==0)
+            for(int i=0,idx=0; i<pConf->np; i++,idx+=pConf->prjWidth)
+                pSino[idx]=0;
     }else if(cmd & BWD_BIT){
 #if DEBUG
         printf("Backward projecting ...\n");
@@ -711,6 +707,12 @@ int cpuPrj(ft* img, ft* sino, char cmd){
             if (res != 0) {
                 perror("Thread creation failed");
                 exit(EXIT_FAILURE);
+
+            }
+        }
+        if(pConf->n%2==0){
+            for(int i=0,idx=0; i<pConf->n; i++,idx+=pConf->n){
+                pImg[i]=0; pImg[idx]=0;
             }
         }
     }else if(cmd & FBP_BIT){
@@ -777,14 +779,30 @@ int cpuPrj(ft* img, ft* sino, char cmd){
                 exit(EXIT_FAILURE);
             }
         }
+        if(pConf->n%2==0){
+            for(int i=0,idx=0; i<pConf->n; i++,idx+=pConf->n){
+                pImg[i]=0; pImg[idx]=0;
+            }
+        }
 
     }
     /*printf("Waiting for thread to finish...\n");*/
     for(size_t i=0; i<nthread; i++){
         res = pthread_join(a_thread[i], &thread_result);
         if (res != 0) {
-            perror("Thread join failed");
-            exit(EXIT_FAILURE);
+
+
+
+
+
+
+
+
+
+
+
+            //perror("Thread join failed.");
+            //exit(EXIT_FAILURE);
         }
         /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
     }
@@ -891,7 +909,6 @@ int backwardTest( void ) {
     CPUBitmap sinogram( config.prjWidth, config.np );
     unsigned char *sinoPtr = sinogram.get_ptr();
     unsigned char value;
-    int offset;
 #endif
 
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
@@ -904,19 +921,16 @@ int backwardTest( void ) {
     fclose(f);
 #endif
 
-    /*  
-    int tempI;
+    ft tempI;
     tempI=rand()%config.np;
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
+            int offset = i*config.prjWidth+j;
             if(i==tempI*0 && abs(j-config.prjWidth/2)<=150){
                 if(offset%15<6) sino[offset]=1;
                 else sino[offset]=0;
             }else
                 sino[offset]=0;
-            //fscanf(f,"%f ", &sino[offset]);
-            //            if(i<5 && j < 5) img[i][j]=1;
 #if SHOWIMG
             value = (unsigned char)(255 * sino[offset]);
             offset = (config.np-1-i)*config.prjWidth+j;
@@ -926,11 +940,10 @@ int backwardTest( void ) {
             sinoPtr[(offset<<2)+3] = 0xff;
 #endif
         }
-        //fscanf(f,"\n");
-    }*/
+    }
     //sinogram.display_and_exit();
 
-    cpuPrj(img,sino, RENEW_MEM | BWD_BIT);
+    cpuPrj(img,sino, BWD_BIT);
 
 #if DEBUG
     f = fopen("reImg.data","wb");
@@ -942,13 +955,13 @@ int backwardTest( void ) {
     ft temp=0;
     for(int i=0; i < config.n; i++)
         for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
+            int offset = i*config.n+j;
             if( img[offset]>temp) temp=img[offset];
         }
     //printf("temp=%g\n",temp);
     for(int i=0; i < config.n; i++){
         for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
+            int offset = i*config.n+j;
             if(img[offset]>0) value = (unsigned char)(255 * img[offset]/temp);
             else value = 0;
             offset = (config.n-1-i)*config.n+j;
@@ -974,17 +987,17 @@ int main(int argc, char *argv[]){
         printf("N=%d\n",N);
     }
 
+    setup(N,N,180,360,1,1,0);
+    showSetup();
+    backwardTest();
+    forwardTest();
+    return 0;
+
     setup(N,N,720,720,1,1,3*N);
     showSetup();
     forwardTest();
     backwardTest();
-    return 0;
 
-    setup(N,N,180,360,1,1,0);
-    showSetup();
-    forwardTest();
-    backwardTest();
-    return 0;
 
     ft signal[1024];
     for(int i=0; i< 1024; i++){

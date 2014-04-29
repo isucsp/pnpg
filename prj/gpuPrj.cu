@@ -29,6 +29,7 @@ extern "C"{
 #ifdef __cplusplus
 }
 #endif
+#include "utils.h"
 
 #if EXE_PROF
 #if GPU
@@ -69,7 +70,6 @@ static void HandleError( cudaError_t err,
 #endif
 
 __global__ void pixelDrivePar(ft* img, ft* sino,int FBP){
-    //printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta;       // the current angle, range in [0 45]
     int thetaIdx; // index counts from 0
@@ -89,6 +89,13 @@ __global__ void pixelDrivePar(ft* img, ft* sino,int FBP){
 
     ft cosT, sinT;  // cosine and sine of theta
     ft tileSzSinT, tileSzCosT;
+#if DEBUG
+    if(blockIdx.x==0 && threadIdx.x==0)
+        printf("entering pixelDrive grid=(%d,%d), block(%d,%d), blockIdx=(%d,%d), threadIdx=(%d,%d), (%d,%d)\n",
+                gridDim.x,gridDim.y,blockDim.x,blockDim.y,blockIdx.x,blockIdx.y,threadIdx.x,threadIdx.y,
+                x,y);
+#endif
+
 
     // for each point (x,y) on the ray is
     // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
@@ -102,7 +109,7 @@ __global__ void pixelDrivePar(ft* img, ft* sino,int FBP){
     ft t, tl, tr, tll, trr;
     int dt, dtl, dtr, dtll, dtrr;
     for(int i=0; i<8; i++) imgt[i]=0;
-    __shared__ volatile ft shared[8][ANG_BLK][4*TILE_SZ];
+    __shared__ volatile ft shared[8][2][4*TILE_SZ];
     for(thetaIdx=0; thetaIdx<conf->prjFull/2;thetaIdx++){
 
         theta  = thetaIdx *2*PI/conf->prjFull;
@@ -219,6 +226,7 @@ __global__ void pixelDrivePar(ft* img, ft* sino,int FBP){
     }
     if(FBP) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
     if(x>(N-1)/2 || y>(N-1)/2) return;
+
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
     imgIdx = (-y+N/2)*N-x+N/2; img[imgIdx] = imgt[2]/conf->effectiveRate;
@@ -231,7 +239,7 @@ __global__ void pixelDrivePar(ft* img, ft* sino,int FBP){
 }
 
 __global__ void pixelDriveFan(ft* img, ft* sino, int FBP){
-    //printf("entering pixelDrive\n");
+    // printf("entering pixelDrive\n");
     // detector array is of odd size with the center at the middle
     ft theta;       // the current angle, range in [0 45]
     int thetaIdx; // index counts from 0
@@ -813,7 +821,6 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
                 );
         fThread = dim3(THRD_SZ,LYR_BLK);
 
-        // use the last block to make frame zero.
         int temp = ((pConf->n+1)/2+TILE_SZ-1)/TILE_SZ;
         bGrid = dim3((1+temp)*temp/2);
         bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
@@ -899,12 +906,20 @@ int gpuPrj(ft* img, ft* sino, char cmd){
 #if DEBUG
         printf("Backward projecting ...\n");
 #endif
+#if DEBUG
+        {
+            FILE* f = fopen("sinogram_0.data","wb");
+            fwrite(sino, sizeof(ft), config.sinoSize, f);
+            fclose(f);
+        }
+#endif
         HANDLE_ERROR(cudaMemcpy(dev_sino,sino,pConf->sinoSize*sizeof(ft),
                     cudaMemcpyHostToDevice ) );
-        if(pConf->d>0)
+        if(pConf->d>0){
             pixelDriveFan<<<bGrid,bThread>>>(dev_img, dev_sino,0);
-        else
+        }else
             pixelDrivePar<<<bGrid,bThread>>>(dev_img, dev_sino,0);
+
         HANDLE_ERROR( cudaMemcpy( img, dev_img, pConf->imgSize*sizeof(ft),
                     cudaMemcpyDeviceToHost ) );
         if(pConf->n%2==0){
@@ -1092,14 +1107,13 @@ int backwardTest( void ) {
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
 #if DEBUG
-    FILE* f = fopen("sinogram.data","rb");
+    FILE* f = fopen("sinogram_0.data","rb");
     if(!fread(sino,sizeof(ft),config.sinoSize,f))
         perror("cannot read from sinogram.data\n");
     fclose(f);
 #endif
-
     
-    int tempI;
+    ft tempI;
     tempI=rand()%config.np;
     tempI=0;
     for(int i=0; i < config.np; i++){
@@ -1109,17 +1123,15 @@ int backwardTest( void ) {
     }
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
-            int offset = i*config.prjWidth+j;
-            //if(i==tempI*0 && abs(j-config.prjWidth/2)<=150){
-            //    if(offset%15<6) sino[offset]=1;
-            //    else sino[offset]=0;
-            //}else
-            //    sino[offset]=0;
-            //tempI=1;
-
-            //fscanf(f,"%f ", &sino[offset]);
-            //            if(i<5 && j < 5) img[i][j]=1;
 #if SHOWIMG
+            int offset = i*config.prjWidth+j;
+            if(i==tempI*0 && abs(j-config.prjWidth/2)<=150){
+                if(offset%15<6) sino[offset]=1;
+                else sino[offset]=0;
+            }else
+                sino[offset]=0;
+            tempI=1;
+
             value = (unsigned char)(255 * sino[offset]/tempI);
             offset = (config.np-1-i)*config.prjWidth+j;
             sinoPtr[(offset<<2)+0] = value;
@@ -1128,11 +1140,10 @@ int backwardTest( void ) {
             sinoPtr[(offset<<2)+3] = 0xff;
 #endif
         }
-        //fscanf(f,"\n");
     }
     //sinogram.display_and_exit();
 
-    gpuPrj(img, sino, RENEW_MEM | BWD_BIT);
+    gpuPrj(img, sino, BWD_BIT);
 
 #if DEBUG
     f = fopen("reImg.data","wb");
@@ -1150,7 +1161,7 @@ int backwardTest( void ) {
     //printf("temp=%g\n",temp);
     for(int i=0; i < config.n; i++){
         for(int j=0; j < config.n; j++){
-            offset = i*config.n+j;
+            int offset = i*config.n+j;
             if(img[offset]>0) value = (unsigned char)(255 * img[offset]/temp);
             else value = 0;
             offset = (config.n-1-i)*config.n+j;
@@ -1176,18 +1187,18 @@ int main(int argc, char *argv[]){
         printf("N=%d\n",N);
     }
 
-    setup(N,N,360,360,1,1,3*N);
+    setup(N,N,360,360,1,1,0*N);
     //showSetup();
-    forwardTest();
     backwardTest();
+    forwardTest();
     cleanUp();
-    return 0;
 
-    setup(N,N,180,360,1,1,0);
+    setup(N,N,180,360,1,1,0*N);
     showSetup();
     forwardTest();
     backwardTest();
     cleanUp();
+
     return 0;
 }
 

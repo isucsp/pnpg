@@ -94,7 +94,7 @@ function args = parseInputs(varargin)
     args.prjNum = 180;      % number of projections from degree at 0
     args.prjFull = 360;
     args.dSize = 1;
-    PhiMode = 'parPrj'; %'cpuPrj'; %'basic';
+    args.PhiMode = 'parPrj'; %'cpuPrj'; %'basic';
 
     for i=1:2:length(varargin)
         eval(['args.' varargin{i} ' = varargin{i+1};']);
@@ -153,8 +153,20 @@ function args = parseInputs(varargin)
                 args.operators.Phi =@(s) cpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*Ts;
                 args.operators.Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*Ts;
                 args.operators.FBP =@(s) cpuPrj(s,0,'FBP')*Ts;
+            case lower('gpuPrj')
+                conf.n=args.imgSize; conf.prjWidth=args.prjWidth;
+                conf.np=args.prjNum; conf.prjFull=args.prjFull;
+                conf.dSize=1; %(n-1)/(Num_pixel+1);
+                conf.effectiveRate=1;
+                conf.d=0;
+
+                gpuPrj(0,conf,'config');
+                maskIdx=1:numel(args.trueImg);
+                args.operators.Phi =@(s) gpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*Ts;
+                args.operators.Phit=@(s) maskFunc(gpuPrj(s,0,'backward'),maskIdx)*Ts;
+                args.operators.FBP =@(s) gpuPrj(s,0,'FBP')*Ts;
             otherwise
-                fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
+                fprintf('Wrong mode for PhiMode: %s\n',args.PhiMode);
                 return;
         end
     end

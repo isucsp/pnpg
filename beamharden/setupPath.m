@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Mon 31 Mar 2014 11:54:25 AM CDT
+% $Revision: 0.3 $ $Date: Mon 28 Apr 2014 09:39:48 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -18,7 +18,7 @@ addpath([pathstr '/../FPC_AS/prob_gen/classes']);
 addpath([pathstr '/../prj']);
 cd '../prj'
 %!make clean
-!make
+!make mCPUPrj mGPUPrj mParPrj solveTriDiag 
 cd(pathstr)
 addpath([pathstr '/../irt/nufft']);
 addpath([pathstr '/../irt/systems']);

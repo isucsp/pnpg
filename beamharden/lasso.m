@@ -47,7 +47,7 @@ if(isfield(opt,'trueAlpha'))
         trueAlpha = opt.trueAlpha/trueAlphaNorm;
         computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
     else
-        computError = @(xxx) norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm;
+        computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
     end
 end
 

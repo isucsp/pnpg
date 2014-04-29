@@ -21,3 +21,5 @@
 
 make FBP part parallel
 
+There is a little difference between the calculation of cpu and gpu, 
+although they are small

@@ -45,6 +45,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         config.dSize=(float)mxGetScalar(mxGetField(prhs[1],0,"dSize"));
         config.effectiveRate=(float)mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
         config.d=(float)mxGetScalar(mxGetField(prhs[1],0,"d"));
+        printf("number of input arguments are: %d\n",nrhs);
 #if DEBUG
         mexPrintf("\nConfiguring the operator...\n");
         mexPrintf("config.n=%d\n",config.n);
@@ -68,9 +69,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 for(int j=0; j<pConf->n; j++)
                     img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
 #if GPU
-            gpuPrj(img, sino, RENEW_MEM | FWD_BIT);
+            gpuPrj(img, sino, FWD_BIT);
 #else
-            cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
+            cpuPrj(img, sino, FWD_BIT);
 #endif
             for(int i=0; i<pConf->sinoSize; i++)
                 sinot[i]=sino[i];
@@ -81,9 +82,9 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for(int i=0; i<pConf->sinoSize; i++)
                 sino[i]=(ft)sinot[i];
 #if GPU
-                gpuPrj(img, sino, RENEW_MEM );
+                gpuPrj(img, sino, BWD_BIT );
 #else
-                cpuPrj(img, sino, RENEW_MEM );
+                cpuPrj(img, sino, BWD_BIT );
 #endif
             for(int i=0; i<pConf->n; i++)
                 for(int j=0; j<pConf->n; j++)
