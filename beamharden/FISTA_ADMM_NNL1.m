@@ -11,6 +11,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
+        grad;
 
         restart=0;   % make this value negative to disable restart
     end
@@ -41,31 +42,31 @@ classdef FISTA_ADMM_NNL1 < Methods
                 obj.preAlpha = obj.alpha;
 
                 %if(isempty(obj.preG))
-                %    [oldCost,grad,hessian] = obj.func(y);
-                %    obj.t = hessian(grad,2)/(grad'*grad);
+                %    [oldCost,obj.grad,hessian] = obj.func(y);
+                %    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                 %else
-                %    [oldCost,grad] = obj.func(y);
-                %    obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
+                %    [oldCost,obj.grad] = obj.func(y);
+                %    obj.t = abs( (obj.grad-obj.preG)'*(y-obj.preY)/...
                 %        ((y-obj.preY)'*(y-obj.preY)));
                 %end
-                %obj.preG = grad; obj.preY = y;
+                %obj.preG = obj.grad; obj.preY = y;
                 if(obj.t==-1)
-                    [oldCost,grad,hessian] = obj.func(y);
-                    obj.t = hessian(grad,2)/(grad'*grad);
+                    [oldCost,obj.grad,hessian] = obj.func(y);
+                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                     if(isnan(obj.t)) obj.t=1; end
                 else
-                    [oldCost,grad] = obj.func(y);
+                    [oldCost,obj.grad] = obj.func(y);
                 end
 
                 % start of line Search
                 obj.ppp=0;
                 while(true)
                     obj.ppp = obj.ppp+1;
-                    newX = y - (grad)/(obj.t);
+                    newX = y - (obj.grad)/(obj.t);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
                         max(obj.admmTol*obj.difAlpha,obj.admmAbsTol));
                     newCost=obj.func(newX);
-                    if(obj.ppp>20 || newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
+                    if(obj.ppp>20 || newCost<=oldCost+obj.grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -80,8 +81,8 @@ classdef FISTA_ADMM_NNL1 < Methods
                 end
                 obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
 
-                obj.fVal(obj.n+1) = sum(abs(obj.Psit(newX)));
-                temp = newCost+obj.u*obj.fVal(obj.n+1);
+                obj.fVal(3) = sum(abs(obj.Psit(newX)));
+                temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)

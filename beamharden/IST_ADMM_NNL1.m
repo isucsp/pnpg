@@ -11,6 +11,7 @@ classdef IST_ADMM_NNL1 < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
+        grad;
     end
     methods
         function obj = IST_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -31,22 +32,22 @@ classdef IST_ADMM_NNL1 < Methods
                 y=obj.alpha;
 
                 if(obj.t==-1)
-                    [oldCost,grad,hessian] = obj.func(y);
-                    obj.t = hessian(grad,2)/(grad'*grad);
+                    [oldCost,obj.grad,hessian] = obj.func(y);
+                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                     if(isnan(obj.t)) obj.t=1; end
                 else
-                    [oldCost,grad] = obj.func(y);
+                    [oldCost,obj.grad] = obj.func(y);
                 end
 
                 % start of line Search
                 obj.ppp=0;
                 while(true)
                     obj.ppp = obj.ppp+1;
-                    newX = y - (grad)/(obj.t);
+                    newX = y - (obj.grad)/(obj.t);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
                         max(obj.admmTol*obj.difAlpha,obj.admmAbsTol));
                     newCost=obj.func(newX);
-                    if(newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2 || obj.ppp>20)
+                    if(newCost<=oldCost+obj.grad'*(newX-y)+norm(newX-y)^2*obj.t/2 || obj.ppp>20)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -61,8 +62,8 @@ classdef IST_ADMM_NNL1 < Methods
                 end
                 obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
 
-                obj.fVal(obj.n+1) = sum(abs(obj.Psit(newX)));
-                temp = newCost+obj.u*obj.fVal(obj.n+1);
+                obj.fVal(3) = sum(abs(obj.Psit(newX)));
+                temp = newCost+obj.u*obj.fVal(3);
 
                 obj.alpha = newX;
                 obj.cost = temp;

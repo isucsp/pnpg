@@ -66,11 +66,15 @@ function summary = showResult(out,oMode,field,plotf)
                 alpha=out{i}.alpha;
                 trueA=out{i}.opt.trueAlpha;
                 trueAlphaNorm=norm(trueA);
-                if(strcmpi(field,'RMSE'))
-                    trueA= trueA/trueAlphaNorm;
-                    summary(i)= 1-(alpha(:)'*trueA/norm(alpha(:)))^2;
-                else
-                    summary(i) = norm(alpha(:)-trueA)/trueAlphaNorm;
+                switch field
+                    case 0
+                        trueA= trueA/trueAlphaNorm;
+                        summary(i)= 1-(alpha(:)'*trueA/norm(alpha(:)))^2;
+                    case 1
+                        summary(i) = norm(alpha(:)-trueA)/trueAlphaNorm;
+                    case 2
+                        alpha(alpha<0)=0;
+                        summary(i) = (norm(alpha(:)-trueA)/trueAlphaNorm)^2;
                 end
             end
         end

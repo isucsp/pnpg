@@ -35,7 +35,7 @@ if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'uMode')) opt.uMode='abs'; end
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
-if(~isfield(opt,'errorType')) opt.errorType='MSE'; end
+if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 
@@ -43,11 +43,12 @@ alpha=xInit(:);
 
 if(isfield(opt,'trueAlpha'))
     trueAlphaNorm=norm(opt.trueAlpha);
-    if(strcmpi(opt.errorType,'RMSE'))
-        trueAlpha = opt.trueAlpha/trueAlphaNorm;
-        computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
-    else
-        computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
+    switch opt.errorType
+        case 0
+            trueAlpha = opt.trueAlpha/trueAlphaNorm;
+            computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+        case 1
+            computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
     end
 end
 
@@ -109,7 +110,7 @@ tic; p=0; str=''; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf([str 'p=%-4d'],p);
+    str=sprintf(['p=%-4d'],p);
     
     alphaStep.main();
 
@@ -178,16 +179,21 @@ while(true)
             strlen=0; fprintf('\n');
         else strlen = length(str);
         end
-        str='';
     end
     out.time(p)=toc;
-    if(p >= opt.maxItr) break; end
     if(p>1 && out.difAlpha(p)<opt.thresh && (alphaStep.u==opt.u))
         convThresh=convThresh+1;
     end
-    if(convThresh>10) break; end
+    if(p >= opt.maxItr || convThresh>10)
+        if(opt.debugLevel==0)
+            fprintf('%s',str);
+        end
+        break;
+    end
 end
 out.alpha=alpha; out.p=p; out.opt = opt;
+out.grad=alphaStep.grad;
+out.Phi=Phi; out.Phit=Phit; out.Psi=Psi; out.Psit=Psit; out.y=y; out.xInit=xInit;
 fprintf('\n');
 
 end

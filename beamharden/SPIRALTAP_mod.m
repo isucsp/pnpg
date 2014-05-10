@@ -546,6 +546,9 @@ if savereconerror
         case 2  % Relative Square Error
             normtrue = norm(truth(:));
             computereconerror = @(x) 1-(x(:)'*truth(:)/norm(x(:))/normtrue)^2;
+        case 3 % RMS Error
+            normtrue = sum(truth(:).^2);
+            computereconerror = @(x) sum( (x(:) + mu - truth(:) ).^2)./normtrue;
     end
     reconerror(iter) = computereconerror(xinit);
 end

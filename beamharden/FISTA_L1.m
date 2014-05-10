@@ -12,6 +12,7 @@ classdef FISTA_L1 < Methods
         cumu=0;
         cumuTol=4;
         main;
+        grad;
         restart=0;   % make this value negative to disable restart
     end
     methods
@@ -40,22 +41,22 @@ classdef FISTA_L1 < Methods
                 si = obj.Psit(y);
 
                 %if(isempty(obj.preG))
-                %    [oldCost,grad,hessian] = obj.func(y);
-                %    obj.t = hessian(grad,2)/(grad'*grad);
+                %    [oldCost,obj.grad,hessian] = obj.func(y);
+                %    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                 %else
-                %    [oldCost,grad] = obj.func(y);
-                %    obj.t = abs( (grad-obj.preG)'*(y-obj.preY)/...
+                %    [oldCost,obj.grad] = obj.func(y);
+                %    obj.t = abs( (obj.grad-obj.preG)'*(y-obj.preY)/...
                 %        ((y-obj.preY)'*(y-obj.preY)));
                 %end
-                %obj.preG = grad; obj.preY = y;
+                %obj.preG = obj.grad; obj.preY = y;
                 if(obj.t==-1)
-                    [oldCost,grad,hessian] = obj.func(y);
-                    obj.t = hessian(grad,2)/(grad'*grad);
+                    [oldCost,obj.grad,hessian] = obj.func(y);
+                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                     if(isnan(obj.t)) obj.t=1; end
                 else
-                    [oldCost,grad] = obj.func(y);
+                    [oldCost,obj.grad] = obj.func(y);
                 end
-                dsi = obj.Psit(grad);
+                dsi = obj.Psit(obj.grad);
 
                 % start of line Search
                 obj.ppp=0;
@@ -65,7 +66,7 @@ classdef FISTA_L1 < Methods
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     newCost=obj.func(newX);
-                    if(obj.ppp>20 || newCost<=oldCost+grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
+                    if(obj.ppp>20 || newCost<=oldCost+obj.grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
@@ -80,8 +81,8 @@ classdef FISTA_L1 < Methods
                 end
                 obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
 
-                obj.fVal(obj.n+1) = sum(abs(newSi));
-                temp = newCost+obj.u*obj.fVal(obj.n+1);
+                obj.fVal(3) = sum(abs(newSi));
+                temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)
@@ -106,20 +107,20 @@ classdef FISTA_L1 < Methods
                 y=obj.alpha; si = obj.Psit(y);
 
                 if(obj.t==-1)
-                    [oldCost,grad,hessian] = obj.func(y);
-                    obj.t = hessian(grad,2)/(grad'*grad);
+                    [oldCost,obj.grad,hessian] = obj.func(y);
+                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
                     if(isnan(obj.t)) obj.t=1; end
                 else
-                    [oldCost,grad] = obj.func(y);
+                    [oldCost,obj.grad] = obj.func(y);
                 end
-                dsi = obj.Psit(grad);
+                dsi = obj.Psit(obj.grad);
                 oldCost=oldCost+obj.u*sum(abs(si));
 
                 % start of line Search
                 obj.ppp=0;
                 while(true)
                     obj.ppp=obj.ppp+1;
-                    newX=y-grad/obj.t;
+                    newX=y-obj.grad/obj.t;
 
                     [oldCost1,grad1,hessian1] = obj.func(newX);
                     temp=hessian1(newX-obj.alpha,2);
@@ -136,7 +137,7 @@ classdef FISTA_L1 < Methods
                     newCost=obj.func(newX);
                     newCost=newCost+obj.u*sum(abs(newSi));
 
-                    %if(newCost<=oldCost+grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
+                    %if(newCost<=oldCost+obj.grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
                     if(newCost<oldCost);
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
@@ -155,8 +156,8 @@ classdef FISTA_L1 < Methods
                 obj.prePreAlpha=obj.preAlpha; obj.preAlpha=obj.alpha; obj.alpha = newX;
 
                 % decide whether to restart
-                obj.fVal(obj.n+1) = sum(abs(newSi));
-                temp = newCost+obj.u*obj.fVal(obj.n+1);
+                obj.fVal(3) = sum(abs(newSi));
+                temp = newCost+obj.u*obj.fVal(3);
                 %if(temp>obj.cost)
                 %    obj.theta=0; obj.preAlpha=obj.alpha;
                 %end

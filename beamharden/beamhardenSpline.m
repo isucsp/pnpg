@@ -342,6 +342,8 @@ end
 
 out.Ie=Ie; out.kappa=kappa; out.alpha=alpha; out.cpuTime=toc; out.p=p;
 out.opt = opt;
+out.Phi=Phi; out.Phit=Phit; out.Psi=Psi; out.Psit=Psit; out.y=y; out.xInit=xInit;
+out.grad=alphaStep.grad;
 
 fprintf('\n');
 

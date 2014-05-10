@@ -27,6 +27,13 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(20) & t<tics(21))=1.8*((sum(t>=tics(20) & t<tics(21)):-1:1)/sum(t>=tics(20) & t<tics(21))).^2;
     x(t>=tics(21))=0;
 
+    if(~exist('obj'))
+        for i=0.7:0.01:0.98
+            test(x,i);
+        end
+        return;
+    end
+
     %figure(1); plot(t,x); ylim([-2,5]);
     if(~exist('opt')) opt.m=500; end
     if(~isfield(opt,'m')) opt.m=500; end
@@ -65,7 +72,7 @@ function opt=loadLinear(obj,opt)
         error('wrong input noiseType');
     end
 
-    fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
+    %fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
 
     gamma_max = norm(A'*b,'inf');
     gamma = 0.1*gamma_max;
@@ -76,8 +83,8 @@ function opt=loadLinear(obj,opt)
     obj.Phi = @(xx) A*xx(:);
     obj.Phit = @(xx) A'*xx(:);
 
-    obj.dwt_L=5;        %levels of wavelet transform
-    obj.daub = 2;
+    obj.dwt_L=3;        %levels of wavelet transform
+    obj.daub = 4;
 
     % caution: don't use the wavelet tools from matlab, it is slow
     daub_H = daubcqf(obj.daub);
@@ -85,5 +92,29 @@ function opt=loadLinear(obj,opt)
     obj.Psit= @(xx)  mdwt(xx,daub_H,obj.dwt_L);
 
     opt.trueAlpha=x0;
+end
+
+function dif=test(x,perce)
+    for i=1:9
+        for j=1:4
+            level = i; wave = 2*j;
+            dif(i,j)=getError(x,perce,level,wave);
+        end
+    end
+    [i,j]=find(dif==min(dif(dif>0)));
+    fprintf('level=%d,daub=%d  :  %g%% of signal achieves %g%%\n',i,2*j,(1-perce)*100,dif(i,j)*100);
+end
+
+function [dif,coef]=getError(x,perce,level,wave)
+    h=daubcqf(wave);
+    [wav,L] = mdwt(x,h,level);
+    [~,idx]=sort(abs(wav));
+    coef=wav(idx);
+    coef=coef(end:-1:1);
+    %figure(2); plot(wav(idx)); hold on;
+    wav(idx(1:floor(perce*length(x))))=0;
+    recX=midwt(wav,h,level);
+    %figure(1); plot(recX); hold on; plot(x,'r');
+    dif=(norm(x-recX)/norm(x))^2;
 end
 
