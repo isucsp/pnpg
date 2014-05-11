@@ -193,7 +193,6 @@ while(true)
 end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
-out.Phi=Phi; out.Phit=Phit; out.Psi=Psi; out.Psit=Psit; out.y=y; out.xInit=xInit;
 fprintf('\n');
 
 end
