@@ -33,7 +33,7 @@ if(any(runList==001))
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
     opt.maxItr=1e5;
-    opt.debugLevel=0;
+    opt.debugLevel=1;
     opt.thresh=1e-6;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
@@ -45,6 +45,8 @@ if(any(runList==001))
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(i)*10^(j-2);
             initSig = conf.Phit(conf.y)*0;
+            conf001=conf;
+            save(filename,'conf001','-append');
 
             opt.continuation=true;
             opt.alphaStep='FISTA_ADMM_NNL1';
@@ -58,16 +60,16 @@ if(any(runList==001))
             %    conf.Psi,conf.Psit,conf.y,initSig,opt);
             %save(filename,'FISTAC001','-append');
 
-            A = @(xx) conf.Phi(conf.Psi(xx));
-            At = @(yy) conf.Psit(conf.Phit(yy));
-            AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
-            option.mxitr=opt.maxItr;
-            [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-            fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
-            fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
-            fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
-            fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
-            save(filename,'fpcas001','-append');
+            % A = @(xx) conf.Phi(conf.Psi(xx));
+            % At = @(yy) conf.Psit(conf.Phit(yy));
+            % AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+            % option.mxitr=opt.maxItr;
+            % [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+            % fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
+            % fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
+            % fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
+            % fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
+            % save(filename,'fpcas001','-append');
         end
         %initSig=out001{i,j}.alpha;
     end
