@@ -142,21 +142,21 @@ classdef FISTA_ADMM_NNL1 < Methods
                 alpha = (newX+rho*(p-y1));
                 alpha = obj.Psi(Utils.softThresh(obj.Psit(alpha),u/t))/(1+rho);
                 difAlpha = norm(temp-alpha)/norm(temp);
-                % set(0,'CurrentFigure',123);
-                % subplot(2,2,1);
-                % semilogy(pppp,norm(temp-alpha),'b.'); hold on;
+                set(0,'CurrentFigure',123);
+                subplot(2,2,1);
+                semilogy(pppp,norm(temp-alpha),'b.'); hold on;
 
                 temp=p; p=alpha+y1; p(p<0)=0;
                 difP=norm(temp-p)/norm(temp);
-                % subplot(2,2,2);
-                % semilogy(pppp,norm(temp-p),'c.'); hold on;
+                subplot(2,2,2);
+                semilogy(pppp,norm(temp-p),'c.'); hold on;
 
                 y1 = y1 +alpha-p;
-                % subplot(2,2,3);
-                % semilogy(pppp,norm(alpha-p),'c.'); hold on;
-                % subplot(2,2,4);
-                % semilogy(pppp,0.5*norm(p-newX)^2+u/t*sum(abs(obj.Psit(alpha))),'c.'); hold on;
-                % drawnow;
+                subplot(2,2,3);
+                semilogy(pppp,norm(alpha-p),'c.'); hold on;
+                subplot(2,2,4);
+                semilogy(pppp,0.5*norm(p-newX)^2+u/t*sum(abs(obj.Psit(alpha))),'c.'); hold on;
+                drawnow;
 
                 if(difAlpha<absTol && difP<absTol) break; end
             end

@@ -119,6 +119,7 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
     out.alphaSearch(p) = alphaStep.ppp;
+    out.stepSize(p) = 1/alphaStep.t;
 
     out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))/norm(alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
