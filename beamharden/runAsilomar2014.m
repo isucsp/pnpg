@@ -45,8 +45,6 @@ if(any(runList==001))
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(i)*10^(j-2);
             initSig = conf.Phit(conf.y)*0;
-            conf001=conf;
-            save(filename,'conf001','-append');
 
             opt.continuation=true;
             opt.alphaStep='FISTA_ADMM_NNL1';
@@ -66,6 +64,9 @@ if(any(runList==001))
             % option.mxitr=opt.maxItr;
             % [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             % fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
+            % fpcas001{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas001{i,j}.alpha)-conf.y)^2;
+            % fpcas001{i,j}.fVal(2)=norm(fpcas001{i,j}.alpha.*(fpcas001{i,j}.alpha<0))^2;
+            % fpcas001{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas001{i,j}.alpha)));
             % fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
             % fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
             % fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
@@ -114,6 +115,9 @@ if(any(runList==011))
             option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             fpcas011{i,j}=out; fpcas011{i,j}.alpha = conf.Psi(s);
+            fpcas011{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas011{i,j}.alpha)-conf.y)^2;
+            fpcas011{i,j}.fVal(2)=norm(fpcas011{i,j}.alpha.*(fpcas011{i,j}.alpha<0))^2;
+            fpcas011{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas011{i,j}.alpha)));
             fpcas011{i,j}.opt = opt; alphaHat=fpcas011{i,j}.alpha;
             fpcas011{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
             fprintf('fpcas RMSE=%g\n',fpcas011{i,j}.RMSE);
@@ -131,16 +135,14 @@ if(any(runList==002))
     opt.maxItr=1e5; opt.thresh=1e-6; opt.debugLevel=0;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
-    for j=1:2
+    for j=1:1
         for i=1:length(m)
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.m=m(i); opt.snr=inf; opt.u = u(i);
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
-            conf002{i,j}=conf;
-            save(filename,'conf002','-append');
 
-            if(i~=5) continue; end
+            % if(i~=5) continue; end
 
             opt.continuation=true;
             opt.alphaStep='FISTA_ADMM_NNL1';
@@ -154,26 +156,28 @@ if(any(runList==002))
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'FISTAC002','-append');
 
-            % opt.continuation=false;
-            % opt.alphaStep='FISTA_ADMM_NNL1';
-            % npg002{i,j}=lasso(conf.Phi,conf.Phit,...
-            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
-            % save(filename,'npg002','-append');
+            opt.continuation=false;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npg002{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'npg002','-append');
 
-            % subtolerance=1e-5;
-            % [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-            %     SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
-            %     'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
-            %     'initialization',initSig,'maxiter',opt.maxItr,...
-            %     'miniter',0,'stopcriterion',3,...
-            %     'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-            %     'subtolerance',subtolerance,'monotone',1,...
-            %     'saveobjective',1,'savereconerror',1,'savecputime',1,...
-            %     'reconerrortype',3,...
-            %     'savesolutionpath',0,'verbose',1000);
-            % out.opt=opt; out.conf=conf;
-            % spiral002{i,j}=out;
-            % save(filename,'spiral002','-append');
+            subtolerance=1e-5;
+            [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+                SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+                'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+                'initialization',initSig,'maxiter',opt.maxItr,...
+                'miniter',0,'stopcriterion',3,...
+                'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+                'subtolerance',subtolerance,'monotone',1,...
+                'saveobjective',1,'savereconerror',1,'savecputime',1,...
+                'reconerrortype',3,...
+                'savesolutionpath',0,'verbose',1000);
+            out.opt=opt; spiral002{i,j}=out;
+            spiral002{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral002{i,j}.alpha)-conf.y)^2;
+            spiral002{i,j}.fVal(2)=norm(spiral002{i,j}.alpha.*(spiral002{i,j}.alpha<0))^2;
+            spiral002{i,j}.fVal(3)=sum(abs(conf.Psit(spiral002{i,j}.alpha)));
+            save(filename,'spiral002','-append');
 
             A = @(xx) conf.Phi(conf.Psi(xx));
             At = @(yy) conf.Psit(conf.Phit(yy));
@@ -181,6 +185,9 @@ if(any(runList==002))
             option.mxitr=opt.maxItr; option.zero=0;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             fpcas002{i,j}=out; fpcas002{i,j}.alpha = conf.Psi(s);
+            fpcas002{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas002{i,j}.alpha)-conf.y)^2;
+            fpcas002{i,j}.fVal(2)=norm(fpcas002{i,j}.alpha.*(fpcas002{i,j}.alpha<0))^2;
+            fpcas002{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas002{i,j}.alpha)));
             fpcas002{i,j}.opt = opt; alphaHat=fpcas002{i,j}.alpha;
             fpcas002{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha))^2;
             fprintf('fpcas RMSE=%g\n',fpcas002{i,j}.RMSE);
@@ -235,6 +242,9 @@ if(any(runList==012))
                 'reconerrortype',3,...
                 'savesolutionpath',0,'verbose',100);
             out.opt=opt; spiral012{i,j}=out;
+            spiral012{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral012{i,j}.alpha)-conf.y)^2;
+            spiral012{i,j}.fVal(2)=norm(spiral012{i,j}.alpha.*(spiral012{i,j}.alpha<0))^2;
+            spiral012{i,j}.fVal(3)=sum(abs(conf.Psit(spiral012{i,j}.alpha)));
             save(filename,'spiral012','-append');
 
             A = @(xx) conf.Phi(conf.Psi(xx));
@@ -243,6 +253,9 @@ if(any(runList==012))
             option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             fpcas012{i,j}=out; fpcas012{i,j}.alpha = conf.Psi(s);
+            fpcas012{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas012{i,j}.alpha)-conf.y)^2;
+            fpcas012{i,j}.fVal(2)=norm(fpcas012{i,j}.alpha.*(fpcas012{i,j}.alpha<0))^2;
+            fpcas012{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas012{i,j}.alpha)));
             fpcas012{i,j}.opt = opt; alphaHat=fpcas012{i,j}.alpha;
             fpcas012{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
             save(filename,'fpcas012','-append');
@@ -356,6 +369,9 @@ if(any(runList==005))
                 'reconerrortype',3,...
                 'savesolutionpath',0,'verbose',100);
             out.opt=opt; spiral005{i,j}=out;
+            spiral005{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral005{i,j}.alpha)-conf.y)^2;
+            spiral005{i,j}.fVal(2)=norm(spiral005{i,j}.alpha.*(spiral005{i,j}.alpha<0))^2;
+            spiral005{i,j}.fVal(3)=sum(abs(conf.Psit(spiral005{i,j}.alpha)));
             save(filename,'spiral005','-append');
 
             A = @(xx) conf.Phi(conf.Psi(xx)); At = @(yy) conf.Psit(conf.Phit(yy));
@@ -363,6 +379,9 @@ if(any(runList==005))
             option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             fpcas005{i,j}=out; fpcas005{i,j}.alpha = conf.Psi(s);
+            fpcas005{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas005{i,j}.alpha)-conf.y)^2;
+            fpcas005{i,j}.fVal(2)=norm(fpcas005{i,j}.alpha.*(fpcas005{i,j}.alpha<0))^2;
+            fpcas005{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas005{i,j}.alpha)));
             fpcas005{i,j}.opt = opt; alphaHat=fpcas005{i,j}.alpha;
             fpcas005{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha))^2;
             save(filename,'fpcas005','-append');
@@ -418,6 +437,9 @@ if(any(runList==015))
                 'reconerrortype',3,...
                 'savesolutionpath',0,'verbose',100);
             out.opt=opt; spiral015{i,j}=out;
+            spiral015{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral015{i,j}.alpha)-conf.y)^2;
+            spiral015{i,j}.fVal(2)=norm(spiral015{i,j}.alpha.*(spiral015{i,j}.alpha<0))^2;
+            spiral015{i,j}.fVal(3)=sum(abs(conf.Psit(spiral015{i,j}.alpha)));
             save(filename,'spiral015','-append');
 
             A = @(xx) conf.Phi(conf.Psi(xx)); At = @(yy) conf.Psit(conf.Phit(yy));
@@ -425,6 +447,9 @@ if(any(runList==015))
             option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
             fpcas015{i,j}=out; fpcas015{i,j}.alpha = conf.Psi(s);
+            fpcas015{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas015{i,j}.alpha)-conf.y)^2;
+            fpcas015{i,j}.fVal(2)=norm(fpcas015{i,j}.alpha.*(fpcas015{i,j}.alpha<0))^2;
+            fpcas015{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas015{i,j}.alpha)));
             fpcas015{i,j}.opt = opt; alphaHat=fpcas015{i,j}.alpha;
             fpcas015{i,j}.RMSE=norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha);
             save(filename,'fpcas015','-append');
@@ -474,6 +499,9 @@ if(any(runList==006))
             'reconerrortype',3,...
             'savesolutionpath',0,'verbose',100);
         out.opt=opt; spiral006{i,j}=out;
+        spiral006{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral006{i,j}.alpha)-conf.y)^2;
+        spiral006{i,j}.fVal(2)=norm(spiral006{i,j}.alpha.*(spiral006{i,j}.alpha<0))^2;
+        spiral006{i,j}.fVal(3)=sum(abs(conf.Psit(spiral006{i,j}.alpha)));
         save(filename,'spiral006','-append');
     end
 end
@@ -546,6 +574,9 @@ if(any(runList==008))     % FPCAS
         % [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
         % fpcas008{i,j}=out; fpcas008{i,j}.alpha = conf.Psi(s);
         % fpcas008{i,j}.opt = opt;
+        % fpcas008{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas008{i,j}.alpha)-conf.y)^2;
+        % fpcas008{i,j}.fVal(2)=norm(fpcas008{i,j}.alpha.*(fpcas008{i,j}.alpha<0))^2;
+        % fpcas008{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas008{i,j}.alpha)));
         % fpcas008{i,j}.RSE=(norm(conf.y-conf.Phi(fpcas008{i,j}.alpha))/norm(conf.y))^2;
         % %fpcas008{i,j}.RMSE=1-(fpcas008{i,j}.alpha'*opt.trueAlpha/norm(fpcas008{i,j}.alpha)/norm(opt.trueAlpha))^2;
         % fpcas008{i,j}.RMSE=(norm(fpcas008{i,j}.alpha-opt.trueAlpha)/norm(opt.trueAlpha))^2;
@@ -564,6 +595,9 @@ if(any(runList==008))     % FPCAS
             'reconerrortype',3,...
             'savesolutionpath',0,'verbose',100);
         out.opt=opt; spiral008{i,j}=out;
+        spiral008{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral008{i,j}.alpha)-conf.y)^2;
+        spiral008{i,j}.fVal(2)=norm(spiral008{i,j}.alpha.*(spiral008{i,j}.alpha<0))^2;
+        spiral008{i,j}.fVal(3)=sum(abs(conf.Psit(spiral008{i,j}.alpha)));
         save(filename,'spiral008','-append');
     end
 end

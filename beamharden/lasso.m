@@ -114,7 +114,7 @@ while(true)
     
     alphaStep.main();
 
-    if(p>=641) keyboard; end
+    % if(p>=641) keyboard; end
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
