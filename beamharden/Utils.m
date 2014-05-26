@@ -9,7 +9,7 @@ classdef Utils < handle
         end
         function [f,g,h] = augLag(x,z)
             g=x-z;
-            f=norm(x-z)^2/2;
+            f=sqrNorm(x-z)/2;
             if(nargout>=3)
                 h = @(xx,opt) hessian(xx,opt);
             end
@@ -45,6 +45,7 @@ classdef Utils < handle
                     hh = zeros(size(x));
                     hh(temp,:) = x(temp,:)*2;
                 else
+                    x = reshape(x,length(temp(:)),[]);
                     y = x(temp,:);
                     hh = y'*y*2;
                 end
@@ -113,7 +114,7 @@ classdef Utils < handle
 
         function [f,g,h] = linearModel(alpha,Phi,Phit,y)
             PhiAlpha=Phi(alpha);
-            f=norm(y-PhiAlpha)^2/2;
+            f=sqrNorm(y-PhiAlpha)/2;
             if(nargout>=2)
                 g=Phit(PhiAlpha-y);
                 if(nargout>=3)
@@ -133,20 +134,20 @@ classdef Utils < handle
         function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
             eps=1e-15;
             PhiAlpha=Phi(alpha)+eps;
-            f=sum(PhiAlpha)-y(:)'*log(PhiAlpha);
+            f=sum(PhiAlpha(:))-innerProd(y,log(PhiAlpha));
             if(nargout>=2)
-                g=Phit(  1-y./(PhiAlpha)  );
+                g=Phit(  1-y./PhiAlpha  );
                 if(nargout>=3)
                     weight=y./(PhiAlpha.^2);
                     h=@(x,opt) hessian(weight,x,opt);
                 end
             end
             function hh=hessian(weight,x,opt)
-                y = Phi(x);
+                z = Phi(x);
                 if(opt==1)
-                    hh = Phit(weight.*y);
+                    hh = Phit(weight.*z);
                 else
-                    hh = y'*(weight.*y);
+                    hh = innerProd(z,weight.*z);
                 end
 
             end

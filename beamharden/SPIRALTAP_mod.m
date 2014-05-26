@@ -544,8 +544,8 @@ if savereconerror
             normtrue = sum( abs(truth(:)) );
             computereconerror = @(x) sum( abs (x(:) + mu - truth(:)) )./normtrue;
         case 2  % Relative Square Error
-            normtrue = norm(truth(:));
-            computereconerror = @(x) 1-(x(:)'*truth(:)/norm(x(:))/normtrue)^2;
+            sqrNormTrue = sqrNorm(truth);
+            computereconerror = @(x) 1-innerProd(x,truth)^2/sqrNorm(x)/sqrNormTrue;
         case 3 % RMS Error
             normtrue = sum(truth(:).^2);
             computereconerror = @(x) sum( (x(:) + mu - truth(:) ).^2)./normtrue;
@@ -869,7 +869,7 @@ function converged = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                     ./abs(objective(iter)) ) <= tolerance);
             case 5
                 % complementarity condition
-                converged = norm(dx(:))^2/length(dx(:)) <= tolerance;
+                converged = sum(dx(:).^2)/length(dx(:)) <= tolerance;
             case 6
                 % Norm of lagrangian gradient
                 todo

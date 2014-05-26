@@ -126,6 +126,120 @@ if(any(runList==011))
     end
 end
 
+% vary the inter loop criteria
+if(any(runList==021))
+    load(filename,'*021');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=1e4; opt.thresh=1e-10; opt.debugLevel=1;
+    m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
+    u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    i=4;
+    opt.m=m(i); opt.snr=inf; opt.u = u(i);
+    opt=loadLinear(conf,opt);
+    for j=9:2:11
+        for i=1
+            opt.admmAbsTol=10^(-j);
+            opt.admmTol=0;
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            initSig = conf.Phit(conf.y)*0;
+
+            opt.continuation=false;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npg021{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'npg021','-append');
+        end
+    end
+end
+if(any(runList==921))
+    load(filename,'*021');
+    figure(1); t=0;
+    style={'r','g','b','k','r-.','g-.','b-.','k-.'};
+    cost=showResult(npg021,2,'cost');
+    cost=min(cost(cost>0));
+    for j=1:2:11
+        t=t+1;
+        subplot(4,2,1); semilogy(npg021{1,j}.difAlpha,style{t}); hold on;
+        subplot(4,2,3); semilogy(npg021{1,j}.RMSE,style{t}); hold on;
+        subplot(4,2,5); semilogy(npg021{1,j}.time,style{t}); hold on;
+        subplot(4,2,2); semilogy(npg021{1,j}.time,npg021{1,j}.difAlpha,style{t}); hold on;
+        subplot(4,2,4); semilogy(npg021{1,j}.time,npg021{1,j}.RMSE,style{t}); hold on;
+        subplot(4,2,6); plot(npg021{1,j}.time,npg021{1,j}.time,style{t}); hold on;
+        subplot(4,2,7); semilogy(npg021{1,j}.cost-cost,style{t}); hold on;
+        subplot(4,2,8); semilogy(npg021{1,j}.time,npg021{1,j}.cost-cost,style{t}); hold on;
+    end
+    legend('10^{-1}','10^{-3}','10^{-5}','10^{-7}','10^{-9}','10^{-11}');
+    subplot(4,2,1); ylabel('\delta x'); ylim([1e-10,1]);
+    subplot(4,2,3); ylabel('RSE');
+    subplot(4,2,5); ylabel('time');
+    subplot(4,2,7); ylabel('cost'); ylim([1e-10,1e2]);
+    subplot(4,2,2); xlim([0,200]); ylim([1e-10,1]);
+    subplot(4,2,4); xlim([0,200]);
+    subplot(4,2,6); xlim([0,200]);
+    subplot(4,2,8); xlim([0,200]);
+    subplot(4,2,7); xlabel('# iterations');
+    subplot(4,2,8); xlabel('time'); ylim([1e-10,1e2]);
+end
+
+% vary the inter loop criteria
+if(any(runList==031))
+    load(filename,'*031');
+    s = RandStream.create('mt19937ar','seed',0);
+    RandStream.setGlobalStream(s);
+    conf=ConfigCT();
+    opt.maxItr=1e4; opt.thresh=1e-10; opt.debugLevel=1;
+    m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
+    u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    i=4;
+    opt.m=m(i); opt.snr=inf; opt.u = u(i);
+    opt=loadLinear(conf,opt);
+    for j=1:5
+        for i=1
+            opt.admmAbsTol=0;
+            opt.admmTol=10^(-j);
+            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            initSig = conf.Phit(conf.y)*0;
+
+            opt.continuation=false;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npg031{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'npg031','-append');
+        end
+    end
+end
+if(any(runList==931))
+    load(filename,'*031');
+    figure; t=0;
+    style={'r','g','b','k','r-.','g-.','b-.','k-.'};
+    cost=min(reshape(showResult(npg031,2,'cost'),[],1));
+    for j=1:5
+        t=t+1;
+        subplot(4,2,1); semilogy(npg031{1,j}.difAlpha,style{t}); hold on;
+        subplot(4,2,3); semilogy(npg031{1,j}.RMSE,style{t}); hold on;
+        subplot(4,2,5); semilogy(npg031{1,j}.time,style{t}); hold on;
+        subplot(4,2,2); semilogy(npg031{1,j}.time,npg031{1,j}.difAlpha,style{t}); hold on;
+        subplot(4,2,4); semilogy(npg031{1,j}.time,npg031{1,j}.RMSE,style{t}); hold on;
+        subplot(4,2,6); plot(npg031{1,j}.time,npg031{1,j}.time,style{t}); hold on;
+        subplot(4,2,7); semilogy(npg031{1,j}.cost-cost,style{t}); hold on;
+        subplot(4,2,8); semilogy(npg031{1,j}.time,npg031{1,j}.cost-cost,style{t}); hold on;
+    end
+    legend('10^{-1}','10^{-2}','10^{-3}','10^{-4}','10^{-5}');
+    subplot(4,2,1); ylabel('\delta x');
+    subplot(4,2,3); ylabel('RSE');
+    subplot(4,2,5); ylabel('time');
+    subplot(4,2,7); ylabel('cost');
+    subplot(4,2,2); xlim([0,400]);
+    subplot(4,2,4); xlim([0,400]);
+    subplot(4,2,6); xlim([0,400]);
+    subplot(4,2,8); xlim([0,400]);
+    subplot(4,2,7); xlabel('# iterations');
+    subplot(4,2,8); xlabel('time');
+end
+
+
 % vary the number of measurements, with continuation
 if(any(runList==002))
     load(filename,'*002');
@@ -470,6 +584,7 @@ if(any(runList==006))
     u=[1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
     opt.alphaStep='FISTA_ADMM_NNL1';
     opt.noiseType='poisson';
+    opt.matrixType='nonneg';
     j=1;
     for i=7:7
         fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
@@ -482,27 +597,24 @@ if(any(runList==006))
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npg006','-append');
 
-        opt.alphaStep='IST_ADMM_NNL1';
-        ist006{i,j}=lasso(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'ist006','-append');
+        % opt.alphaStep='IST_ADMM_NNL1';
+        % ist006{i,j}=lasso(conf.Phi,conf.Phit,...
+        %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+        % save(filename,'ist006','-append');
 
-        subtolerance=1e-5;
-        [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-            SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
-            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','poisson',...
-            'initialization',initSig,'maxiter',opt.maxItr,...
-            'miniter',0,'stopcriterion',3,...
-            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-            'subtolerance',subtolerance,'monotone',1,...
-            'saveobjective',1,'savereconerror',1,'savecputime',1,...
-            'reconerrortype',3,...
-            'savesolutionpath',0,'verbose',100);
-        out.opt=opt; spiral006{i,j}=out;
-        spiral006{i,j}.fVal(1)=0.5*norm(conf.Phi(spiral006{i,j}.alpha)-conf.y)^2;
-        spiral006{i,j}.fVal(2)=norm(spiral006{i,j}.alpha.*(spiral006{i,j}.alpha<0))^2;
-        spiral006{i,j}.fVal(3)=sum(abs(conf.Psit(spiral006{i,j}.alpha)));
-        save(filename,'spiral006','-append');
+        % subtolerance=1e-5;
+        % [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
+        %     SPIRALTAP_mod(conf.y,conf.Phi,opt.u,'penalty','ONB',...
+        %     'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','poisson',...
+        %     'initialization',initSig,'maxiter',opt.maxItr,...
+        %     'miniter',0,'stopcriterion',3,...
+        %     'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+        %     'subtolerance',subtolerance,'monotone',1,...
+        %     'saveobjective',1,'savereconerror',1,'savecputime',1,...
+        %     'reconerrortype',3,...
+        %     'savesolutionpath',0,'verbose',100);
+        % out.opt=opt; spiral006{i,j}=out;
+        % save(filename,'spiral006','-append');
     end
 end
 

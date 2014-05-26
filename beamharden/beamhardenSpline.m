@@ -62,17 +62,18 @@ if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
-if(~isfield(opt,'errorType')) opt.errorType='RMSE'; end
+if(~isfield(opt,'errorType')) opt.errorType=0; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
     trueAlphaNorm=norm(opt.trueAlpha);
-    if(strcmpi(opt.errorType,'RMSE'))
-        trueAlpha = opt.trueAlpha/trueAlphaNorm;
-        computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
-    else
-        computError = @(xxx) norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm;
+    switch opt.errorType
+        case 0
+            trueAlpha = opt.trueAlpha/trueAlphaNorm;
+            computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+        case 1
+            computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
     end
 end
 

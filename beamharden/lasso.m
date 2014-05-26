@@ -39,16 +39,18 @@ if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 
-alpha=xInit(:);
+alpha=xInit;
 
 if(isfield(opt,'trueAlpha'))
-    trueAlphaNorm=norm(opt.trueAlpha);
+    trueAlphaNorm=pNorm(opt.trueAlpha);
     switch opt.errorType
         case 0
             trueAlpha = opt.trueAlpha/trueAlphaNorm;
-            computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+            computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
         case 1
-            computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
+            computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/(trueAlphaNorm^2);
+        case 2
+            computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
     end
 end
 
@@ -77,6 +79,8 @@ switch lower(opt.alphaStep)
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
         alphaStep=FISTA_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+        if(isfield(opt,'admmAbsTol')) alphaStep.admmAbsTol=opt.admmAbsTol; end
+        if(isfield(opt,'admmTol')) alphaStep.admmTol=opt.admmTol; end
     case lower('IST_ADMM_NNL1')
         alphaStep=IST_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
@@ -86,10 +90,11 @@ switch lower(opt.alphaStep)
     case {lower('ADMM_NN')}
         alphaStep = ADMM_NN(2,alpha,1,opt.stepShrnk,Psi,Psit);
 end
-if(strcmpi(opt.noiseType,'gaussian'))
-    alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
-else
-    alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y);
+switch lower(opt.noiseType)
+    case 'poisson'
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y);
+    case 'gaussian'
+        alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
@@ -98,10 +103,10 @@ if(any(strcmp(properties(alphaStep),'restart')) && (~opt.restart))
 end
 
 if(strcmpi(opt.uMode,'relative'))
-    opt.u=opt.a*max(abs(Psit(Phit(y))));
+    opt.u=opt.a*pNorm(Psit(Phit(y)),inf);
 end
 if(opt.continuation)
-    alphaStep.u = 0.1*max(abs(Psit(Phit(y))));
+    alphaStep.u = 0.1*pNorm(Psit(Phit(y)),inf);
     alphaStep.u = min(alphaStep.u,opt.u*1000);
 else alphaStep.u = opt.u;
 end
@@ -119,8 +124,9 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
     out.alphaSearch(p) = alphaStep.ppp;
+    out.stepSize(p) = alphaStep.stepSize;
 
-    out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))/norm(alpha);
+    out.difAlpha(p)=pNorm(alphaStep.alpha-alpha)/pNorm(alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
     alpha = alphaStep.alpha;

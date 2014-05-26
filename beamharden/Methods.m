@@ -51,7 +51,7 @@ classdef Methods < handle
                     [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
                     g = g+gtemp*obj.coef(i);
                 end
-                f = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
+                f = innerProd(obj.fVal(1:obj.n),obj.coef(1:obj.n));
                 h = @(xxx,opt) hessian(xxx,opt);
             elseif(nargout==2)
                 g = 0;
@@ -59,7 +59,7 @@ classdef Methods < handle
                     [obj.fVal(i),gtemp] = obj.fArray{i}(aaa);
                     g = g+gtemp*obj.coef(i);
                 end
-                f = obj.fVal(1:obj.n)'*obj.coef(1:obj.n);
+                f = innerProd(obj.fVal(1:obj.n),obj.coef(1:obj.n));
             else
                 for i = 1:obj.n
                     obj.fVal(i) = obj.fArray{i}(aaa);
@@ -109,7 +109,7 @@ classdef Methods < handle
         function oldJunk()
             if(t1==0 && p==1)
                 if(interiorPointAlpha)
-                    t1=min([1, abs(diff0'*difphi/norm(difphi)), abs(costA/costB)]);
+                    t1=min([1, abs(diff0'*difphi/pNorm(difphi)), abs(costA/costB)]);
                 else t1=1;
                 end
             end
