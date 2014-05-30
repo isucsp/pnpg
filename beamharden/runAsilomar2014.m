@@ -256,8 +256,6 @@ if(any(runList==002))
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
 
-            % if(i~=5) continue; end
-
             opt.continuation=true;
             opt.alphaStep='FISTA_ADMM_NNL1';
             npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
@@ -308,6 +306,78 @@ if(any(runList==002))
             save(filename,'fpcas002','-append');
         end
     end
+end
+
+if(any(runList==902))
+    load(filename,'*002'); j=1;
+
+    opt.a=0;
+    opt=loadLinear(ConfigCT(),opt);
+    signal=opt.trueAlpha;
+    save('skyline.data','signal','-ascii');
+
+    m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
+
+    npgTime=showResult(npg002,2,'time');
+    npgCTime=showResult(npgC002,2,'time');
+    fistaCTime=showResult(FISTAC002,2,'time');
+    spiralTime=showResult(spiral002,2,'time');
+    fpcasTime=showResult(fpcas002,2,'cpu');
+
+    npgCost=showResult(npg002,2,'cost');
+    npgCCost=showResult(npgC002,2,'cost');
+    fistaCCost=showResult(FISTAC002,2,'cost');
+    spiralCost=showResult(spiral002,2,'cost');
+    fpcasCost=showResult(fpcas002,2,'f');
+
+    npgRMSE=showResult(npg002,2,'RMSE');
+    npgCRMSE=showResult(npgC002,2,'RMSE');
+    fistaCRMSE=showResult(FISTAC002,2,'RMSE');
+    spiralRMSE=showResult(spiral002,2,'reconerror');
+    fpcasRMSE=showResult(fpcas002,2,'RMSE');
+    fistaCRMSE_=showResult(FISTAC002,4,2);
+    fpcasRMSE_=showResult(fpcas002,4,2);
+
+    npgTime(:,3:end)=[];
+    npgCTime(:,3:end)=[];
+    fistaCTime(:,3:end)=[];
+    spiralTime(:,3:end)=[];
+    fpcasTime(:,3:end)=[];
+    npgCost(:,3:end)=[];
+    npgCCost(:,3:end)=[];
+    fistaCCost(:,3:end)=[];
+    spiralCost(:,3:end)=[];
+    fpcasCost(:,3:end)=[];
+    npgRMSE(:,3:end)=[];
+    npgCRMSE(:,3:end)=[];
+    fistaCRMSE(:,3:end)=[];
+    spiralRMSE(:,3:end)=[];
+    fpcasRMSE(:,3:end)=[];
+    fpcasRMSE_(:,3:end)=[];
+    fistaCRMSE_(:,3:end)=[];
+
+    forSave=[];
+    forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];
+    forSave=[forSave, sum(npgCTime,2)./sum(npgCTime>0,2)];
+    forSave=[forSave, sum(fistaCTime,2)./sum(fistaCTime>0,2)];
+    forSave=[forSave, sum(spiralTime,2)./sum(spiralTime>0,2)];
+    forSave=[forSave, sum(fpcasTime,2)./sum(fpcasTime>0,2)];
+
+    forSave=[forSave, sum(npgCost,2)./sum(npgCost>0,2)];
+    forSave=[forSave, sum(npgCCost,2)./sum(npgCCost>0,2)];
+    forSave=[forSave, sum(fistaCCost,2)./sum(fistaCCost>0,2)];
+    forSave=[forSave, sum(spiralCost,2)./sum(spiralCost>0,2)];
+    forSave=[forSave, sum(fpcasCost,2)./sum(fpcasCost>0,2)];
+
+    forSave=[forSave, sum(npgRMSE,2)./sum(npgRMSE>0,2)];
+    forSave=[forSave, sum(npgCRMSE,2)./sum(npgCRMSE>0,2)];
+    forSave=[forSave, sum(fistaCRMSE,2)./sum(fistaCRMSE>0,2)];
+    forSave=[forSave, sum(spiralRMSE,2)./sum(spiralRMSE>0,2)];
+    forSave=[forSave, sum(fpcasRMSE,2)./sum(fpcasRMSE>0,2)];
+    forSave=[forSave, m(:)];
+    forSave=[forSave, sum(fistaCRMSE_,2)./sum(fistaCRMSE_>0,2)];
+    forSave=[forSave, sum(fpcasRMSE_,2)./sum(fpcasRMSE_>0,2)];
+    save('varyMeasurement.data','forSave','-ascii');
 end
 
 % vary the number of measurements, with continuation, nonneg Phi
@@ -716,76 +786,6 @@ end
 
 % Plot the figures, or save the data for gnuplot in the paper
 if(any(runList==999))
-    load(filename); j=1;
-
-    opt.a=0;
-    opt=loadLinear(ConfigCT(),opt);
-    signal=opt.trueAlpha;
-    save('skyline.data','signal','-ascii');
-
-    m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-
-    npgTime=showResult(npg002,2,'time');
-    npgCTime=showResult(npgC002,2,'time');
-    fistaCTime=showResult(FISTAC002,2,'time');
-    spiralTime=showResult(spiral002,2,'time');
-    fpcasTime=showResult(fpcas002,2,'cpu');
-
-    npgCost=showResult(npg002,2,'cost');
-    npgCCost=showResult(npgC002,2,'cost');
-    fistaCCost=showResult(FISTAC002,2,'cost');
-    spiralCost=showResult(spiral002,2,'cost');
-    fpcasCost=showResult(fpcas002,2,'f');
-
-    npgRMSE=showResult(npg002,2,'RMSE');
-    npgCRMSE=showResult(npgC002,2,'RMSE');
-    fistaCRMSE=showResult(FISTAC002,2,'RMSE');
-    spiralRMSE=showResult(spiral002,2,'reconerror');
-    fpcasRMSE=showResult(fpcas002,2,'RMSE');
-    fistaCRMSE_=showResult(FISTAC002,4,2);
-    fpcasRMSE_=showResult(fpcas002,4,2);
-
-    npgTime(:,3:end)=[];
-    npgCTime(:,3:end)=[];
-    fistaCTime(:,3:end)=[];
-    spiralTime(:,3:end)=[];
-    fpcasTime(:,3:end)=[];
-    npgCost(:,3:end)=[];
-    npgCCost(:,3:end)=[];
-    fistaCCost(:,3:end)=[];
-    spiralCost(:,3:end)=[];
-    fpcasCost(:,3:end)=[];
-    npgRMSE(:,3:end)=[];
-    npgCRMSE(:,3:end)=[];
-    fistaCRMSE(:,3:end)=[];
-    spiralRMSE(:,3:end)=[];
-    fpcasRMSE(:,3:end)=[];
-    fpcasRMSE_(:,3:end)=[];
-    fistaCRMSE_(:,3:end)=[];
-
-    forSave=[];
-    forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];
-    forSave=[forSave, sum(npgCTime,2)./sum(npgCTime>0,2)];
-    forSave=[forSave, sum(fistaCTime,2)./sum(fistaCTime>0,2)];
-    forSave=[forSave, sum(spiralTime,2)./sum(spiralTime>0,2)];
-    forSave=[forSave, sum(fpcasTime,2)./sum(fpcasTime>0,2)];
-
-    forSave=[forSave, sum(npgCost,2)./sum(npgCost>0,2)];
-    forSave=[forSave, sum(npgCCost,2)./sum(npgCCost>0,2)];
-    forSave=[forSave, sum(fistaCCost,2)./sum(fistaCCost>0,2)];
-    forSave=[forSave, sum(spiralCost,2)./sum(spiralCost>0,2)];
-    forSave=[forSave, sum(fpcasCost,2)./sum(fpcasCost>0,2)];
-
-    forSave=[forSave, sum(npgRMSE,2)./sum(npgRMSE>0,2)];
-    forSave=[forSave, sum(npgCRMSE,2)./sum(npgCRMSE>0,2)];
-    forSave=[forSave, sum(fistaCRMSE,2)./sum(fistaCRMSE>0,2)];
-    forSave=[forSave, sum(spiralRMSE,2)./sum(spiralRMSE>0,2)];
-    forSave=[forSave, sum(fpcasRMSE,2)./sum(fpcasRMSE>0,2)];
-    forSave=[forSave, m(:)];
-    forSave=[forSave, sum(fistaCRMSE_,2)./sum(fistaCRMSE_>0,2)];
-    forSave=[forSave, sum(fpcasRMSE_,2)./sum(fpcasRMSE_>0,2)];
-    save('varyMeasurement.data','forSave','-ascii');
-
     keyboard;
 
     clear *Time *Cost *RMSE forSave

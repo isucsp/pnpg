@@ -17,7 +17,7 @@
 % to 1, 2, or 3 selects among three simulations.  Details of each can be 
 % found below.
 clear;close all
-demo = 3;
+demo = 2;
 runList=demo;
 if(nargin==0 || ~isempty(runList))
     filename = [mfilename '.mat'];
@@ -359,14 +359,15 @@ switch demo
         % Display Objectives for Monotonic Methods
         figure(2)
         subplot(2,2,1)
-            plot(0:iterationsSPIRALonb,objectiveSPIRALonb,'b');
-            hold on; plot(0:npg002{1}.p-1,npg002{1}.cost,'r');
-            title({'ONB Objective Evolution (Iteration)',' '})
-            xlabel('Iteration'); ylabel('Objective')
-            xlim([0 iterationsSPIRALonb])
+        minCost=min([spiral002{1}.cost(:); npg002{1}.cost(:)]);
+        semilogy(0:iterationsSPIRALonb,objectiveSPIRALonb-minCost,'b');
+        hold on; plot(0:npg002{1}.p-1,npg002{1}.cost-minCost,'r');
+        title({'ONB Objective Evolution (Iteration)',' '})
+        xlabel('Iteration'); ylabel('Objective')
+        xlim([0 iterationsSPIRALonb])
         subplot(2,2,2)
-            plot(cputimeSPIRALonb, objectiveSPIRALonb,'b')
-            hold on; plot(npg002{1}.time,npg002{1}.cost,'r');
+            semilogy(cputimeSPIRALonb, objectiveSPIRALonb-minCost,'b')
+            hold on; plot(npg002{1}.time,npg002{1}.cost-minCost,'r');
             title({'ONB Objective Evolution (CPU Time)',' '})
             xlabel('CPU Time'); ylabel('Objective')
             xlim([0 cputimeSPIRALonb(end)])
@@ -621,14 +622,15 @@ switch demo
         % Display Objectives for Monotonic Methods
         figure(2)
         subplot(2,2,1)
-            plot(spiral003{1}.cost,'b')
-            hold on; plot(npg003{1}.cost,'r');
-            title({'ONB Objective Evolution (Iteration)',' '})
-            xlabel('Iteration'); ylabel('Objective')
-            %xlim([0 iterationsSPIRALonb])
+        minCost=min([spiral003{1}.cost(:); npg003{1}.cost(:)]);
+        semilogy(spiral003{1}.cost-minCost,'b')
+        hold on; plot(npg003{1}.cost-minCost,'r');
+        title({'ONB Objective Evolution (Iteration)',' '})
+        xlabel('Iteration'); ylabel('Objective')
+        %xlim([0 iterationsSPIRALonb])
         subplot(2,2,2)
-            plot(cputimeSPIRALonb, objectiveSPIRALonb,'b')
-            hold on; plot(npg003{1}.time,npg003{1}.cost,'r');
+            semilogy(cputimeSPIRALonb, objectiveSPIRALonb-minCost,'b')
+            hold on; plot(npg003{1}.time,npg003{1}.cost-minCost,'r');
             title({'ONB Objective Evolution (CPU Time)',' '})
             xlabel('CPU Time'); ylabel('Objective')
             xlim([0 cputimeSPIRALonb(end)])
