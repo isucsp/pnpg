@@ -32,25 +32,28 @@ if(any(runList==001))
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=1e5;
-    opt.debugLevel=1;
-    opt.thresh=1e-6;
+    opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=1;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    a=[1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-6,1e-6,1e-6];
     snr=[inf 1e6 1e5 2 5 10 100 1e3 inf];
     for i=5:6
         opt.m=m(i); opt.snr=inf;
         opt=loadLinear(conf,opt);
+        initSig = conf.Phit(conf.y)*0;
+        u(i) = (10^a(i))*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
         for j=1:4
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(i)*10^(j-2);
-            initSig = conf.Phit(conf.y)*0;
 
-            opt.continuation=true;
+            if(j==1) continue; end
+
+            keyboard;
+            opt.continuation=false;
             opt.alphaStep='FISTA_ADMM_NNL1';
-            npgC001{i,j}=lasso(conf.Phi,conf.Phit,...
+            npg001{i,j}=lasso(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'npgC001','-append');
+            save(filename,'npg001','-append');
 
             %opt.continuation=true;
             %opt.alphaStep='FISTA_L1';
@@ -248,12 +251,13 @@ if(any(runList==002))
     opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=0;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
+    a=[1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-6,1e-6,1e-6];
     for i=1:length(m)
         opt.m=m(i); opt.snr=inf;
         opt=loadLinear(conf,opt);
         initSig = conf.Phit(conf.y)*0;
-        temp = pNorm(conf.Psit
-        for j=1:3
+        u(i) = (10^a(i))*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
+        for j=1:4
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
             opt.u = u(i)*10^(j-2);
 

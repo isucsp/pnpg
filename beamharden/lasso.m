@@ -111,6 +111,8 @@ if(opt.continuation)
 else alphaStep.u = opt.u;
 end
 
+alphaStep.stepSizeInit();
+
 tic; p=0; str=''; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)

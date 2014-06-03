@@ -40,22 +40,7 @@ classdef FISTA_L1 < Methods
                 obj.preAlpha = obj.alpha;
                 si = obj.Psit(y);
 
-                %if(isempty(obj.preG))
-                %    [oldCost,obj.grad,hessian] = obj.func(y);
-                %    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
-                %else
-                %    [oldCost,obj.grad] = obj.func(y);
-                %    obj.t = abs( (obj.grad-obj.preG)'*(y-obj.preY)/...
-                %        ((y-obj.preY)'*(y-obj.preY)));
-                %end
-                %obj.preG = obj.grad; obj.preY = y;
-                if(obj.t==-1)
-                    [oldCost,obj.grad,hessian] = obj.func(y);
-                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
-                    if(isnan(obj.t)) obj.t=1; end
-                else
-                    [oldCost,obj.grad] = obj.func(y);
-                end
+                [oldCost,obj.grad] = obj.func(y);
                 dsi = obj.Psit(obj.grad);
 
                 % start of line Search

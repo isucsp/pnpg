@@ -81,6 +81,19 @@ classdef Methods < handle
                 end
             end
         end
+        function stepSizeInit(obj)
+            switch (obj.t)
+                case -1   % use BB method to guess the initial stepSize
+                    [cost1,grad1] = obj.func(obj.alpha);
+                    temp = 1e-5*grad1/pNorm(grad1);
+                    [cost2,grad2] = obj.func(obj.alpha-temp);
+                    obj.t = pNorm(grad1-grad2)/pNorm(temp);
+                otherwise
+                    [cost,grad,hessian] = obj.func(obj.alpha);
+                    obj.t = hessian(grad,2)/sqrNorm(grad);
+            end
+            if(isnan(obj.t)) obj.t=1; end
+        end
         function set.M(obj,M)
             obj.M = M;
             obj.oldCost = zeros(obj.M,1);

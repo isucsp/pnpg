@@ -13,7 +13,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         cumuTol=4;
         grad;
 
-        debug = false;
+        debug = true;
 
         restart=0;   % make this value negative to disable restart
     end
@@ -39,27 +39,15 @@ classdef FISTA_ADMM_NNL1 < Methods
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
                 obj.theta = temp;
 
-                %y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
-                %y=obj.alpha;
+                % y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
+                % y=obj.alpha;
                 obj.preAlpha = obj.alpha;
 
-                %if(isempty(obj.preG))
-                %    [oldCost,obj.grad,hessian] = obj.func(y);
-                %    obj.t = hessian(obj.grad,2)/sqrNorm(obj.grad);
-                %else
-                %    [oldCost,obj.grad] = obj.func(y);
-                %    obj.t = abs(innerProd(obj.grad-obj.preG, y-obj.preY))/...
-                %        sqrNorm(y-obj.preY);
-                %end
-                %obj.preG = obj.grad; obj.preY = y;
-                if(obj.t==-1)
-                    [oldCost,obj.grad,hessian] = obj.func(y);
-                    obj.t = hessian(obj.grad,2)/sqrNorm(obj.grad);
-                    if(isnan(obj.t)) obj.t=1; end
-                else
-                    [oldCost,obj.grad] = obj.func(y);
-                end
-
+                % [oldCost,obj.grad] = obj.func(y);
+                % obj.t = abs(innerProd(obj.grad-obj.preG, y-obj.preY))/...
+                %     sqrNorm(y-obj.preY);
+                % obj.preG = obj.grad; obj.preY = y;
+                [oldCost,obj.grad] = obj.func(y);
                 if(obj.debug) figure; end
 
                 % start of line Search
