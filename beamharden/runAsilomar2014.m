@@ -239,22 +239,23 @@ if(any(runList==931))
     subplot(4,2,8); xlabel('time');
 end
 
-
 % vary the number of measurements, with continuation
 if(any(runList==002))
     load(filename,'*002');
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=1e5; opt.thresh=1e-6; opt.debugLevel=0;
+    opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=0;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
-    for j=1:1
-        for i=1:length(m)
+    for i=1:length(m)
+        opt.m=m(i); opt.snr=inf;
+        opt=loadLinear(conf,opt);
+        initSig = conf.Phit(conf.y)*0;
+        temp = pNorm(conf.Psit
+        for j=1:3
             fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-            opt.m=m(i); opt.snr=inf; opt.u = u(i);
-            opt=loadLinear(conf,opt);
-            initSig = conf.Phit(conf.y)*0;
+            opt.u = u(i)*10^(j-2);
 
             opt.continuation=true;
             opt.alphaStep='FISTA_ADMM_NNL1';
@@ -338,23 +339,23 @@ if(any(runList==902))
     fistaCRMSE_=showResult(FISTAC002,4,2);
     fpcasRMSE_=showResult(fpcas002,4,2);
 
-    npgTime(:,3:end)=[];
-    npgCTime(:,3:end)=[];
-    fistaCTime(:,3:end)=[];
-    spiralTime(:,3:end)=[];
-    fpcasTime(:,3:end)=[];
-    npgCost(:,3:end)=[];
-    npgCCost(:,3:end)=[];
-    fistaCCost(:,3:end)=[];
-    spiralCost(:,3:end)=[];
-    fpcasCost(:,3:end)=[];
-    npgRMSE(:,3:end)=[];
-    npgCRMSE(:,3:end)=[];
-    fistaCRMSE(:,3:end)=[];
-    spiralRMSE(:,3:end)=[];
-    fpcasRMSE(:,3:end)=[];
-    fpcasRMSE_(:,3:end)=[];
-    fistaCRMSE_(:,3:end)=[];
+    npgTime(:,1:2)=[];
+    npgCTime(:,1:2)=[];
+    fistaCTime(:,1:2)=[];
+    spiralTime(:,1:2)=[];
+    fpcasTime(:,1:2)=[];
+    npgCost(:,1:2)=[];
+    npgCCost(:,1:2)=[];
+    fistaCCost(:,1:2)=[];
+    spiralCost(:,1:2)=[];
+    fpcasCost(:,1:2)=[];
+    npgRMSE(:,1:2)=[];
+    npgCRMSE(:,1:2)=[];
+    fistaCRMSE(:,1:2)=[];
+    spiralRMSE(:,1:2)=[];
+    fpcasRMSE(:,1:2)=[];
+    fpcasRMSE_(:,1:2)=[];
+    fistaCRMSE_(:,1:2)=[];
 
     forSave=[];
     forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];

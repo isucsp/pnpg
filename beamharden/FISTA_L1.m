@@ -71,6 +71,7 @@ classdef FISTA_L1 < Methods
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
+                obj.stepSize=1/obj.t;
                 if(obj.ppp==1)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)

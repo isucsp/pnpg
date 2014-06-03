@@ -11,7 +11,6 @@ classdef FISTA_ADMM_NNL1 < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        stepSize=0;
         grad;
 
         debug = false;

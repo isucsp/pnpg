@@ -12,6 +12,7 @@ classdef Methods < handle
         difObj
         maxStepNum = 1e2;
         stepNum
+        stepSize=0;
         converged = false;
         warned = false;
         % for NCG_PR

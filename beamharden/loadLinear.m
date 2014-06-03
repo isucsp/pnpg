@@ -29,8 +29,11 @@ function opt=loadLinear(obj,opt)
 
     if(~exist('obj'))
         for i=0.7:0.01:0.98
-            test(x,i);
+            [~,l1norm]=test(x,i);
         end
+        [i,j]=find(l1norm==min(l1norm(l1norm>0)));
+        fprintf('level=%d,daub=%d  :  |x|_1 of signal achieves %g\n',i,2*j,l1norm(i,j));
+        opt.l1norm=l1norm;
         return;
     end
 
@@ -83,7 +86,7 @@ function opt=loadLinear(obj,opt)
     obj.Phi = @(xx) A*xx(:);
     obj.Phit = @(xx) A'*xx(:);
 
-    obj.dwt_L=3;        %levels of wavelet transform
+    obj.dwt_L= 5;        %levels of wavelet transform
     obj.daub = 4;
 
     % caution: don't use the wavelet tools from matlab, it is slow
@@ -94,18 +97,18 @@ function opt=loadLinear(obj,opt)
     opt.trueAlpha=x0;
 end
 
-function dif=test(x,perce)
+function [dif,l1norm]=test(x,perce)
     for i=1:9
         for j=1:4
             level = i; wave = 2*j;
-            dif(i,j)=getError(x,perce,level,wave);
+            [dif(i,j),~,l1norm(i,j)]=getError(x,perce,level,wave);
         end
     end
     [i,j]=find(dif==min(dif(dif>0)));
     fprintf('level=%d,daub=%d  :  %g%% of signal achieves %g%%\n',i,2*j,(1-perce)*100,dif(i,j)*100);
 end
 
-function [dif,coef]=getError(x,perce,level,wave)
+function [dif,coef,l1norm]=getError(x,perce,level,wave)
     h=daubcqf(wave);
     [wav,L] = mdwt(x,h,level);
     [~,idx]=sort(abs(wav));
@@ -116,5 +119,6 @@ function [dif,coef]=getError(x,perce,level,wave)
     recX=midwt(wav,h,level);
     %figure(1); plot(recX); hold on; plot(x,'r');
     dif=(norm(x-recX)/norm(x))^2;
+    l1norm=sum(abs(coef));
 end
 
