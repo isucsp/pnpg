@@ -13,7 +13,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         cumuTol=4;
         grad;
 
-        debug = true;
+        debug = false;
 
         restart=0;   % make this value negative to disable restart
     end
@@ -72,15 +72,15 @@ classdef FISTA_ADMM_NNL1 < Methods
                     end
                 else obj.cumu=0;
                 end
-                obj.difAlpha=pNorm(newX-obj.alpha)/pNorm(newX);
+                obj.difAlpha=pNorm(newX-obj.alpha);
 
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
                 temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((isempty(obj.cost) || temp>obj.cost) && obj.restart>=0)
+                if(obj.restart>=0 && (~isempty(obj.cost)) && temp>obj.cost)
                     obj.theta=0; pp=pp-1;
-                    if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
+                    % if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
                     obj.restart=obj.restart+1;
                     if(obj.restart<10) continue; end
                 end
@@ -89,7 +89,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                 %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
-                if(obj.difAlpha<obj.thresh) break; end
+                if(obj.difAlpha<=obj.thresh*pNorm(newX)) break; end
             end
             out = obj.alpha;
         end
@@ -104,12 +104,12 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 s = Utils.softThresh(obj.Psit(alpha+y1),u/(rho*t));
                 temp=Psi_s; Psi_s = obj.Psi(s);
-                difPsi_s=pNorm(temp-Psi_s)/pNorm(temp);
+                difPsi_s=pNorm(temp-Psi_s);
 
                 temp = alpha;
                 alpha = (newX+rho*(Psi_s-y1))/(1+rho);
                 alpha(alpha<0)=0;
-                difAlpha = pNorm(temp-alpha)/pNorm(temp);
+                difAlpha = pNorm(temp-alpha);
 
                 y1 = y1 - (Psi_s-alpha);
 
@@ -117,7 +117,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                 %semilogy(pppp,difAlpha,'r.',pppp,difPsi_s,'g.'); hold on;
                 %drawnow;
 
-                if(difAlpha<absTol && difPsi_s<absTol) break; end
+                if(difAlpha<=absTol*pNorm(alpha) && difPsi_s<=absTol*pNorm(Psi_s)) break; end
             end
             % end of the ADMM inside the FISTA
         end
@@ -135,16 +135,10 @@ classdef FISTA_ADMM_NNL1 < Methods
                 temp = alpha;
                 alpha = (newX+rho*(p-y1));
                 alpha = obj.Psi(Utils.softThresh(obj.Psit(alpha),u/t))/(1+rho);
-                difAlpha = pNorm(temp-alpha)/pNorm(temp);
-                if(isnan(difAlpha) && (pNorm(temp)==0) && (pNorm(temp-alpha)==0))
-                            difAlpha=0;
-                end
+                difAlpha = pNorm(temp-alpha);
 
                 temp=p; p=alpha+y1; p(p<0)=0;
-                difP=pNorm(temp-p)/pNorm(temp);
-                if(isnan(difP) && (sqrNorm(temp)==0) && (sqrNorm(temp-p)==0))
-                    difP=0;
-                end
+                difP=pNorm(temp-p);
 
                 y1 = y1 +alpha-p;
 
@@ -153,9 +147,10 @@ classdef FISTA_ADMM_NNL1 < Methods
                     dp(pppp)=difP;
                     dap(pppp)=pNorm(alpha-p);
                     ny(pppp) = pNorm(y1);
+                    co(pppp) = 0.5*sqrNorm(newX-p)+u/t*pNorm(obj.Psit(p),1);
                 end
 
-                if(difAlpha<absTol && difP<absTol) break; end
+                if(difAlpha<=absTol*pNorm(alpha) && difP<=absTol*pNorm(p)) break; end
                 if(obj.debug)
                     if(pppp>4000) break; end
                 end

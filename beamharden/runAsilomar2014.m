@@ -37,45 +37,44 @@ if(any(runList==001))
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
     a=[1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-6,1e-6,1e-6];
     snr=[inf 1e6 1e5 2 5 10 100 1e3 inf];
-    for i=5:6
-        opt.m=m(i); opt.snr=inf;
-        opt=loadLinear(conf,opt);
-        initSig = conf.Phit(conf.y)*0;
-        u(i) = (10^a(i))*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-        for j=1:4
-            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-            opt.u = u(i)*10^(j-2);
+    for k=1:10
+        for i=1:length(m)
+            opt.m=m(i); opt.snr=inf;
+            opt=loadLinear(conf,opt);
+            initSig = conf.Phit(conf.y)*0;
 
-            if(j==1) continue; end
+            u(i) = a(i)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
+            for j=4:-1:1
+                fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+                opt.u = u(i)*10^(j-2);
 
-            keyboard;
-            opt.continuation=false;
-            opt.alphaStep='FISTA_ADMM_NNL1';
-            npg001{i,j}=lasso(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'npg001','-append');
+                opt.continuation=false;
+                opt.alphaStep='FISTA_ADMM_NNL1';
+                npg001{i,j}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'npg001','-append');
 
-            %opt.continuation=true;
-            %opt.alphaStep='FISTA_L1';
-            %FISTAC001{i,j}=lasso(conf.Phi,conf.Phit,...
-            %    conf.Psi,conf.Psit,conf.y,initSig,opt);
-            %save(filename,'FISTAC001','-append');
+                opt.continuation=false;
+                opt.alphaStep='FISTA_L1';
+                FISTA001{i,j}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'FISTA001','-append');
 
-            % A = @(xx) conf.Phi(conf.Psi(xx));
-            % At = @(yy) conf.Psit(conf.Phit(yy));
-            % AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
-            % option.mxitr=opt.maxItr;
-            % [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-            % fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
-            % fpcas001{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas001{i,j}.alpha)-conf.y)^2;
-            % fpcas001{i,j}.fVal(2)=norm(fpcas001{i,j}.alpha.*(fpcas001{i,j}.alpha<0))^2;
-            % fpcas001{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas001{i,j}.alpha)));
-            % fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
-            % fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
-            % fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
-            % save(filename,'fpcas001','-append');
+                A = @(xx) conf.Phi(conf.Psi(xx));
+                At = @(yy) conf.Psit(conf.Phit(yy));
+                AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+                option.mxitr=opt.maxItr;
+                [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
+                fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
+                fpcas001{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas001{i,j}.alpha)-conf.y)^2;
+                fpcas001{i,j}.fVal(2)=norm(fpcas001{i,j}.alpha.*(fpcas001{i,j}.alpha<0))^2;
+                fpcas001{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas001{i,j}.alpha)));
+                fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
+                fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
+                fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
+                save(filename,'fpcas001','-append');
+            end
         end
-        %initSig=out001{i,j}.alpha;
     end
 end
 
