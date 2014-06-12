@@ -129,7 +129,7 @@ while(true)
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
 
-    out.difAlpha(p)=pNorm(alphaStep.alpha-alpha);
+    out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
     alpha = alphaStep.alpha;
@@ -192,13 +192,11 @@ while(true)
         end
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<=opt.thresh*pNorm(alpha) && (alphaStep.u==opt.u))
+    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u))
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>10)
-        if(opt.debugLevel==0)
-            fprintf('%s',str);
-        end
+    if(p >= opt.maxItr || convThresh>0)
+        if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end
 end

@@ -50,7 +50,7 @@ function opt=loadLinear(obj,opt)
     x0=x(:);
     if(strcmpi(opt.matrixType,'nonneg'))
         A = rand(opt.m,n);
-        a=0.1;
+        a=0.3;
         idx=(A<a);
         A(idx)=0;
         A(~idx)=(A(~idx)-a)/(1-a);
@@ -65,12 +65,12 @@ function opt=loadLinear(obj,opt)
         v = randn(opt.m,1);
         v = v*(norm(A*x0)/sqrt(opt.snr*opt.m));
         b = A*x0 + v;
-        fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
+        % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
     elseif(strcmpi(opt.noiseType,'poisson'))
         x0=x0*1000;
         b = poissrnd(A*x0);
-        %b=A*x0;
-        %figure; showImg(A);
+        % b=A*x0;
+        % figure; showImg(A);
     else
         error('wrong input noiseType');
     end

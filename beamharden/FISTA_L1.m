@@ -51,12 +51,26 @@ classdef FISTA_L1 < Methods
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     newCost=obj.func(newX);
-                    if(obj.ppp>20 || newCost<=oldCost+obj.grad'*(newX-y)+norm(newX-y)^2*obj.t/2)
+                    if(obj.ppp>20 || newCost<=oldCost+obj.grad'*(newX-y)+sqrNorm(newX-y)*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
+                obj.fVal(3) = sum(abs(newSi));
+                temp = newCost+obj.u*obj.fVal(3);
+
+                % restart
+                if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
+                    obj.theta=0; pp=pp-1;
+                    % Not necessary, decrease is gauranteed
+                    % if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
+                    obj.restart=obj.restart+1;
+                    if(obj.restart<10) continue; end
+                end
+                obj.cost = temp;
                 obj.stepSize=1/obj.t;
+                obj.difAlpha=relativeDif(obj.alpha,newX);
+                obj.alpha = newX;
                 if(obj.ppp==1)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)
@@ -65,25 +79,11 @@ classdef FISTA_L1 < Methods
                     end
                 else obj.cumu=0;
                 end
-                obj.difAlpha=norm(newX-obj.alpha);
 
-                obj.fVal(3) = sum(abs(newSi));
-                temp = newCost+obj.u*obj.fVal(3);
-
-                % restart
-                if(obj.restart>=0 && (~isempty(obj.cost)) && temp>obj.cost)
-                    obj.theta=0; pp=pp-1;
-                    % Not necessary, decrease is gauranteed
-                    % if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
-                    obj.restart=obj.restart+1;
-                    if(obj.restart<10) continue; end
-                end
-                obj.alpha = newX;
-                obj.cost = temp;
                 %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
-                if(obj.difAlpha<=obj.thresh*pNorm(obj.alpha)) break; end
+                if(obj.difAlpha<=obj.thresh) break; end
             end
             out = obj.alpha;
         end
@@ -139,7 +139,7 @@ classdef FISTA_L1 < Methods
                     end
                 else obj.cumu=0;
                 end
-                obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
+                obj.difAlpha=relativeDif(obj.alpha,newX);
                 obj.prePreAlpha=obj.preAlpha; obj.preAlpha=obj.alpha; obj.alpha = newX;
 
                 % decide whether to restart

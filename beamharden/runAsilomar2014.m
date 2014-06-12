@@ -32,46 +32,62 @@ if(any(runList==001))
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT();
-    opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=1;
+    opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; %opt.matrixType='nonneg';
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
-    a=[1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-6,1e-6,1e-6];
+    a=[1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5];
     snr=[inf 1e6 1e5 2 5 10 100 1e3 inf];
-    for k=1:10
+    for k=1:5
         for i=1:length(m)
-            opt.m=m(i); opt.snr=inf;
+            opt.m=m(i); opt.snr=1e6;
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
-
             u(i) = a(i)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-            for j=4:-1:1
+            for j=5:-1:1
                 fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
                 opt.u = u(i)*10^(j-2);
 
                 opt.continuation=false;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npg001{i,j}=lasso(conf.Phi,conf.Phit,...
+                %if(j<4) initSig = npg001{i,j+1,k}.alpha; end
+                npg001{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
                 save(filename,'npg001','-append');
 
+                opt.continuation=true;
+                opt.alphaStep='FISTA_ADMM_NNL1';
+                npgC001{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'npgC001','-append');
+
                 opt.continuation=false;
                 opt.alphaStep='FISTA_L1';
-                FISTA001{i,j}=lasso(conf.Phi,conf.Phit,...
+                %if(j<4) initSig = FISTA001{i,j+1,k}.alpha; end
+                FISTA001{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
                 save(filename,'FISTA001','-append');
 
+                opt.continuation=true;
+                opt.alphaStep='FISTA_L1';
+                %if(j<4) initSig = FISTA001{i,j+1,k}.alpha; end
+                FISTAC001{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'FISTAC001','-append');
+
+                %if(j<4) initSig = fpcas001{i,j+1,k}.alpha; end
                 A = @(xx) conf.Phi(conf.Psi(xx));
                 At = @(yy) conf.Psit(conf.Phit(yy));
                 AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
                 option.mxitr=opt.maxItr;
+                % option.gtol = 1e-3; option.gtol_scale_x = 1e-6; option.sub_mxitr = 10;
                 [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-                fpcas001{i,j}=out; fpcas001{i,j}.alpha = conf.Psi(s);
-                fpcas001{i,j}.fVal(1)=0.5*norm(conf.Phi(fpcas001{i,j}.alpha)-conf.y)^2;
-                fpcas001{i,j}.fVal(2)=norm(fpcas001{i,j}.alpha.*(fpcas001{i,j}.alpha<0))^2;
-                fpcas001{i,j}.fVal(3)=sum(abs(conf.Psit(fpcas001{i,j}.alpha)));
-                fpcas001{i,j}.opt = opt; alphaHat=fpcas001{i,j}.alpha;
-                fpcas001{i,j}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
-                fprintf('fpcas RMSE=%g\n',fpcas001{i,j}.RMSE);
+                fpcas001{i,j,k}=out; fpcas001{i,j,k}.alpha = conf.Psi(s);
+                fpcas001{i,j,k}.fVal(1)=0.5*norm(conf.Phi(fpcas001{i,j,k}.alpha)-conf.y)^2;
+                fpcas001{i,j,k}.fVal(2)=norm(fpcas001{i,j,k}.alpha.*(fpcas001{i,j,k}.alpha<0))^2;
+                fpcas001{i,j,k}.fVal(3)=sum(abs(conf.Psit(fpcas001{i,j,k}.alpha)));
+                fpcas001{i,j,k}.opt = opt; alphaHat=fpcas001{i,j,k}.alpha;
+                fpcas001{i,j,k}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha)).^2;
+                fprintf('fpcas RMSE=%g\n',fpcas001{i,j,k}.RMSE);
                 save(filename,'fpcas001','-append');
             end
         end
