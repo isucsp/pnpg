@@ -54,8 +54,10 @@ classdef FISTA_ADMM_NNL1 < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
                     newX = y - (obj.grad)/(obj.t);
+                    % newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
+                    %     max(obj.admmTol*obj.difAlpha,obj.admmAbsTol),opt);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
-                        max(obj.admmTol*obj.difAlpha,obj.admmAbsTol),opt);
+                        obj.admmTol*obj.difAlpha,opt);
                     newCost=obj.func(newX);
                     if(obj.ppp>20 || newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
                         break;
