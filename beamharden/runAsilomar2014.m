@@ -267,14 +267,14 @@ if(any(runList==002))
     opt.maxItr=1e5; opt.thresh=1e-6; opt.debugLevel=0;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u=[1e-4,1e-4,1e-4,1e-4,1e-4,1e-4,1e-5,1e-5,1e-5];
-    for k=1:1
+    for k=1:2
         for i=1:length(m)
-            opt.m=m(i); opt.snr=1e6;
+            opt.m=m(i); opt.snr=inf;
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
             u = (1e-5)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
             for j=1:5
-                fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+                fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u*10^(j-2);
 
                 opt.continuation=true;
@@ -313,9 +313,9 @@ if(any(runList==002))
                     'reconerrortype',3,...
                     'savesolutionpath',0,'verbose',1000);
                 out.opt=opt; spiral002{i,j,k}=out;
-                spiral002{i,j,k}.fVal(1)=0.5*norm(conf.Phi(spiral002{i,j,k}.alpha)-conf.y)^2;
-                spiral002{i,j,k}.fVal(2)=norm(spiral002{i,j,k}.alpha.*(spiral002{i,j,k}.alpha<0))^2;
-                spiral002{i,j,k}.fVal(3)=sum(abs(conf.Psit(spiral002{i,j,k}.alpha)));
+                spiral002{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral002{i,j,k}.alpha)-conf.y);
+                spiral002{i,j,k}.fVal(2)=sqrNorm(spiral002{i,j,k}.alpha.*(spiral002{i,j,k}.alpha<0));
+                spiral002{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral002{i,j,k}.alpha),1);
                 save(filename,'spiral002','-append');
 
                 A = @(xx) conf.Phi(conf.Psi(xx));
@@ -324,11 +324,11 @@ if(any(runList==002))
                 option.mxitr=opt.maxItr;
                 [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
                 fpcas002{i,j,k}=out; fpcas002{i,j,k}.alpha = conf.Psi(s);
-                fpcas002{i,j,k}.fVal(1)=0.5*norm(conf.Phi(fpcas002{i,j,k}.alpha)-conf.y)^2;
-                fpcas002{i,j,k}.fVal(2)=norm(fpcas002{i,j,k}.alpha.*(fpcas002{i,j,k}.alpha<0))^2;
-                fpcas002{i,j,k}.fVal(3)=sum(abs(conf.Psit(fpcas002{i,j,k}.alpha)));
+                fpcas002{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(fpcas002{i,j,k}.alpha)-conf.y);
+                fpcas002{i,j,k}.fVal(2)=sqrNorm(fpcas002{i,j,k}.alpha.*(fpcas002{i,j,k}.alpha<0));
+                fpcas002{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas002{i,j,k}.alpha),1);
                 fpcas002{i,j,k}.opt = opt; alphaHat=fpcas002{i,j,k}.alpha;
-                fpcas002{i,j,k}.RMSE=(norm(alphaHat-opt.trueAlpha)/norm(opt.trueAlpha))^2;
+                fpcas002{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
                 fprintf('fpcas RMSE=%g\n',fpcas002{i,j,k}.RMSE);
                 save(filename,'fpcas002','-append');
             end
@@ -415,20 +415,42 @@ if(any(runList==902))
 
     figure;
     semilogy(m,npgRMSE   ((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
+    semilogy(m,npgCRMSE  ((c1(idx1)-1)*9+(1:9)'),'c-p');
+    semilogy(m,fistaCRMSE((c1(idx1)-1)*9+(1:9)'),'k-s');
+    semilogy(m,spiralRMSE((c1(idx1)-1)*9+(1:9)'),'k-^');
+    semilogy(m,fpcasRMSE ((c1(idx1)-1)*9+(1:9)'),'g-o');
+    semilogy(m,fistaRMSE ((c1(idx1)-1)*9+(1:9)'),'b-.');
+    figure;
+    semilogy(m,npgTime   ((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
+    semilogy(m,npgCTime  ((c1(idx1)-1)*9+(1:9)'),'c-p');
+    semilogy(m,fistaCTime((c1(idx1)-1)*9+(1:9)'),'k-s');
+    semilogy(m,spiralTime((c1(idx1)-1)*9+(1:9)'),'k-^');
+    semilogy(m,fpcasTime ((c1(idx1)-1)*9+(1:9)'),'g-o');
+    semilogy(m,fistaTime ((c1(idx1)-1)*9+(1:9)'),'b-.');
+    
+    figure;
+    semilogy(m,npgRMSE   ((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
     semilogy(m,npgCRMSE  ((c2(idx2)-1)*9+(1:9)'),'c-p');
     semilogy(m,fistaCRMSE((c3(idx3)-1)*9+(1:9)'),'k-s');
-    semilogy(m,spiralRMSE((c4(idx4)-1)*9+(1:9)'),'y-^');
+    semilogy(m,spiralRMSE((c4(idx4)-1)*9+(1:9)'),'k-^');
     semilogy(m,fpcasRMSE ((c5(idx5)-1)*9+(1:9)'),'g-o');
     semilogy(m,fistaRMSE ((c6(idx6)-1)*9+(1:9)'),'b-.');
     figure;
     semilogy(m,npgTime   ((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
     semilogy(m,npgCTime  ((c2(idx2)-1)*9+(1:9)'),'c-p');
     semilogy(m,fistaCTime((c3(idx3)-1)*9+(1:9)'),'k-s');
-    semilogy(m,spiralTime((c4(idx4)-1)*9+(1:9)'),'y-^');
+    semilogy(m,spiralTime((c4(idx4)-1)*9+(1:9)'),'k-^');
     semilogy(m,fpcasTime ((c5(idx5)-1)*9+(1:9)'),'g-o');
     semilogy(m,fistaTime ((c6(idx6)-1)*9+(1:9)'),'b-.');
-    
     keyboard
+    figure;
+    semilogy(m,npgRMSE   (:,2),'r-*'); hold on;
+    semilogy(m,npgCRMSE  (:,2),'c-p');
+    semilogy(m,fistaCRMSE(:,2),'k-s');
+    semilogy(m,spiralRMSE(:,2),'k-^');
+    semilogy(m,fpcasRMSE (:,2),'g-o');
+    semilogy(m,fistaRMSE (:,2),'b-.');
+    
 
     forSave=[];
     forSave=[forSave, sum(npgTime,2)./sum(npgTime>0,2)];
@@ -460,16 +482,16 @@ if(any(runList==012))
     s = RandStream.create('mt19937ar','seed',0);
     RandStream.setGlobalStream(s);
     conf=ConfigCT(); opt.debugLevel=0;
-    opt.maxItr=1e5; opt.thresh=1e-6; opt.matrixType='nonneg';
+    opt.maxItr=1e5; opt.thresh=1e-6; opt.matrixType='gaussian';
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-    for k=1:1
+    for k=1:2
         for i=1:length(m)
             opt.m=m(i); opt.snr=1e6;
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
             u = (1e-5)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
             for j=1:5
-                fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+                fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u*10^(j-2);
 
                 opt.continuation=true;

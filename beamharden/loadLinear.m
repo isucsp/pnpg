@@ -23,8 +23,8 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(16) & t<tics(17))=1.5;
     x(t>=tics(17) & t<tics(18))=linspace(1.5,1.1,sum(t>=tics(17) & t<tics(18)));
     x(t>=tics(18) & t<tics(19))=0;
-    x(t>=tics(19) & t<tics(20))=1.8*((1:sum(t>=tics(19) & t<tics(20)))/sum(t>=tics(19) & t<tics(20))).^2;
-    x(t>=tics(20) & t<tics(21))=1.8*((sum(t>=tics(20) & t<tics(21)):-1:1)/sum(t>=tics(20) & t<tics(21))).^2;
+    x(t>=tics(19) & t<tics(20))=1.6*(1-((-sum(t>=tics(19) & t<tics(20)):-1)/sum(t>=tics(19) & t<tics(20))).^2);
+    x(t>=tics(20) & t<tics(21))=1.6*(1-((0:sum(t>=tics(20) & t<tics(21))-1)/sum(t>=tics(20) & t<tics(21))).^2);
     x(t>=tics(21))=0;
 
     if(~exist('obj'))
@@ -67,9 +67,12 @@ function opt=loadLinear(obj,opt)
         b = A*x0 + v;
         % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
     elseif(strcmpi(opt.noiseType,'poisson'))
-        x0=x0*1000;
-        b = poissrnd(A*x0);
-        % b=A*x0;
+        y = A*x0;
+        a = (opt.snr-1)*sum(y)/sum(y.^2);
+        a = 1000; % this is equivalent to SNR ~ 3e5
+        %x0=x0*1000;
+        x0=a*x0;
+        b = poissrnd(a*y);
         % figure; showImg(A);
     else
         error('wrong input noiseType');
@@ -86,7 +89,7 @@ function opt=loadLinear(obj,opt)
     obj.Phi = @(xx) A*xx(:);
     obj.Phit = @(xx) A'*xx(:);
 
-    obj.dwt_L= 5;        %levels of wavelet transform
+    obj.dwt_L= 3;        %levels of wavelet transform
     obj.daub = 4;
 
     % caution: don't use the wavelet tools from matlab, it is slow

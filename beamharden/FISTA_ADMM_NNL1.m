@@ -70,7 +70,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                 % restart
                 if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
                     obj.theta=0; pp=pp-1;
-                    obj.restart= 1;
+                    obj.restart= 1; % make sure only restart once each iteration
                     opt.oldCost = oldCost; opt.y=y;
                     continue;
                 end

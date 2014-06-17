@@ -42,14 +42,15 @@ if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 alpha=xInit;
 
 if(isfield(opt,'trueAlpha'))
-    trueAlphaNorm=pNorm(opt.trueAlpha);
     switch opt.errorType
         case 0
-            trueAlpha = opt.trueAlpha/trueAlphaNorm;
+            trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
             computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
         case 1
-            computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/(trueAlphaNorm^2);
+            trueAlphaNorm=sqrNorm(opt.trueAlpha);
+            computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
         case 2
+            trueAlphaNorm=pNorm(opt.trueAlpha);
             computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
     end
 end
