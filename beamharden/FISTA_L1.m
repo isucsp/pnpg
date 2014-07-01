@@ -3,17 +3,19 @@ classdef FISTA_L1 < Methods
         stepShrnk = 0.5;
         preAlpha=0;
         preG=[];
-        prePreAlpha=0;
-        prePreG=[];
         preY=[];
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
+        prePreAlpha=0;
+        main;
         cumu=0;
         cumuTol=4;
-        main;
         grad;
+        newCost;
+        nonInc=0;
         restart=0;   % make this value negative to disable restart
+        adaptiveStep=true;
     end
     methods
         function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -35,8 +37,9 @@ classdef FISTA_L1 < Methods
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
                 obj.theta = temp;
-                %y=obj.alpha;
-                %y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
+
+                % y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
+                % y=obj.alpha;
                 obj.preAlpha = obj.alpha;
                 si = obj.Psit(y);
 
@@ -50,28 +53,33 @@ classdef FISTA_L1 < Methods
                     wi=si-dsi/obj.t;
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
-                    newCost=obj.func(newX);
-                    if(obj.ppp>20 || newCost<=oldCost+obj.grad'*(newX-y)+sqrNorm(newX-y)*obj.t/2)
+                    obj.newCost=obj.func(newX);
+                    if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
-                obj.fVal(3) = sum(abs(newSi));
-                temp = newCost+obj.u*obj.fVal(3);
+                obj.fVal(3) = pNorm(newSi,1);
+                temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
                     obj.theta=0; pp=pp-1;
                     % Not necessary, decrease is gauranteed
                     % if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
-                    obj.restart=obj.restart+1;
-                    if(obj.restart<10) continue; end
+                    obj.restart=1;
+                    opt.oldCost = oldCost; opt.y=y;
+                    continue;
+                end
+                if(temp>obj.cost)
+                    obj.nonInc=obj.nonInc+1;
+                    if(obj.nonInc>5) newX=obj.alpha; end
                 end
                 obj.cost = temp;
-                obj.stepSize=1/obj.t;
-                obj.difAlpha=relativeDif(obj.alpha,newX);
+                obj.stepSize = 1/obj.t;
+                obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                if(obj.ppp==1)
+                if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)
                         obj.t=obj.t*obj.stepShrnk;
@@ -79,9 +87,8 @@ classdef FISTA_L1 < Methods
                     end
                 else obj.cumu=0;
                 end
-
                 %set(0,'CurrentFigure',123);
-                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
+                %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<=obj.thresh) break; end
             end
@@ -121,16 +128,16 @@ classdef FISTA_L1 < Methods
 
                     newSi=Utils.softThresh(obj.Psit(newX),obj.u/obj.t);
                     newX = obj.Psi(newSi);
-                    newCost=obj.func(newX);
-                    newCost=newCost+obj.u*sum(abs(newSi));
+                    obj.newCost=obj.func(newX);
+                    obj.newCost=obj.newCost+obj.u*sum(abs(newSi));
 
-                    %if(newCost<=oldCost+obj.grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
-                    if(newCost<oldCost);
+                    %if(obj.newCost<=oldCost+obj.grad'*(newX-y)+obj.t/2*(norm(newX-y)^2) || obj.ppp>20)
+                    if(obj.newCost<oldCost);
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
-                newCost=newCost+obj.u*sum(abs(newSi));
+                obj.newCost=obj.newCost+obj.u*sum(abs(newSi));
                 if(obj.ppp==1)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)
@@ -144,7 +151,7 @@ classdef FISTA_L1 < Methods
 
                 % decide whether to restart
                 obj.fVal(3) = sum(abs(newSi));
-                temp = newCost+obj.u*obj.fVal(3);
+                temp = obj.newCost+obj.u*obj.fVal(3);
                 %if(temp>obj.cost)
                 %    obj.theta=0; obj.preAlpha=obj.alpha;
                 %end
@@ -152,7 +159,7 @@ classdef FISTA_L1 < Methods
                 set(0,'CurrentFigure',123);
                 plot(obj.p,c1,'r.'); hold on;
                 plot(obj.p,c2,'g.'); hold on;
-                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
+                %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<=obj.thresh) break; end
             end

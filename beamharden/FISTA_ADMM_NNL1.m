@@ -12,10 +12,13 @@ classdef FISTA_ADMM_NNL1 < Methods
         cumu=0;
         cumuTol=4;
         grad;
+        newCost;
+        nonInc=0;
 
         debug = false;
 
         restart=0;   % make this value negative to disable restart
+        adaptiveStep=true;
     end
     methods
         function obj = FISTA_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -25,6 +28,7 @@ classdef FISTA_ADMM_NNL1 < Methods
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
             obj.preAlpha=alpha;
+            obj.nonInc=0;
         end
         % solves l(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
@@ -58,14 +62,14 @@ classdef FISTA_ADMM_NNL1 < Methods
                     %     max(obj.admmTol*obj.difAlpha,obj.admmAbsTol),opt);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
                         obj.admmTol*obj.difAlpha,opt);
-                    newCost=obj.func(newX);
-                    if(obj.ppp>20 || newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
+                    obj.newCost=obj.func(newX);
+                    if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
-                temp = newCost+obj.u*obj.fVal(3);
+                temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
@@ -74,11 +78,15 @@ classdef FISTA_ADMM_NNL1 < Methods
                     opt.oldCost = oldCost; opt.y=y;
                     continue;
                 end
+                if(temp>obj.cost)
+                    obj.nonInc=obj.nonInc+1;
+                    if(obj.nonInc>5) newX=obj.alpha; end
+                end
                 obj.cost = temp;
                 obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                if(obj.ppp==1)
+                if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)
                         obj.t=obj.t*obj.stepShrnk;
@@ -87,7 +95,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                 else obj.cumu=0;
                 end
                 %set(0,'CurrentFigure',123);
-                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
+                %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
                 if(obj.difAlpha<=obj.thresh) break; end
             end
@@ -118,19 +126,24 @@ classdef FISTA_ADMM_NNL1 < Methods
                 %semilogy(pppp,difAlpha,'r.',pppp,difPsi_s,'g.'); hold on;
                 %drawnow;
 
-                if(pppp>1e4) keyboard; end
+                if(pppp>1e2) break; end
 
                 if(difAlpha<=absTol && difPsi_s<=absTol)
-                    if(isempty(opt)) break;
-                    else
-                        newCost=obj.func(p);
-                        if(newCost<=opt.oldCost+innerProd(obj.grad, p-opt.y)+sqrNorm(p-opt.y)*obj.t/2)
-                            temp = newCost+obj.u*pNorm(obj.Psit(p),1);
-                            if(temp<obj.cost) break; else continue; end
-                        else
-                            break;
-                        end
-                    end
+                    break;
+                    % obj.newCost=obj.func(p);
+                    % if(isempty(opt)) break;
+                    % else
+                    %     if(obj.newCost<=opt.oldCost+innerProd(obj.grad, p-opt.y)+sqrNorm(p-opt.y)*obj.t/2)
+                    %         temp = obj.newCost+obj.u*pNorm(obj.Psit(p),1);
+                    %         if(temp<obj.cost) break;
+                    %         else
+                    %             absTol=absTol/2;
+                    %             continue;
+                    %         end
+                    %     else
+                    %         break;
+                    %     end
+                    % end
                 end
             end
             % end of the ADMM inside the FISTA
@@ -165,19 +178,24 @@ classdef FISTA_ADMM_NNL1 < Methods
                     co(pppp) = 0.5*sqrNorm(newX-p)+u/t*pNorm(obj.Psit(p),1);
                 end
 
-                if(pppp>1e5) keyboard; end
+                if(pppp>1e2) break; end
 
                 if(difAlpha<=absTol && difP<=absTol)
-                    if(isempty(opt)) break;
-                    else
-                        newCost=obj.func(p);
-                        if(newCost<=opt.oldCost+innerProd(obj.grad, p-opt.y)+sqrNorm(p-opt.y)*obj.t/2)
-                            temp = newCost+obj.u*pNorm(obj.Psit(p),1);
-                            if(temp<obj.cost) break; else continue; end
-                        else
-                            break;
-                        end
-                    end
+                    break;
+                %    obj.newCost=obj.func(p);
+                %    if(isempty(opt)) break;
+                %    else
+                %        if(obj.newCost<=opt.oldCost+innerProd(obj.grad, p-opt.y)+sqrNorm(p-opt.y)*obj.t/2)
+                %            temp = obj.newCost+obj.u*pNorm(obj.Psit(p),1);
+                %            if(temp<obj.cost) break;
+                %            else
+                %                absTol=absTol/2;
+                %                continue;
+                %            end
+                %        else
+                %            break;
+                %        end
+                %    end
                 end
             end
             if(obj.debug && false)

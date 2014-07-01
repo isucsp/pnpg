@@ -149,7 +149,6 @@ classdef Utils < handle
                 else
                     hh = innerProd(z,weight.*z);
                 end
-
             end
         end
 

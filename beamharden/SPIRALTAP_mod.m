@@ -862,7 +862,7 @@ function converged = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                 converged = (cputime >= tolerance);
             case 3
                 % Relative changes in iterate
-                converged = ((sum(dx(:).^2)./sum(x(:).^2)) <= tolerance^2);
+                converged = ((sum(dx(:).^2)) <= tolerance^2*sum(x(:).^2));
             case 4
                 % relative changes in objective
                 converged = (( abs( objective(iter+1) - objective(iter))...

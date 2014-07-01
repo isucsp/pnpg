@@ -98,6 +98,10 @@ function opt=loadLinear(obj,opt)
     obj.Psit= @(xx)  mdwt(xx,daub_H,obj.dwt_L);
 
     opt.trueAlpha=x0;
+    opt.L = max(svd(A))^2;
+    if(strcmpi(opt.noiseType,'poisson'))
+        opt.L=opt.L/min(obj.y);
+    end
 end
 
 function [dif,l1norm]=test(x,perce)

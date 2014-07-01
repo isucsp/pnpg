@@ -21,6 +21,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+if(~isfield(opt,'initStep')) opt.initStep='BB'; end
 if(~isfield(opt,'showImg')) opt.showImg=false; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
@@ -102,6 +103,10 @@ alphaStep.coef(1:2) = [1; opt.nu;];
 if(any(strcmp(properties(alphaStep),'restart')) && (~opt.restart))
     alphaStep.restart=-1;
 end
+if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
+        && isfield(opt,'adaptiveStep'))
+    alphaStep.adaptiveStep=opt.adaptiveStep;
+end
 
 if(strcmpi(opt.uMode,'relative'))
     opt.u=opt.a*pNorm(Psit(Phit(y)),inf);
@@ -109,11 +114,15 @@ end
 if(opt.continuation)
     alphaStep.u = 0.1*pNorm(Psit(Phit(y)),inf);
     alphaStep.u = min(alphaStep.u,opt.u*1000);
+    alphaStep.u = max(alphaStep.u,opt.u);
 else alphaStep.u = opt.u;
     fprintf('opt.u=%g\n',opt.u);
 end
 
-alphaStep.stepSizeInit();
+if(strcmpi(opt.initStep,'fixed'))
+    alphaStep.stepSizeInit(opt.initStep,opt.L);
+else alphaStep.stepSizeInit(opt.initStep);
+end
 
 tic; p=0; str=''; strlen=0; convThresh=0;
 %figure(123); figure(386);

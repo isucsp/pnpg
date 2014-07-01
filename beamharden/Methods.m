@@ -81,16 +81,20 @@ classdef Methods < handle
                 end
             end
         end
-        function stepSizeInit(obj)
-            switch (obj.t)
-                case -1   % use BB method to guess the initial stepSize
+        function stepSizeInit(obj,select,L)
+            switch (lower(select))
+                case 'bb'   % use BB method to guess the initial stepSize
                     [cost1,grad1] = obj.func(obj.alpha);
                     temp = 1e-5*grad1/pNorm(grad1);
                     [cost2,grad2] = obj.func(obj.alpha-temp);
                     obj.t = pNorm(grad1-grad2)/pNorm(temp);
-                otherwise
+                case 'hessian'
                     [cost,grad,hessian] = obj.func(obj.alpha);
                     obj.t = hessian(grad,2)/sqrNorm(grad);
+                case 'fixed'
+                    obj.t = L;
+                otherwise
+                    error('unkown selection for initial step');
             end
             if(isnan(obj.t)) obj.t=1; end
         end

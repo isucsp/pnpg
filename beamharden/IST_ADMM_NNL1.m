@@ -12,6 +12,8 @@ classdef IST_ADMM_NNL1 < Methods
         cumu=0;
         cumuTol=4;
         grad;
+        newCost;
+        nonInc=0;
     end
     methods
         function obj = IST_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -20,24 +22,19 @@ classdef IST_ADMM_NNL1 < Methods
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
+            obj.nonInc=0;
         end
         % solves l(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside IST for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false; restarted=false;
+            obj.p = obj.p+1; obj.warned = false;
             pp=0;
             while(pp<obj.maxItr)
                 pp=pp+1;
                 y=obj.alpha;
 
-                if(obj.t==-1)
-                    [oldCost,obj.grad,hessian] = obj.func(y);
-                    obj.t = hessian(obj.grad,2)/(obj.grad'*obj.grad);
-                    if(isnan(obj.t)) obj.t=1; end
-                else
-                    [oldCost,obj.grad] = obj.func(y);
-                end
+                [oldCost,obj.grad] = obj.func(y);
 
                 % start of line Search
                 obj.ppp=0;
@@ -45,13 +42,23 @@ classdef IST_ADMM_NNL1 < Methods
                     obj.ppp = obj.ppp+1;
                     newX = y - (obj.grad)/(obj.t);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
-                        max(obj.admmTol*obj.difAlpha,obj.admmAbsTol));
-                    newCost=obj.func(newX);
-                    if(newCost<=oldCost+obj.grad'*(newX-y)+norm(newX-y)^2*obj.t/2 || obj.ppp>20)
+                        obj.admmTol*obj.difAlpha);
+                    obj.newCost=obj.func(newX);
+                    if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
                         break;
                     else obj.t=obj.t/obj.stepShrnk;
                     end
                 end
+                obj.fVal(3) = pNorm(obj.Psit(newX),1);
+                temp = obj.newCost+obj.u*obj.fVal(3);
+                if(temp>obj.cost)
+                    obj.nonInc=obj.nonInc+1;
+                    if(obj.nonInc>5) newX=obj.alpha; end
+                end
+                obj.cost = temp;
+                obj.stepSize = 1/obj.t;
+                obj.difAlpha = relativeDif(obj.alpha,newX);
+                obj.alpha = newX;
                 if(obj.ppp==1)
                     obj.cumu=obj.cumu+1;
                     if(obj.cumu>=obj.cumuTol)
@@ -60,17 +67,10 @@ classdef IST_ADMM_NNL1 < Methods
                     end
                 else obj.cumu=0;
                 end
-                obj.difAlpha=norm(newX-obj.alpha)/norm(newX);
-
-                obj.fVal(3) = sum(abs(obj.Psit(newX)));
-                temp = newCost+obj.u*obj.fVal(3);
-
-                obj.alpha = newX;
-                obj.cost = temp;
                 %set(0,'CurrentFigure',123);
-                %subplot(2,1,1); semilogy(obj.p,newCost,'.'); hold on;
+                %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
-                if(obj.difAlpha<obj.thresh) break; end
+                if(obj.difAlpha<=obj.thresh) break; end
             end
             out = obj.alpha;
         end
@@ -85,12 +85,12 @@ classdef IST_ADMM_NNL1 < Methods
 
                 s = Utils.softThresh(obj.Psit(alpha+y1),u/(rho*t));
                 temp=Psi_s; Psi_s = obj.Psi(s);
-                difPsi_s=norm(temp-Psi_s)/norm(temp);
+                difPsi_s=relativeDif(temp,Psi_s);
 
                 temp = alpha;
                 alpha = (newX+rho*(Psi_s-y1))/(1+rho);
                 alpha(alpha<0)=0;
-                difAlpha = norm(temp-alpha)/norm(temp);
+                difAlpha = relativeDif(temp,alpha);
 
                 y1 = y1 - (Psi_s-alpha);
 
@@ -98,7 +98,11 @@ classdef IST_ADMM_NNL1 < Methods
                 %semilogy(pppp,difAlpha,'r.',pppp,difPsi_s,'g.'); hold on;
                 %drawnow;
 
-                if(difAlpha<absTol && difPsi_s<absTol) break; end
+                if(pppp>1e2) break; end
+
+                if(difAlpha<=absTol && difPsi_s<=absTol)
+                    break;
+                end
             end
             % end of the ADMM inside the FISTA
         end
@@ -109,24 +113,28 @@ classdef IST_ADMM_NNL1 < Methods
             % start an ADMM inside the FISTA
             alpha=newX; p=alpha; p(p<0)=0; y1=alpha-p;
             rho=1; pppp=0;
+
             %while(pppp<1)
             while(true)
                 pppp=pppp+1;
                 temp = alpha;
                 alpha = (newX+rho*(p-y1));
                 alpha = obj.Psi(Utils.softThresh(obj.Psit(alpha),u/t))/(1+rho);
-                difAlpha = norm(temp-alpha)/norm(temp);
+                difAlpha = relativeDif(temp,alpha);
 
                 temp=p; p=alpha+y1; p(p<0)=0;
-                difP=norm(temp-p)/norm(temp);
+                difP=relativeDif(temp,p);
 
                 y1 = y1 +alpha-p;
 
                 %set(0,'CurrentFigure',123);
                 %semilogy(pppp,difAlpha,'b.',pppp,difP,'c.'); hold on;
                 %drawnow;
+                if(pppp>1e2) break; end
 
-                if(difAlpha<absTol && difP<absTol) break; end
+                if(difAlpha<=absTol && difP<=absTol)
+                    break;
+                end
             end
             % end of the ADMM inside the FISTA
         end
@@ -137,8 +145,8 @@ classdef IST_ADMM_NNL1 < Methods
             newX(newX<0)=0;
         end
         function co = evaluate(obj,newX,x)
-            co=norm(newX-x)^2/2*obj.t;
-            co=co+obj.u*sum(abs(obj.Psit(x)));
+            co=sqrNorm(newX-x)/2*obj.t;
+            co=co+obj.u*pNorm(obj.Psit(x),1);
             if(any(x<0)) co=inf; end
         end
     end
