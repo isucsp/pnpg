@@ -13,7 +13,7 @@ function [f,g,h] = gaussLAlpha(Imea,Ie,alpha,Phi,Phit,polyIout,obj)
         obj.zmf=[min(Err(:)); max(Err(:))]; % lb and ub of z-f(theta)
     end
     if(nargout>=2)
-        g=-Phit(Err.*sBLI./BLI);
+        g=Phit(Err.*sBLI./BLI);
         if(nargout>=3)
             weight=(1-Err).*((sBLI./BLI).^2)+Err.*ssBLI./BLI;
             h=@(x,opt) hessian(Phi, Phit, weight, x,opt);

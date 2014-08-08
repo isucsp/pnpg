@@ -22,7 +22,6 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'initStep')) opt.initStep='BB'; end
-if(~isfield(opt,'showImg')) opt.showImg=false; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
@@ -31,6 +30,7 @@ if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=1.5e3; end
+if(~isfield(opt,'minItr')) opt.minItr=100; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
@@ -56,9 +56,9 @@ if(isfield(opt,'trueAlpha'))
     end
 end
 
-if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
-if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
-if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
+if(opt.debugLevel>=2) figCost=1000; figure(figCost); end
+if(opt.debugLevel>=3) figRes=1001; figure(figRes); end
+if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
@@ -74,17 +74,17 @@ switch lower(opt.alphaStep)
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,alphaStep.M);
     case lower('FISTA_L1')
-        alphaStep=FISTA_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep=FISTA_L1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
-        alphaStep=FISTA_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep=FISTA_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
         if(isfield(opt,'admmAbsTol')) alphaStep.admmAbsTol=opt.admmAbsTol; end
         if(isfield(opt,'admmTol')) alphaStep.admmTol=opt.admmTol; end
     case lower('IST_ADMM_NNL1')
-        alphaStep=IST_ADMM_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep=IST_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
@@ -93,6 +93,8 @@ switch lower(opt.alphaStep)
         alphaStep = ADMM_NN(2,alpha,1,opt.stepShrnk,Psi,Psit);
 end
 switch lower(opt.noiseType)
+    case lower('poissonLogLink')
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
     case 'poisson'
         alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y);
     case 'gaussian'
@@ -108,13 +110,16 @@ if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
     alphaStep.adaptiveStep=opt.adaptiveStep;
 end
 
-if(strcmpi(opt.uMode,'relative'))
-    opt.u=opt.a*pNorm(Psit(Phit(y)),inf);
-end
 if(opt.continuation)
-    alphaStep.u = 0.1*pNorm(Psit(Phit(y)),inf);
+    [~,g]=alphaStep.fArray{1}(0*alpha);
+    alphaStep.u = 0.1*pNorm(Psit(g),inf);
     alphaStep.u = min(alphaStep.u,opt.u*1000);
     alphaStep.u = max(alphaStep.u,opt.u);
+    if(log(opt.u/alphaStep.u)/log(opt.contShrnk)<opt.minItr)
+        % this makes sure the continuation doesn't stop too early
+        opt.contShrnk=(opt.u/alphaStep.u)^(1/opt.minItr);
+    end
+    clear('g');
 else alphaStep.u = opt.u;
     fprintf('opt.u=%g\n',opt.u);
 end
@@ -124,11 +129,16 @@ if(strcmpi(opt.initStep,'fixed'))
 else alphaStep.stepSizeInit(opt.initStep);
 end
 
-tic; p=0; str=''; strlen=0; convThresh=0;
+if(any(strcmp(properties(alphaStep),'cumuTol'))...
+        && isfield(opt,'cumuTol'))
+    alphaStep.cumuTol=opt.cumuTol;
+end
+
+tic; p=0; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf(['p=%-4d'],p);
+    str=sprintf('p=%-4d',p);
     
     alphaStep.main();
 
@@ -147,7 +157,11 @@ while(true)
     if(opt.continuation)
         out.uRecord(p,:)=[opt.u,alphaStep.u];
         str=sprintf([str ' u=%-6g'],alphaStep.u);
-        alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
+        if(out.difAlpha(p)<1000*opt.thresh)
+            alphaStep.u = max(alphaStep.u/2,opt.u);
+        else
+            alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
+        end
     end
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=computError(alpha);
@@ -161,7 +175,7 @@ while(true)
         str=sprintf([str ' difCost=%g'], out.difCost(p));
     end
     
-    if(opt.showImg && p>1 && opt.debugLevel>=2)
+    if(p>1 && opt.debugLevel>=2)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
         semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;

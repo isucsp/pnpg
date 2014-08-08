@@ -20,10 +20,11 @@
 #include "gl_helper.h"
 
 struct CPUBitmap {
-    unsigned char    *pixels;
-    int     x, y;
-    void    *dataBlock;
+    unsigned char *pixels;
+    int  x, y;
+    void *dataBlock;
     void (*bitmapExit)(void*);
+    int windows[2];
 
     CPUBitmap( int width, int height, void *d = NULL ) {
         pixels = new unsigned char[width * height * 4];
@@ -39,25 +40,30 @@ struct CPUBitmap {
     unsigned char* get_ptr( void ) const   { return pixels; }
     long image_size( void ) const { return x * y * 4; }
 
+    static void init(){
+        int c=1;
+        char dummy[] = "";
+        char* d = dummy;
+        glutInit( &c, &d);
+        glutInitDisplayMode( GLUT_SINGLE | GLUT_RGBA );
+    }
+
     void display_and_exit( void(*e)(void*) = NULL ) {
         CPUBitmap**   bitmap = get_bitmap_ptr();
         *bitmap = this;
         bitmapExit = e;
         // a bug in the Windows GLUT implementation prevents us from
         // passing zero arguments to glutInit()
-        int c=1;
-        char dummy[] = "";
-        char* d = dummy;
-        glutInit( &c, &d);
-        glutInitDisplayMode( GLUT_SINGLE | GLUT_RGBA );
         glutInitWindowSize( x, y );
-        glutCreateWindow( "bitmap" );
+        windows[0]=glutCreateWindow( "bitmap" );
+        glutSetWindow(windows[0]);
         glutKeyboardFunc(Key);
         glutDisplayFunc(Draw);
         glutMainLoop();
+        printf("after main loop\n");
     }
 
-     // static method used for glut callbacks
+    // static method used for glut callbacks
     static CPUBitmap** get_bitmap_ptr( void ) {
         static CPUBitmap   *gBitmap;
         return &gBitmap;
@@ -65,23 +71,113 @@ struct CPUBitmap {
 
    // static method used for glut callbacks
     static void Key(unsigned char key, int x, int y) {
+#if DEBUG
+        printf("key %c pressed\n",key);
+#endif
         switch (key) {
-            case 27:
+            case 'q':
                 CPUBitmap*   bitmap = *(get_bitmap_ptr());
-                if (bitmap->dataBlock != NULL && bitmap->bitmapExit != NULL)
+                if (bitmap->dataBlock != NULL && bitmap->bitmapExit != NULL){
                     bitmap->bitmapExit( bitmap->dataBlock );
-                exit(0);
+                }
+                glutDestroyWindow(bitmap->windows[0]);
+                int a;
+                pthread_exit(&a);
+                //exit(0);
         }
+         //   pthread_cancel
     }
 
     // static method used for glut callbacks
     static void Draw( void ) {
         CPUBitmap*   bitmap = *(get_bitmap_ptr());
+#if DEBUG
+        printf("Draw: bitmap address: %p\n",bitmap);
+        printf("Draw: data address: %p\n",bitmap->pixels);
+#endif
+        glutSetWindow(bitmap->windows[0]);
         glClearColor( 0.0, 0.0, 0.0, 1.0 );
         glClear( GL_COLOR_BUFFER_BIT );
         glDrawPixels( bitmap->x, bitmap->y, GL_RGBA, GL_UNSIGNED_BYTE, bitmap->pixels );
+#if DEBUG
+        FILE* f = fopen("draw.data","wb");
+        fwrite(bitmap->pixels, sizeof(unsigned char), bitmap->x*bitmap->y*4, f);
+        fclose(f);
+#endif
+        //glutSolidSphere(100,100,100);
         glFlush();
+#if DEBUG
+        printf("Draw: flushed\n");
+#endif
     }
 };
 
+void* show_img_core(void* bitmap){
+    CPUBitmap* img = ((CPUBitmap*)bitmap);
+    *(img->get_bitmap_ptr())=img;
+    glutInitWindowSize( img->x, img->y );
+    img->windows[0]=glutCreateWindow( "bitmap" );
+    glutSetWindow(img->windows[0]);
+    glutKeyboardFunc(img->Key);
+    glutDisplayFunc(img->Draw);
+    glutMainLoop();
+    printf("after main loop\n");
+    return NULL;
+}
+
+void show_img(ft* img, int w, int h, ft min, ft max){
+    CPUBitmap image( w, h );
+    unsigned char *ptr = image.get_ptr(), value;
+#if DEBUG
+    printf("show_img: width=%d, height=%d, min=%f, max=%f\n",w,h,min,max);
+    printf("show_img: image address: %p\n", &image);
+    printf("show_img: data address: %p\n", ptr);
+#endif
+    int offset;
+    for(int i=0; i < w; i++) for(int j=0; j < h; j++){
+        offset = j*w+i;
+        value = img[offset]<min ? 0 : 
+                img[offset]>max ? 255 : 
+                (unsigned char)(255 * (img[offset]-min)/(max-min));
+        offset = (h-1-j)*w+i;
+        ptr[(offset<<2)+0] = value;
+        ptr[(offset<<2)+1] = value;
+        ptr[(offset<<2)+2] = value;
+        ptr[(offset<<2)+3] = 0xff;
+    }
+    pthread_t thread;
+    void *thread_result;
+    int res;
+
+    res = pthread_create(&thread, NULL, show_img_core, &image);
+    if (res != 0) {
+        perror("Thread creation failed");
+        exit(EXIT_FAILURE);
+    }
+    res = pthread_join(thread, &thread_result);
+    if (res != 0) {
+        perror("Thread join failed.");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void show_img(ft* img, int w, int h, ft min){
+    ft max=img[0];
+    for(int i=0; i < w*h; i++){
+        max=MAX(img[i],max);
+    }
+    show_img(img,w,h,min,max);
+}
+
+void show_img(ft* img, int w, int h){
+    ft min=img[0], max=img[0];
+    for(int i=0; i < w*h; i++){
+        min=MIN(img[i],min);
+        max=MAX(img[i],max);
+    }
+    show_img(img,w,h,min,max);
+}
+
+
 #endif  // __CPU_BITMAP_H__
+

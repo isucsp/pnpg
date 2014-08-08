@@ -43,6 +43,7 @@ if(~isfield(opt,'numCall')) opt.numCall=1; end
 if(~isfield(opt,'logspan')) opt.logspan=3; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=false; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+if(~isfield(opt,'initStep')) opt.initStep='BB'; end
 if(~isfield(opt,'skipIe')) opt.skipIe=false; end
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
@@ -63,6 +64,7 @@ if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'errorType')) opt.errorType=0; end
+if(~isfield(opt,'saveAnimate')) opt.saveAnimate=false; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -77,9 +79,9 @@ if(isfield(opt,'trueAlpha'))
     end
 end
 
-if(opt.showImg && opt.debugLevel>=2) figCost=1000; figure(figCost); end
-if(opt.showImg && opt.debugLevel>=3) figRes=1001; figure(figRes); end
-if(opt.showImg && opt.debugLevel>=3 && ~opt.skipIe) figIe=1003; figure(figIe); end
+if(opt.debugLevel>=2) figCost=1000; figure(figCost); end
+if(opt.debugLevel>=3) figRes=1001; figure(figRes); end
+if(opt.debugLevel>=3 && ~opt.skipIe) figIe=1003; figure(figIe); end
 if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)
@@ -97,17 +99,19 @@ switch lower(opt.sampleMode)
         temp2=find(temp1==min(temp1));
         Ie(temp2-1:temp2+1)=1/3;
     case 'logspan'
-        temp=logspace(-floor((opt.E-1)/2)/(opt.E-1)*opt.logspan,...
-            floor(opt.E/2)/(opt.E-1)*opt.logspan,opt.E);
-        Ie(floor(opt.E/2+0.5))=1;
-        if(strcmp(opt.spectBasis,'b0')) % extend to bigger end
-            temp = [temp(:); temp(end)^2/temp(end-1)];
-        elseif(strcmp(opt.spectBasis,'b1'))
-            temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
-        end
+        temp=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
+            floor(opt.E/2-0.5)/(opt.E-1)*opt.logspan,opt.E);
+        q=(1+sqrt(5))/2; temp1=ceil(opt.logspan/2/log10(q));
+        temp=q.^(-temp1:temp1);
+        opt.E=2*temp1+1;
+        Ie=zeros(opt.E,1); Ie(floor(opt.E/2)+1)=1;
 end
 
 kappa=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
+temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
+polymodel = Spline(opt.spectBasis,temp);
+polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+polyIout = polymodel.polyIout;
 
 temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
 temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];
@@ -121,24 +125,11 @@ clear 'temp1' 'temp2'
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
 else
     if(opt.skipIe)  % it is better to use dis or b-1 spline
-        if(strcmp(opt.spectBasis,'dis'))
-            Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(:),'spline');
-            temp = [kappa(1);(kappa(1:end-1)+kappa(2:end))/2;kappa(end)];
-            temp = temp(2:end)-temp(1:end-1);
-            Ie = Ie.*temp;
-        elseif(strcmp(opt.spectBasis,'b0'))
-            Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(1:end-1),'spline');
-        elseif(strcmp(opt.spectBasis,'b1'))
-            Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(2:end-1),'spline');
-        end
+        Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(:),'spline');
         % there will be some points interplated negative and need to be removed
         Ie(Ie<0)=0;
     end
 end
-
-polymodel = Spline(opt.spectBasis,kappa);
-polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
-polyIout = polymodel.polyIout;
 
 % find the best intial Ie starts
 % R = polyIout(Phi(alpha),[]);
@@ -173,9 +164,9 @@ switch lower(opt.alphaStep)
     case lower('FISTA_L1')
         alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
-        alphaStep=FISTA_ADMM_NNL1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep=FISTA_ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('IST_ADMM_NNL1')
-        alphaStep=IST_ADMM_NNL1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep=IST_ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
@@ -184,8 +175,16 @@ end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 
+B=eye(opt.E); b=zeros(opt.E,1);
+if(isfield(opt,'CenterB') && opt.CenterB)
+    temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
+    temp=temp/sqrt(2);
+    B=[B; temp]; b=[b; zeros(opt.E-1,1)];
+end
 temp = polyIout(0,[]);
-B=[eye(opt.E); -temp(:)'/norm(temp)]; b=[zeros(opt.E,1); -1/norm(temp)];
+B=[B; -temp(:)'/norm(temp)]; b=[b; -1/norm(temp)];
+
+keyboard
 switch lower(opt.IeStep)
     case lower('ActiveSet')
         IeStep = ActiveSet(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
@@ -208,10 +207,38 @@ else alphaStep.u=opt.u;
 end
 disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 
+if(any(strcmp(properties(alphaStep),'restart')) ...
+        && isfield(opt,'restart') && (~opt.restart))
+    alphaStep.restart=-1;
+end
+if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
+        && isfield(opt,'adaptiveStep'))
+    alphaStep.adaptiveStep=opt.adaptiveStep;
+end
+if(any(strcmp(properties(alphaStep),'cumuTol'))...
+        && isfield(opt,'cumuTol'))
+    alphaStep.cumuTol=opt.cumuTol;
+end
+
+alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
+if(strcmpi(opt.initStep,'fixed'))
+    alphaStep.stepSizeInit(opt.initStep,opt.L);
+else alphaStep.stepSizeInit(opt.initStep);
+end
+
 tic; p=0; str=''; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
+    if(opt.saveAnimate && (mod(p,10)==0 || p<10))
+        img=showImgMask(alpha,opt.mask);
+        imwrite(img/max(img(:)),sprintf('animate_%03d.png',p),'png');
+        [~,~,kkkkk,temp]=polymodel.plotSpectrum(Ie);
+        if(p==0) IeAnimate=kkkkk(:); end
+        IeAnimate=[IeAnimate, temp(:)];
+        save('IeAnimate.data','IeAnimate','-ascii');
+    end
+
     p=p+1;
-    str=sprintf([str 'p=%-4d'],p);
+    str=sprintf('p=%-4d',p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
@@ -221,8 +248,9 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
         out.alphaSearch(p) = alphaStep.ppp;
+        out.stepSize(p) = alphaStep.stepSize;
 
-        out.difAlpha(p)=norm(alphaStep.alpha(:)-alpha(:))/norm(alpha);
+        out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
         alpha = alphaStep.alpha;
 
@@ -248,6 +276,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             ' difAlpha=%g aSearch=%d'],...
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);
+        str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
         if(p>1)
             str=sprintf([str ' difCost=%g'], out.difCost(p));
         end
@@ -260,6 +289,25 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) gaussLI(Imea,A,III);
         IeStep.main();
+
+        if(isfield(opt,'CenterB') && opt.CenterB)
+            temp=find(IeStep.Q((1:length(Ie)-1)+length(Ie)));
+            if(~isempty(temp) && isContinuous(temp) && (any(temp==floor(length(Ie)/2)) || any(temp==floor(length(Ie)/2)+1)))
+                temp=(mean(temp)-floor(length(Ie)/2)-0.5);
+                q=kappa(2)/kappa(1);
+                if temp>1
+                    alphaStep.alpha=alphaStep.alpha*q;
+                    IeStep.Ie=[IeStep.Ie(2:end); 0]*q;
+                elseif  temp<-1
+                    alphaStep.alpha=alphaStep.alpha/q;
+                    IeStep.Ie=[0; IeStep.Ie(1:end-1)]/q;
+                end
+                if(abs(temp)>1)
+                    alphaStep.reset();
+                    IeStep.init();
+                end
+            end
+        end
 
         out.llI(p) = IeStep.cost;
         switch lower(opt.IeStep)
@@ -279,12 +327,11 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
         if(p>1) out.difllI(p)=abs(out.llI(p)-out.llI(p-1))/out.llI(p); end
         Ie = IeStep.Ie;
-        str=sprintf([str ' difIe=%g zmf=(%g,%g)'],...
-            out.difIe(p),IeStep.zmf(1), IeStep.zmf(2));
+        str=sprintf([str ' difIe=%g'], out.difIe(p));
         if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end
     end
 
-    if(opt.showImg && p>1 && opt.debugLevel>=2)
+    if(p>1 && opt.debugLevel>=2)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
         semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
@@ -298,13 +345,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         drawnow;
     end
     
-    if(~opt.skipIe && opt.debugLevel>=3 && opt.showImg)
+    if(~opt.skipIe && opt.debugLevel>=3)
         set(0,'CurrentFigure',figIe);
         polymodel.plotSpectrum(Ie);
         title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end
-    if(opt.showImg && length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
+    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
         set(0,'CurrentFigure',figRes);
         style={'r','g','b'};
         for i=1:length(out.fVal(p,:))
@@ -313,7 +360,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
         drawnow;
     end
-    if(opt.debugLevel>=6)
+    if(opt.showImg && opt.debugLevel>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         if(~isempty(IeStep.zmf))
             title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
@@ -334,11 +381,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         str='';
     end
     out.time(p)=toc;
-    if(p >= opt.maxItr) break; end
     if(p>1 && out.difAlpha(p)<opt.thresh && (opt.skipIe || (out.difIe(p)<opt.thresh)) )
         convThresh=convThresh+1;
     end
-    if(convThresh>10) break; end
+    if(p >= opt.maxItr || convThresh>10)
+        if(opt.debugLevel==0) fprintf('%s',str); end
+        break;
+    end
 end
 
 out.Ie=Ie; out.kappa=kappa; out.alpha=alpha; out.cpuTime=toc; out.p=p;
@@ -349,3 +398,9 @@ out.grad=alphaStep.grad;
 fprintf('\n');
 
 end
+
+function out=isContinuous(x)
+    y=x(2:end)-x(1:end-1);
+    if(any(y~=1)) out=false; else out=true; end
+end
+

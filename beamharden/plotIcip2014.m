@@ -232,30 +232,6 @@ img=showImgMask(out.alpha,out.opt.mask);
 imwrite(img/max(img(:)),'FPCASwLin.png','png');
 clear out004;
 
-load(filename,'out021');
-fprintf('for non skiped Ie\n');
-t=1; noSkiped(:,t)=1:2000;
-for i=1:3
-    out=out021{1,i};
-    t=t+1; noSkiped(1:length(out.cost),t)=out.cost;
-    t=t+1; noSkiped(1:length(out.RMSE),t)=out.RMSE;
-    t=t+1; noSkiped(1:length(out.time),t)=out.time;
-end
-mincost=reshape(noSkiped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-noSkiped(:,[2,5,8])=noSkiped(:,[2,5,8])-mincost;
-save('costRmseTime.data','noSkiped','-ascii');
-
-t=1; skipped(:,t)=1:2000;
-for i=1:3
-    out=out021{2,i};
-    t=t+1; skipped(1:length(out.cost),t)=out.cost;
-    t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
-    t=t+1; skipped(1:length(out.time),t)=out.time;
-end
-mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
-save('costRmseTime_fixedI.data','skipped','-ascii');
-
 !find ./ \( -iname "*.png" -o -iname "*.data" \) -a -mmin -30 -exec mv -v {} /home/renliang/research/NDEReports/NDE2014_1/poster/ \;
 
 return

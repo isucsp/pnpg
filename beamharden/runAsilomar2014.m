@@ -25,8 +25,8 @@ paperDir = '~/research/myPaper/asilomar2014/';
 % elements
 if(any(runList==001))
     load(filename,'*001');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; %opt.matrixType='nonneg';
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
@@ -94,8 +94,8 @@ end
 % each, Use the matrix with positive elements as used in poisson example
 if(any(runList==011))
     load(filename,'*011');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4;
     opt.thresh=1e-6;
@@ -144,8 +144,8 @@ end
 % vary the inter loop criteria
 if(any(runList==021))
     load(filename,'*021');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-10; opt.debugLevel=1;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
@@ -201,8 +201,8 @@ end
 % vary the inter loop criteria
 if(any(runList==031))
     load(filename,'*031');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-10; opt.debugLevel=1;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
@@ -257,44 +257,62 @@ end
 
 % vary the number of measurements, with continuation
 if(any(runList==002))
-    load(filename,'*002');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    filename = [mfilename '_002.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
-    opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=0;
+    opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-    for k=1:3
+    for k=1:5
         for i=1:length(m)
             opt.m=m(i); opt.snr=inf;
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
             u = (1e-5)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-            for j=2:4
+            for j=1:4
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u*10^(j-2);
 
-                opt.continuation=true;
-                opt.alphaStep='FISTA_ADMM_NNL1';
-                npgc002{i,j,k}=lasso(conf.Phi,conf.Phit,...
-                    conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgc002','-append');
-
                 opt.continuation=false;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npg002{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npg{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npg002','-append');
+                save(filename,'npg','-append');
+
+                opt.continuation=true;
+                opt.alphaStep='FISTA_ADMM_NNL1';
+                npgc{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'npgc','-append');
+
+                A = @(xx) conf.Phi(conf.Psi(xx));
+                At = @(yy) conf.Psit(conf.Phit(yy));
+                AO=A_operator(A,At); mu=opt.u; 
+                option.x0=conf.Psit(initSig);
+                option.mxitr=opt.maxItr;
+                %option.rel_dif_x=opt.thresh;
+                %option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
+                [s, out] = FPC_AS_mod(length(At(conf.y)),AO,conf.y,mu,[],option);
+                fpcas{i,j,k}=out; fpcas{i,j,k}.alpha = conf.Psi(s);
+                fpcas{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(fpcas{i,j,k}.alpha)-conf.y);
+                fpcas{i,j,k}.fVal(2)=sqrNorm(fpcas{i,j,k}.alpha.*(fpcas{i,j,k}.alpha<0));
+                fpcas{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas{i,j,k}.alpha),1);
+                fpcas{i,j,k}.opt = opt; alphaHat=fpcas{i,j,k}.alpha;
+                fpcas{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                fprintf('fpcas RMSE=%g\n',fpcas{i,j,k}.RMSE);
+                save(filename,'fpcas','-append');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
-                npgs002{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npgs{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgs002','-append');
+                save(filename,'npgs','-append');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
                 opt.initStep='fixed'; opt.adaptiveStep=false;
-                fista002{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                fista{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'fista002','-append');
+                save(filename,'fista','-append');
                 opt=rmfield(opt,'initStep'); opt=rmfield(opt,'adaptiveStep');
 
                 subtolerance=1e-5;
@@ -308,38 +326,22 @@ if(any(runList==002))
                     'saveobjective',1,'savereconerror',1,'savecputime',1,...
                     'reconerrortype',3,...
                     'savesolutionpath',0,'verbose',1000);
-                out.opt=opt; spiral002{i,j,k}=out;
-                spiral002{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral002{i,j,k}.alpha)-conf.y);
-                spiral002{i,j,k}.fVal(2)=sqrNorm(spiral002{i,j,k}.alpha.*(spiral002{i,j,k}.alpha<0));
-                spiral002{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral002{i,j,k}.alpha),1);
-                save(filename,'spiral002','-append');
+                out.opt=opt; spiral{i,j,k}=out;
+                spiral{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral{i,j,k}.alpha)-conf.y);
+                spiral{i,j,k}.fVal(2)=sqrNorm(spiral{i,j,k}.alpha.*(spiral{i,j,k}.alpha<0));
+                spiral{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral{i,j,k}.alpha),1);
+                save(filename,'spiral','-append');
 
-                A = @(xx) conf.Phi(conf.Psi(xx));
-                At = @(yy) conf.Psit(conf.Phit(yy));
-                AO=A_operator(A,At); mu=opt.u; 
-                option.x0=conf.Psit(initSig);
-                option.mxitr=opt.maxItr;
-                option.rel_dif_x=opt.thresh;
-                option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
-                [s, out] = FPC_AS_mod(length(At(conf.y)),AO,conf.y,mu,[],option);
-                fpcas002{i,j,k}=out; fpcas002{i,j,k}.alpha = conf.Psi(s);
-                fpcas002{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(fpcas002{i,j,k}.alpha)-conf.y);
-                fpcas002{i,j,k}.fVal(2)=sqrNorm(fpcas002{i,j,k}.alpha.*(fpcas002{i,j,k}.alpha<0));
-                fpcas002{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas002{i,j,k}.alpha),1);
-                fpcas002{i,j,k}.opt = opt; alphaHat=fpcas002{i,j,k}.alpha;
-                fpcas002{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-                fprintf('fpcas RMSE=%g\n',fpcas002{i,j,k}.RMSE);
-                save(filename,'fpcas002','-append');
             end
         end
     end
 end
 
 if(any(runList==902))
-    load(filename,'*002'); j=1;
+    filename = [mfilename '_002.mat']; load(filename);
 
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-    K = 3;
+    K = 5;
 
     npgTime   = 0;
     npgcTime  = 0;
@@ -361,26 +363,33 @@ if(any(runList==902))
     fpcasRMSE = 0;
 
     for k=1:K
-        npgTime   =   npgTime+1/K*showResult(   npg002(:,:,k),2,'time');
-        npgcTime  =  npgcTime+1/K*showResult(  npgc002(:,:,k),2,'time');
-        npgsTime  =  npgsTime+1/K*showResult(  npgs002(:,:,k),2,'time');
-        spiralTime=spiralTime+1/K*showResult(spiral002(:,:,k),2,'time');
-        fpcasTime = fpcasTime+1/K*showResult( fpcas002(:,:,k),2,'cpu');
-        fistaTime = fistaTime+1/K*showResult( fista002(:,:,k),2,'time');
+        npgTime   =   npgTime+1/K*showResult(   npg(:,:,k),2,'time');
+        npgcTime  =  npgcTime+1/K*showResult(  npgc(:,:,k),2,'time');
+        npgsTime  =  npgsTime+1/K*showResult(  npgs(:,:,k),2,'time');
+        spiralTime=spiralTime+1/K*showResult(spiral(:,:,k),2,'time');
+        fpcasTime = fpcasTime+1/K*showResult( fpcas(:,:,k),2,'cpu');
+        fistaTime = fistaTime+1/K*showResult( fista(:,:,k),2,'time');
 
-        npgCost   =   npgCost+1/K*showResult(   npg002(:,:,k),2,'cost');
-        npgcCost  =  npgcCost+1/K*showResult(  npgc002(:,:,k),2,'cost');
-        npgsCost  =  npgsCost+1/K*showResult(  npgs002(:,:,k),2,'cost');
-        spiralCost=spiralCost+1/K*showResult(spiral002(:,:,k),2,'cost');
-        fpcasCost = fpcasCost+1/K*showResult( fpcas002(:,:,k),2,'f');
-        fistaCost = fistaCost+1/K*showResult( fista002(:,:,k),2,'cost');
+        npgCost   =   npgCost+1/K*showResult(   npg(:,:,k),2,'cost');
+        npgcCost  =  npgcCost+1/K*showResult(  npgc(:,:,k),2,'cost');
+        npgsCost  =  npgsCost+1/K*showResult(  npgs(:,:,k),2,'cost');
+        spiralCost=spiralCost+1/K*showResult(spiral(:,:,k),2,'cost');
+        fpcasCost = fpcasCost+1/K*showResult( fpcas(:,:,k),2,'f');
+        fistaCost = fistaCost+1/K*showResult( fista(:,:,k),2,'cost');
 
-        npgRMSE   =   npgRMSE+1/K*showResult(   npg002(:,:,k),2,'RMSE');
-        npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc002(:,:,k),2,'RMSE');
-        npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs002(:,:,k),2,'RMSE');
-        spiralRMSE=spiralRMSE+1/K*showResult(spiral002(:,:,k),2,'reconerror');
-        fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas002(:,:,k),2,'RMSE');
-        fistaRMSE = fistaRMSE+1/K*showResult( fista002(:,:,k),2,'RMSE');
+        % npgRMSE   =   npgRMSE+1/K*showResult(   npg(:,:,k),2,'RMSE');
+        % npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc(:,:,k),2,'RMSE');
+        % npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs(:,:,k),2,'RMSE');
+        % spiralRMSE=spiralRMSE+1/K*showResult(spiral(:,:,k),2,'reconerror');
+        % fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas(:,:,k),2,'RMSE');
+        % fistaRMSE = fistaRMSE+1/K*showResult( fista(:,:,k),2,'RMSE');
+
+        npgRMSE   =   npgRMSE+1/K*showResult(   npg(:,:,k),4,2);
+        npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc(:,:,k),4,2);
+        npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs(:,:,k),4,2);
+        spiralRMSE=spiralRMSE+1/K*showResult(spiral(:,:,k),4,2);
+        fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas(:,:,k),4,2);
+        fistaRMSE = fistaRMSE+1/K*showResult( fista(:,:,k),4,2);
     end
 
     [r,c1]=find(   npgRMSE== repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
@@ -390,13 +399,6 @@ if(any(runList==902))
     [r,c5]=find( fpcasRMSE== repmat(min( fpcasRMSE,[],2),1,5)); [r,idx5]=sort(r);
     [r,c6]=find( fistaRMSE== repmat(min( fistaRMSE,[],2),1,5)); [r,idx6]=sort(r);
     [c1(idx1) ,c2(idx2) ,c3(idx3) ,c4(idx4) ,c5(idx5) ,c6(idx6)]
-    idx1 = 2;    
-    idx2 = 2;
-    idx3 = 2;
-    idx4 = 3;
-    idx5 = 2;
-    idx6 = 2;
-
     figure;
     semilogy(m,   npgRMSE((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
     semilogy(m,  npgcRMSE((c2(idx2)-1)*9+(1:9)'),'c-p');
@@ -405,12 +407,18 @@ if(any(runList==902))
     semilogy(m, fpcasRMSE((c5(idx5)-1)*9+(1:9)'),'g-o');
     semilogy(m, fistaRMSE((c6(idx6)-1)*9+(1:9)'),'b-.');
     figure;
-    plot(m,   npgTime((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
-    plot(m,  npgcTime((c2(idx2)-1)*9+(1:9)'),'c-p');
-    plot(m,  npgsTime((c3(idx3)-1)*9+(1:9)'),'k-s');
-    plot(m,spiralTime((c4(idx4)-1)*9+(1:9)'),'k-^');
-    plot(m, fpcasTime((c5(idx5)-1)*9+(1:9)'),'g-o');
-    plot(m, fistaTime((c6(idx6)-1)*9+(1:9)'),'b-.');
+    semilogy(m,   npgTime((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
+    semilogy(m,  npgcTime((c2(idx2)-1)*9+(1:9)'),'c-p');
+    semilogy(m,  npgsTime((c3(idx3)-1)*9+(1:9)'),'k-s');
+    semilogy(m,spiralTime((c4(idx4)-1)*9+(1:9)'),'k-^');
+    semilogy(m, fpcasTime((c5(idx5)-1)*9+(1:9)'),'g-o');
+    semilogy(m, fistaTime((c6(idx6)-1)*9+(1:9)'),'b-.');
+    idx1 = 2;    
+    idx2 = 2;
+    idx3 = 2;
+    idx4 = 3;
+    idx5 = 2;
+    idx6 = 2;
     figure;
     semilogy(m,   npgRMSE(:,idx1),'r-*'); hold on;
     semilogy(m,  npgcRMSE(:,idx2),'c-p');
@@ -419,21 +427,30 @@ if(any(runList==902))
     semilogy(m, fpcasRMSE(:,idx5),'g-o');
     semilogy(m, fistaRMSE(:,idx6),'b-.');
     figure;
-    plot(m,   npgTime(:,idx1),'r-*'); hold on;
-    plot(m,  npgcTime(:,idx2),'c-p');
-    plot(m,  npgsTime(:,idx3),'k-s');
-    plot(m,spiralTime(:,idx4),'k-^');
-    plot(m, fpcasTime(:,idx5),'g-o');
-    plot(m, fistaTime(:,idx6),'b-.');
+    plot(m,-10*log10(   npgRMSE(:,idx1)),'r-*'); hold on;
+    plot(m,-10*log10(  npgcRMSE(:,idx2)),'c-p');
+    plot(m,-10*log10(  npgsRMSE(:,idx3)),'k-s');
+    plot(m,-10*log10(spiralRMSE(:,idx4)),'k-^');
+    plot(m,-10*log10( fpcasRMSE(:,idx5)),'g-o');
+    plot(m,-10*log10( fistaRMSE(:,idx6)),'b-.');
+    figure;
+    semilogy(m,   npgTime(:,idx1),'r-*'); hold on;
+    semilogy(m,  npgcTime(:,idx2),'c-p');
+    semilogy(m,  npgsTime(:,idx3),'k-s');
+    semilogy(m,spiralTime(:,idx4),'k-^');
+    semilogy(m, fpcasTime(:,idx5),'g-o');
+    semilogy(m, fistaTime(:,idx6),'b-.');
+
+    keyboard
     
-    temp = 5;
-    signal=npg002{1}.opt.trueAlpha;
-    signal=[signal,    npg002{temp,idx1,1}.alpha];
-    signal=[signal,   npgc002{temp,idx2,1}.alpha];
-    signal=[signal,   npgs002{temp,idx3,1}.alpha];
-    signal=[signal, spiral002{temp,idx4,1}.alpha];
-    signal=[signal,  fpcas002{temp,idx5,1}.alpha];
-    signal=[signal,  fista002{temp,idx6,1}.alpha];
+    temp = 4;
+    signal=npg{1}.opt.trueAlpha;
+    signal=[signal,    npg{temp,idx1,1}.alpha];
+    signal=[signal,   npgc{temp,idx2,1}.alpha];
+    signal=[signal,   npgs{temp,idx3,1}.alpha];
+    signal=[signal, spiral{temp,idx4,1}.alpha];
+    signal=[signal,  fpcas{temp,idx5,1}.alpha];
+    signal=[signal,  fista{temp,idx6,1}.alpha];
     save('skyline.data','signal','-ascii');
     figure; plot(signal(:,2)); hold on; plot(signal(:,1),'r'); title('NPG');
     figure; plot(signal(:,4)); hold on; plot(signal(:,1),'r'); title('NPGs');
@@ -442,19 +459,19 @@ if(any(runList==902))
     M=length(m);
     str=        '$m$            ';              for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10d',str,m(i)); end; end;
     str=sprintf('%s\\\\\\hline',str);
-    str=sprintf('%s\nFISTA          ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str, fistaCost(i,idx6));end; end;
-    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str,  npgsCost(i,idx3));end; end;
-    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str, fpcasCost(i,idx5));end; end;
-    str=sprintf('%s\\\\\nSPIRAL$_{-4}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str,spiralCost(i,idx4));end; end;
-    str=sprintf('%s\\\\\nSPIRAL$_{-5}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str,spiralCost(i,idx6));end; end;
-    str=sprintf('%s\\\\\nNPG            ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str,   npgCost(i,idx1));end; end;
-  % str=sprintf('%s\\\\\nNPG$_\\text{c}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10.6g',str,  npgcCost(i,idx2));end; end;
+    str=sprintf('%s\nFISTA          ', str);    for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fista{i,idx6,1}.cost(end));end; end;
+    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgs{i,idx3,1}.cost(end));end; end;
+    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fpcas{i,idx5,1}.f   (end));end; end;
+    str=sprintf('%s\\\\\nSPIRAL$_{-4}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{i,idx4,1}.cost(end));end; end;
+    str=sprintf('%s\\\\\nSPIRAL$_{-5}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{i,idx6,1}.cost(end));end; end;
+    str=sprintf('%s\\\\\nNPG            ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,   npg{i,idx1,1}.cost(end));end; end;
+  % str=sprintf('%s\\\\\nNPG$_\\text{c}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgcCost(i,idx2));end; end;
     file=fopen('varyMeasurementTable.tex','w'); fprintf(file,'%s',str); fclose(file);
 
     % figure;
     % for i=1:M;
-    %     semilogy(npgs002{i,idx3,1}.stepSize); hold on; semilogy(fista002{i,idx6,1}.stepSize,'r:');
-    %     semilogy([1,length(fista002{i,idx6,1}.RMSE)],ones(1,2)*1/fista002{i,idx6,1}.opt.L,'k-.');
+    %     semilogy(npgs{i,idx3,1}.stepSize); hold on; semilogy(fista{i,idx6,1}.stepSize,'r:');
+    %     semilogy([1,length(fista{i,idx6,1}.RMSE)],ones(1,2)*1/fista{i,idx6,1}.opt.L,'k-.');
     %     hold off;
     %     pause;
     % end
@@ -485,14 +502,15 @@ if(any(runList==902))
     forSave=[forSave, spiralCost(:,idx6)];
     forSave=[forSave, spiralRMSE(:,idx6)];
     save('varyMeasurement.data','forSave','-ascii');
-    !mv varyMeasurement.data skyline.data varyMeasurementTable.tex ~/research/myPaper/asilomar2014/
+    system(['mv varyMeasurement.data skyline.data varyMeasurementTable.tex ' paperDir]);
+    disp('done');
 end
 
 % vary the number of measurements, with continuation, nonneg Phi
 if(any(runList==012))
     load(filename,'*012');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT(); opt.debugLevel=0;
     opt.maxItr=1e4; opt.thresh=1e-6; opt.matrixType='gaussian';
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
@@ -706,8 +724,8 @@ end
 % vary the number of measurements, with continuation, nonneg Phi
 if(any(runList==022))
     load(filename,'*022');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT(); opt.debugLevel=0;
     opt.maxItr=1e4; opt.thresh=1e-6; opt.matrixType='gaussian';
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
@@ -915,8 +933,8 @@ end
 % find their corresponding good u, m=600;
 if(any(runList==004))
     load(filename,'*004');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-6;
     m=[600];
@@ -948,8 +966,8 @@ end
 % find their corresponding good u, m=700;
 if(any(runList==014))
     load(filename,'*014');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-6;
     m=[700];
@@ -975,9 +993,10 @@ end
 
 % vary the SNR for m=600, u is picked to give the best result
 if(any(runList==005))
-    load(filename,'*005');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    filename = [mfilename '_005.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.debugLevel=0;
     opt.maxItr=1e4; opt.thresh=1e-6;
@@ -985,39 +1004,39 @@ if(any(runList==005))
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7];
     a  =[1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5];
 
-    for k=1:3
+    for k=1:5
         for i=1:length(snr)
             opt.m=m; opt.snr=snr(i);
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
             u = a(i)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-            for j=2:4
+            for j=1:4
                 opt.u = u*10^(j-3);
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
 
                 opt.continuation=false;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npg005{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npg{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npg005','-append');
+                save(filename,'npg','-append');
 
                 opt.continuation=true;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npgc005{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npgc{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgc005','-append');
+                save(filename,'npgc','-append');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
                 opt.initStep='fixed'; opt.adaptiveStep=false;
-                fista005{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                fista{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'fista005','-append');
+                save(filename,'fista','-append');
                 opt=rmfield(opt,'initStep'); opt=rmfield(opt,'adaptiveStep');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
-                npgs005{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npgs{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgs005','-append');
+                save(filename,'npgs','-append');
 
                 subtolerance=1e-5;
                 [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -1030,35 +1049,36 @@ if(any(runList==005))
                     'saveobjective',1,'savereconerror',1,'savecputime',1,...
                     'reconerrortype',3,...
                     'savesolutionpath',0,'verbose',1000);
-                out.opt=opt; spiral005{i,j,k}=out;
-                spiral005{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral005{i,j,k}.alpha)-conf.y);
-                spiral005{i,j,k}.fVal(2)=sqrNorm(spiral005{i,j,k}.alpha.*(spiral005{i,j,k}.alpha<0));
-                spiral005{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral005{i,j,k}.alpha),1);
-                save(filename,'spiral005','-append');
+                out.opt=opt; spiral{i,j,k}=out;
+                spiral{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral{i,j,k}.alpha)-conf.y);
+                spiral{i,j,k}.fVal(2)=sqrNorm(spiral{i,j,k}.alpha.*(spiral{i,j,k}.alpha<0));
+                spiral{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral{i,j,k}.alpha),1);
+                save(filename,'spiral','-append');
 
                 A = @(xx) conf.Phi(conf.Psi(xx)); At = @(yy) conf.Psit(conf.Phit(yy));
-                AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
+                AO=A_operator(A,At); mu=opt.u;
+                option.x0=conf.Psit(initSig);
                 option.mxitr=opt.maxItr;
-                option.rel_dif_x=opt.thresh;
-                option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
+                %option.rel_dif_x=opt.thresh;
+                %option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
                 [s, out] = FPC_AS_mod(length(At(conf.y)),AO,conf.y,mu,[],option);
-                fpcas005{i,j,k}=out; fpcas005{i,j,k}.alpha = conf.Psi(s);
-                fpcas005{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi( fpcas005{i,j,k}.alpha)-conf.y);
-                fpcas005{i,j,k}.fVal(2)=sqrNorm( fpcas005{i,j,k}.alpha.*(fpcas005{i,j,k}.alpha<0));
-                fpcas005{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas005{i,j,k}.alpha),1);
-                fpcas005{i,j,k}.opt = opt; alphaHat=fpcas005{i,j,k}.alpha;
-                fpcas005{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-                fprintf('fpcas RMSE=%g\n',fpcas005{i,j,k}.RMSE);
-                save(filename,'fpcas005','-append');
+                fpcas{i,j,k}=out; fpcas{i,j,k}.alpha = conf.Psi(s);
+                fpcas{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi( fpcas{i,j,k}.alpha)-conf.y);
+                fpcas{i,j,k}.fVal(2)=sqrNorm( fpcas{i,j,k}.alpha.*(fpcas{i,j,k}.alpha<0));
+                fpcas{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas{i,j,k}.alpha),1);
+                fpcas{i,j,k}.opt = opt; alphaHat=fpcas{i,j,k}.alpha;
+                fpcas{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                fprintf('fpcas RMSE=%g\n',fpcas{i,j,k}.RMSE);
+                save(filename,'fpcas','-append');
             end
         end
     end
 end
 
 if(any(runList==905))
-    load(filename,'*005'); j=1;
+    filename = [mfilename '_005.mat']; load(filename);
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7]';
-    K = 3;
+    K = 5;
 
     npgTime   = 0;
     npgcTime  = 0;
@@ -1079,28 +1099,27 @@ if(any(runList==905))
     spiralRMSE= 0;
     fpcasRMSE = 0;
 
-    keyboard
     for k=1:K
-        npgTime   =   npgTime+1/K*showResult(   npg005(:,:,k),2,'time');
-        npgcTime  =  npgcTime+1/K*showResult(  npgc005(:,:,k),2,'time');
-        npgsTime  =  npgsTime+1/K*showResult(  npgs005(:,:,k),2,'time');
-        spiralTime=spiralTime+1/K*showResult(spiral005(:,:,k),2,'time');
-        fpcasTime = fpcasTime+1/K*showResult( fpcas005(:,:,k),2,'cpu');
-        fistaTime = fistaTime+1/K*showResult( fista005(:,:,k),2,'time');
+        npgTime   =   npgTime+1/K*showResult(   npg(:,:,k),2,'time');
+        npgcTime  =  npgcTime+1/K*showResult(  npgc(:,:,k),2,'time');
+        npgsTime  =  npgsTime+1/K*showResult(  npgs(:,:,k),2,'time');
+        spiralTime=spiralTime+1/K*showResult(spiral(:,:,k),2,'time');
+        fpcasTime = fpcasTime+1/K*showResult( fpcas(:,:,k),2,'cpu');
+        fistaTime = fistaTime+1/K*showResult( fista(:,:,k),2,'time');
 
-        npgCost   =   npgCost+1/K*showResult(   npg005(:,:,k),2,'cost');
-        npgcCost  =  npgcCost+1/K*showResult(  npgc005(:,:,k),2,'cost');
-        npgsCost  =  npgsCost+1/K*showResult(  npgs005(:,:,k),2,'cost');
-        spiralCost=spiralCost+1/K*showResult(spiral005(:,:,k),2,'cost');
-        fpcasCost = fpcasCost+1/K*showResult( fpcas005(:,:,k),2,'f');
-        fistaCost = fistaCost+1/K*showResult( fista005(:,:,k),2,'cost');
+        npgCost   =   npgCost+1/K*showResult(   npg(:,:,k),2,'cost');
+        npgcCost  =  npgcCost+1/K*showResult(  npgc(:,:,k),2,'cost');
+        npgsCost  =  npgsCost+1/K*showResult(  npgs(:,:,k),2,'cost');
+        spiralCost=spiralCost+1/K*showResult(spiral(:,:,k),2,'cost');
+        fpcasCost = fpcasCost+1/K*showResult( fpcas(:,:,k),2,'f');
+        fistaCost = fistaCost+1/K*showResult( fista(:,:,k),2,'cost');
 
-        npgRMSE   =   npgRMSE+1/K*showResult(   npg005(:,:,k),2,'RMSE');
-        npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc005(:,:,k),2,'RMSE');
-        npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs005(:,:,k),2,'RMSE');
-        spiralRMSE=spiralRMSE+1/K*showResult(spiral005(:,:,k),2,'reconerror');
-        fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas005(:,:,k),2,'RMSE');
-        fistaRMSE = fistaRMSE+1/K*showResult( fista005(:,:,k),2,'RMSE');
+        npgRMSE   =   npgRMSE+1/K*showResult(   npg(:,:,k),2,'RMSE');
+        npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc(:,:,k),2,'RMSE');
+        npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs(:,:,k),2,'RMSE');
+        spiralRMSE=spiralRMSE+1/K*showResult(spiral(:,:,k),2,'reconerror');
+        fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas(:,:,k),2,'RMSE');
+        fistaRMSE = fistaRMSE+1/K*showResult( fista(:,:,k),2,'RMSE');
     end
 
     [r,c1]=find(   npgRMSE== repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
@@ -1126,6 +1145,14 @@ if(any(runList==905))
     loglog(snr, fistaRMSE(:,idx6),'b-.');
 
     figure;
+    semilogx(snr,-10*log10(   npgRMSE(:,idx1)),'r-*'); hold on;
+    semilogx(snr,-10*log10(  npgcRMSE(:,idx2)),'c-p');
+    semilogx(snr,-10*log10(  npgsRMSE(:,idx3)),'k-s');
+    semilogx(snr,-10*log10(spiralRMSE(:,idx4)),'k-^');
+    semilogx(snr,-10*log10( fpcasRMSE(:,idx5)),'g-o');
+    semilogx(snr,-10*log10( fistaRMSE(:,idx6)),'b-.');
+
+    figure;
     loglog(snr,   npgTime(:,idx1),'r-*'); hold on;
     loglog(snr,  npgcTime(:,idx2),'c-p');
     loglog(snr,  npgsTime(:,idx3),'k-s');
@@ -1133,15 +1160,17 @@ if(any(runList==905))
     loglog(snr, fpcasTime(:,idx5),'g-<');
     loglog(snr, fistaTime(:,idx6),'b-.');
 
+    keyboard
+
     M=length(snr);
     str=        'SNR            ';              for i=1:M; str=sprintf('%s&%10d',str,snr(i)); end;
     str=sprintf('%s\\\\\\hline',str);
-    str=sprintf('%s\nNPG            ', str);    for i=1:M; str=sprintf('%s&%10.6g',str,   npgCost(i,idx1));end;
-  % str=sprintf('%s\\\\\nNPG$_\\text{c}$ ',str);for i=1:M; str=sprintf('%s&%10.6g',str,  npgcCost(i,idx2));end;
-    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M; str=sprintf('%s&%10.6g',str,  npgsCost(i,idx3));end;
-    str=sprintf('%s\\\\\nSPIRAL         ', str);for i=1:M; str=sprintf('%s&%10.6g',str,spiralCost(i,idx4));end;
-    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M; str=sprintf('%s&%10.6g',str, fpcasCost(i,idx5));end;
-    str=sprintf('%s\\\\\nFISTA          ', str);for i=1:M; str=sprintf('%s&%10.6g',str, fistaCost(i,idx6));end;
+    str=sprintf('%s\nNPG            ', str);    for i=1:M; str=sprintf('%s&%-10.6g',str,   npg{i,idx1,1}.cost(end));end;
+  % str=sprintf('%s\\\\\nNPG$_\\text{c}$ ',str);for i=1:M; str=sprintf('%s&%-10.6g',str,  npgc{i,idx2,1}.cost(end));end;
+    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M; str=sprintf('%s&%-10.6g',str,  npgs{i,idx3,1}.cost(end));end;
+    str=sprintf('%s\\\\\nSPIRAL         ', str);for i=1:M; str=sprintf('%s&%-10.6g',str,spiral{i,idx4,1}.cost(end));end;
+    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M; str=sprintf('%s&%-10.6g',str, fpcas{i,idx5,1}.f   (end));end;
+    str=sprintf('%s\\\\\nFISTA          ', str);for i=1:M; str=sprintf('%s&%-10.6g',str, fista{i,idx6,1}.cost(end));end;
     file=fopen('varySNRTable.tex','w'); fprintf(file,'%s',str); fclose(file);
 
     % figure;
@@ -1175,21 +1204,21 @@ if(any(runList==905))
     forSave=[forSave,    fistaRMSE(3:end,idx6)];
     forSave=[forSave, 10*log10(snr(3:end))];
     save('varySNR.data','forSave','-ascii');
-    !mv varySNR.data varySNRTable.tex ~/research/myPaper/asilomar2014/
+    system(['mv varySNRTable.tex varySNR.data ' paperDir]);
 end
 
 % vary the SNR for m=400, u is picked to give the best result
 if(any(runList==015))
-    load(filename,'*015');
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    filename = [mfilename '_015.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.debugLevel=0;
     opt.maxItr=1e4; opt.thresh=1e-6;
     m=[400];
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7];
     a  =[1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5];
-
     for k=1:3
         for i=1:length(snr)
             opt.m=m; opt.snr=snr(i);
@@ -1202,27 +1231,27 @@ if(any(runList==015))
 
                 opt.continuation=false;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npg015{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npg{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npg015','-append');
+                save(filename,'npg','-append');
 
                 opt.continuation=true;
                 opt.alphaStep='FISTA_ADMM_NNL1';
-                npgc015{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npgc{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgc015','-append');
+                save(filename,'npgc','-append');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
                 opt.initStep='fixed'; opt.adaptiveStep=false;
-                fista015{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                fista{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'fista015','-append');
+                save(filename,'fista','-append');
                 opt=rmfield(opt,'initStep'); opt=rmfield(opt,'adaptiveStep');
 
                 opt.continuation=false; opt.alphaStep='FISTA_L1';
-                npgs015{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                npgs{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npgs015','-append');
+                save(filename,'npgs','-append');
 
                 subtolerance=1e-5;
                 [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -1235,26 +1264,26 @@ if(any(runList==015))
                     'saveobjective',1,'savereconerror',1,'savecputime',1,...
                     'reconerrortype',3,...
                     'savesolutionpath',0,'verbose',1000);
-                out.opt=opt; spiral015{i,j,k}=out;
-                spiral015{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral015{i,j,k}.alpha)-conf.y);
-                spiral015{i,j,k}.fVal(2)=sqrNorm(spiral015{i,j,k}.alpha.*(spiral015{i,j,k}.alpha<0));
-                spiral015{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral015{i,j,k}.alpha),1);
-                save(filename,'spiral015','-append');
+                out.opt=opt; spiral{i,j,k}=out;
+                spiral{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral{i,j,k}.alpha)-conf.y);
+                spiral{i,j,k}.fVal(2)=sqrNorm(spiral{i,j,k}.alpha.*(spiral{i,j,k}.alpha<0));
+                spiral{i,j,k}.fVal(3)=pNorm(conf.Psit(spiral{i,j,k}.alpha),1);
+                save(filename,'spiral','-append');
 
                 A = @(xx) conf.Phi(conf.Psi(xx)); At = @(yy) conf.Psit(conf.Phit(yy));
                 AO=A_operator(A,At); mu=opt.u; option.x0=conf.Psit(initSig);
                 option.mxitr=opt.maxItr;
-                option.rel_dif_x=opt.thresh;
-                option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
+                % option.rel_dif_x=opt.thresh;
+                % option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
                 [s, out] = FPC_AS_mod(length(At(conf.y)),AO,conf.y,mu,[],option);
-                fpcas015{i,j,k}=out; fpcas015{i,j,k}.alpha = conf.Psi(s);
-                fpcas015{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi( fpcas015{i,j,k}.alpha)-conf.y);
-                fpcas015{i,j,k}.fVal(2)=sqrNorm( fpcas015{i,j,k}.alpha.*(fpcas015{i,j,k}.alpha<0));
-                fpcas015{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas015{i,j,k}.alpha),1);
-                fpcas015{i,j,k}.opt = opt; alphaHat=fpcas015{i,j,k}.alpha;
-                fpcas015{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-                fprintf('fpcas RMSE=%g\n',fpcas015{i,j,k}.RMSE);
-                save(filename,'fpcas015','-append');
+                fpcas{i,j,k}=out; fpcas{i,j,k}.alpha = conf.Psi(s);
+                fpcas{i,j,k}.fVal(1)=0.5*sqrNorm(conf.Phi( fpcas{i,j,k}.alpha)-conf.y);
+                fpcas{i,j,k}.fVal(2)=sqrNorm( fpcas{i,j,k}.alpha.*(fpcas{i,j,k}.alpha<0));
+                fpcas{i,j,k}.fVal(3)=pNorm(conf.Psit(fpcas{i,j,k}.alpha),1);
+                fpcas{i,j,k}.opt = opt; alphaHat=fpcas{i,j,k}.alpha;
+                fpcas{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                fprintf('fpcas RMSE=%g\n',fpcas{i,j,k}.RMSE);
+                save(filename,'fpcas','-append');
             end
         end
     end
@@ -1265,46 +1294,46 @@ if(any(runList==915))
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7];
     K = 1;
 
-npgTime   = 0;
-npgcTime  = 0;
-npgsTime  = 0;
-fistaTime = 0;
-spiralTime= 0;
-fpcasTime = 0;
-npgCost   = 0;
-npgcCost  = 0;
-npgsCost  = 0;
-fistaCost = 0;
-spiralCost= 0;
-fpcasCost = 0;
-npgRMSE   = 0;
-npgcRMSE  = 0;
-npgsRMSE  = 0;
-fistaRMSE = 0;
-spiralRMSE= 0;
-fpcasRMSE = 0;
+    npgTime   = 0;
+    npgcTime  = 0;
+    npgsTime  = 0;
+    fistaTime = 0;
+    spiralTime= 0;
+    fpcasTime = 0;
+    npgCost   = 0;
+    npgcCost  = 0;
+    npgsCost  = 0;
+    fistaCost = 0;
+    spiralCost= 0;
+    fpcasCost = 0;
+    npgRMSE   = 0;
+    npgcRMSE  = 0;
+    npgsRMSE  = 0;
+    fistaRMSE = 0;
+    spiralRMSE= 0;
+    fpcasRMSE = 0;
 
     for k=1:K
-npgTime   =   npgTime+1/K*showResult(   npg015(:,:,k),2,'time');
-npgcTime  =  npgcTime+1/K*showResult(  npgc015(:,:,k),2,'time');
-npgsTime  =  npgsTime+1/K*showResult(  npgs015(:,:,k),2,'time');
-fistaTime = fistaTime+1/K*showResult( fista015(:,:,k),2,'time');
-spiralTime=spiralTime+1/K*showResult(spiral015(:,:,k),2,'time');
-fpcasTime = fpcasTime+1/K*showResult( fpcas015(:,:,k),2,'cpu');
+        npgTime   =   npgTime+1/K*showResult(   npg015(:,:,k),2,'time');
+        npgcTime  =  npgcTime+1/K*showResult(  npgc015(:,:,k),2,'time');
+        npgsTime  =  npgsTime+1/K*showResult(  npgs015(:,:,k),2,'time');
+        fistaTime = fistaTime+1/K*showResult( fista015(:,:,k),2,'time');
+        spiralTime=spiralTime+1/K*showResult(spiral015(:,:,k),2,'time');
+        fpcasTime = fpcasTime+1/K*showResult( fpcas015(:,:,k),2,'cpu');
 
-npgCost   =   npgCost+1/K*showResult(   npg015(:,:,k),2,'cost');
-npgcCost  =  npgcCost+1/K*showResult(  npgc015(:,:,k),2,'cost');
-npgsCost  =  npgsCost+1/K*showResult(  npgs015(:,:,k),2,'cost');
-fistaCost = fistaCost+1/K*showResult( fista015(:,:,k),2,'cost');
-spiralCost=spiralCost+1/K*showResult(spiral015(:,:,k),2,'cost');
-fpcasCost = fpcasCost+1/K*showResult( fpcas015(:,:,k),2,'f');
+        npgCost   =   npgCost+1/K*showResult(   npg015(:,:,k),2,'cost');
+        npgcCost  =  npgcCost+1/K*showResult(  npgc015(:,:,k),2,'cost');
+        npgsCost  =  npgsCost+1/K*showResult(  npgs015(:,:,k),2,'cost');
+        fistaCost = fistaCost+1/K*showResult( fista015(:,:,k),2,'cost');
+        spiralCost=spiralCost+1/K*showResult(spiral015(:,:,k),2,'cost');
+        fpcasCost = fpcasCost+1/K*showResult( fpcas015(:,:,k),2,'f');
 
-npgRMSE   =   npgRMSE+1/K*showResult(   npg015(:,:,k),2,'RMSE');
-npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc015(:,:,k),2,'RMSE');
-npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs015(:,:,k),2,'RMSE');
-fistaRMSE = fistaRMSE+1/K*showResult( fista015(:,:,k),2,'RMSE');
-spiralRMSE=spiralRMSE+1/K*showResult(spiral015(:,:,k),2,'reconerror');
-fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas015(:,:,k),2,'RMSE');
+        npgRMSE   =   npgRMSE+1/K*showResult(   npg015(:,:,k),2,'RMSE');
+        npgcRMSE  =  npgcRMSE+1/K*showResult(  npgc015(:,:,k),2,'RMSE');
+        npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs015(:,:,k),2,'RMSE');
+        fistaRMSE = fistaRMSE+1/K*showResult( fista015(:,:,k),2,'RMSE');
+        spiralRMSE=spiralRMSE+1/K*showResult(spiral015(:,:,k),2,'reconerror');
+        fpcasRMSE = fpcasRMSE+1/K*showResult( fpcas015(:,:,k),2,'RMSE');
     end
 
     % npgTime(:,1:2)=[];
@@ -1352,10 +1381,10 @@ end
 % Poisson example
 % vary the number of measurements, with continuation
 if(any(runList==006))
-    filename = [mfilename '006.mat'];
+    filename = [mfilename '_006.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-    s = RandStream.create('mt19937ar','seed',0);
-    RandStream.setGlobalStream(s);
+    clear('opt');
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-6;
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
@@ -1369,31 +1398,35 @@ if(any(runList==006))
             initSig = conf.Phit(conf.y)*0+1;
             fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
 
-            for j=1:5
+            if(i~=5) continue; end
+
+            for j=3:3
                 opt.u = u(i)*10^(j-3);
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
 
-                opt.alphaStep='FISTA_ADMM_NNL1';
-                npg{i,j,k}=lasso(conf.Phi,conf.Phit,...
-                    conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'npg','-append');
+                % opt.alphaStep='FISTA_ADMM_NNL1';
+                % npg{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+                % save(filename,'npg','-append');
 
                 opt.alphaStep='IST_ADMM_NNL1';
                 ist{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
                 save(filename,'ist','-append');
 
+                return;
+
                 opt.alphaStep='FISTA_L1';
                 npgs{i,j,k}=lasso(conf.Phi,conf.Phit,...
                     conf.Psi,conf.Psit,conf.y,initSig,opt);
                 save(filename,'npgs','-append');
 
-                opt.alphaStep='FISTA_L1';
-                opt.initStep='fixed'; opt.adaptiveStep=false;
-                fista{i,j,k}=lasso(conf.Phi,conf.Phit,...
-                    conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename,'fista','-append');
-                opt=rmfield(opt,'initStep'); opt=rmfield(opt,'adaptiveStep');
+                % opt.alphaStep='FISTA_L1';
+                % opt.initStep='fixed'; opt.adaptiveStep=false;
+                % fista{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+                % save(filename,'fista','-append');
+                % opt=rmfield(opt,'initStep'); opt=rmfield(opt,'adaptiveStep');
 
                 subtolerance=1e-5;
                 [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
@@ -1414,9 +1447,9 @@ if(any(runList==006))
 end
 
 if(any(runList==906))
-    filename = [mfilename '006.mat']; load(filename);
+    filename = [mfilename '_006.mat']; load(filename);
 
-    K=1;
+    K=5;
     m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
     fprintf('Poisson example\n');
     npgTime   = 0;
@@ -1453,6 +1486,12 @@ if(any(runList==906))
         fistaRMSE = fistaRMSE+1/K*showResult( fista(:,:,k),2,'RMSE');
         spiralRMSE=spiralRMSE+1/K*showResult(spiral(:,:,k),2,'reconerror');
         istRMSE   =   istRMSE+1/K*showResult(   ist(:,:,k),2,'RMSE');
+
+        % npgRMSE   =   npgRMSE+1/K*showResult(   npg(:,:,k),4,2);
+        % npgsRMSE  =  npgsRMSE+1/K*showResult(  npgs(:,:,k),4,2);
+        % fistaRMSE = fistaRMSE+1/K*showResult( fista(:,:,k),4,2);
+        % spiralRMSE=spiralRMSE+1/K*showResult(spiral(:,:,k),4,2);
+        % istRMSE   =   istRMSE+1/K*showResult(   ist(:,:,k),4,2);
     end
 
     [r,c1]=find(   npgRMSE==repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
@@ -1463,23 +1502,25 @@ if(any(runList==906))
     [c1(idx1) ,c2(idx2) ,c3(idx3) ,c4(idx4) ,c5(idx5)]
     idx1 = 3;    
     idx2 = 3;
-    idx3 = 3;
+    idx3 = 5;
     idx4 = 3;
     idx5 = 3;
 
     figure;
-    loglog(m,   npgRMSE(:,idx1),'r-*'); hold on;
+    semilogy(m,   npgRMSE(:,idx1),'r-*'); hold on;
     loglog(m,  npgsRMSE(:,idx2),'c-p');
     %loglog(m, fistaRMSE(:,idx3),'g-s');
     loglog(m,spiralRMSE(:,idx4),'k-^');
     %loglog(m,   istRMSE(:,idx5),'b-.');
 
     figure;
-    loglog(m,   npgTime(:,idx1),'r-*'); hold on;
+    plot(m,   npgTime(:,idx1),'r-*'); hold on;
     loglog(m,  npgsTime(:,idx2),'c-p');
     %loglog(m, fistaTime(:,idx3),'g-s');
     loglog(m,spiralTime(:,idx4),'k-^');
     %loglog(m,   istTime(:,idx5),'b-.');
+
+    keyboard;
 
     forSave=[];
     forSave=[forSave,    npgTime(:,idx1)];
@@ -1523,11 +1564,14 @@ if(any(runList==906))
     t=t+1; forSave(1:length(out.reconerror),t)=out.reconerror;
     t=t+1; forSave(1:length(out.time      ),t)=out.time;
 
+    keyboard
     mincost=reshape(forSave(:,[1,4,7]),[],1); 
     mincost=min(mincost(mincost~=0));
     idx=(forSave(:,1)~=0); forSave(idx,1)=(forSave(idx,1)-mincost);
     idx=(forSave(:,4)~=0); forSave(idx,4)=(forSave(idx,4)-mincost);
     idx=(forSave(:,7)~=0); forSave(idx,7)=(forSave(idx,7)-mincost);
+
+
     save('cost_itr.data','forSave','-ascii');
     system(['mv varyMeasurementPoisson.data stepSize.data cost_itr.data ' paperDir]);
 end
@@ -1535,6 +1579,7 @@ end
 % The X-ray CT example, test and find the best u for each prjFull
 if(any(runList==007))
     load(filename,'*007');
+    clear('opt');
     conf=ConfigCT();
     conf.PhiMode='gpuPrj';
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -1565,6 +1610,7 @@ end
 % The X-ray CT example, test and find the best u for each prjFull
 if(any(runList==008))     % FPCAS
     load(filename,'*008');
+    clear('opt');
     conf=ConfigCT();
     conf.PhiMode='gpuPrj';
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
@@ -1628,6 +1674,195 @@ if(any(runList==008))     % FPCAS
         spiral008{i,j}.fVal(3)=sum(abs(conf.Psit(spiral008{i,j}.alpha)));
         save(filename,'spiral008','-append');
     end
+end
+
+% the last example with glassbeads under the poisson model with log link 
+% function
+if(any(runList==009))
+    filename = [mfilename '_009.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    conf=ConfigCT();
+    conf.imageName = 'glassBeadsSim';
+    conf.PhiMode = 'gpuPrj';
+    conf.PhiModeGen = 'gpuPrj';
+    conf.dist = 17000;
+    conf.beamharden = false;
+
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    opt.maxItr=2e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
+    opt.noiseType='poissonLogLink'; %'gaussian'; %
+    %for i=1:length(prjFull)
+    for i=3:5
+        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
+        opt=conf.setup(opt);
+        conf.y = conf.y/max(conf.y(:)); % important to normalize
+        initSig = maskFunc(conf.FBP(-log(conf.y)),opt.mask~=0);
+        % initSig = opt.trueAlpha;
+        for j=1:1
+            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+
+            % fbp{i,j}.img=conf.FBP(-log(conf.y));
+            % fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
+            % fbp{i,j}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j}.alpha))/sqrNorm(conf.y);
+            % fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+            % fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+            % save(filename,'fbp','-append');
+
+            % u=10.^[-7 -7 -7 -6 -5 -5];
+            % opt.u = u(i)*10^(j-2);
+            % opt.continuation = false; opt.alphaStep='FISTA_ADMM_NNL1';
+            % npg{i,j}=lasso(conf.Phi,conf.Phit,...
+            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+            % save(filename,'npg','-append');
+            % 
+            % u=10.^[-6 -6 -6 -6 -5 -5];
+            % opt.u = u(i)*10^(j-2);
+            % opt.continuation=false; opt.alphaStep='FISTA_L1';
+            % npgs{i,j}=lasso(conf.Phi,conf.Phit,...
+            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+            % save(filename,'npgs','-append');
+
+            u=10.^[-6 -6 -6 -6 -5 -4];
+            opt.u = u(i)*10^(j-2);
+            opt.noiseType='gaussian'; opt.continuation=false;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npgLin{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,-log(conf.y),initSig,opt);
+            save(filename,'npgLin','-append');
+            opt.noiseType='poissonLogLink';
+        end
+    end
+end
+
+% the last example with glassbeads under the poisson model with log link 
+% function
+% Different from 009, the snr=1e4
+if(any(runList==019))
+    filename = [mfilename '_019.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    conf=ConfigCT();
+    conf.imageName = 'glassBeadsSim';
+    conf.PhiMode = 'gpuPrj';
+    conf.PhiModeGen = 'gpuPrj';
+    conf.dist = 17000;
+    conf.beamharden = false;
+
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    opt.maxItr=2e3; opt.thresh=1e-6; opt.snr=1e4; opt.debugLevel=1;
+    opt.noiseType='poissonLogLink'; %'gaussian'; %
+    for i=1:length(prjFull)-2
+        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
+        opt=conf.setup(opt);
+        conf.y = conf.y/max(conf.y(:)); % important to normalize
+        initSig = maskFunc(conf.FBP(-log(conf.y)),opt.mask~=0);
+        % initSig = opt.trueAlpha;
+
+        for j=3:3
+            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+
+            % fbp{i,j}.img=conf.FBP(-log(conf.y));
+            % fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
+            % fbp{i,j}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j}.alpha))/sqrNorm(conf.y);
+            % fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+            % fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+            % save(filename,'fbp','-append');
+
+            % u=10.^[-4 -4 -4 -4 -3 -3];
+            % opt.u = u(i)*10^(j-2);
+            % opt.continuation = false; opt.alphaStep='FISTA_ADMM_NNL1';
+            % npg{i,j}=lasso(conf.Phi,conf.Phit,...
+            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+            % save(filename,'npg','-append');
+             
+            % u=10.^[-6 -6 -6 -6 -5 -5];
+            % opt.u = u(i)*10^(j-2);
+            % opt.continuation=false; opt.alphaStep='FISTA_L1';
+            % npgs{i,j}=lasso(conf.Phi,conf.Phit,...
+            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+            % save(filename,'npgs','-append');
+
+            u=10.^[-3 -3 -3 -3 -3 -3];
+            opt.u = u(i)*10^(j-2);
+            opt.noiseType='gaussian'; opt.continuation=false;
+            opt.alphaStep='FISTA_ADMM_NNL1';
+            npgLin{i,j}=lasso(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,-log(conf.y),initSig,opt);
+            save(filename,'npgLin','-append');
+            opt.noiseType='poissonLogLink';
+        end
+    end
+end
+
+
+if(any(runList==909))
+    filename = [mfilename '_009.mat']; load(filename);
+
+    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+    fprintf('Poisson Log link example with glass beads\n');
+
+    k=1;
+    npgTime   = showResult(   npg(:,:,k),2,'time');
+    npgsTime  = showResult(  npgs(:,:,k),2,'time');
+    % fbpTime   = showResult(   fbp(:,:,k),2,'time');
+
+    npgCost   = showResult(   npg(:,:,k),2,'cost');
+    npgsCost  = showResult(  npgs(:,:,k),2,'cost');
+    % fbpCost   = showResult(   fbp(:,:,k),2,'cost');
+
+    npgRMSE   = showResult(   npg(:,:,k),2,'RMSE');
+    npgsRMSE  = showResult(  npgs(:,:,k),2,'RMSE');
+    fbpRMSE   = showResult(   fbp(:,:,k),2,'RMSE');
+
+    % [r,c1]=find(   npgRMSE==repmat(min(   npgRMSE,[],2),1,3)); [r,idx1]=sort(r);
+    % [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,3)); [r,idx2]=sort(r);
+    % [r,c3]=find(   fbpRMSE==repmat(min(   fbpRMSE,[],2),1,3)); [r,idx3]=sort(r);
+    % [c1(idx1) ,c2(idx2) ,c3(idx3)]
+    idx1 = 2;    
+    idx2 = 2;
+    idx3 = 2;
+
+    figure;
+    semilogy(prjFull,   npgRMSE(:,idx1),'r-*'); hold on;
+    loglog(prjFull,  npgsRMSE(:,idx2),'c-p');
+    loglog(prjFull, fbpRMSE(:,idx3),'g-s');
+
+    figure;
+    plot(prjFull,   npgTime(:,idx1),'r-*'); hold on;
+    loglog(prjFull,  npgsTime(:,idx2),'c-p');
+    %loglog(prjFull,   fbpTime(:,idx3),'g-s');
+
+    forSave=[];
+    forSave=[forSave,    npgRMSE(:,idx1)];
+    forSave=[forSave,   npgsRMSE(:,idx2)];
+    forSave=[forSave,    fbpRMSE(:,idx3)];
+
+    forSave=[forSave,    npgTime(:,idx1)];
+    forSave=[forSave,   npgsTime(:,idx2)];
+    % forSave=[forSave,    fbpTime(:,idx3)];
+
+    % forSave=[forSave,    npgCost(:,idx1)];
+    % forSave=[forSave,   npgsCost(:,idx2)];
+    % forSave=[forSave,    fbpCost(:,idx3)];
+
+    forSave=[forSave, prjFull(:)];
+    save('varyPrjGlassBead.data','forSave','-ascii');
+
+    idx=4;
+    img=showImgMask(npg {idx,idx1}.alpha,npg{idx,idx1}.opt.mask);
+    imwrite(img/max(img(:)),'NPGgb.png','png');
+    img=showImgMask(npgs{idx,idx2}.alpha,npg{idx,idx1}.opt.mask);
+    imwrite(img/max(img(:)),'NPGSgb.png','png');
+    img=showImgMask(fbp {idx,idx3}.alpha,npg{idx,idx1}.opt.mask);
+    imwrite(img/max(img(:)),'FBPgb.png','png');
+
+    disp([npg{idx,idx1}.RMSE(end), npgs{idx,idx2}.RMSE(end), fbp{idx,idx3}.RMSE]);
+
+    system(['mv varyPrjGlassBead.data NPGgb.png NPGSgb.png FBPgb.png ' paperDir]);
+    keyboard
 end
 
 % Plot the figures, or save the data for gnuplot in the paper

@@ -1,5 +1,6 @@
 
 CUDA  := /usr/local/cuda
+NVCC  := $(CUDA)/bin/nvcc
 MATLAB = $(shell matlab -e | sed -n 's/MATLAB=//p')
 
 MEX = $(MATLAB)/bin/mex
@@ -30,15 +31,15 @@ mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c prj.h
 mParPrj: mParPrj.c parPrj.c parPrj.h
 	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
 
-cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h
+cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h
 	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
-gpuPrj.o: gpuPrj.cu prj.h utils.h
-	nvcc -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu common/kiss_fft.c
+gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h
+	$(NVCC) -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu common/kiss_fft.c
 
-gpuPrj: gpuPrj.cu prj.h common/kiss_fft.c utils.h gpuPrj.o
-	nvcc -lglut -lGL gpuPrj.o common/kiss_fft.c -o gpuPrj
-	#nvcc -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu common/kiss_fft.c -o gpuPrj
+gpuPrj: gpuPrj.o
+	$(NVCC) -lglut -lGL gpuPrj.o common/kiss_fft.c -o gpuPrj
+	#$(NVCC) -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu common/kiss_fft.c -o gpuPrj
 
 solveTriDiag:
 	$(MEX) solveTridiag.c

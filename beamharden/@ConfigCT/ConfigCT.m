@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Mon 28 Apr 2014 11:55:53 AM CDT
+% $Revision: 0.2 $ $Date: Tue 08 Jul 2014 02:57:59 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -49,7 +49,7 @@ classdef ConfigCT < handle
 
         % generated data for further usage
         trueImg
-        Ts
+        Ts = 1;
 
         % parameters for operators
     end 
@@ -60,13 +60,16 @@ classdef ConfigCT < handle
                 if(nargin>1)
                     obj.maskType = mt;
                     if(nargin>2)
-                        obj.opTye = ot;
+                        obj.PhiMode = ot;
                     end
                 end
             end
         end
 
         function opt=setup(obj,opt)
+            if(~isfield(opt,'snr')) opt.snr=inf; end
+            if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+
             fprintf('Loading data...\n');
             opt.machine=evalc('!uname -a');
             switch lower(obj.imageName)
@@ -76,6 +79,8 @@ classdef ConfigCT < handle
                     loadPhantom(obj);
                 case lower('castSim')
                     loadCastSim(obj);
+                case lower('glassBeadsSim')
+                    loadGlassBeadsSim(obj,opt.snr,opt.noiseType);
                 case lower('twoMaterials')
                     loadTwoMaterials(obj);
                 case 'realct'
@@ -85,7 +90,7 @@ classdef ConfigCT < handle
                 case 'lasso'
                     loadLasso(obj);
             end
-            genOperators(obj);
+            genOperators(obj,obj.PhiMode);
 
             if(obj.beamharden)
                 opt.trueKappa= obj.trueKappa;
@@ -155,8 +160,8 @@ classdef ConfigCT < handle
             %cpuPrj(0,conf,'config');
             obj.FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function genOperators(obj)
-            switch lower(obj.PhiMode)
+        function genOperators(obj,PhiMode)
+            switch lower(PhiMode)
                 case 'basic'
                     nufftOps(obj);
                 case lower('cpuPrj')

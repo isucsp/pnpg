@@ -790,21 +790,12 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     for(size_t i=0; i<nthread; i++){
         res = pthread_join(a_thread[i], &thread_result);
         if (res != 0) {
-
-
-
-
-
-
-
-
-
-
-
-            //perror("Thread join failed.");
-            //exit(EXIT_FAILURE);
+            perror("Thread join failed.");
+            exit(EXIT_FAILURE);
         }
-        /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
+#if DEBUG
+        printf("Thread joined, it returned %s\n", (char *)thread_result);
+#endif
     }
     pConf->cmd = 0;
     if(pSino!=sino) free(pSino);
@@ -827,14 +818,6 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 }
 
 int forwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
     int offset;
@@ -850,14 +833,6 @@ int forwardTest( void ) {
             }else
                 img[offset]=0;
             //            if(i<5 && j < 5) img[i][j]=1;
-#if SHOWIMG
-            value = (unsigned char)(0xff * img[offset]);
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-#endif
         }
     }
 #if DEBUG
@@ -865,59 +840,33 @@ int forwardTest( void ) {
     fwrite(img,sizeof(ft), pConf->imgSize,f);
     fclose(f);
 #endif
-    //image.display_and_exit();
-
+#if SHOWIMG
+    show_img(img,config.n,config.n);
+#endif
     cpuPrj(img, sino, RENEW_MEM | FWD_BIT);
-
 #if DEBUG
     f = fopen("sinogram.data","wb");
     fwrite(sino, sizeof(ft), config.sinoSize, f);
     fclose(f);
 #endif
 #if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.np; i++){
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            if( sino[offset]>temp)
-                temp=sino[offset];
-        }
-    }
-    for(int i=0; i < config.np; i++)
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            value = (unsigned char)(255 * sino[offset]/temp);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
-        }
+    show_img(sino,config.prjWidth,config.np);
 #endif
     free(img); free(sino);
-
-#if SHOWIMG
-    //sinogram.display_and_exit();
-#endif
     return 0;
 }
 
 int backwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
 #if DEBUG
-    FILE* f = fopen("sinogram.data","rb");
-    if(!fread(sino,sizeof(ft),config.sinoSize,f))
+    FILE* f;
+    f = fopen("sinogram_0.data","rb");
+    if(f==NULL || !fread(sino,sizeof(ft),config.sinoSize,f)){
         perror("cannot read from sinogram.data\n");
+        exit(0);
+    }
     fclose(f);
 #endif
 
@@ -925,62 +874,40 @@ int backwardTest( void ) {
     tempI=rand()%config.np;
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
+#if SHOWIMG
             int offset = i*config.prjWidth+j;
             if(i==tempI*0 && abs(j-config.prjWidth/2)<=150){
                 if(offset%15<6) sino[offset]=1;
                 else sino[offset]=0;
             }else
                 sino[offset]=0;
-#if SHOWIMG
-            value = (unsigned char)(255 * sino[offset]);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
 #endif
         }
     }
-    //sinogram.display_and_exit();
+#if SHOWIMG
+    show_img(sino,config.np,config.prjWidth);
+#endif
 
-    cpuPrj(img,sino, BWD_BIT);
+    cpuPrj(img, sino, BWD_BIT);
 
 #if DEBUG
     f = fopen("reImg.data","wb");
     fwrite(img,sizeof(ft),config.imgSize,f);
     fclose(f);
 #endif
-
 #if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.n; i++)
-        for(int j=0; j < config.n; j++){
-            int offset = i*config.n+j;
-            if( img[offset]>temp) temp=img[offset];
-        }
-    //printf("temp=%g\n",temp);
-    for(int i=0; i < config.n; i++){
-        for(int j=0; j < config.n; j++){
-            int offset = i*config.n+j;
-            if(img[offset]>0) value = (unsigned char)(255 * img[offset]/temp);
-            else value = 0;
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-        }
-    }
+    show_img(img,config.n,config.n);
 #endif
-
     free(sino); free(img);
-#if SHOWIMG
-    image.display_and_exit();
-#endif
     return 0;
 }
 
 int main(int argc, char *argv[]){
+#if SHOWIMG
+    CPUBitmap temp(1,1);
+    temp.init();
+#endif
+
     int N = 512;
     if(argc>1){
         N = atoi(argv[1]);
@@ -1008,6 +935,5 @@ int main(int argc, char *argv[]){
     }
     rampFilter(signal, 1024, 1);
     return 0;
-
 }
 

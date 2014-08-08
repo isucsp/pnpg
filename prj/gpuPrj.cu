@@ -344,28 +344,28 @@ __global__ void pixelDriveFan(ft* img, ft* sino, int FBP){
         __syncthreads();
         for(dt=dtll+threadIdx.x; dt<=dtrr; dt+=blockDim.x){
             temp=thetaIdx;
-            shared[0][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth+dt+pC] : 0;
+            shared[0][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth+dt+pC] : 0;
 
             temp=(thetaIdx+conf->prjFull/4)%conf->prjFull;
-            shared[1][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth+dt+pC] : 0;
+            shared[1][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth+dt+pC] : 0;
 
             temp=(thetaIdx+conf->prjFull/2)%conf->prjFull;
-            shared[2][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth+dt+pC] : 0;
+            shared[2][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth+dt+pC] : 0;
 
             temp=(thetaIdx+3*conf->prjFull/4)%conf->prjFull;
-            shared[3][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth+dt+pC] : 0;
+            shared[3][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth+dt+pC] : 0;
 
             temp=(3*conf->prjFull/2-thetaIdx)%conf->prjFull;
-            shared[4][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth-dt+pC] : 0;
+            shared[4][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth-dt+pC] : 0;
 
             temp=(7*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            shared[5][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth-dt+pC] : 0;
+            shared[5][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth-dt+pC] : 0;
 
             temp=(conf->prjFull-thetaIdx)%conf->prjFull;
-            shared[6][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth-dt+pC] : 0;
+            shared[6][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth-dt+pC] : 0;
 
             temp=(5*conf->prjFull/4-thetaIdx)%conf->prjFull;
-            shared[7][0][dt-dtll]=thetaIdx<conf->n ? sino[temp*conf->prjWidth-dt+pC] : 0;
+            shared[7][0][dt-dtll]=temp<conf->np ? sino[temp*conf->prjWidth-dt+pC] : 0;
         }
         __syncthreads();
 
@@ -1019,14 +1019,6 @@ int gpuPrj(ft* img, ft* sino, char cmd){
 }
 
 int forwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
     int offset;
@@ -1042,14 +1034,6 @@ int forwardTest( void ) {
             }else
                 img[offset]=0;
             //            if(i<5 && j < 5) img[i][j]=1;
-#if SHOWIMG
-            value = (unsigned char)(0xff * img[offset]);
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-#endif
         }
     }
 #if DEBUG
@@ -1057,62 +1041,36 @@ int forwardTest( void ) {
     fwrite(img,sizeof(ft), pConf->imgSize,f);
     fclose(f);
 #endif
-    //image.display_and_exit();
-
+#if SHOWIMG
+    show_img(img,config.n,config.n);
+#endif
     gpuPrj(img, sino, RENEW_MEM | FWD_BIT);
-
 #if DEBUG
     f = fopen("sinogram.data","wb");
     fwrite(sino, sizeof(ft), config.sinoSize, f);
     fclose(f);
 #endif
 #if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.np; i++){
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            if( sino[offset]>temp)
-                temp=sino[offset];
-        }
-    }
-    for(int i=0; i < config.np; i++)
-        for(int j=0; j < config.prjWidth; j++){
-            offset = i*config.prjWidth+j;
-            value = (unsigned char)(255 * sino[offset]/temp);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
-        }
+    show_img(sino,config.prjWidth,config.np);
 #endif
     free(img); free(sino);
-
-#if SHOWIMG
-    //sinogram.display_and_exit();
-#endif
     return 0;
 }
 
 int backwardTest( void ) {
-#if SHOWIMG
-    CPUBitmap image( config.n, config.n );
-    unsigned char *ptr = image.get_ptr();
-    CPUBitmap sinogram( config.prjWidth, config.np );
-    unsigned char *sinoPtr = sinogram.get_ptr();
-    unsigned char value;
-#endif
-
     ft* img = (ft*) malloc(config.imgSize*sizeof(ft));
     ft *sino = (ft *) malloc(config.sinoSize*sizeof(ft));
 
 #if DEBUG
-    FILE* f = fopen("sinogram_0.data","rb");
-    if(!fread(sino,sizeof(ft),config.sinoSize,f))
+    FILE* f;
+    f = fopen("sinogram_0.data","rb");
+    if(f==NULL || !fread(sino,sizeof(ft),config.sinoSize,f)){
         perror("cannot read from sinogram.data\n");
+        exit(0);
+    }
     fclose(f);
 #endif
-    
+
     ft tempI;
     tempI=rand()%config.np;
     tempI=0;
@@ -1131,17 +1089,12 @@ int backwardTest( void ) {
             }else
                 sino[offset]=0;
             tempI=1;
-
-            value = (unsigned char)(255 * sino[offset]/tempI);
-            offset = (config.np-1-i)*config.prjWidth+j;
-            sinoPtr[(offset<<2)+0] = value;
-            sinoPtr[(offset<<2)+1] = value;
-            sinoPtr[(offset<<2)+2] = value;
-            sinoPtr[(offset<<2)+3] = 0xff;
 #endif
         }
     }
-    //sinogram.display_and_exit();
+#if SHOWIMG
+    show_img(sino,config.np,config.prjWidth);
+#endif
 
     gpuPrj(img, sino, BWD_BIT);
 
@@ -1150,55 +1103,123 @@ int backwardTest( void ) {
     fwrite(img,sizeof(ft),config.imgSize,f);
     fclose(f);
 #endif
-
 #if SHOWIMG
-    ft temp=0;
-    for(int i=0; i < config.n; i++)
-        for(int j=0; j < config.n; j++){
-            int offset = i*config.n+j;
-            if( img[offset]>temp) temp=img[offset];
-        }
-    //printf("temp=%g\n",temp);
-    for(int i=0; i < config.n; i++){
-        for(int j=0; j < config.n; j++){
-            int offset = i*config.n+j;
-            if(img[offset]>0) value = (unsigned char)(255 * img[offset]/temp);
-            else value = 0;
-            offset = (config.n-1-i)*config.n+j;
-            ptr[(offset<<2)+0] = value;
-            ptr[(offset<<2)+1] = value;
-            ptr[(offset<<2)+2] = value;
-            ptr[(offset<<2)+3] = 0xff;
-        }
-    }
+    show_img(img,config.n,config.n);
 #endif
-
     free(sino); free(img);
-#if SHOWIMG
-    image.display_and_exit();
-#endif
     return 0;
 }
 
-int main(int argc, char *argv[]){
-    int N = 1024;
-    if(argc>1){
-        N = atoi(argv[1]);
-        printf("N=%d\n",N);
+void FBP(char* filename, int idx){
+    FILE* f = fopen(filename,"r");
+    int len = 100,N,np;
+    float widthDetector,angle,maxVal,dist;
+    ft *sino,*img;
+    char str[len];
+    if(f!=NULL){
+        fseek(f,-400,SEEK_END);
+        while(!strstr(fgets(str,len,f),"FAN_BEAM_PARAMETERS"));
+        fscanf(f,"%f",&dist); printf("dist=%f\n",dist);
+        rewind(f);
+        fgets(str,len,f); printf("%s",str);
+        fscanf(f,"%d",&N); printf("N=%d\n",N);
+        fscanf(f,"%d",&np); printf("np=%d\n",np);
+        fscanf(f,"%f",&widthDetector); fscanf(f,"%f",&widthDetector);
+        printf("widthDetector=%f\n",widthDetector);
+        fscanf(f,"%f",&angle); fscanf(f,"%f",&angle);
+        printf("angle=%f\n",angle);
+        fscanf(f,"%f",&maxVal); fscanf(f,"%f",&maxVal);
+        printf("maxVal=%f\n",maxVal);
+
+        int imgSize = (1 << ((int)floor(log2(N*1.0))));
+        int prjFull = (int)(np/angle*360);
+
+        ft distOffset = 0;
+        int offset = 11;
+        int center = N/2+offset;
+        int half = MIN(center,N-center),l;
+        
+        sino = (ft *) malloc(np*N*sizeof(ft));
+        img = (ft*) malloc(imgSize*imgSize*sizeof(ft));
+        setup(imgSize,2*half,np,prjFull,((double)imgSize)/N,1,
+                (dist+distOffset)*imgSize/widthDetector);
+        showSetup();
+
+        ft temp;
+        long pos = ftell(f);
+
+        //for(offset=10; offset<15; offset++)
+        for(int k=0; k<10; k++){
+            if(k==0){
+                fseek(f,pos,SEEK_SET);
+                printf("offset = %d\n",offset);
+            }
+            center = N/2+offset;
+            half = MIN(center,N-center);
+            for(int i=0; i < np; i++)
+                for(int j=0; j < N; j++){
+                    fscanf(f,"%f",&temp);
+                    if(temp<=0){
+                        sprintf(str,"FBP: get strange measurement %f\n",temp);
+                        perror(str);
+                    }
+
+                    l = j-(center-half);
+                    if(l>=0 && l<config.prjWidth){
+                        if(temp==0)
+                            sino[i*config.prjWidth+l]=sino[i*config.prjWidth+l-1];
+                        else
+                            sino[i*config.prjWidth+l] = log10(maxVal/temp);
+                    }
+                    //sino[i*config.prjWidth+l]=temp;
+                }
+            if(idx==-1 || k==idx){
+#if SHOWIMG
+                //show_img(sino,config.prjWidth,config.np);
+#endif
+                for(distOffset=-400; distOffset<=200; distOffset+=20){
+                    printf("FBP: %f\n", distOffset);
+                    setup(imgSize,2*half,np,prjFull,((double)imgSize)/N,1,
+                            (dist+distOffset)*imgSize/widthDetector);
+                    showSetup();
+
+                    gpuPrj(img, sino, FBP_BIT);
+#if SHOWIMG
+                    show_img(img,config.n,config.n,0);
+#endif
+                }
+#if DEBUG
+                //FILE* ff = fopen("img.data","w");
+                //fwrite(img,sizeof(ft), config.imgSize,ff);
+                //fclose(ff);
+                //ff = fopen("sino.data","w");
+                //fwrite(sino,sizeof(ft), config.sinoSize,ff);
+                //fclose(ff);
+#endif
+            }
+        }
+
+        free(sino); free(img);
     }
+    fclose(f);
+}
 
-    setup(N,N,360,360,1,1,0*N);
-    //showSetup();
-    backwardTest();
-    forwardTest();
-    cleanUp();
+int main(int argc, char *argv[]){
+#if SHOWIMG
+    CPUBitmap temp(1,1);
+    temp.init();
+#endif
 
-    setup(N,N,180,360,1,1,0*N);
-    showSetup();
-    forwardTest();
-    backwardTest();
-    cleanUp();
-
-    return 0;
+    if(argc==1){
+        int N=512;
+        setup(N,N,360,360,1,1,0*N);
+        forwardTest();
+        //backwardTest();
+        cleanUp();
+    }else if(argc>=2){
+        char* filename = argv[1];
+        if(argc==2) FBP(filename,-1);
+        else FBP(filename,atoi(argv[2]));
+    }
 }
 

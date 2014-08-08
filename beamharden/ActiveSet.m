@@ -37,6 +37,7 @@ classdef ActiveSet < handle
         end
 
         function init(obj,Ie)
+            if(nargin==1) Ie=obj.Ie; end
             obj.Ie = obj.adjust(Ie);
             obj.Q = (obj.B*Ie-obj.b<=eps);
             obj.Z = null(obj.B(obj.Q,:),'r');
@@ -73,9 +74,10 @@ classdef ActiveSet < handle
 
                     if(any(lambda<0))
                         temp=find(lambda<0);
+                        [~,temp1]=sort(abs(temp-length(obj.Ie)/2));
+                        k(ppp) = temp(temp1(1));
                         %temp=find(lambda==min(lambda));
-                        [~,temp1]=sort(abs(temp-length(lambda)/2),'descend');
-                        k(ppp) = temp(temp1(end));
+                        %k(ppp) = temp(randi(length(temp)));
                         obj.Q(k(ppp))=false;
                         obj.Z = null(obj.B(obj.Q,:),'r');
                         obj.course = [obj.course;...
@@ -94,14 +96,16 @@ classdef ActiveSet < handle
                         end
                         temp = obj.B*deltaIe;
                         temp1 = inf*ones(size(temp));
-                        temp1(temp>0 & (~obj.Q)) = ...
-                            constrainMargin(temp>0 & (~obj.Q))./temp(temp>0 & (~obj.Q));
+                        temp2 = temp>0 & (~obj.Q);
+                        temp1(temp2) = constrainMargin(temp2)./temp(temp2);
+
                         maxStep = min( temp1 );
                         temp = find(temp1==maxStep);
-                        [~,temp1]=sort(abs(temp-length(obj.Q)/2),'descend');
-                        q(ppp) = temp(temp1(1));
+                        [~,temp1]=sort(abs(temp-length(obj.Ie)/2));
+                        q(ppp) = temp(temp1(end));
                         collide = zeros(size(obj.Q))==1;
                         collide(q(ppp)) = true;
+
                         if(maxStep<=0)
                             % if maxStep ==0 find the one with largest temp
                             % use b1 spline will have better performance.
@@ -126,11 +130,6 @@ classdef ActiveSet < handle
                 end
                 
                 obj.deltaNormIe=grad'*deltaIe;
-                if(obj.deltaNormIe<obj.thresh)
-                    obj.converged=true;
-                    obj.cost=oldCost;
-                    break;
-                end
 
                 % begin line search
                 ppp=0; stepSz=min(1,maxStep);
@@ -152,6 +151,7 @@ classdef ActiveSet < handle
                         break;
                     else
                         if(ppp>10)
+                            keyboard
                             fprintf('\n'); warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
                             if(oldCost>=newCost)
                                 obj.Ie = obj.adjust(newIe);
@@ -168,6 +168,10 @@ classdef ActiveSet < handle
                         end
                     end
                 end
+                if(obj.deltaNormIe<obj.thresh)
+                    obj.converged=true;
+                    break;
+                end
                 % end of line search
                 if(obj.converged || needBreak) break; end
             end
@@ -176,12 +180,18 @@ classdef ActiveSet < handle
 
         function Ie=adjust(obj,Ie)
             Ie(Ie<0)=0;
+            if(size(obj.B,1)==2*length(Ie))
+                Ie(floor(length(Ie)/2)+1)=max(Ie);
+            end
             d=obj.b(end)-obj.B(end,:)*Ie;
             while(d>0)
                 S = Ie>0 & obj.B(end,:)'<0;
                 step = min( min(-Ie(S)./obj.B(end,S)'), ...
-                    d/(norm(obj.B(end,S))^2));
+                    d/sqrNorm(obj.B(end,S)));
                 Ie(S) = Ie(S) + step*obj.B(end,S)';
+                if(size(obj.B,1)==2*length(Ie))
+                    Ie(floor(length(Ie)/2)+1)=max(Ie);
+                end
                 d=obj.b(end)-obj.B(end,:)*Ie;
             end
         end

@@ -24,15 +24,15 @@ classdef NCG_PR < Methods
             pp=0; obj.converged = false; obj.warned = false; needBreak = false;
             while(pp<obj.maxStepNum)
                 pp=pp+1;
-                [oldCost,grad,hessian] = obj.func(obj.alpha);
+                [oldCost,obj.grad,hessian] = obj.func(obj.alpha);
 
                 maxStep=1;
-                beta=grad'*(grad-obj.preG)/(obj.preG'*obj.preG);
-                deltaAlpha=grad+max(beta,0)*obj.preP;
-                deltaNormAlpha=grad'*deltaAlpha;
+                beta=obj.grad'*(obj.grad-obj.preG)/(obj.preG'*obj.preG);
+                deltaAlpha=obj.grad+max(beta,0)*obj.preP;
+                deltaNormAlpha=obj.grad'*deltaAlpha;
                 s1=deltaNormAlpha/hessian(deltaAlpha,2);
                 %atHessianA(deltaAlpha,weight,t1*hphi,Phi,Phit,t3, Psit,opt.muLustig,sqrtSSqrMu);
-                obj.preP = deltaAlpha; obj.preG = grad;
+                obj.preP = deltaAlpha; obj.preG = obj.grad;
                 deltaAlpha = deltaAlpha*s1;
                 deltaNormAlpha = deltaNormAlpha*s1;
 
@@ -64,6 +64,7 @@ classdef NCG_PR < Methods
                 end
                 %end of line search
 
+                obj.stepSize=stepSz;
                 obj.alpha = newX; obj.cost = newCost;
                 if(obj.converged || needBreak) break; end
             end

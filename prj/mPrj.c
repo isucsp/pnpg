@@ -45,7 +45,6 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         config.dSize=(float)mxGetScalar(mxGetField(prhs[1],0,"dSize"));
         config.effectiveRate=(float)mxGetScalar(mxGetField(prhs[1],0,"effectiveRate"));
         config.d=(float)mxGetScalar(mxGetField(prhs[1],0,"d"));
-        printf("number of input arguments are: %d\n",nrhs);
 #if DEBUG
         mexPrintf("\nConfiguring the operator...\n");
         mexPrintf("config.n=%d\n",config.n);

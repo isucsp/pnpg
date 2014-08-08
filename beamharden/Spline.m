@@ -281,7 +281,8 @@ classdef Spline < handle
                 return;
             end
 
-            kappa = kappa(:); s = s(:);
+            dKappa=(kappa(3:end)-kappa(1:end-2))/2;
+            kappa = kappa(2:end-1); kappa = kappa(:); s = s(:);
             if(~isempty(I))
                 BL = zeros(length(s),1);
             else
@@ -291,17 +292,17 @@ classdef Spline < handle
             if(nargout>2) ssBL = BL; end
 
             for i=1:length(kappa)
-                temp = exp(-kappa(i)*s);
+                temp = exp(-kappa(i)*s)*dKappa(i);
                 if(~isempty(I)) BL = BL + temp*I(i);
                 else BL(:,i) = temp; end
 
                 if(nargout>1)
-                    temp = temp*kappa(i);
+                    temp = temp*(-kappa(i));
                     if(~isempty(I)) sBL = sBL + temp*I(i);
                     else sBL(:,i) = temp; end
                 end
                 if(nargout>2)
-                    temp = temp*kappa(i);
+                    temp = temp*(-kappa(i));
                     if(~isempty(I)) ssBL = ssBL + temp*I(i);
                     else ssBL(:,i) = temp; end
                 end
@@ -331,8 +332,10 @@ classdef Spline < handle
         end
 
         function [trueMu,trueUpiota,mu,Ie]=plotDisUpiota(trueMu,trueUpiota,mu,Ie)
-            temp=([mu(2:end); mu(end)]-[mu(1);mu(1:end-1)])/2;
-            Ie = Ie./temp;
+            mu=(mu(1:end-1)+mu(2:end))/2;
+            mu=reshape([mu(:)';mu(:)'],[],1);
+            mu(1)=[]; mu(end)=[];
+            Ie=reshape([Ie(:)';Ie(:)'],[],1);
             if(nargout==0)
                 loglog(trueMu,trueUpiota,'r.-'); hold on;
                 loglog(mu,Ie,'*-'); hold off;
@@ -342,3 +345,4 @@ classdef Spline < handle
         end
     end
 end
+

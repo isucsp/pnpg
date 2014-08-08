@@ -2,7 +2,15 @@ function opt=loadLinear(obj,opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 
-    tics=[0, 65, 190, 210, 240, 260, 320, 340, 370, 435, 490, 545, 610, 640, 650, 740, 750, 780, 820, 880, 940, 1023];
+    tics=[0,...
+        90, 190,...
+        210, 240,...
+        260, 320, 340, 370,...
+        440, 490, 540,...
+        610, 640, 650,...
+        700, 750, 780,...
+        820, 880, 940,...
+        1023];
     t=(0:1023); t=t/max(t)*max(tics);
     x(t>=tics( 1) & t<tics( 2))=0;
     x(t>=tics( 2) & t<tics( 3))=linspace(0,1.4,sum(t>=tics(2) & t<tics(3)));
@@ -17,23 +25,21 @@ function opt=loadLinear(obj,opt)
     x(t>=tics(10) & t<tics(11))=linspace(0.9,1.7,sum(t>=tics(10) & t<tics(11)));
     x(t>=tics(11) & t<tics(12))=linspace(1.7,0.9,sum(t>=tics(11) & t<tics(12)));
     x(t>=tics(12) & t<tics(13))=0;
-    x(t>=tics(13) & t<tics(14))=linspace(1.1,1.5,sum(t>=tics(13) & t<tics(14)));
+    x(t>=tics(13) & t<tics(14))=linspace(1.1,1.1,sum(t>=tics(13) & t<tics(14)));
     x(t>=tics(14) & t<tics(15))=1.5;
-    x(t>=tics(15) & t<tics(16))=1.5+0.6*sin((0:sum(t>=tics(15) & t<tics(16))-1)/sum(t>=tics(15) & t<tics(16))*pi);
+    x(t>=tics(15) & t<tics(16))=0; %1.5+0.6*sin((0:sum(t>=tics(15) & t<tics(16))-1)/sum(t>=tics(15) & t<tics(16))*pi);
     x(t>=tics(16) & t<tics(17))=1.5;
     x(t>=tics(17) & t<tics(18))=linspace(1.5,1.1,sum(t>=tics(17) & t<tics(18)));
+    x(t>=tics(16) & t<tics(18))=sin((1:sum(t>=tics(16) & t<tics(18)))/sum(t>=tics(16) & t<tics(18))*pi);
     x(t>=tics(18) & t<tics(19))=0;
-    x(t>=tics(19) & t<tics(20))=1.6*(1-((-sum(t>=tics(19) & t<tics(20)):-1)/sum(t>=tics(19) & t<tics(20))).^2);
-    x(t>=tics(20) & t<tics(21))=1.6*(1-((0:sum(t>=tics(20) & t<tics(21))-1)/sum(t>=tics(20) & t<tics(21))).^2);
+    x(t>=tics(19) & t<tics(20))=1.6*(((1:sum(t>=tics(19) & t<tics(20)))/sum(t>=tics(19) & t<tics(20))).^2);
+    x(t>=tics(20) & t<tics(21))=1.6*(((sum(t>=tics(20) & t<tics(21))-1:-1:0)/sum(t>=tics(20) & t<tics(21))).^2);
     x(t>=tics(21))=0;
 
     if(~exist('obj'))
-        for i=0.7:0.01:0.98
-            [~,l1norm]=test(x,i);
-        end
-        [i,j]=find(l1norm==min(l1norm(l1norm>0)));
-        fprintf('level=%d,daub=%d  :  |x|_1 of signal achieves %g\n',i,2*j,l1norm(i,j));
+        [~,l1norm]=Utils.testSparsity(x);
         opt.l1norm=l1norm;
+        figure; plot(x);
         return;
     end
 
@@ -102,30 +108,5 @@ function opt=loadLinear(obj,opt)
     if(strcmpi(opt.noiseType,'poisson'))
         opt.L=opt.L/min(obj.y);
     end
-end
-
-function [dif,l1norm]=test(x,perce)
-    for i=1:9
-        for j=1:4
-            level = i; wave = 2*j;
-            [dif(i,j),~,l1norm(i,j)]=getError(x,perce,level,wave);
-        end
-    end
-    [i,j]=find(dif==min(dif(dif>0)));
-    fprintf('level=%d,daub=%d  :  %g%% of signal achieves %g%%\n',i,2*j,(1-perce)*100,dif(i,j)*100);
-end
-
-function [dif,coef,l1norm]=getError(x,perce,level,wave)
-    h=daubcqf(wave);
-    [wav,L] = mdwt(x,h,level);
-    [~,idx]=sort(abs(wav));
-    coef=wav(idx);
-    coef=coef(end:-1:1);
-    %figure(2); plot(wav(idx)); hold on;
-    wav(idx(1:floor(perce*length(x))))=0;
-    recX=midwt(wav,h,level);
-    %figure(1); plot(recX); hold on; plot(x,'r');
-    dif=(norm(x-recX)/norm(x))^2;
-    l1norm=sum(abs(coef));
 end
 

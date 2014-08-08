@@ -8,6 +8,7 @@ classdef Methods < handle
         fVal
         coef=1;
         hArray
+        grad;
         difAlpha=1;
         difObj
         maxStepNum = 1e2;
@@ -84,12 +85,22 @@ classdef Methods < handle
         function stepSizeInit(obj,select,L)
             switch (lower(select))
                 case 'bb'   % use BB method to guess the initial stepSize
-                    [cost1,grad1] = obj.func(obj.alpha);
+                    [~,grad1] = obj.func(obj.alpha);
                     temp = 1e-5*grad1/pNorm(grad1);
-                    [cost2,grad2] = obj.func(obj.alpha-temp);
+                    [~,grad2] = obj.func(obj.alpha-temp);
+
+
+
+
                     obj.t = pNorm(grad1-grad2)/pNorm(temp);
+
+                    fprintf('obj.t = %g, or %g\n',obj.t, innerProd(grad1-grad2,temp)/sqrNorm(temp));
+
+
+
+
                 case 'hessian'
-                    [cost,grad,hessian] = obj.func(obj.alpha);
+                    [~,grad,hessian] = obj.func(obj.alpha);
                     obj.t = hessian(grad,2)/sqrNorm(grad);
                 case 'fixed'
                     obj.t = L;

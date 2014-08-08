@@ -65,16 +65,18 @@ function summary = showResult(out,oMode,field,plotf)
             if(~isempty(out{i}))
                 alpha=out{i}.alpha;
                 trueA=out{i}.opt.trueAlpha;
-                trueAlphaNorm=norm(trueA);
                 switch field
                     case 0
+                        trueAlphaNorm=pNorm(trueA);
                         trueA= trueA/trueAlphaNorm;
                         summary(i)= 1-(alpha(:)'*trueA/norm(alpha(:)))^2;
                     case 1
+                        trueAlphaNorm=pNorm(trueA);
                         summary(i) = norm(alpha(:)-trueA)/trueAlphaNorm;
                     case 2
                         alpha(alpha<0)=0;
-                        summary(i) = (norm(alpha(:)-trueA)/trueAlphaNorm)^2;
+                        trueAlphaNorm=sqrNorm(trueA);
+                        summary(i) = sqrNorm(alpha(:)-trueA)/trueAlphaNorm;
                 end
             end
         end

@@ -1,9 +1,11 @@
 
-function dif = relativeDif(a,b)
-    normb=pNorm(b);
-    if(normb==0) dif=0;
+function [dif,nm] = relativeDif(a,b,p)
+    if(nargin==2) p=2; end
+    nm=pNorm(a-b,p); normb=pNorm(b,p);
+    if(nm==0 && normb==0)
+        dif=0;
     else
-        dif = pNorm(a-b)/normb;
+        dif = nm/normb;
     end
 end
 

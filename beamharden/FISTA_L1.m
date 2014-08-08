@@ -11,7 +11,6 @@ classdef FISTA_L1 < Methods
         main;
         cumu=0;
         cumuTol=4;
-        grad;
         newCost;
         nonInc=0;
         restart=0;   % make this value negative to disable restart

@@ -11,9 +11,9 @@ classdef IST_ADMM_NNL1 < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        grad;
         newCost;
         nonInc=0;
+        adaptiveStep=true;
     end
     methods
         function obj = IST_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -37,16 +37,23 @@ classdef IST_ADMM_NNL1 < Methods
                 [oldCost,obj.grad] = obj.func(y);
 
                 % start of line Search
-                obj.ppp=0;
+                obj.ppp=0; temp=true; temp1=0;
                 while(true)
+                    if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                        temp1=temp1+1;
+                        obj.t=obj.t*obj.stepShrnk;
+                    end
                     obj.ppp = obj.ppp+1;
                     newX = y - (obj.grad)/(obj.t);
                     newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
                         obj.admmTol*obj.difAlpha);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        break;
-                    else obj.t=obj.t/obj.stepShrnk;
+                        if(temp && obj.p==1)
+                            obj.t=obj.t*obj.stepShrnk;
+                            continue;
+                        else break; end
+                    else obj.t=obj.t/obj.stepShrnk; temp=false;
                     end
                 end
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
@@ -59,14 +66,8 @@ classdef IST_ADMM_NNL1 < Methods
                 obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                if(obj.ppp==1)
-                    obj.cumu=obj.cumu+1;
-                    if(obj.cumu>=obj.cumuTol)
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                    end
-                else obj.cumu=0;
-                end
+                if(obj.ppp==1 && obj.adaptiveStep) obj.cumu=obj.cumu+1;
+                else obj.cumu=0; end
                 %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;

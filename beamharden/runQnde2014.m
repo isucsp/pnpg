@@ -1,4 +1,4 @@
-function [conf,opt] = runIcip2014(runList)
+function [conf,opt] = runQnde2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %      Beam Hardening correction of CT Imaging via Mass attenuation 
 %                        coefficient discretizati
@@ -7,15 +7,11 @@ function [conf,opt] = runIcip2014(runList)
 %   Author: Renliang Gu (renliang@iastate.edu)
 %   v_0.2:      Changed to class oriented for easy configuration
 
-if(nargin==0 || ~isempty(runList))
-    filename = [mfilename '.mat'];
-    if(~exist(filename,'file') ) save(filename,'filename'); end
-end
-
 if(nargin==0) runList = [0];
 elseif(isempty(runList))
     conf=ConfigCT(); opt = conf.setup(); return;
 end
+paperDir = '~/research/myPaper/asilomar2014/';
 
 % runList rules, abc
 % a:
@@ -384,7 +380,10 @@ if(any(runList==012))
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     u  =  10.^[-5  -4   -4   -4   -4   -4];
     opt.continuation=false; opt.maxIeSteps=1;
-    for i=1:1
+
+    opt.saveAnimate=true;
+    for i=2:2
+        conf.PhiMode='gpuPrj'; opt.thresh=1e-6;
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
@@ -538,41 +537,123 @@ end
 % dis, compare the FISTA_ADMM_NNL1 and NCG_PR for both continuation and 
 % non-continuation
 if(any(runList==021))
-    load(filename,'out021');
+    filename = [mfilename '_021.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     conf=ConfigCT();
-    conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u =  1e-4;
+    conf.PhiMode='gpuPrj';
+    conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u = 1e-4;
     opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-    opt.maxIeSteps=1;
-    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    opt.maxIeSteps=1; opt.thresh=1e-6;
 
-    i=1; j=2; opt.alphaStep='NCG_PR';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    opt.debugLevel=6;
+    i=1; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.CenterB=false;
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    save(filename,'out','-append');
+    rmfield(opt,'CenterB');
+
+    return;
+
+    i=1; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out','-append');
+
+    % i=1; j=2; opt.alphaStep='NCG_PR';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
 
     i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    save(filename,'out','-append');
 
+    i=1; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.adaptiveStep=100; opt.cumuTol=10;
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out','-append');
+
+    return;
     opt.skipIe=true;
-    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    % i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
 
-    i=2; j=2; opt.alphaStep='NCG_PR';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    % i=2; j=2; opt.alphaStep='NCG_PR';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
 
-    i=2; j=3; opt.alphaStep='IST_ADMM_NNL1';
-    out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    % i=2; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
+   
+    opt.thresh=1e-6;
+    i=2; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out021','-append');
+    save(filename,'out','-append');
+
+    % opt.thresh=1e-6;
+    % i=2; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
+    % opt.adaptiveStep=false;
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
+    % opt.adaptiveStep=true;
+
+    opt.thresh=1e-6; opt.adaptiveStep=100; opt.cumuTol=10;
+    i=2; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out','-append');
+end
+
+if(any(runList==921))
+    load([mfilename '_021.mat']);
+    fprintf('for non skiped Ie\n');
+    t=1; noSkiped(:,t)=1:2000;
+    for i=1:3
+        t=t+1; noSkiped(1:length(out{1,i}.cost),t)=out{1,i}.cost;
+        t=t+1; noSkiped(1:length(out{1,i}.RMSE),t)=out{1,i}.RMSE;
+        t=t+1; noSkiped(1:length(out{1,i}.time),t)=out{1,i}.time;
+    end
+    mincost=reshape(noSkiped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
+    noSkiped(:,[2,5,8])=noSkiped(:,[2,5,8])-mincost;
+    save('costRmseTime.data','noSkiped','-ascii');
+    figure; subplot(2,1,1);
+    semilogy(out{1,1}.cost-mincost,'r'); hold on;
+    semilogy(out{1,2}.cost-mincost,'g');
+    semilogy(out{1,3}.cost-mincost,'b'); subplot(2,1,2);
+    semilogy(out{1,1}.RMSE,'r'); hold on;
+    semilogy(out{1,2}.RMSE,'g');
+    semilogy(out{1,3}.RMSE,'b');
+    figure; subplot(2,1,1);
+    semilogy(out{1,1}.time, out{1,1}.cost-mincost,'r'); hold on;
+    semilogy(out{1,2}.time, out{1,2}.cost-mincost,'g');
+    semilogy(out{1,3}.time, out{1,3}.cost-mincost,'b'); subplot(2,1,2);
+    semilogy(out{1,1}.time, out{1,1}.RMSE,'r'); hold on;
+    semilogy(out{1,2}.time, out{1,2}.RMSE,'g');
+    semilogy(out{1,3}.time, out{1,3}.RMSE,'b');
+
+    return;
+    t=1; skipped(:,t)=1:2000;
+    for i=1:3
+        out=out021{2,i};
+        t=t+1; skipped(1:length(out.cost),t)=out.cost;
+        t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; skipped(1:length(out.time),t)=out.time;
+    end
+    mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
+    skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
+    save('costRmseTime_fixedI.data','skipped','-ascii');
 end
 
 if(any(runList==22)) % dis, max AS step,

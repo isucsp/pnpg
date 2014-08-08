@@ -152,5 +152,79 @@ classdef Utils < handle
             end
         end
 
+        % The following model assumes the y=exp(-Φα)
+        function [f,g,h] = poissonModelLogLink0(alpha,Phi,Phit,y)
+            PhiAlpha=Phi(alpha); weight = exp(-PhiAlpha);
+            f=sum(weight)+innerProd(y,PhiAlpha);
+            if(nargout>=2)
+                g=Phit(  y(:) - weight  );
+                if(nargout>=3)
+                    h=@(x,opt) hessian(weight,x,opt);
+                end
+            end
+            function hh=hessian(weight,x,opt)
+                z = Phi(x);
+                if(opt==1)
+                    hh = Phit(weight.*z);
+                else
+                    hh = innerProd(z,weight.*z);
+                end
+            end
+        end
+
+        % The following model assumes the y=I_0 * exp(-Φα), where I_0 is unknown and estimated as a function of α
+        function [f,g,h] = poissonModelLogLink(alpha,Phi,Phit,y)
+            PhiAlpha=Phi(alpha); weight = exp(-PhiAlpha);
+            sumy=sum(y); sumWeight=sum(weight);
+            f=sumy*log(sumWeight)+innerProd(y,PhiAlpha);
+            if(nargout>=2)
+                g=Phit(  y(:) - weight*sumy/sumWeight  );
+                if(nargout>=3)
+                    h=@(x,opt) hessian(x,opt);
+                end
+            end
+            function hh = hessian(x,opt)
+                z = Phi(x);
+                if(opt==1)
+                    hh = Phit(weight.*z-weight*innerProd(weight,z)/sumWeight)*sumy/sumWeight;
+                else
+                    w = innerProd(weight,z);
+                    hh = (innerProd(z,weight.*z)-w*w/sumWeight)*sumy/sumWeight;
+                end
+            end
+        end
+
+        function [dif,l1norm]=testSparsity(x)
+            k=0;
+            for perce=0.7:0.01:0.98
+                k=k+1;
+                for i=1:9
+                    for j=1:4
+                        level = i; wave = 2*j;
+                        [dif(i,j,k),~,l1norm(i,j)]=Utils.getError(x,perce,level,wave);
+                    end
+                end
+                minDif=dif(:,:,k); minDif=min(minDif(minDif>0));
+                [i,j]=find(dif(:,:,k)==minDif);
+                fprintf('level=%d,daub=%d  :  %g%% of signal achieves %g%%\n',i,2*j,(1-perce)*100,dif(i,j,k)*100);
+            end
+            [i,j]=find(l1norm==min(l1norm(l1norm>0)));
+            fprintf('level=%d,daub=%d  :  |x|_1 of signal achieves %g\n',i,2*j,l1norm(i,j));
+        end
+
+        function [dif,coef,l1norm]=getError(x,perce,level,wave)
+            h=daubcqf(wave);
+            [wav,L] = mdwt(x,h,level);
+            [~,idx]=sort(abs(wav(:)));
+            coef=wav(idx);
+            coef=coef(end:-1:1);
+            %figure(2); plot(wav(idx)); hold on;
+            wav(idx(1:floor(perce*length(x(:)))))=0;
+            recX=midwt(wav,h,level);
+            %figure(1); plot(recX); hold on; plot(x,'r');
+            dif=sqrNorm(x-recX)/sqrNorm(x);
+            l1norm=sum(abs(coef(:)));
+        end
     end
 end
+
