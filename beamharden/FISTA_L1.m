@@ -46,16 +46,25 @@ classdef FISTA_L1 < Methods
                 dsi = obj.Psit(obj.grad);
 
                 % start of line Search
-                obj.ppp=0;
+                obj.ppp=0; temp=true; temp1=0;
                 while(true)
+                    if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                        % adaptively increase the step size
+                        temp1=temp1+1;
+                        obj.t=obj.t*obj.stepShrnk;
+                    end
                     obj.ppp = obj.ppp+1;
                     wi=si-dsi/obj.t;
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        break;
-                    else obj.t=obj.t/obj.stepShrnk;
+                        if(temp && obj.p==1)
+                            obj.t=obj.t*obj.stepShrnk;
+                            continue;
+                        else break;
+                        end
+                    else obj.t=obj.t/obj.stepShrnk; temp=false;
                     end
                 end
                 obj.fVal(3) = pNorm(newSi,1);
@@ -67,7 +76,6 @@ classdef FISTA_L1 < Methods
                     % Not necessary, decrease is gauranteed
                     % if(obj.restart>0) obj.t=obj.t/obj.stepShrnk; end
                     obj.restart=1;
-                    opt.oldCost = oldCost; opt.y=y;
                     continue;
                 end
                 if(temp>obj.cost)
@@ -78,14 +86,9 @@ classdef FISTA_L1 < Methods
                 obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                if(obj.ppp==1 && obj.adaptiveStep)
-                    obj.cumu=obj.cumu+1;
-                    if(obj.cumu>=obj.cumuTol)
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                    end
-                else obj.cumu=0;
-                end
+
+                if(obj.ppp==1 && obj.adaptiveStep) obj.cumu=obj.cumu+1;
+                else obj.cumu=0; end
                 %set(0,'CurrentFigure',123);
                 %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
                 %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;

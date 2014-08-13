@@ -82,7 +82,7 @@ classdef Methods < handle
                 end
             end
         end
-        function stepSizeInit(obj,select,L)
+        function t=stepSizeInit(obj,select,L)
             switch (lower(select))
                 case 'bb'   % use BB method to guess the initial stepSize
                     [~,grad1] = obj.func(obj.alpha);
@@ -91,23 +91,20 @@ classdef Methods < handle
 
 
 
-
-                    obj.t = pNorm(grad1-grad2)/pNorm(temp);
-
-                    fprintf('obj.t = %g, or %g\n',obj.t, innerProd(grad1-grad2,temp)/sqrNorm(temp));
-
+                    t = [pNorm(grad1-grad2)/pNorm(temp), innerProd(grad1-grad2,temp)/sqrNorm(temp)];
 
 
 
                 case 'hessian'
                     [~,grad,hessian] = obj.func(obj.alpha);
-                    obj.t = hessian(grad,2)/sqrNorm(grad);
+                    t = hessian(grad,2)/sqrNorm(grad);
                 case 'fixed'
-                    obj.t = L;
+                    t = L;
                 otherwise
                     error('unkown selection for initial step');
             end
-            if(isnan(obj.t)) obj.t=1; end
+            if(isnan(t)) t=ones(size(t)); end
+            if(nargout==0) obj.t=t(1); end
         end
         function set.M(obj,M)
             obj.M = M;

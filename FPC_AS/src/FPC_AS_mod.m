@@ -416,7 +416,7 @@ for itr = 1:opts.mxitr
     Out.curGtol_scale_x(itr) = opts.gtol_scale_x;
     Out.f_rel_tol(itr) = opts.f_rel_tol;
 
-    if ((crit2f<opts.gtol) || (crit2f/norm_x<opts.gtol_scale_x) || (mu == muf && f_rel < opts.f_rel_tol))
+    if ((crit2f<opts.gtol) || (crit2f<=norm_x*opts.gtol_scale_x) || (mu == muf && f_rel < opts.f_rel_tol))
     % if (mu==muf && (nrmxxp/norm_x)<opts.rel_dif_x)
         Out.exit = 1; Out.mesg = 'shrinkage optimal'; final_solu_info();  return;
     elseif f < opts.f_value_tol
@@ -435,7 +435,7 @@ for itr = 1:opts.mxitr
 
 
         subopt(); Out.nSubOpt = Out.nSubOpt + 1;  compute_crits();
-        if (crit2f<opts.gtol)  || (crit2f/norm_x<opts.gtol_scale_x)  || (mu == muf && f_rel < opts.f_rel_tol)
+        if (crit2f<opts.gtol)  || (crit2f<=norm_x*opts.gtol_scale_x)  || (mu == muf && f_rel < opts.f_rel_tol)
             Out.exit = 1; Out.mesg = 'sub-opt optimal'; final_solu_info();  return;
         elseif f < opts.f_value_tol
             Out.exit = 5; Out.mesg = 'the current function value is less than opts.f_value'; final_solu_info();  return;
@@ -443,7 +443,7 @@ for itr = 1:opts.mxitr
     end
 
 
-    if ( (crit2/norm_x<opts.gtol_scale_x) || (crit2f < crit2 ) || fpc_stall > 0 ) && (mu > muf)
+    if ( (crit2<=norm_x*opts.gtol_scale_x) || (crit2f < crit2 ) || fpc_stall > 0 ) && (mu > muf)
 
         mu_prev = mu; kappa_g_d = opts.kappa_g_d; max_g_zx = max(abs(g(z_x)));
         if (itr - itr_prev_mu_dec <= opts.min_itr_shrink)

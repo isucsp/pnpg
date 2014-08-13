@@ -77,12 +77,10 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 % restart
                 if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
-                    obj.theta=0;
-                    pp=pp-1;
+                    obj.theta=0; pp=pp-1;
                     obj.restart= 1; % make sure only restart once each iteration
                     continue;
                 end
-                
                 if(temp>obj.cost)
                     obj.nonInc=obj.nonInc+1;
                     if(obj.nonInc>5) newX=obj.alpha; end

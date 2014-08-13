@@ -170,6 +170,7 @@ computereconerror = 0; % by default assume f is not given
 reconerrortype = 0; 
 savecputime = 0;
 savesolutionpath = 0;
+savedifalpha = 0;
 
 % ---- Read in the input parameters ----
 if (rem(length(varargin),2)==1)
@@ -208,6 +209,7 @@ else
             case 'savecputime';         savecputime         = varargin{ii+1}; %
             case 'reconerrortype';      reconerrortype      = varargin{ii+1};
             case 'savesolutionpath';    savesolutionpath    = varargin{ii+1}; %
+            case 'savedifalpha';        savedifalpha        = varargin{ii+1}; %
             case 'warnings';            warnings            = varargin{ii+1};
             case 'recenter';            recenter            = varargin{ii+1};
         otherwise
@@ -344,6 +346,11 @@ end
 if (numel(savecputime) ~= 1)  || (sum( savecputime == [0 1] ) ~= 1)
     error(['The option to save the computation time ',...
         'SAVECPUTIME'' ',...
+        'must be a binary scalar (either 0 or 1).'])
+end
+if (numel(savedifalpha) ~= 1)  || (sum( savedifalpha == [0 1] ) ~= 1)
+    error(['The option to save the difAlpha ',...
+        'savedifalpha'' ',...
         'must be a binary scalar (either 0 or 1).'])
 end
 % SAVESOLUTIONPATH: Just a binary indicator, check if not equal to 0 or 1.
@@ -503,12 +510,12 @@ if (nargout == 0) && warnings
 	pause(1);
 end
 if (nargout < (2 + saveobjective + savereconerror ...
-        + savecputime + savesolutionpath)) && warnings
+        + savecputime + savesolutionpath+savedifalpha)) && warnings
     disp(['Warning:  Insufficient output parameters given to save ',...
         'the full output with the given options.']);
 end
 if nargout > (2 + saveobjective + savereconerror ...
-        + savecputime + savesolutionpath)
+        + savecputime + savesolutionpath+savedifalpha)
         error('Too many output arguments specified for the given options.')
 end
 
@@ -529,6 +536,9 @@ objective = [];
 
 if savecputime
     cputime = zeros(maxiter+1,1);
+end
+if savedifalpha
+    difAlpha= zeros(maxiter+1,1);
 end
 if saveobjective
     objective = zeros(maxiter+1,1);
@@ -658,9 +668,11 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     % Needed for next iteration and also termination criteria
     grad = computegrad(y,Ax,AT,noisetype,logepsilon);
 
-    converged = checkconvergence(iter,miniter,stopcriterion,tolerance,...
+    [converged,temp] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime(iter+1), objective);
-
+    if savedifalpha
+        difAlpha(iter+1) = temp;
+    end
 
     % Display progress
     if ~mod(iter,verbose)
@@ -679,6 +691,9 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 100*abs(objective(iter+1) - objective(iter))./...
                 abs(objective(iter)))
         end      
+        if savedifalpha
+            fprintf(', difAlpha: %11.4e',difAlpha(iter+1));
+        end
         if savereconerror
             fprintf(', Err: %11.4e',reconerror(iter+1))
         end
@@ -733,6 +748,9 @@ if savereconerror
 end
 if savecputime
     varargout = [varargout {cputime(1:iter+1)}];
+end
+if savedifalpha
+    varargout = [varargout {difAlpha(1:iter+1)}];
 end
 if savesolutionpath
     varargout = [varargout {solutionpath(1:iter+1)}];
@@ -848,9 +866,9 @@ end
 % =====================================
 % = Termination Criteria Computation: =
 % =====================================
-function converged = checkconvergence(iter,miniter,stopcriterion,tolerance,...
+function [converged, difAlpha] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime, objective)
-	converged = 0;
+	converged = 0; difAlpha=0;
     if iter >= miniter %no need to check if miniter not yet exceeded
 
         switch stopcriterion
@@ -862,7 +880,10 @@ function converged = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                 converged = (cputime >= tolerance);
             case 3
                 % Relative changes in iterate
-                converged = ((sum(dx(:).^2)) <= tolerance^2*sum(x(:).^2));
+                temp=(sum(dx(:).^2));
+                temp1=sum(x(:).^2);
+                converged = ( temp <= tolerance^2*temp1);
+                difAlpha=sqrt(temp/temp1);
             case 4
                 % relative changes in objective
                 converged = (( abs( objective(iter+1) - objective(iter))...

@@ -148,6 +148,9 @@ while(true)
     out.cost(p) = alphaStep.cost;
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
+    if(isfield(opt,'getBB') && opt.getBB)
+        out.BB(p,:)=alphaStep.stepSizeInit('BB');
+    end
 
     out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
