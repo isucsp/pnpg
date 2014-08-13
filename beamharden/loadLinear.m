@@ -39,6 +39,7 @@ function opt=loadLinear(obj,opt)
     if(~exist('obj'))
         [~,l1norm]=Utils.testSparsity(x);
         opt.l1norm=l1norm;
+        opt.x=x;
         figure; plot(x);
         return;
     end
