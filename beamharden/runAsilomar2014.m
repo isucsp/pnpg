@@ -199,11 +199,18 @@ if(any(runList==002))
             opt.m=m(i); opt.snr=inf;
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
-            if(k<11) continue; end;
+            if(k>1) return; end;
             for j=2:4
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
 
                 opt.u = u(i)*10^(j-3);
+
+                opt.continuation=false; opt.alphaStep='FISTA_L1';
+                opt.cumuTol=20;
+                npgsn20{i,j,k}=lasso(conf.Phi,conf.Phit,...
+                    conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename,'npgsn20','-append');
+                continue;
 
                 opt.continuation=false;
                 opt.alphaStep='FISTA_ADMM_NNL1';
@@ -359,15 +366,15 @@ if(any(runList==902))
     [r,c6]=find( fistaRMSE== repmat(min( fistaRMSE,[],2),1,5)); [r,idx6]=sort(r);
     [r,c7]=find(sparsaRMSE== repmat(min(sparsaRMSE,[],2),1,5)); [r,idx7]=sort(r);
     [c1(idx1) ,c2(idx2) ,c3(idx3) ,c4(idx4) ,c5(idx5) ,c6(idx6) ,c7(idx7)]
-    for k=1:10; for i=1:size(npg,1)
-        figure(1); semilogy(m(i),   npg{i,gEle(c1(idx1),i),k}.RMSE(end),'r-*');     hold on;
-        figure(2);semilogy(m(i),  npgc{i,gEle(c2(idx2),i),k}.RMSE(end),'c-p');hold on;
-        figure(3);semilogy(m(i),  npgs{i,gEle(c3(idx3),i),k}.RMSE(end),'k-s');hold on;
-        figure(4);semilogy(m(i),spiral{i,gEle(c4(idx4),i),k}.reconerror(end),'k-^');hold on;
-        figure(5);semilogy(m(i), fpcas{i,gEle(c5(idx5),i),k}.RMSE(end),'g-o');hold on;
-        figure(6);semilogy(m(i), fista{i,gEle(c6(idx6),i),k}.RMSE(end),'b-.');hold on;
-        figure(7);semilogy(m(i),sparsa{i,gEle(c7(idx7),i),k}.RMSE(end),'y-p');hold on;
-    end; end;
+    % for k=1:10; for i=1:size(npg,1)
+    %     figure(1); semilogy(m(i),   npg{i,gEle(c1(idx1),i),k}.RMSE(end),'r-*');     hold on;
+    %     figure(2);semilogy(m(i),  npgc{i,gEle(c2(idx2),i),k}.RMSE(end),'c-p');hold on;
+    %     figure(3);semilogy(m(i),  npgs{i,gEle(c3(idx3),i),k}.RMSE(end),'k-s');hold on;
+    %     figure(4);semilogy(m(i),spiral{i,gEle(c4(idx4),i),k}.reconerror(end),'k-^');hold on;
+    %     figure(5);semilogy(m(i), fpcas{i,gEle(c5(idx5),i),k}.RMSE(end),'g-o');hold on;
+    %     figure(6);semilogy(m(i), fista{i,gEle(c6(idx6),i),k}.RMSE(end),'b-.');hold on;
+    %     figure(7);semilogy(m(i),sparsa{i,gEle(c7(idx7),i),k}.RMSE(end),'y-p');hold on;
+    % end; end;
     figure;
     semilogy(m,   npgRMSE((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
     semilogy(m,  npgcRMSE((c2(idx2)-1)*9+(1:9)'),'c-p');
@@ -385,51 +392,15 @@ if(any(runList==902))
     semilogy(m, fistaTime((c6(idx6)-1)*9+(1:9)'),'b-.');
     semilogy(m,sparsaTime((c7(idx7)-1)*9+(1:9)'),'y-p');
 
-    keyboard
-
-    idx1 = 2;    
-    idx2 = 2;
-    idx3 = 2;
-    idx4 = 3;
-    idx5 = 2;
-    idx6 = 2;
-    idx7 = 2;
-    figure;
-    semilogy(m,   npgRMSE(:,idx1),'r-*'); hold on;
-    semilogy(m,  npgcRMSE(:,idx2),'c-p');
-    semilogy(m,  npgsRMSE(:,idx3),'k-s');
-    semilogy(m,spiralRMSE(:,idx4),'k-^');
-    semilogy(m, fpcasRMSE(:,idx5),'g-o');
-    semilogy(m, fistaRMSE(:,idx6),'b-.');
-    semilogy(m,sparsaRMSE(:,idx7),'y-p');
-    figure;
-    plot(m,-10*log10(   npgRMSE(:,idx1)),'r-*'); hold on;
-    plot(m,-10*log10(  npgcRMSE(:,idx2)),'c-p');
-    plot(m,-10*log10(  npgsRMSE(:,idx3)),'k-s');
-    plot(m,-10*log10(spiralRMSE(:,idx4)),'k-^');
-    plot(m,-10*log10( fpcasRMSE(:,idx5)),'g-o');
-    plot(m,-10*log10( fistaRMSE(:,idx6)),'b-.');
-    plot(m,-10*log10(sparsaRMSE(:,idx7)),'y-p');
-    figure;
-    semilogy(m,   npgTime(:,idx1),'r-*'); hold on;
-    semilogy(m,  npgcTime(:,idx2),'c-p');
-    semilogy(m,  npgsTime(:,idx3),'k-s');
-    semilogy(m,spiralTime(:,idx4),'k-^');
-    semilogy(m, fpcasTime(:,idx5),'g-o');
-    semilogy(m, fistaTime(:,idx6),'b-.');
-    semilogy(m,sparsaTime(:,idx7),'y-p');
-
-    keyboard
-    
     temp = 4;
     signal=npg{1}.opt.trueAlpha;
-    signal=[signal,    npg{temp,idx1,1}.alpha];
-    signal=[signal,   npgc{temp,idx2,1}.alpha];
-    signal=[signal,   npgs{temp,idx3,1}.alpha];
-    signal=[signal, spiral{temp,idx4,1}.alpha];
-    signal=[signal,  fpcas{temp,idx5,1}.alpha];
-    signal=[signal,  fista{temp,idx6,1}.alpha];
-    signal=[signal, sparsa{temp,idx7,1}.alpha];
+    signal=[signal,    npg{gEle((c1(idx1)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal,   npgc{gEle((c2(idx2)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal,   npgs{gEle((c3(idx3)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal, spiral{gEle((c4(idx4)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal,  fpcas{gEle((c5(idx5)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal,  fista{gEle((c6(idx6)-1)*9+(1:9)',temp)}.alpha];
+    signal=[signal, sparsa{gEle((c7(idx7)-1)*9+(1:9)',temp)}.alpha];
     save('skyline.data','signal','-ascii');
     figure; plot(signal(:,2)); hold on; plot(signal(:,1),'r'); title('NPG');
     figure; plot(signal(:,4)); hold on; plot(signal(:,1),'r'); title('NPGs');
@@ -456,43 +427,47 @@ if(any(runList==902))
     % end
 
     forSave=[];
-    forSave=[forSave,    npgTime(:,idx1)];
-    forSave=[forSave,   npgcTime(:,idx2)];
-    forSave=[forSave,   npgsTime(:,idx3)];
-    forSave=[forSave, spiralTime(:,idx4)];
-    forSave=[forSave,  fpcasTime(:,idx5)];
-    forSave=[forSave,  fistaTime(:,idx6)];
+    forSave=[forSave,    npgTime((c1(idx1)-1)*9+(1:9)')];
+    forSave=[forSave,   npgcTime((c2(idx2)-1)*9+(1:9)')];
+    forSave=[forSave,   npgsTime((c3(idx3)-1)*9+(1:9)')];
+    forSave=[forSave, spiralTime((c4(idx4)-1)*9+(1:9)')];
+    forSave=[forSave,  fpcasTime((c5(idx5)-1)*9+(1:9)')];
+    forSave=[forSave,  fistaTime((c6(idx6)-1)*9+(1:9)')];
 
-    forSave=[forSave,    npgCost(:,idx1)];
-    forSave=[forSave,   npgcCost(:,idx2)];
-    forSave=[forSave,   npgsCost(:,idx3)];
-    forSave=[forSave, spiralCost(:,idx4)];
-    forSave=[forSave,  fpcasCost(:,idx5)];
-    forSave=[forSave,  fistaCost(:,idx6)];
+    forSave=[forSave,    npgCost((c1(idx1)-1)*9+(1:9)')];
+    forSave=[forSave,   npgcCost((c2(idx2)-1)*9+(1:9)')];
+    forSave=[forSave,   npgsCost((c3(idx3)-1)*9+(1:9)')];
+    forSave=[forSave, spiralCost((c4(idx4)-1)*9+(1:9)')];
+    forSave=[forSave,  fpcasCost((c5(idx5)-1)*9+(1:9)')];
+    forSave=[forSave,  fistaCost((c6(idx6)-1)*9+(1:9)')];
 
-    forSave=[forSave,    npgRMSE(:,idx1)];
-    forSave=[forSave,   npgcRMSE(:,idx2)];
-    forSave=[forSave,   npgsRMSE(:,idx3)];
-    forSave=[forSave, spiralRMSE(:,idx4)];
-    forSave=[forSave,  fpcasRMSE(:,idx5)];
-    forSave=[forSave,  fistaRMSE(:,idx6)];
+    forSave=[forSave,    npgRMSE((c1(idx1)-1)*9+(1:9)')];
+    forSave=[forSave,   npgcRMSE((c2(idx2)-1)*9+(1:9)')];
+    forSave=[forSave,   npgsRMSE((c3(idx3)-1)*9+(1:9)')];
+    forSave=[forSave, spiralRMSE((c4(idx4)-1)*9+(1:9)')];
+    forSave=[forSave,  fpcasRMSE((c5(idx5)-1)*9+(1:9)')];
+    forSave=[forSave,  fistaRMSE((c6(idx6)-1)*9+(1:9)')];
     forSave=[forSave, m(:)];
-    forSave=[forSave, spiralTime(:,idx6)];
-    forSave=[forSave, spiralCost(:,idx6)];
-    forSave=[forSave, spiralRMSE(:,idx6)];
-    forSave=[forSave, sparsaTime(:,idx7)];
-    forSave=[forSave, sparsaCost(:,idx7)];
-    forSave=[forSave, sparsaRMSE(:,idx7)];
+    forSave=[forSave, sparsaTime((c7(idx7)-1)*9+(1:9)')];
+    forSave=[forSave, sparsaCost((c7(idx7)-1)*9+(1:9)')];
+    forSave=[forSave, sparsaRMSE((c7(idx7)-1)*9+(1:9)')];
     save('varyMeasurement.data','forSave','-ascii');
 
     mIdx=6; forSave=[]; t=0;
-    t=t+1; temp=  npgs{mIdx,idx3,1}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fista{mIdx,idx6,1}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  npgs{mIdx,idx3,1}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fista{mIdx,idx6,1}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  npgs{mIdx,idx3,1}.time(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fista{mIdx,idx6,1}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
     save('stepSizeLin.data','forSave','-ascii');
+    figure; semilogy(forSave(:,7),forSave(:,4),'r'); hold on;
+    semilogy(forSave(:,8),forSave(:,5),'g');
+    semilogy(forSave(:,9),forSave(:,6),'b');
+
 
     system(['mv stepSizeLin.data varyMeasurement.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');

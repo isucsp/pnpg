@@ -177,6 +177,7 @@ alphaStep.coef(1:2) = [1; opt.nu;];
 
 B=eye(opt.E); b=zeros(opt.E,1);
 if(isfield(opt,'CenterB') && opt.CenterB)
+    if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
     temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
     temp=temp/sqrt(2);
     B=[B; temp]; b=[b; zeros(opt.E-1,1)];
@@ -184,7 +185,6 @@ end
 temp = polyIout(0,[]);
 B=[B; -temp(:)'/norm(temp)]; b=[b; -1/norm(temp)];
 
-keyboard
 switch lower(opt.IeStep)
     case lower('ActiveSet')
         IeStep = ActiveSet(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
@@ -290,7 +290,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         IeStep.func = @(III) gaussLI(Imea,A,III);
         IeStep.main();
 
-        if(isfield(opt,'CenterB') && opt.CenterB)
+        if(isfield(opt,'CenterB') && opt.CenterB && opt.correctCenterB)
             temp=find(IeStep.Q((1:length(Ie)-1)+length(Ie)));
             if(~isempty(temp) && isContinuous(temp) && (any(temp==floor(length(Ie)/2)) || any(temp==floor(length(Ie)/2)+1)))
                 temp=(mean(temp)-floor(length(Ie)/2)-0.5);

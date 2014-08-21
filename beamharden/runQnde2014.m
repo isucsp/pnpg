@@ -656,7 +656,37 @@ if(any(runList==921))
     save('costRmseTime_fixedI.data','skipped','-ascii');
 end
 
-if(any(runList==22)) % dis, max AS step,
+% compare the effect forcing center model of spectrum 
+if(any(runList==022))
+    filename = [mfilename '_022.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    conf=ConfigCT();
+    conf.PhiMode='gpuPrj';
+    conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u = 1e-4;
+    opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+    opt.maxIeSteps=1; opt.thresh=1e-6;
+
+    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=false; 
+    out1=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out1','-append');
+
+    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=true;
+    opt.correctCenterB=false;
+    out2=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out2','-append');
+
+    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=true;
+    opt.correctCenterB=true;
+    out3=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out3','-append');
+
+    return;
+end
+
+if(any(runList==122)) % dis, max AS step,
     [conf, opt] = defaultInit();
     opt.maxIeSteps = 100;
     intval = 6:-1:1;

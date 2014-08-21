@@ -42,7 +42,7 @@ function summary = showResult(out,oMode,field,plotf)
             str{i}=num2str(i);
         end
     elseif(oMode==2) % extract the last element of each field from cell array
-        summary=zeros(size(out));
+        summary=ones(size(out))*inf;
         for i=1:length(out(:))
             if(~isempty(out{i}))
                 res{i}=getfield(out{i},field);
