@@ -663,6 +663,7 @@ if(any(runList==022))
     conf=ConfigCT();
     conf.PhiMode='gpuPrj';
     conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u = 1e-4;
+    opt.debugLevel=6;
     opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1; opt.thresh=1e-6;
 
