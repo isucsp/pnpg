@@ -302,27 +302,13 @@ if(any(runList==902))
     m=[ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     K = 10;
 
-    npgTime   = 0;
-    npgcTime  = 0;
-    npgsTime  = 0;
-    spiralTime= 0;
-    fpcasTime = 0;
-    fistaTime = 0;
-    sparsaTime= 0;
-    npgCost   = 0;
-    npgcCost  = 0;
-    npgsCost  = 0;
-    spiralCost= 0;
-    fpcasCost = 0;
-    fistaCost = 0;
-    sparsaCost= 0;
-    npgRMSE   = 0;
-    npgcRMSE  = 0;
-    npgsRMSE  = 0;
-    spiralRMSE= 0;
-    fpcasRMSE = 0;
-    fistaRMSE = 0;
-    sparsaRMSE= 0;
+    npgTime   = 0;       npgCost= 0;       npgRMSE= 0;
+    npgcTime  = 0;      npgcCost= 0;      npgcRMSE= 0;
+    npgsTime  = 0;      npgsCost= 0;      npgsRMSE= 0;
+    spiralTime= 0;    spiralCost= 0;    spiralRMSE= 0;
+    fpcasTime = 0;     fpcasCost= 0;     fpcasRMSE= 0;
+    fistaTime = 0;     fistaCost= 0;     fistaRMSE= 0;
+    sparsaTime= 0;    sparsaCost= 0;    sparsaRMSE= 0;
 
     for k=1:K
         npgTime   =   npgTime+1/K*showResult(   npg(:,:,k),2,'time');
@@ -409,13 +395,13 @@ if(any(runList==902))
     M=length(m);
     str=        '$m$            ';              for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%10d',str,m(i)); end; end;
     str=sprintf('%s\\\\\\hline',str);
-    str=sprintf('%s\nFISTA          ', str);    for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fista{i,idx6,1}.cost(end));end; end;
-    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgs{i,idx3,1}.cost(end));end; end;
-    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fpcas{i,idx5,1}.f   (end));end; end;
-    str=sprintf('%s\\\\\nSPIRAL$_{-4}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{i,idx4,1}.cost(end));end; end;
-    str=sprintf('%s\\\\\nSPIRAL$_{-5}$  ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{i,idx6,1}.cost(end));end; end;
-    str=sprintf('%s\\\\\nNPG            ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,   npg{i,idx1,1}.cost(end));end; end;
-  % str=sprintf('%s\\\\\nNPG$_\\text{c}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgcCost(i,idx2));end; end;
+    str=sprintf('%s\\\\\nNPG            ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,   npg{gEle((c1(idx1)-1)*9+(1:9)',i)}.cost(end));end; end;
+    str=sprintf('%s\\\\\nNPG$_\\text{C}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgc{gEle((c2(idx2)-1)*9+(1:9)',i)}.cost(end));end; end;
+    str=sprintf('%s\\\\\nNPG$_\\text{S}$ ',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,  npgs{gEle((c3(idx3)-1)*9+(1:9)',i)}.cost(end));end; end;
+    str=sprintf('%s\\\\\nSPIRAL         ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{gEle((c4(idx4)-1)*9+(1:9)',i)}.cost(end));end; end;
+    str=sprintf('%s\\\\\nFPC$_\\text{AS}$',str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fpcas{gEle((c5(idx5)-1)*9+(1:9)',i)}.f   (end));end; end;
+    str=sprintf('%s\nFISTA          ', str);    for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str, fista{gEle((c6(idx6)-1)*9+(1:9)',i)}.cost(end));end; end;
+    str=sprintf('%s\\\\\nSpaRSA         ', str);for i=1:M;if(mod(m(i),100)==0);str=sprintf('%s&%-10.4g',str,spiral{gEle((c7(idx7)-1)*9+(1:9)',i)}.cost(end));end; end;
     file=fopen('varyMeasurementTable.tex','w'); fprintf(file,'%s',str); fclose(file);
 
     % figure;
@@ -453,7 +439,7 @@ if(any(runList==902))
     forSave=[forSave, sparsaRMSE((c7(idx7)-1)*9+(1:9)')];
     save('varyMeasurement.data','forSave','-ascii');
 
-    mIdx=6; forSave=[]; t=0;
+    mIdx=7; forSave=[]; t=0;
     t=t+1; temp=   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
     t=t+1; temp=npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
     t=t+1; temp=  fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
@@ -463,11 +449,16 @@ if(any(runList==902))
     t=t+1; temp=   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
     t=t+1; temp=npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
     t=t+1; temp=  fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    disp([   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.p;...
+          npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.p;...
+            fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.p]);
+    disp([   npgs{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(end); ...
+          npgsn20{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(end); ...
+            fista{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(end)]);
     save('stepSizeLin.data','forSave','-ascii');
     figure; semilogy(forSave(:,7),forSave(:,4),'r'); hold on;
     semilogy(forSave(:,8),forSave(:,5),'g');
     semilogy(forSave(:,9),forSave(:,6),'b');
-
 
     system(['mv stepSizeLin.data varyMeasurement.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');

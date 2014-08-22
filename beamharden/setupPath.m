@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 07 Aug 2014 10:58:13 PM CDT
+% $Revision: 0.3 $ $Date: Thu 21 Aug 2014 06:03:20 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -22,9 +22,9 @@ addpath([pathstr '/../irt/utilities']);
 addpath([pathstr '/../others/']);
 addpath([pathstr]);
 
-cd '../prj'
-%!make clean
-!make mCPUPrj mParPrj solveTriDiag mGPUPrj 
-cd(pathstr)
-clear a pathstr;
+% cd '../prj'
+% %!make clean
+% !make mCPUPrj mParPrj solveTriDiag mGPUPrj 
+% cd(pathstr)
+% clear a pathstr;
 

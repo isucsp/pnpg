@@ -682,8 +682,26 @@ if(any(runList==022))
     out3=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out3','-append');
+end
 
-    return;
+if(any(runList==922))
+    load([mfilename '_022.mat']);
+    polymodel = Spline(out1.opt.spectBasis,out1.kappa);
+    polymodel.setPlot(out1.opt.trueKappa,out1.opt.trueIota,out1.opt.epsilon);
+    [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out1.Ie);
+    i=1; forSave=[tK, tU];
+    keyboard
+    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
+    figure; loglog(tK,tU,'r'); hold on; loglog(kappa,Ie,'g*');
+
+    [~,~,kappa,Ie]=polymodel.plotSpectrum(out2.Ie);
+    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
+    loglog(kappa,Ie,'b<');
+
+    [~,~,kappa,Ie]=polymodel.plotSpectrum(out3.Ie);
+    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
+    loglog(kappa,Ie,'cs');
+    save('effectiveCenterB.data','forSave','-ascii');
 end
 
 if(any(runList==122)) % dis, max AS step,
