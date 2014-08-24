@@ -958,14 +958,13 @@ if(any(runList==005))
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7];
     a  =[1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5];
 
-    for k=1:5
+    for k=1:10
         for i=1:length(snr)
             opt.m=m; opt.snr=snr(i);
             opt=loadLinear(conf,opt);
             initSig = conf.Phit(conf.y)*0;
-            u = a(i)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-            for j=1:4
-                opt.u = u*10^(j-3);
+            for j=1:5
+                opt.u = a(i)*10^(j-3);
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
 
                 opt.continuation=false;
@@ -1022,6 +1021,29 @@ if(any(runList==005))
                 fpcas{i,j,k}.RMSE=sqrNorm(alphaHat-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
                 fprintf('fpcas RMSE=%g\n',fpcas{i,j,k}.RMSE);
                 save(filename,'fpcas','-append');
+
+                ppsi = @(yyy,uuu) conf.Psi(Utils.softThresh(conf.Psit(yyy),uuu));
+                rrrr = @(xxx) pNorm(conf.Psit(xxx),1);
+                [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,mse]=...
+                    SpaRSA_mod(conf.y,conf.Phi,opt.u,...
+                    'AT',conf.Phit,...
+                    'Psi',ppsi,...
+                    'Phi',rrrr,...
+                    'Initialization',initSig,...
+                    'StopCriterion',5,...
+                    'ToleranceA',opt.thresh, ...
+                    'True_x',opt.trueAlpha,...
+                    'BB_variant',1,...
+                    'Safeguard',1,...
+                    'Monotone',0,...
+                    'Continuation',1,...
+                    'MaxiterA',opt.maxItr);
+                clear('out');
+                out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
+                out.RMSE=mse.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
+                out.stepSize=mse.stepSize; out.difAlpha=mse.difAlpha;
+                sparsa{i,j,k}=out;
+                save(filename,'sparsa','-append');
             end
         end
     end
@@ -1081,6 +1103,8 @@ if(any(runList==905))
     [r,c5]=find( fpcasRMSE== repmat(min( fpcasRMSE,[],2),1,5)); [r,idx5]=sort(r);
     [r,c6]=find( fistaRMSE== repmat(min( fistaRMSE,[],2),1,5)); [r,idx6]=sort(r);
     [c1(idx1) ,c2(idx2) ,c3(idx3) ,c4(idx4) ,c5(idx5) ,c6(idx6)]
+
+    keyboard
     idx1 = 3;    
     idx2 = 3;
     idx3 = 3;

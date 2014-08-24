@@ -332,6 +332,7 @@ classdef Spline < handle
         end
 
         function [trueMu,trueUpiota,mu,Ie]=plotDisUpiota(trueMu,trueUpiota,mu,Ie)
+            keyboard
             mu=(mu(1:end-1)+mu(2:end))/2;
             mu=reshape([mu(:)';mu(:)'],[],1);
             mu(1)=[]; mu(end)=[];
