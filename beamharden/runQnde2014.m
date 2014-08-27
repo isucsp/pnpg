@@ -11,7 +11,7 @@ if(nargin==0) runList = [0];
 elseif(isempty(runList))
     conf=ConfigCT(); opt = conf.setup(); return;
 end
-paperDir = '~/research/myPaper/asilomar2014/';
+paperDir = '~/research/myPaper/qnde2014/doc/';
 
 % runList rules, abc
 % a:
@@ -690,19 +690,21 @@ if(any(runList==922))
     polymodel = Spline(out1.opt.spectBasis,out1.kappa);
     polymodel.setPlot(out1.opt.trueKappa,out1.opt.trueIota,out1.opt.epsilon);
     [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out1.Ie);
+    idx=find(tU==max(tU));
+    q=tK(idx)/1; q=1/1.15
+    tK=tK/q; tU=tU*q;
     i=1; forSave=[tK, tU];
-    keyboard
-    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
-    figure; loglog(tK,tU,'r'); hold on; loglog(kappa,Ie,'g*');
 
-    [~,~,kappa,Ie]=polymodel.plotSpectrum(out2.Ie);
-    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
-    loglog(kappa,Ie,'b<');
+    i=i+2; forSave(1:length(out1.kappa),i:i+1)=[out1.kappa,out1.Ie];
+    figure; semilogx(tK,tU,'r'); hold on; loglog(out1.kappa,out1.Ie,'g-*');
 
-    [~,~,kappa,Ie]=polymodel.plotSpectrum(out3.Ie);
-    i=i+2; forSave(1:length(kappa),i:i+1)=[kappa,Ie];
-    loglog(kappa,Ie,'cs');
+    i=i+2; forSave(1:length(out2.kappa),i:i+1)=[out2.kappa,out2.Ie];
+    loglog(out2.kappa,out2.Ie,'b-<');
+
+    i=i+2; forSave(1:length(out3.kappa),i:i+1)=[out3.kappa,out3.Ie];
+    loglog(out3.kappa,out3.Ie,'c-s');
     save('effectiveCenterB.data','forSave','-ascii');
+    system(['mv effectiveCenterB.data ' paperDir]);
 end
 
 if(any(runList==122)) % dis, max AS step,
