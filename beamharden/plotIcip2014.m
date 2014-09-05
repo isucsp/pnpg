@@ -11,12 +11,14 @@ if(1)
     prj = [60, 80, 100, 120, 180, 360]/2;
     toPlot=[toPlot prj(:)];
 
-    % unkown Ie, CPLS
+    % unkown Ie, NPG-AS
     load(filename,'out012');
     out=out012;
     rse=[];
     for i=1:6; rse(i)=out{i,1}.RMSE(end); end
     toPlot=[toPlot rse(:)];
+
+    % NPG
     temp=[];
     for i=1:6; temp(i)=out{i,4}.RMSE(end); end
     clear('out012');
@@ -78,6 +80,7 @@ if(1)
     toPlot=[toPlot min(rse,[],2)];
     clear('out004');
 
+    % NPG
     toPlot=[toPlot, temp(:)];
 
     % linearized SPIRAL-G
@@ -90,8 +93,14 @@ if(1)
     toPlot=[toPlot rse(:)];
     clear('out009');
 
+    % linearized NPG
+    load('runQnde2014_002.mat');
+    rse=showResult(npg,2,'RMSE');
+    toPlot=[toPlot min(rse,[],2)];
+
     save('rseVsPrjNum.data','toPlot','-ascii');
 end
+return;
 
 %% Compare the convergence speed between Old algorithm and the new for 180 parallel beam 
 if(0)

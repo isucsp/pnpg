@@ -51,6 +51,7 @@ classdef FISTA_L1 < Methods
                     if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
                         temp1=temp1+1;
+                        obj.cumu=0;
                         obj.t=obj.t*obj.stepShrnk;
                     end
                     obj.ppp = obj.ppp+1;

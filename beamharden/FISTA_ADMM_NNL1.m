@@ -55,6 +55,7 @@ classdef FISTA_ADMM_NNL1 < Methods
                         % adaptively increase the step size
                         temp1=temp1+1;
                         obj.t=obj.t*obj.stepShrnk;
+                        obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
                     newX = y - (obj.grad)/(obj.t);
@@ -89,7 +90,6 @@ classdef FISTA_ADMM_NNL1 < Methods
                 obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                
                 if(obj.ppp==1 && obj.adaptiveStep) obj.cumu=obj.cumu+1;
                 else obj.cumu=0; end
                 %set(0,'CurrentFigure',123);
@@ -181,26 +181,7 @@ classdef FISTA_ADMM_NNL1 < Methods
 
                 if(difAlpha<=absTol && difP<=absTol)
                     break;
-                %    obj.newCost=obj.func(p);
-                %    if(isempty(opt)) break;
-                %    else
-                %        if(obj.newCost<=opt.oldCost+innerProd(obj.grad, p-opt.y)+sqrNorm(p-opt.y)*obj.t/2)
-                %            temp = obj.newCost+obj.u*pNorm(obj.Psit(p),1);
-                %            if(temp<obj.cost) break;
-                %            else
-                %                absTol=absTol/2;
-                %                continue;
-                %            end
-                %        else
-                %            break;
-                %        end
-                %    end
                 end
-            end
-            if(obj.debug && false)
-                semilogy(da,'r'); hold on;
-                semilogy(dp,'g'); semilogy(dap,'b'); semilogy(ny,'k');
-                semilogy(co,'c');
             end
             % end of the ADMM inside the FISTA
         end

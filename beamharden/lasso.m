@@ -28,8 +28,8 @@ if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
 % Threshold for relative difference between two consecutive α
-if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
-if(~isfield(opt,'maxItr')) opt.maxItr=1.5e3; end
+if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=100; end
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end

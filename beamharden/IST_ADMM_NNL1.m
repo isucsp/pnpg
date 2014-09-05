@@ -8,7 +8,7 @@ classdef IST_ADMM_NNL1 < Methods
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-3;   % abs value should be 1e-8
+        admmTol=1e-5;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
         newCost;
@@ -42,17 +42,19 @@ classdef IST_ADMM_NNL1 < Methods
                     if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                         temp1=temp1+1;
                         obj.t=obj.t*obj.stepShrnk;
+                        obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
                     newX = y - (obj.grad)/(obj.t);
-                    newX = obj.innerADMM_v5(newX,obj.t,obj.u,...
+                    newX = obj.innerADMM_v4(newX,obj.t,obj.u,...
                         obj.admmTol*obj.difAlpha);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
                         if(temp && obj.p==1)
                             obj.t=obj.t*obj.stepShrnk;
                             continue;
-                        else break; end
+                        else break;
+                        end
                     else obj.t=obj.t/obj.stepShrnk; temp=false;
                     end
                 end
@@ -76,9 +78,9 @@ classdef IST_ADMM_NNL1 < Methods
             out = obj.alpha;
         end
         function alpha = innerADMM_v4(obj,newX,t,u,absTol)
-            % solve 0.5*t*||α-α_0||_2 + I(α>=0) + u*||Ψ'*α||_1
-            % which is equivalent to 0.5*||α-α_0||_2 + I(α>=0) + u/t*||Ψ'*α||_1
-            % α_0 is newX;
+            % solve 0.5*t*||α-a||_2 + I(α>=0) + u*||Ψ'*α||_1
+            % which is equivalent to 0.5*||α-a||_2 + I(α>=0) + u/t*||Ψ'*α||_1
+            % a is newX;
             % start an ADMM inside the FISTA
             alpha=newX; Psi_s=alpha; y1=0; rho=1; pppp=0;
             while(true)

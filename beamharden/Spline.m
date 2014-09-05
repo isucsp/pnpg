@@ -52,21 +52,21 @@ classdef Spline < handle
             switch lower(sType)
                 case 'dis'
                 case 'b0'
-                    func = int(exp(-k*s),k,a,b)
-                    funcp = simple(-diff(func,s))
+                    func   = int(exp(-k*s),k,a,b)
+                    funcp  = simple(diff(func,s))
                     funcpp = simple(diff(func,s,2))
 
-                    funcz  = simple(subs(diff(simple(func  *s  ),s,1),s,0))
-                    funcz2 = simple(subs(diff(simple(func  *s  ),s,2),s,0)/2)
-                    funcz3 = simple(subs(diff(simple(func  *s  ),s,3),s,0)/6)
-                    funcz4 = simple(subs(diff(simple(func  *s  ),s,4),s,0)/24)
+                    funcz   =simple(subs(diff(simple(func  *s  ),s,1),s,0))
+                    funcz2  =simple(subs(diff(simple(func  *s  ),s,2),s,0)/2)
+                    funcz3  =simple(subs(diff(simple(func  *s  ),s,3),s,0)/6)
+                    funcz4  =simple(subs(diff(simple(func  *s  ),s,4),s,0)/24)
+                             
+                    funcpz  =simple(subs(diff(simple(funcp *s^2),s,2),s,0)/2)
+                    funcpz2 =simple(subs(diff(simple(funcp *s^2),s,3),s,0)/6)
+                    funcpz3 =simple(subs(diff(simple(funcp *s^2),s,4),s,0)/24)
+                    funcpz4 =simple(subs(diff(simple(funcp *s^2),s,5),s,0)/120)
                     
-                    funcpz = simple(subs(diff(simple(funcp *s^2),s,2),s,0)/2)
-                    funcpz2= simple(subs(diff(simple(funcp *s^2),s,3),s,0)/6)
-                    funcpz3= simple(subs(diff(simple(funcp *s^2),s,4),s,0)/24)
-                    funcpz4= simple(subs(diff(simple(funcp *s^2),s,5),s,0)/120)
-                    
-                    funcppz= simple(subs(diff(simple(funcpp*s^3),s,3),s,0)/6)
+                    funcppz =simple(subs(diff(simple(funcpp*s^3),s,3),s,0)/6)
                     funcppz2=simple(subs(diff(simple(funcpp*s^3),s,4),s,0)/24)
                     funcppz3=simple(subs(diff(simple(funcpp*s^3),s,5),s,0)/120)
                     funcppz4=simple(subs(diff(simple(funcpp*s^3),s,6),s,0)/720)
@@ -75,7 +75,7 @@ classdef Spline < handle
                     func =-(exp(-a*s) - exp(-b*s))/(s^2*(a - b))
                     func1 = (exp(-b*s) - exp(-c*s))/(s^2*(b - c));
                     test=simple(func+func1-int((k-a)*exp(-k*s),k,a,b)/(b-a)-int((c-k)*exp(-k*s),k,b,c)/(c-b));
-                    funcp = simple(-diff(func,s))
+                    funcp  = simple(diff(func,s))
                     funcpp = simple(diff(func,s,2))
                     latex(func);
                     latex(funcp);
@@ -98,7 +98,7 @@ classdef Spline < handle
 
                     func = simple(int((c-k)*exp(-k*s),k,b,c)/(c-b));
                     func = (exp(-b*s) - exp(-c*s))/(s^2*(b - c))
-                    funcp = simple(-diff(func,s))
+                    funcp  = simple(diff(func,s))
                     funcpp = simple(diff(func,s,2))
                     latex(func);
                     latex(funcp);
@@ -118,7 +118,6 @@ classdef Spline < handle
                     funcppz2=simple(subs(diff(simple(funcpp*s^4),s,5),s,0)/120)
                     funcppz3=simple(subs(diff(simple(funcpp*s^4),s,6),s,0)/720)
                     funcppz4=simple(subs(diff(simple(funcpp*s^4),s,7),s,0)/720/7)
-
             end
             out.func = func; out.funcp = funcp; out.funcpp = funcpp;
             out.funcz = funcz; out.funcpz = funcpz; out.funcppz = funcppz;
@@ -133,11 +132,11 @@ classdef Spline < handle
             EPS=1e-6;
             if(nargin==0)       % start to test
                 k = logspace(log10(0.001),log10(30),100);
-                s = linspace(-1e-2,1e-2,1000);
+                s = logspace(-12,5,1000);
                 [BL, sBL, ssBL] = Spline.b1Iout(k,s,[]);
-                figure; semilogy(s,BL);
-                figure; semilogy(s,sBL);
-                figure; semilogy(s,ssBL);
+                figure; loglog(s,BL);
+                figure; loglog(s,-sBL);
+                figure; loglog(s,ssBL);
                 return;
             end
 
@@ -150,8 +149,7 @@ classdef Spline < handle
             if(nargout>1) sBL = BL; end
             if(nargout>2) ssBL = BL; end
 
-            expksC = exp(-k(1)*s);
-            expksR = exp(-k(2)*s);
+            expksC = exp(-k(1)*s); expksR = exp(-k(2)*s);
             s2=s.^2; s3=s.^3; s4=s.^4; abss=abs(s);
             for i=1:length(k)-2
                 a=k(i); b=k(i+1); c=k(i+2);
@@ -168,23 +166,23 @@ classdef Spline < handle
                 % The accuracy will be at least 100*EPS% of the value at s=0
                 temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                 idx = abss<temp2;
-                temp(idx) = temp1(1)+temp1(2)*s(idx);
+                temp(idx) = temp1(1)+[s(idx),s2(idx),s3(idx)]*temp1(2:end);
 
                 if(~isempty(I)) BL = BL + temp*I(i);
                 else BL(:,i) = temp; end
 
                 if(nargout>1)
-                    temp=-(2*(expksL-expksC))./(s3*(a-b))-(a*expksL-b*expksC)./(s2*(a-b))...
-                        +(2*(expksC-expksR))./(s3*(b-c))+(b*expksC-c*expksR)./(s2*(b-c));
+                    temp=(2*(expksL-expksC))./(s3*(a-b))+(a*expksL-b*expksC)./(s2*(a-b))...
+                        -(2*(expksC-expksR))./(s3*(b-c))-(b*expksC-c*expksR)./(s2*(b-c));
                     temp1=[
-                    -(a^3-b^3)/(6*(a-b))+(b^3-c^3)/(6*(b-c));
-                    (a^4-b^4)/(12*(a-b))-(b^4-c^4)/(12*(b-c));
-                    -(a^5-b^5)/(40*(a-b))+(b^5-c^5)/(40*(b-c));
-                    (a^6-b^6)/(180*(a-b))-(b^6-c^6)/(180*(b-c));
+                    (a^3-b^3)/(6*(a-b))-(b^3-c^3)/(6*(b-c));
+                    -(a^4-b^4)/(12*(a-b))+(b^4-c^4)/(12*(b-c));
+                    (a^5-b^5)/(40*(a-b))-(b^5-c^5)/(40*(b-c));
+                    -(a^6-b^6)/(180*(a-b))+(b^6-c^6)/(180*(b-c));
                     ];
                     temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                     idx = abss<temp2;
-                    temp(idx) = temp1(1)+temp1(2)*s(idx)+temp1(3)*s2(idx);
+                    temp(idx) = temp1(1)+[s(idx),s2(idx),s3(idx)]*temp1(2:end);
                     if(~isempty(I)) sBL = sBL + temp*I(i);
                     else sBL(:,i) = temp; end
                 end
@@ -200,8 +198,7 @@ classdef Spline < handle
                     ];
                     temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                     idx = abss<temp2;
-                    temp(idx) = temp1(1)+temp1(2)*s(idx)...
-                        +temp1(3)*s2(idx)+temp1(4)*s3(idx);
+                    temp(idx) = temp1(1)+[s(idx),s2(idx),s3(idx)]*temp1(2:end);
                     
                     if(~isempty(I)) ssBL = ssBL + temp*I(i);
                     else ssBL(:,i) = temp; end
@@ -216,12 +213,12 @@ classdef Spline < handle
 
             EPS = 1e-6;
             if(nargin==0)       % start to test
-                k = logspace(log10(0.001),log10(30),100);
-                s = linspace(-1e-2,1e-2,1000);
+                k = logspace(log10(0.001),log10(30),100); k(end)=[];
+                s = logspace(-12,5,1000);
                 [BL, sBL, ssBL] = Spline.b0Iout(k,s,[]);
-                figure; semilogy(s,BL);
-                figure; semilogy(s,sBL);
-                figure; semilogy(s,ssBL);
+                figure; loglog(s,BL);
+                figure; loglog(s,-sBL);
+                figure; loglog(s,ssBL);
                 return;
             end
 
@@ -242,16 +239,16 @@ classdef Spline < handle
                 temp1=[b-a;a^2/2-b^2/2;b^3/6-a^3/6;a^4/24-b^4/24;];
                 temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                 idx = abss<temp2;
-                temp(idx) = temp1(1)+temp1(2)*s(idx);
+                temp(idx) = temp1(1)+[s(idx),s2(idx),s3(idx)]*temp1(2:end);
                 if(~isempty(I)) BL = BL + temp*I(i);
                 else BL(:,i) = temp; end
 
                 if(nargout>1)
-                    temp = ((s*a+1).*expksL-(s*b+1).*expksR)./s2;
-                    temp1=[b^2/2-a^2/2;a^3/3-b^3/3;b^4/8-a^4/8;a^5/30-b^5/30;];
+                    temp = -((s*a+1).*expksL-(s*b+1).*expksR)./s2;
+                    temp1=[a^2/2-b^2/2;b^3/3-a^3/3;a^4/8-b^4/8;b^5/30-a^5/30;];
                     temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                     idx = abss<temp2;
-                    temp(idx) = temp1(1)+temp1(2)*s(idx)+temp1(3)*s2(idx);
+                    temp(idx) = temp1(1)+[s(idx),s2(idx),s3(idx)]*temp1(2:end);
                     if(~isempty(I)) sBL = sBL + temp*I(i);
                     else sBL(:,i) = temp; end
                 end
@@ -261,48 +258,47 @@ classdef Spline < handle
                     temp1=[(b^3-a^3)/3;(a^4-b^4)/4;(b^5-a^5)/10;(a^6-b^6)/36];
                     temp2=abs(EPS*temp1(1)/temp1(end))^(1/(length(temp1)-1));
                     idx = abss<temp2;
-                    temp(idx) = temp1(1)+temp1(2)*s(idx)...
-                        +temp1(3)*s2(idx)+temp1(4)*s3(idx);
+                    temp(idx) = temp1(1)+temp1(2)*s(idx)+temp1(3)*s2(idx);
                     if(~isempty(I)) ssBL = ssBL + temp*I(i);
                     else ssBL(:,i) = temp; end
                 end
             end
         end
 
-        function [BL,sBL,ssBL] = disIout(kappa, s, I)
+        function [BL,sBL,ssBL] = disIout(k, s, I)
 
             if(nargin==0)       % start to test
-                kappa = logspace(log10(0.001),log10(30),100);
-                s = -0.1:0.001:10;
-                [BL, sBL, ssBL] = Spline.disIout(kappa,s,[]);
-                figure; semilogy(s,BL);
-                figure; semilogy(s,sBL);
-                figure; semilogy(s,ssBL);
+                k = logspace(log10(0.001),log10(30),100);
+                s = logspace(-12,5,1000);
+                [BL, sBL, ssBL] = Spline.disIout(k,s,[]);
+                figure; loglog(s,BL);
+                figure; loglog(s,-sBL);
+                figure; loglog(s,ssBL);
                 return;
             end
 
-            dKappa=(kappa(3:end)-kappa(1:end-2))/2;
-            kappa = kappa(2:end-1); kappa = kappa(:); s = s(:);
+            dKappa=(k(3:end)-k(1:end-2))/2;
+            k = k(2:end-1); k = k(:); s = s(:);
             if(~isempty(I))
                 BL = zeros(length(s),1);
             else
-                BL = zeros(length(s),length(kappa));
+                BL = zeros(length(s),length(k));
             end
             if(nargout>1) sBL = BL; end
             if(nargout>2) ssBL = BL; end
 
-            for i=1:length(kappa)
-                temp = exp(-kappa(i)*s)*dKappa(i);
+            for i=1:length(k)
+                temp = exp(-k(i)*s)*dKappa(i);
                 if(~isempty(I)) BL = BL + temp*I(i);
                 else BL(:,i) = temp; end
 
                 if(nargout>1)
-                    temp = temp*(-kappa(i));
+                    temp = temp*(-k(i));
                     if(~isempty(I)) sBL = sBL + temp*I(i);
                     else sBL(:,i) = temp; end
                 end
                 if(nargout>2)
-                    temp = temp*(-kappa(i));
+                    temp = temp*(-k(i));
                     if(~isempty(I)) ssBL = ssBL + temp*I(i);
                     else ssBL(:,i) = temp; end
                 end
@@ -332,7 +328,6 @@ classdef Spline < handle
         end
 
         function [trueMu,trueUpiota,mu,Ie]=plotDisUpiota(trueMu,trueUpiota,mu,Ie)
-            keyboard
             mu=(mu(1:end-1)+mu(2:end))/2;
             mu=reshape([mu(:)';mu(:)'],[],1);
             mu(1)=[]; mu(end)=[];

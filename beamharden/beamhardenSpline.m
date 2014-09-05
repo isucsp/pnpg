@@ -101,9 +101,10 @@ switch lower(opt.sampleMode)
     case 'logspan'
         temp=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
             floor(opt.E/2-0.5)/(opt.E-1)*opt.logspan,opt.E);
-        q=(1+sqrt(5))/2; temp1=ceil(opt.logspan/2/log10(q));
-        temp=q.^(-temp1:temp1);
-        opt.E=2*temp1+1;
+        % q=(1+sqrt(5))/2; temp1=ceil(opt.logspan/2/log10(q));
+        % temp=q.^(-temp1:temp1);
+        % opt.E=2*temp1+1;
+        opt.E=length(temp);
         Ie=zeros(opt.E,1); Ie(floor(opt.E/2)+1)=1;
 end
 
@@ -112,6 +113,8 @@ temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
 polymodel = Spline(opt.spectBasis,temp);
 polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
 polyIout = polymodel.polyIout;
+
+Ie=Ie/polyIout(0,Ie);
 
 temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
 temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];

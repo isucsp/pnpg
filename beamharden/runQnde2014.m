@@ -1,11 +1,11 @@
 function [conf,opt] = runQnde2014(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%      Beam Hardening correction of CT Imaging via Mass attenuation 
-%                        coefficient discretizati
+% Polychromatic Sparse Image Reconstruction and Mass Attenuation Spectrum 
+%            Estimation via B-Spline Basis Function Expansion
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   v_0.2:      Changed to class oriented for easy configuration
+%   v_0.2:  Changed to class oriented for easy configuration
 
 if(nargin==0) runList = [0];
 elseif(isempty(runList))
@@ -13,361 +13,145 @@ elseif(isempty(runList))
 end
 paperDir = '~/research/myPaper/qnde2014/doc/';
 
-% runList rules, abc
-% a:
-%       0: castSim
-%       9: phantom_1
-
 %%%%%%%%%%%%%%%%%%%%%%%%
-if(any(runList==0)) % reserved for debug and for the best result
-    conf=ConfigCT();
-    conf.prjFull = 360/2;
-    conf.prjNum = conf.prjFull/2;
-    conf.imgSize = 256;
-    conf.prjWidth = 256;
-    conf.imageName='phantom_1'; %'castSim'; %'phantom' %'twoMaterials'; 
-    opt=conf.setup();
-    opt.maxIeSteps=2e3;
-    opt.maxItr=2000;
-    opt.debugLevel=3;
-    opt.u = 1e-3;
-    initSig = conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-    out0=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out0','-append');
-end
 
-if(any(runList==0.01)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    i=1; j=1;
-    conf.prjFull = 80;
-    conf.prjNum = conf.prjFull/2;
-    conf.imgSize = 1024;
-    conf.prjWidth = 1024;
-    conf.imageName='castSim'; %'phantom' %'twoMaterials'; 'phantom_1'; %
-    %'realct'; 'pellet'; %
-    opt.muLustig=logspace(-15,-6,5);
-    opt.muLustig=opt.muLustig(3); 3.1623e-11;
-    opt.spectBasis = 'dis';
-    opt.skipIe=true;
-    %opt.continuation = true;
-    opt.debugLevel=1;
-    opt.maxIeSteps = 100;
-    opt=conf.setup(opt);
-    initSig = conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    for i=1:3
-        opt.u = 10^(-i);
-        opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-        out_knownIe_FISTA{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out_knownIe_FISTA','-append');
-        opt.alphaStep = 'NCG_PR';
-        out_knownIe_NCG_PR{i}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out_knownIe_NCG_PR','-append');
-    end
-end
-
-if(any(runList==0.1)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    i=1; j=1;
-    opt.muLustig=3.1623e-11;
-    opt.spectBasis = 'b1';
-    opt.a=opt.a+log10(0.5);
-    opt=conf.setup(opt);
-    prefix='BeamHard';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out01=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out01','-append');
-end
-
-if(any(runList==0.2)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    opt.muLustig=3.1623e-11;
-    opt.spectBasis = 'b1';
-    opt=conf.setup(opt);
-    i=1; j=1;
-    fprintf('%s, i=%d, j=%d\n','beamharden',i,j);
-    initSig=conf.FBP(conf.y); initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out02=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out02','-append');
-end
-
-% dis, known Ie, See the following experiments in Sec. 012
+% dis discretized, polychromatic model
 if(any(runList==001))
-    load(filename,'out001');
-    conf=ConfigCT();
-    opt.skipIe=true;
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    u = 10.^[-1 -2 -3 -4 -5 -6 -7];
-    opt.maxItr=300;
-    for i=5
+    filename = [mfilename '_001.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    conf=ConfigCT('castSim','CircleMask','gpuPrj');
+    prjFull = [60, 80, 100, 120, 180, 360];
+    for i=5:length(prjFull)
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+        opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
         opt=conf.setup(opt);
         initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
-        for j=4:4
-            fprintf('%s, i=%d, j=%d\n','CPLS',i,j);
-            opt.u=u(j);
-            out001{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+
+        % unknown ι(κ), NPG-AS
+        u  =  10.^[-4  -4   -4   -4   -4   -4];
+        for j=[3]
+            fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
+            opt.u=u(i)*10^(j-2);
+            npgas{i,j}=BH.NPG_AS(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename,'out001','-append');
-            %initSig=out001{i,j}.alpha;
+            save(filename,'npgas','-append');
         end
-    end
-end
+        continue;
 
-if(any(runList==002))     % FPCAS
-    load(filename,'out002');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    aArray=[-10:-2];
-    for i=[1, 4, 5, 6]
-        for j=3:length(aArray)
+        % known ι(κ), 
+
+        j=1;
+        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
+        fbp{i}.img=conf.FBP(-log(conf.y));
+        fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
+        fbp{i}.RSE=sqrNorm(-log(conf.y)-conf.Phi(fbp{i,j}.alpha))/sqrNorm(conf.y);
+        fbp{i}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+        fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+        save(filename,'fbp','-append');
+
+        aArray=[-10:-2];
+        for j=5:7
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-            opt.a = aArray(j);
-            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-            opt=conf.setup(opt);
+
+
+            mu=10^aArray(j)*max(abs(At(conf.y)));
 
             A = @(xx) conf.Phi(conf.Psi(xx));
             At = @(yy) conf.Psit(conf.Phit(yy));
             AO=A_operator(A,At);
-            mu=10^opt.a*max(abs(At(conf.y)));
-            option.x0=conf.FBP(conf.y);
-            option.x0 = conf.Psit(option.x0(opt.mask~=0));
+            option.x0 = conf.Psit(maskFunc(conf.FBP(conf.y),opt.mask~=0));
+            option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(conf.y)),AO,conf.y,mu,[],option);
-            out002{i,j}=out; out002{i,j}.alpha = conf.Psi(s);
-            out002{i,j}.opt = opt;
-            out002{i,j}.RMSE=1-(out002{i,j}.alpha'*opt.trueAlpha/norm(out002{i,j}.alpha)/norm(opt.trueAlpha))^2;
-            save(filename,'out002','-append');
+            fpcas{i,j}=out; fpcas{i,j}.alpha = conf.Psi(s);
+            fpcas{i,j}.fVal(1)=0.5*sqrNorm(conf.Phi(fpcas{i,j}.alpha)-conf.y);
+            fpcas{i,j}.fVal(2)=sqrNorm(fpcas{i,j}.alpha.*(fpcas{i,j}.alpha<0));
+            fpcas{i,j}.fVal(3)=pNorm(conf.Psit(fpcas{i,j}.alpha),1);
+            fpcas{i,j}.opt = opt;
+            out004{i,j}.RMSE=1-(out004{i,j}.alpha'*opt.trueAlpha)^2/sqrNorm(out004{i,j}.alpha)/sqrNorm(opt.trueAlpha);
+            fprintf('fpcas RMSE=%g\n',fpcas{i}.RMSE);
+            save(filename,'fpcas','-append');
         end
     end
 end
 
-if(any(runList==003)) %solve by Back Projection
-    load(filename,'out003');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+% noiselessly linearized
+if(any(runList==002))
+    filename = [mfilename '_002.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    clear('opt');
+    conf=ConfigCT('castSim','CircleMask','gpuPrj');
+    prjFull = [60, 80, 100, 120, 180, 360];
     for i=1:length(prjFull)
-        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-        opt=conf.setup();
-        out003{i}.img=conf.FBP(conf.y);
-        out003{i}.alpha=out003{i}.img(opt.mask~=0);
-        out003{i}.RSE=norm(conf.y-conf.Phi(out003{i}.alpha))/norm(conf.y);
-        out003{i}.RMSE=1-(out003{i}.alpha'*opt.trueAlpha/norm(out003{i}.alpha)/norm(opt.trueAlpha))^2;
-        save(filename,'out003','-append');
-    end
-end
+        opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
+        opt=conf.setup(opt);
+        conf.y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
 
-if(any(runList==004))     % FPCAS after linearization
-    load(filename,'out004');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    aArray=[-10:-2];
-    for i=[1, 4, 5, 6]
-        for j=3:length(aArray)
+        u=10.^[-7 -7 -7 -6 -5 -5];
+        for j=4:4
+            fprintf('%s, i=%d, j=%d\n','linearized NPG',i,j);
+            opt.u = u(i)*10^(j-2);
+            opt.continuation = false; opt.alphaStep='FISTA_ADMM_NNL1';
+            npg{i,j}=BH.LinNPG(conf.Phi,conf.Phit,...
+                conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename,'npg','-append');
+        end
+        continue
+
+        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
+        fbp{i}.img=conf.FBP(y);
+        fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
+        fbp{i}.RSE=sqrNorm(y-conf.Phi(fbp{i,j}.alpha))/sqrNorm(y);
+        fbp{i}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+        fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+        save(filename,'fbp','-append');
+       
+        aArray=[-10:-2];
+        for j=3:6; %length(aArray)
             fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-            opt.a = aArray(j);
-            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-            opt=conf.setup(opt);
+            mu=10^aArray(j)*max(abs(At(y)));
 
             A = @(xx) conf.Phi(conf.Psi(xx));
             At = @(yy) conf.Psit(conf.Phit(yy));
             AO=A_operator(A,At);
             y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-            mu=10^opt.a*max(abs(At(y)));
-            option.x0=conf.FBP(y);
-            option.x0 = conf.Psit(option.x0(opt.mask~=0));
+
+
+            option.x0 = conf.Psit(maskFunc(conf.FBP(y),opt.mask~=0));
+            option.mxitr=opt.maxItr;
             [s, out] = FPC_AS(length(At(y)),AO,y,mu,[],option);
-            out004{i,j}=out; out004{i,j}.alpha = conf.Psi(s);
-            out004{i,j}.opt = opt;
-            out004{i,j}.RMSE=1-(out004{i,j}.alpha'*opt.trueAlpha/norm(out004{i,j}.alpha)/norm(opt.trueAlpha))^2;
-            save(filename,'out004','-append');
+            fpcas{i,j}=out; fpcas{i,j}.alpha = conf.Psi(s);
+            fpcas{i,j}.fVal(1)=0.5*sqrNorm(conf.Phi(fpcas{i,j}.alpha)-y);
+            fpcas{i,j}.fVal(2)=sqrNorm(fpcas{i,j}.alpha.*(fpcas{i,j}.alpha<0));
+            fpcas{i,j}.fVal(3)=pNorm(conf.Psit(fpcas{i,j}.alpha),1);
+            fpcas{i,j}.opt = opt;
+            out004{i,j}.RMSE=1-(out004{i,j}.alpha'*opt.trueAlpha)^2/sqrNorm(out004{i,j}.alpha)/sqrNorm(opt.trueAlpha);
+            fprintf('fpcas RMSE=%g\n',fpcas{i}.RMSE);
+            save(filename,'fpcas','-append');
         end
-    end
-end
 
-%solve by Back Projection after linearization
-if(any(runList==005))
-    load(filename,'out005');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    for i=1:length(prjFull)
-        fprintf('%s, i=%d, j=%d\n','BackProj',i,j);
-        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
-        opt=conf.setup();
+        u=10.^[-6 -5 -5 -5 -5 -5]; opt.u = u(i); j=1;
+        fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
         y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-        out005{i}.img=conf.FBP(y);
-        out005{i}.alpha=out005{i}.img(opt.mask~=0);
-        out005{i}.RSE=norm(y-conf.Phi(out005{i}.alpha))/norm(y);
-        out005{i}.RMSE=1-(out005{i}.alpha'*opt.trueAlpha/norm(out005{i}.alpha)/norm(opt.trueAlpha))^2;
-        save(filename,'out005','-append');
-    end
-end
-
-if(any(runList==6)) % b0, known Ie,
-    load(filename,'out006');
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    opt.spectBasis = 'b0';
-    opt.skipIe=true;
-    for i=1:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard known Ie';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out6{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out6','-append');
-    end
-end
-
-if(any(runList==7)) % b1, known Ie,
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    opt.spectBasis = 'b1';
-    opt.skipIe=true;
-    for i=1:length(intval)
-        conf.prjFull = 360/intval(i);
-        conf.prjNum = conf.prjFull/2;
-        opt=conf.setup(opt);
-        prefix='BeamHard known Ie';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out7{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out7','-append');
-    end
-end
-
-if(any(runList==71)) % b1, known Ie,
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    conf.PhiMode = 'cpuPrj';
-    opt.spectBasis = 'b1';
-    opt.skipIe=true;
-    for i=1:length(intval)
-        conf.prjFull = 360/intval(i);
-        conf.prjNum = conf.prjFull/2;
-        opt=conf.setup(opt);
-        prefix='BeamHard known Ie';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out71{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out71','-append');
-    end
-end
-
-if(any(runList==8)) % reserved for debug and for the best result
-    [conf, opt] = defaultInit();
-    i=1; j=1;
-    opt.spectBasis = 'b1';
-    %opt.maxIeSteps = 100;
-    %conf.theta = (0:6:179)';
-    opt=conf.setup(opt);
-    prefix='BeamHard';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out8{1}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out8','-append');
-
-    conf.PhiMode='basic'; %'filtered'; %'weighted'; %'cpuFanPar'; %
-    conf.PhiModeGen='basic'; %'cpuFanPar'; %'filtered'; %'weighted'; %
-    opt=conf.setup(opt);
-    prefix='BeamHard';
-    fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-    initSig=conf.FBP(conf.y);
-    initSig = initSig(opt.mask~=0);
-    %initSig = opt.trueAlpha;
-    out8{2}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out8','-append');
-end
-
-% SPIRAL-TAP after linearization
-if(any(runList==009))
-    load(filename,'out009');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360];
-    u=10.^[-6 -5 -5 -5 -5 -5];
-    subt=[1e-5 1e-6];
-    for j=2;
-        for i=[5, 1, 2]
-            subtolerance=subt(j); conf.prjFull = prjFull(i); opt.u = u(i);
-            conf.prjNum = conf.prjFull/2;
-            opt=conf.setup(opt);
-            opt.maxItr=2e3;
-            opt.thresh=1e-12;
-
-            fprintf('%s, i=%d, j=%d\n','SPIRAL-TAP',i,j);
-            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-            initSig = maskFunc(conf.FBP(y),opt.mask~=0);
-            out=[];
-            [out.alpha, out.p, out.cost, out.reconerror, out.time] = ...
-                SPIRALTAP_mod(y,conf.Phi,opt.u,'penalty','ONB',...
-                'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
-                'initialization',initSig,'maxiter',opt.maxItr,...
-                'miniter',0,'stopcriterion',3,...
-                'tolerance',opt.thresh,'truth',opt.trueAlpha,...
-                'subtolerance',subtolerance,'monotone',1,...
-                'saveobjective',1,'savereconerror',1,'savecputime',1,...
-                'reconerrortype',2,...
-                'savesolutionpath',0,'verbose',100);
-            out.opt=opt; out009{i,j}=out;
-            save(filename,'out009','-append');
-        end
-    end
-end
-
-if(any(runList==010))
-    load(filename,'out010');
-    conf=ConfigCT();
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    u=10.^[-1 -2 -3 -4 -5 -6];
-    for i=1
-        for j=6
-            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
-            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2; opt.u = u(j);
-            opt=conf.setup(opt);
-            opt.alphaStep='FISTA_ADMM_NNL1';
-            y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
-            initSig = maskFunc(conf.FBP(y),opt.mask~=0);
-            out010{i,j}=lasso(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,y,initSig,opt);
-            save(filename,'out010','-append');
-        end
-    end
-end
-
-if(any(runList==11)) % dis, single AS step,
-    [conf, opt] = defaultInit();
-    intval = 6:-1:1; j=1;
-    for i=6:length(intval)
-        conf.theta = (0:intval(i):179)';
-        opt=conf.setup(opt);
-        prefix='BeamHard';
-        fprintf('%s, i=%d, j=%d\n',prefix,i,j);
-        initSig=conf.FBP(conf.y);
-        initSig = initSig(opt.mask~=0);
-        out11{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,conf.y,initSig,opt);
-        save(filename,'out11','-append');
+        initSig = maskFunc(conf.FBP(y),opt.mask~=0);
+        out=[]; subtolerance=1e-5;
+        [out.alpha, out.p, out.cost, out.reconerror, out.time, out.difAlpha] = ...
+            SPIRALTAP_mod(y,conf.Phi,opt.u,'penalty','ONB',...
+            'AT',conf.Phit,'W',conf.Psi,'WT',conf.Psit,'noisetype','gaussian',...
+            'initialization',initSig,'maxiter',opt.maxItr,...
+            'miniter',0,'stopcriterion',3,...
+            'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+            'subtolerance',subtolerance,'monotone',1,...
+            'saveobjective',1,'savereconerror',1,'savecputime',1,...
+            'reconerrortype',2,'savedifalpha',1,...
+            'savesolutionpath',0,'verbose',10);
+        out.opt=opt; spiral{i,j}=out;
+        spiral{i,j}.fVal(1)=0.5*sqrNorm(conf.Phi(spiral{i,j}.alpha)-y);
+        spiral{i,j}.fVal(2)=sqrNorm(spiral{i,j}.alpha.*(spiral{i,j}.alpha<0));
+        spiral{i,j}.fVal(3)=sum(abs(conf.Psit(spiral{i,j}.alpha)));
+        save(filename,'spiral','-append');
     end
 end
 
@@ -534,6 +318,24 @@ if(any(runList==16)) % b1, max AS step,
     end
 end
 
+if(any(runList==033))
+    filename = [mfilename '_033.mat'];
+    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    conf=ConfigCT();
+    conf.PhiMode='gpuPrj';
+    conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u = 1e-4;
+    opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+    opt.maxIeSteps=1; opt.thresh=1e-12;
+    opt.maxItr=2000;
+
+    opt.skipIe=true;
+    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    oldRestart{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'oldRestart','-append');
+end
+   
+
 % dis, compare the FISTA_ADMM_NNL1 and NCG_PR for both continuation and 
 % non-continuation
 if(any(runList==021))
@@ -544,46 +346,55 @@ if(any(runList==021))
     conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u = 1e-4;
     opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1; opt.thresh=1e-6;
+    opt.maxItr=2000;
+   
+    % opt.adaptiveStep=false;
+    % temp=opt.thresh; opt.thresh=1e-15;
+    % i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % opt.thresh=temp;
+    % save(filename,'out','-append');
 
-    opt.debugLevel=6;
-    i=1; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
-    opt.CenterB=false;
-    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out','-append');
-    rmfield(opt,'CenterB');
-
-    return;
-
-    i=1; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
-    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out','-append');
-
-    % i=1; j=2; opt.alphaStep='NCG_PR';
+    % i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
 
-    i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
-    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out','-append');
 
-    i=1; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
-    opt.adaptiveStep=100; opt.cumuTol=10;
-    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-        conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out','-append');
+    % opt.debugLevel=6;
+    % i=1; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
+    % opt.CenterB=false;
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
+    % rmfield(opt,'CenterB');
 
-    return;
+    % i=1; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
+
+    % % i=1; j=2; opt.alphaStep='NCG_PR';
+    % % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    % %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % % save(filename,'out','-append');
+
+    % i=1; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
+    % opt.adaptiveStep=100; opt.cumuTol=10;
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
+    % save(filename,'out','-append');
+
     opt.skipIe=true;
-    % i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
-    % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
-    %     conf.Psi,conf.Psit,conf.y,initSig,opt);
-    % save(filename,'out','-append');
+    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'out','-append');
+
+    return;
 
     % i=2; j=2; opt.alphaStep='NCG_PR';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
@@ -620,14 +431,15 @@ if(any(runList==921))
     load([mfilename '_021.mat']);
     fprintf('for non skiped Ie\n');
     t=1; noSkiped(:,t)=1:2000;
-    for i=1:3
+    for i=[1,3]
         t=t+1; noSkiped(1:length(out{1,i}.cost),t)=out{1,i}.cost;
         t=t+1; noSkiped(1:length(out{1,i}.RMSE),t)=out{1,i}.RMSE;
         t=t+1; noSkiped(1:length(out{1,i}.time),t)=out{1,i}.time;
     end
-    mincost=reshape(noSkiped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-    noSkiped(:,[2,5,8])=noSkiped(:,[2,5,8])-mincost;
+    mincost=reshape(noSkiped(:,[2,5]),[],1); mincost=min(mincost(mincost>0));
+    noSkiped(:,[2,5])=noSkiped(:,[2,5])-mincost;
     save('costRmseTime.data','noSkiped','-ascii');
+    return;
     figure; subplot(2,1,1);
     semilogy(out{1,1}.cost-mincost,'r'); hold on;
     semilogy(out{1,2}.cost-mincost,'g');

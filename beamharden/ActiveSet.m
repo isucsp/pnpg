@@ -151,7 +151,6 @@ classdef ActiveSet < handle
                         break;
                     else
                         if(ppp>10)
-                            keyboard
                             fprintf('\n'); warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
                             if(oldCost>=newCost)
                                 obj.Ie = obj.adjust(newIe);

@@ -21,7 +21,7 @@ paperDir = '~/research/myPaper/asilomar2014/';
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 if(any(runList==001))
-    filename = [mfilename '_002.mat'];
+    filename = [mfilename '_001.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('opt');
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
