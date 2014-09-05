@@ -252,6 +252,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.cost(p) = alphaStep.cost;
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
+        if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end

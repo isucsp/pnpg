@@ -329,6 +329,20 @@ if(any(runList==033))
     opt.maxItr=2000;
 
     opt.skipIe=true;
+    opt.alphaStep='FISTA_ADMM_NNL1';
+    newnewRestart=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'newnewRestart','-append');
+    return;
+
+    opt.skipIe=true;
+    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    newRestart{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
+        conf.Psi,conf.Psit,conf.y,initSig,opt);
+    save(filename,'newRestart','-append');
+    return;
+
+    opt.skipIe=true;
     i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
     oldRestart{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
