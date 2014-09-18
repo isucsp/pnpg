@@ -442,6 +442,20 @@ if(any(runList==021))
 end
 
 if(any(runList==921))
+    conf=ConfigCT('castSim','CircleMask','gpuPrj');
+    conf.prjFull = 360; conf.prjNum = conf.prjFull;
+    opt=conf.setup();
+    y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+    forSave=[conf.y y];
+    polyy=linspace(min(conf.y),max(conf.y),1000);
+    [y1,idx]=sort(conf.y); y2=y(idx);
+    [y1,ia,ic]=unique(y1); y2=y2(ia);
+    lineary=interp1(y1,y2,polyy,'spline');
+    forsave=[polyy(:); lineary(:)];
+    save('linearization.data','forSave','-ascii');
+
+    return;
+
     load([mfilename '_021.mat']);
     fprintf('for non skiped Ie\n');
     t=1; noSkiped(:,t)=1:2000;

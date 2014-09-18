@@ -236,6 +236,7 @@ if (nargin-length(varargin)) ~= 3
 end
 
 % Set the defaults for the optional parameters
+delta_x_criterion=1;
 stopCriterion = 2;
 tolA = 0.01;
 tolD = 0.0001;
@@ -382,7 +383,7 @@ if exist('psi_function','var')
    if isa(psi_function,'function_handle')
       try  % check if phi can be used, using Aty, which we know has 
            % same size as x
-            dummy = psi_function(Aty,tau); 
+            dummy = psi_function(Aty,tau,1); 
             psi_ok = 1;
       catch
          error(['Something is wrong with function handle for psi'])
@@ -595,29 +596,29 @@ while keep_continuation
     
     cont_inner = 1;
     while cont_inner
-      x = psi_function(prev_x - gradq*(1/alpha),tau/alpha);
-      dx = x - prev_x;
-      Adx = A(dx);
-      resid = prev_resid + Adx;
-      f = 0.5*(resid(:)'*resid(:)) + tau * phi_function(x);
-      if enforceMonotone
-	f_threshold = prev_f;
-      elseif enforceSafeguard
-	f_threshold = max(f_lastM) - 0.5*sigma*alpha*(dx(:)'*dx(:));
-      else
-	f_threshold = inf;
-      end
-       % f_threshold
-      
-      if f <= f_threshold
-	cont_inner=0;
-      else
-	% not good enough, increase alpha and try again
-	alpha = eta*alpha;
-	if verbose
-	  fprintf(1,' f=%10.6e, increasing alpha to %6.2e\n', f, alpha);
-	end
-      end
+        x = psi_function(prev_x - gradq*(1/alpha),tau/alpha,delta_x_criterion*1e-3);
+        dx = x - prev_x;
+        Adx = A(dx);
+        resid = prev_resid + Adx;
+        f = 0.5*(resid(:)'*resid(:)) + tau * phi_function(x);
+        if enforceMonotone
+            f_threshold = prev_f;
+        elseif enforceSafeguard
+            f_threshold = max(f_lastM) - 0.5*sigma*alpha*(dx(:)'*dx(:));
+        else
+            f_threshold = inf;
+        end
+        % f_threshold
+
+        if f <= f_threshold
+            cont_inner=0;
+        else
+            % not good enough, increase alpha and try again
+            alpha = eta*alpha;
+            if verbose
+                fprintf(1,' f=%10.6e, increasing alpha to %6.2e\n', f, alpha);
+            end
+        end
     end   % of while cont_inner
 
     if enforceSafeguard

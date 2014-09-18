@@ -134,6 +134,12 @@ if(any(strcmp(properties(alphaStep),'cumuTol'))...
     alphaStep.cumuTol=opt.cumuTol;
 end
 
+if(any(strcmp(properties(alphaStep),'innerSearch')))
+    collectInnerSearch=true;
+else
+    collectInnerSearch=false;
+end
+
 tic; p=0; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
@@ -148,6 +154,7 @@ while(true)
     out.cost(p) = alphaStep.cost;
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
+    if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(isfield(opt,'getBB') && opt.getBB)
         out.BB(p,:)=alphaStep.stepSizeInit('BB');
     end

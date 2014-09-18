@@ -35,15 +35,10 @@ classdef FISTA_L1 < Methods
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                obj.theta = temp;
-
-                % y=obj.alpha+(obj.p-1)/(obj.p+2)*(obj.alpha-obj.preAlpha);
-                % y=obj.alpha;
-                obj.preAlpha = obj.alpha;
-                si = obj.Psit(y);
+                obj.theta = temp; obj.preAlpha = obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(y);
-                dsi = obj.Psit(obj.grad);
+                si = obj.Psit(y); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
                 obj.ppp=0; temp=true; temp1=0;

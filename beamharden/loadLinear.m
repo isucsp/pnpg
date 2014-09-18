@@ -1,4 +1,4 @@
-function opt=loadLinear(obj,opt)
+function [opt,EAAt,invEAAt]=loadLinear(obj,opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 
@@ -61,9 +61,19 @@ function opt=loadLinear(obj,opt)
         idx=(A<a);
         A(idx)=0;
         A(~idx)=(A(~idx)-a)/(1-a);
+
+        c=n/12*(1-a)*(1+3*a);
+        d=n/4*(1-a)^2;
+        % E{AA^T} = c I + d 1*1^T
+        EAAt = c*eye(opt.m) + d*ones(opt.m);
+        invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
+
     elseif(strcmpi(opt.matrixType,'gaussian'))
         A = randn(opt.m,n);
         A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
+        % E(AA^T)= n/opt.m I
+        EAAt = n/opt.m;
+        invEAAt = opt.m/n;
     else
         error('error input matrixType');
     end
