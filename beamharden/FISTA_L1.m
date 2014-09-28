@@ -18,7 +18,6 @@ classdef FISTA_L1 < Methods
     end
     methods
         function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
-            fprintf('use FISTA_L1 method\n');
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;

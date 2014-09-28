@@ -25,8 +25,8 @@ if(~isfield(opt,'initStep')) opt.initStep='BB'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
-if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
-if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-3; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
@@ -111,13 +111,16 @@ if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
 end
 
 if(opt.continuation)
-    [~,g]=alphaStep.fArray{1}(0*alpha);
-    alphaStep.u = 0.1*pNorm(Psit(g),inf);
-    alphaStep.u = min(alphaStep.u,opt.u*1000);
+    [~,g]=alphaStep.fArray{1}(alpha);
+    alphaStep.u = 0.1*pNorm(g,inf);
+    alphaStep.u = min(alphaStep.u,opt.u*100);
     alphaStep.u = max(alphaStep.u,opt.u);
-    if(log(opt.u/alphaStep.u)/log(opt.contShrnk)<opt.minItr)
-        % this makes sure the continuation doesn't stop too early
-        opt.contShrnk=(opt.u/alphaStep.u)^(1/opt.minItr);
+    if(alphaStep.u*opt.contShrnk<=opt.u)
+        opt.continuation=false;
+        alphaStep.u=opt.u;
+    else
+        qThresh = opt.contCrtrn/opt.thresh;
+        lnQU = log(alphaStep.u/opt.u);
     end
     clear('g');
 else alphaStep.u = opt.u;
@@ -158,7 +161,7 @@ while(true)
     if(isfield(opt,'getBB') && opt.getBB)
         out.BB(p,:)=alphaStep.stepSizeInit('BB');
     end
-
+    
     out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
@@ -167,10 +170,10 @@ while(true)
     if(opt.continuation)
         out.uRecord(p,:)=[opt.u,alphaStep.u];
         str=sprintf([str ' u=%-6g'],alphaStep.u);
-        if(out.difAlpha(p)<1000*opt.thresh)
-            alphaStep.u = max(alphaStep.u/2,opt.u);
-        else
-            alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
+        temp=alphaStep.u/opt.u;
+        if(temp>1 && out.difAlpha(p)< (opt.thresh*qThresh^(log(temp)/lnQU)) )
+            alphaStep.u = min(alphaStep.u*opt.contShrnk,0.1*pNorm(alphaStep.grad,inf));
+            alphaStep.u = max(alphaStep.u,opt.u);
         end
     end
     if(isfield(opt,'trueAlpha'))
@@ -229,13 +232,14 @@ while(true)
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u))
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>0)
+    if(p >= opt.maxItr || convThresh>2)
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end
 end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
+out.date=datestr(now);
 fprintf('\n');
 
 end

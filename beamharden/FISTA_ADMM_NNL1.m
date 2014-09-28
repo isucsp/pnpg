@@ -22,7 +22,6 @@ classdef FISTA_ADMM_NNL1 < Methods
     end
     methods
         function obj = FISTA_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
-            fprintf('use FISTA_ADMM_NNL1 method\n');
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
@@ -105,7 +104,6 @@ classdef FISTA_ADMM_NNL1 < Methods
             % a is newX;
             % start an ADMM inside the FISTA
             if(~exist('absTol')) absTol=1e-12; end
-            if(u<1e-10) keyboard; end
             alpha=newX; Psi_s=alpha; y1=0; rho=1; pppp=0;
             while(true)
                 pppp=pppp+1;

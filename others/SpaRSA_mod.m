@@ -667,6 +667,8 @@ while keep_continuation
       out.mses(iter) = (err(:)'*err(:));
     end
     
+    delta_x_criterion = sqrt((dx(:)'*dx(:))/(x(:)'*x(:)));
+    out.difAlpha(iter)=delta_x_criterion;
     % compute stopping criteria and test for termination
     switch stopCriterion
         case 0,
@@ -726,9 +728,7 @@ while keep_continuation
             end
         case 5,
             % stopping criterion based on relative norm of step taken
-            delta_x_criterion = sqrt((dx(:)'*dx(:))/(x(:)'*x(:)));
             keep_going = (delta_x_criterion > tolA);
-            out.difAlpha(iter)=delta_x_criterion;
             if verbose
                 fprintf(1,'Norm(delta x)/norm(x) = %e (target = %e)\n',...
                     delta_x_criterion,tolA)
