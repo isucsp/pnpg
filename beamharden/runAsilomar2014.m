@@ -193,35 +193,31 @@ if(any(runList==002))
     conf=ConfigCT();
     opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-    u = [1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-5];
+    u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
     for k=1:5
         for i=1:length(m)
             opt.m=m(i); opt.snr=inf;
             [opt,~,invEAAt]=loadLinear(conf,opt);
             initSig = conf.Phit(invEAAt*conf.y);
-            %if(k==1) continue; end
             for j=1:5
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u(i)*10^(j-3)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-                if(j==6)
-                    opt.u = u(i)*10^(-3)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-                end
-
                 if(k==1 && i==2)
                     opt.initStep='fixed';
                     fistal{i,j,k}=NPG.FISTA(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                     opt=rmfield(opt,'initStep');
                 end
-                npgc{i,j,k}=NPG.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                sparsa{i,j,k}=NPG.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                sparsn{i,j,k}=NPG.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                continue;
+                npgc  {i,j,k}=NPG.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                npgs  {i,j,k}=NPG.NPGsc  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 npg   {i,j,k}=NPG.main   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 spiral{i,j,k}=NPG.SPIRAL (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                sparsn{i,j,k}=NPG.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgs  {i,j,k}=NPG.NPGs   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 fista {i,j,k}=NPG.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 fpcas {i,j,k}=NPG.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                sparsa{i,j,k}=NPG.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             end
-            save(filename);
+            save(filename,'filename','npg','npgc','spiral','sparsn','npgs','fista','fpcas','sparsa','fistal');
         end
     end
 end
@@ -230,7 +226,7 @@ if(any(runList==902))
     filename = [mfilename '_002.mat']; load(filename);
 
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-    u = [1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-5];
+    u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
     idx=2:2:7;
     K = 5;
 
@@ -261,24 +257,20 @@ if(any(runList==902))
     sparsaRMSE= mean(Cell.getField(sparsa(:,:,1:K),'RMSE'),3);
     sparsnRMSE= mean(Cell.getField(sparsn(:,:,1:K),'RMSE'),3);
 
-    [r,c1]=find(   npgRMSE== repmat(min(   npgRMSE,[],2),1,6)); [r,idx1]=sort(r);
-    [r,c2]=find(  npgcRMSE== repmat(min(  npgcRMSE,[],2),1,6)); [r,idx2]=sort(r);
-    [r,c3]=find(  npgsRMSE== repmat(min(  npgsRMSE,[],2),1,6)); [r,idx3]=sort(r);
-    [r,c4]=find(spiralRMSE== repmat(min(spiralRMSE,[],2),1,6)); [r,idx4]=sort(r);
-    [r,c5]=find( fpcasRMSE== repmat(min( fpcasRMSE,[],2),1,6)); [r,idx5]=sort(r);
-    [r,c6]=find( fistaRMSE== repmat(min( fistaRMSE,[],2),1,6)); [r,idx6]=sort(r);
-    [r,c7]=find(sparsaRMSE== repmat(min(sparsaRMSE,[],2),1,6)); [r,idx7]=sort(r);
-    [r,c8]=find(sparsnRMSE== repmat(min(sparsnRMSE,[],2),1,6)); [r,idx8]=sort(r);
-    disp([c1(idx1) ,c2(idx2) ,c3(idx3) ,c4(idx4) ,c5(idx5) ,c6(idx6) ,c7(idx7), c8(idx8) ]);
-    % for k=1:10; for i=1:size(npg,1)
-    %     figure(1); semilogy(m(i),   npg{i,gEle(c1(idx1),i),k}.RMSE(end),'r-*');     hold on;
-    %     figure(2);semilogy(m(i),  npgc{i,gEle(c2(idx2),i),k}.RMSE(end),'c-p');hold on;
-    %     figure(3);semilogy(m(i),  npgs{i,gEle(c3(idx3),i),k}.RMSE(end),'k-s');hold on;
-    %     figure(4);semilogy(m(i),spiral{i,gEle(c4(idx4),i),k}.reconerror(end),'k-^');hold on;
-    %     figure(5);semilogy(m(i), fpcas{i,gEle(c5(idx5),i),k}.RMSE(end),'g-o');hold on;
-    %     figure(6);semilogy(m(i), fista{i,gEle(c6(idx6),i),k}.RMSE(end),'b-.');hold on;
-    %     figure(7);semilogy(m(i),sparsa{i,gEle(c7(idx7),i),k}.RMSE(end),'y-p');hold on;
-    % end; end;
+    [r,c1]=find(   npgRMSE== repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
+    [r,c2]=find(  npgcRMSE== repmat(min(  npgcRMSE,[],2),1,5)); [r,idx2]=sort(r);
+    [r,c4]=find(spiralRMSE== repmat(min(spiralRMSE,[],2),1,5)); [r,idx4]=sort(r);
+    [r,c8]=find(sparsnRMSE== repmat(min(sparsnRMSE,[],2),1,5)); [r,idx8]=sort(r);
+
+    [r,c3]=find(  npgsRMSE== repmat(min(  npgsRMSE,[],2),1,5)); [r,idx3]=sort(r);
+    [r,c5]=find( fpcasRMSE== repmat(min( fpcasRMSE,[],2),1,5)); [r,idx5]=sort(r);
+    [r,c6]=find( fistaRMSE== repmat(min( fistaRMSE,[],2),1,5)); [r,idx6]=sort(r);
+    [r,c7]=find(sparsaRMSE== repmat(min(sparsaRMSE,[],2),1,5)); [r,idx7]=sort(r);
+    disp([c1(idx1), c2(idx2), c4(idx4), c8(idx8) ]);
+    disp([c3(idx3), c5(idx5), c6(idx6), c7(idx7) ]);
+    keyboard
+    uNonneg=[3 3 3 3 4 4 4 4 3];
+    uNeg=[4 4 4 4 4 4 4 4 3];
     figure;
     semilogy(m,   npgRMSE((c1(idx1)-1)*9+(1:9)'),'r-*'); hold on;
     semilogy(m,  npgcRMSE((c2(idx2)-1)*9+(1:9)'),'c-p');
@@ -299,28 +291,27 @@ if(any(runList==902))
     semilogy(m,sparsaTime((c7(idx7)-1)*9+(1:9)'),'y-p');
     semilogy(m,sparsnTime((c8(idx8)-1)*9+(1:9)'),'r-x');
     legend('npg','npgc','npgs','spiral','fpcas','fista','sparas','sparsa');
-    cIdx=2;
     figure;
-    semilogy(m,   npgRMSE(:,cIdx),'r-*'); hold on;
-    semilogy(m,  npgcRMSE(:,cIdx),'c-p');
-    semilogy(m,  npgsRMSE(:,cIdx),'k-s');
-    semilogy(m,spiralRMSE(:,cIdx),'k-^');
-    semilogy(m, fpcasRMSE(:,cIdx),'g-o');
-    semilogy(m, fistaRMSE(:,cIdx),'b-.');
-    semilogy(m,sparsaRMSE(:,cIdx),'y-p');
-    semilogy(m,sparsnRMSE(:,cIdx),'r-x');
-    legend('npg','npgc','npgs','spiral','fpcas','fista','sparas','sparsa');
+    semilogy(m,   npgRMSE((uNonneg-1)*9+(1:9)),'r-*'); hold on;
+    semilogy(m,  npgcRMSE((uNonneg-1)*9+(1:9)),'c-p');
+    semilogy(m,spiralRMSE((uNonneg-1)*9+(1:9)),'k-^');
+    semilogy(m,sparsnRMSE((uNonneg-1)*9+(1:9)),'r-x');
+    semilogy(m,  npgsRMSE((uNonneg-1)*9+(1:9)),'k-s');
+    semilogy(m, fpcasRMSE((uNonneg-1)*9+(1:9)),'g-o');
+    semilogy(m, fistaRMSE((uNonneg-1)*9+(1:9)),'b-.');
+    semilogy(m,sparsaRMSE((uNonneg-1)*9+(1:9)),'y-p');
+    legend('npg','npgc','spiral','sparsa','npgs','fpcas','fista','sparas');
     figure;
-    semilogy(m,   npgTime(:,cIdx),'r-*'); hold on;
-    semilogy(m,  npgcTime(:,cIdx),'c-p');
-    semilogy(m,  npgsTime(:,cIdx),'k-s');
-    semilogy(m,spiralTime(:,cIdx),'k-^');
-    semilogy(m, fpcasTime(:,cIdx),'g-o');
-    semilogy(m, fistaTime(:,cIdx),'b-.');
-    semilogy(m,sparsaTime(:,cIdx),'y-p');
-    semilogy(m,sparsnTime(:,cIdx),'r-x');
-    legend('npg','npgc','npgs','spiral','fpcas','fista','sparas','sparsa');
-    as=1:4;
+    semilogy(m,   npgTime((uNonneg-1)*9+(1:9)),'r-*'); hold on;
+    semilogy(m,  npgcTime((uNonneg-1)*9+(1:9)),'c-p');
+    semilogy(m,spiralTime((uNonneg-1)*9+(1:9)),'k-^');
+    semilogy(m,sparsnTime((uNonneg-1)*9+(1:9)),'r-x');
+    semilogy(m,  npgsTime((uNonneg-1)*9+(1:9)),'k-s');
+    semilogy(m, fpcasTime((uNonneg-1)*9+(1:9)),'g-o');
+    semilogy(m, fistaTime((uNonneg-1)*9+(1:9)),'b-.');
+    semilogy(m,sparsaTime((uNonneg-1)*9+(1:9)),'y-p');
+    legend('npg','npgc','spiral','sparsa','npgs','fpcas','fista','sparas');
+    as=1:5;
     forSave=[];
     for mIdx=idx
         figure(900);
@@ -433,6 +424,17 @@ if(any(runList==902))
     forSave=[forSave, sparsnRMSE((c8(idx8)-1)*9+(1:9)')];
     save('varyMeasurement.data','forSave','-ascii');
 
+    forSave=m(:);
+    forSave=[forSave,    npgTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave,   npgcTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave, spiralTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave, sparsnTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave,   npgsTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave,  fpcasTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave,  fistaTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave, sparsaTime((uNonneg-1)*9+(1:9))];
+    save('varyMeasurementTime.data','forSave','-ascii');
+
     keyboard
 
     mIdx=2; experi=1; forSave=[]; t=0;
@@ -471,7 +473,7 @@ if(any(runList==902))
     semilogy(forSave(:,16),forSave(:,13),'c');
     keyboard
 
-    system(['mv stepSizeLin.data varyMeasurement.data skyline.data varyMeasurementTable.tex ' paperDir]);
+    system(['mv stepSizeLin.data varyMeasurement.data varyMeasurementTime.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');
 end
 
@@ -1597,15 +1599,29 @@ if(any(runList==908))
     temp=showResult(fpcas,2,'RMSE');
     perform=[perform, temp(:)];
 
+    perform=[perform, reshape(Cell.getField(npgc,'RMSE'),[],1)];
+    %perform=[perform, reshape(Cell.getField(npgs,'RMSE'),[],1)];
+    perform=[perform, reshape(Cell.getField(sparsa,'RMSE'),[],1)];
+
     temp=showResult(   npg,2,'time'); perform=[perform, temp(:)];
     temp=showResult(spiral,2,'time'); perform=[perform, temp(:)];
     temp=showResult(   fbp,2,'time'); perform=[perform, temp(:)];
     temp=showResult( fpcas,2, 'cpu'); perform=[perform, temp(:)];
+    perform=[perform, reshape(Cell.getField(npgc,'time'),[],1)];
+    %perform=[perform, reshape(Cell.getField(npgs,'time'),[],1)];
+    perform=[perform, reshape(Cell.getField(sparsa,'time'),[],1)];
 
     figure;
-    for i=1:4
-        semilogy(prjFull/2,perform(:,i)); hold on;
+    style1 = {'b-','r-','b:','r:','b--','r--','-','*','.','+','d'};
+    style2 = {'b-*','r-*','b:o','r:o','b--s','r--s','c^-'};
+    for i=1:6
+        semilogy(prjFull/2,perform(:,i),style2{i}); hold on;
     end
+    legend('npg','spiral','fbp','fpcas','npgc','sparsa');
+    for i=1:6
+        semilogy(prjFull/2,perform(:,i+6),style2{i}); hold on;
+    end
+    legend('npg','spiral','fbp','fpcas','npgc','sparsa');
 
     keyboard
 

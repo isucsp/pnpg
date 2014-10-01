@@ -12,6 +12,10 @@ classdef NPG < handle
             opt.continuation=true; opt.alphaStep='FISTA_ADMM_NNL1';
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out = NPGsc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='FISTA_L1';
+            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out = NPGs(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='FISTA_L1';
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
@@ -59,7 +63,7 @@ classdef NPG < handle
 
         function out = SpaRSA(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA start\n');
-            if(~isfield(opt,'verbose')) opt.verbose=true; end
+            if(~isfield(opt,'verbose')) opt.verbose=false; end
             ppsi = @(xxx,uuu,thrsh) Psi(Utils.softThresh(Psit(xxx),uuu));
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,mse]=...
@@ -86,7 +90,7 @@ classdef NPG < handle
 
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
-            if(~isfield(opt,'verbose')) opt.verbose=true; end
+            if(~isfield(opt,'verbose')) opt.verbose=false; end
             ppsi = @(xxx,uuu,thrsh) FISTA_ADMM_NNL1.innerADMM_v4(Psi,Psit,xxx,uuu,thrsh);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,mse]=...

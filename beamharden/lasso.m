@@ -113,7 +113,7 @@ end
 if(opt.continuation)
     [~,g]=alphaStep.fArray{1}(alpha);
     alphaStep.u = 0.1*pNorm(g,inf);
-    alphaStep.u = min(alphaStep.u,opt.u*100);
+    alphaStep.u = min(alphaStep.u,opt.u*1e4);
     alphaStep.u = max(alphaStep.u,opt.u);
     if(alphaStep.u*opt.contShrnk<=opt.u)
         opt.continuation=false;
