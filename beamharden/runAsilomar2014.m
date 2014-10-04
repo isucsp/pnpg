@@ -203,13 +203,15 @@ if(any(runList==002))
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u(i)*10^(j-3)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
                 if(k==1 && i==2)
+                    npgsT {i,j,k}=NPG.NPGs   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                continue;
                     opt.initStep='fixed';
                     fistal{i,j,k}=NPG.FISTA(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                     opt=rmfield(opt,'initStep');
                 end
+                continue;
                 sparsa{i,j,k}=NPG.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 sparsn{i,j,k}=NPG.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                continue;
                 npgc  {i,j,k}=NPG.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 npgs  {i,j,k}=NPG.NPGsc  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 npg   {i,j,k}=NPG.main   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -217,7 +219,7 @@ if(any(runList==002))
                 fista {i,j,k}=NPG.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 fpcas {i,j,k}=NPG.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             end
-            save(filename,'filename','npg','npgc','spiral','sparsn','npgs','fista','fpcas','sparsa','fistal');
+            save(filename);
         end
     end
 end
@@ -425,43 +427,43 @@ if(any(runList==902))
     save('varyMeasurement.data','forSave','-ascii');
 
     forSave=m(:);
-    forSave=[forSave,    npgTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave,   npgcTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave, spiralTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave, sparsnTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave,   npgsTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave,  fpcasTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave,  fistaTime((uNonneg-1)*9+(1:9))];
-    forSave=[forSave, sparsaTime((uNonneg-1)*9+(1:9))];
+    forSave=[forSave,    npgTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave,   npgcTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave, spiralTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave, sparsnTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave,   npgsTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave,  fpcasTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave,  fistaTime((uNonneg-1)*9+(1:9))'];
+    forSave=[forSave, sparsaTime((uNonneg-1)*9+(1:9))'];
     save('varyMeasurementTime.data','forSave','-ascii');
 
     keyboard
 
     mIdx=2; experi=1; forSave=[]; t=0;
-    npgsT=npgs(:,:,experi); npgsn20T=npgs(:,:,experi); fistaT=fista(:,:,experi); fistalT=fistal(:,:,experi); fistalT{9,6}=[];
-    t=t+1; temp=   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp=npgsn20T{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp=   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=npgsn20T{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=npgsn20T{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=npgsn20T{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp=  fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fistalT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fistalT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fistalT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
-    t=t+1; temp= fistalT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    npgsT=npgsT(:,:,experi); npgsn20T=npgs(:,:,experi); fistaT=fista(:,:,experi); fistalT=fistal(:,:,experi); fistalT{9,6}=[];
+    t=t+1; temp=   npgsT{mIdx,gEle(c3(idx3),mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20T{mIdx,gEle(c3(idx3),mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fistaT{mIdx,gEle(c6(idx6),mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgsT{mIdx,gEle(c3(idx3),mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20T{mIdx,gEle(c3(idx3),mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fistaT{mIdx,gEle(c6(idx6),mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgsT{mIdx,gEle(c3(idx3),mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20T{mIdx,gEle(c3(idx3),mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fistaT{mIdx,gEle(c6(idx6),mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=   npgsT{mIdx,gEle(c3(idx3),mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=npgsn20T{mIdx,gEle(c3(idx3),mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp=  fistaT{mIdx,gEle(c6(idx6),mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp= fistalT{mIdx,gEle(c6(idx6),mIdx)}.cost(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp= fistalT{mIdx,gEle(c6(idx6),mIdx)}.stepSize(:); forSave(1:length(temp),t)=temp;
+    t=t+1; temp= fistalT{mIdx,gEle(c6(idx6),mIdx)}.RMSE(:);     forSave(1:length(temp),t)=temp;
+    t=t+1; temp= fistalT{mIdx,gEle(c6(idx6),mIdx)}.time(:);     forSave(1:length(temp),t)=temp;
     disp([ c3(idx3) c6(idx6)]);
-    disp([   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.p;...
-           fistalT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.p;...
-            fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.p]);
-    disp([   npgsT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(end); ...
-           fistalT{gEle((c3(idx3)-1)*9+(1:9)',mIdx)}.time(end); ...
-            fistaT{gEle((c6(idx6)-1)*9+(1:9)',mIdx)}.time(end)]);
+    disp([   npgsT{mIdx,gEle(c3(idx3),mIdx)}.p;...
+           fistalT{mIdx,gEle(c3(idx3),mIdx)}.p;...
+            fistaT{mIdx,gEle(c6(idx6),mIdx)}.p]);
+    disp([   npgsT{mIdx,gEle(c3(idx3),mIdx)}.time(end); ...
+           fistalT{mIdx,gEle(c3(idx3),mIdx)}.time(end); ...
+            fistaT{mIdx,gEle(c6(idx6),mIdx)}.time(end)]);
     temp=forSave(:,10:13); temp=temp(:); temp=temp(temp>0); temp=min(temp); forSave(:,10:13)=forSave(:,10:13)-temp;
     save('stepSizeLin.data','forSave','-ascii');
     figure(1); hold off; semilogy(forSave(:,7),forSave(:,4),'r'); hold on;
@@ -473,7 +475,7 @@ if(any(runList==902))
     semilogy(forSave(:,16),forSave(:,13),'c');
     keyboard
 
-    system(['mv stepSizeLin.data varyMeasurement.data varyMeasurementTime.data skyline.data varyMeasurementTable.tex ' paperDir]);
+    system(['mv rmseVsA.data stepSizeLin.data varyMeasurement.data varyMeasurementTime.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');
 end
 
