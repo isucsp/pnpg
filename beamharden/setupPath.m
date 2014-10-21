@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 21 Aug 2014 06:03:20 PM CDT
+% $Revision: 0.3 $ $Date: Sat 11 Oct 2014 10:48:57 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -20,6 +20,7 @@ addpath([pathstr '/../irt/nufft']);
 addpath([pathstr '/../irt/systems']);
 addpath([pathstr '/../irt/utilities']);
 addpath([pathstr '/../others/']);
+addpath([pathstr '/../others/glmnet_matlab/']);
 addpath([pathstr]);
 
 % cd '../prj'

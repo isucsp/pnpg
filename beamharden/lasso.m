@@ -176,14 +176,15 @@ while(true)
             alphaStep.u = max(alphaStep.u,opt.u);
         end
     end
+
+    str=sprintf([str ' cost=%-6g'],out.cost(p));
+
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=computError(alpha);
+        str=sprintf([str ' RSE=%g'],out.RMSE(p));
     end
 
-    str=sprintf([str ' cost=%-6g RSE=%g',...
-        ' difAlpha=%g aSearch=%d'],...
-        out.cost(p),out.RMSE(p), out.difAlpha(p), ...
-        alphaStep.ppp);
+    str=sprintf([str ' difAlpha=%g aSearch=%d'],out.difAlpha(p),alphaStep.ppp);
     if(p>1)
         str=sprintf([str ' difCost=%g'], out.difCost(p));
     end

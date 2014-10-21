@@ -480,24 +480,24 @@ final_tolA = tolA;
 % set continuation factors
 
 if (continuation && phi_l1 && (cont_steps > 1))
-  % If tau is scalar, first check top see if the first factor is 
-  % too large (i.e., large enough to make the first 
-  % solution all zeros). If so, make it a little smaller than that.
-  if prod(size(tau)) == 1
-    if firstTauFactor*tau >= max_tau
-      firstTauFactor = 0.5 * max_tau / tau;
-      if verbose
-	fprintf(1,'\n setting parameter FirstTauFactor\n')
-      end
+    % If tau is scalar, first check top see if the first factor is 
+    % too large (i.e., large enough to make the first 
+    % solution all zeros). If so, make it a little smaller than that.
+    if prod(size(tau)) == 1
+        if firstTauFactor*tau >= max_tau
+            firstTauFactor = 0.5 * max_tau / tau;
+            if verbose
+                fprintf(1,'\n setting parameter FirstTauFactor\n')
+            end
+        end
+        cont_factors = 10.^[log10(firstTauFactor):...
+            log10(1/firstTauFactor)/(cont_steps-1):0];
     end
-    cont_factors = 10.^[log10(firstTauFactor):...
-	  log10(1/firstTauFactor)/(cont_steps-1):0];
-  end
 else
-  if ( ~continuation )
-    cont_factors = 1;
-    cont_steps = 1;
-  end
+    if ( ~continuation )
+        cont_factors = 1;
+        cont_steps = 1;
+    end
 end
 
 keep_continuation = 1;
@@ -669,6 +669,7 @@ while keep_continuation
     
     delta_x_criterion = sqrt((dx(:)'*dx(:))/(x(:)'*x(:)));
     out.difAlpha(iter)=delta_x_criterion;
+    out.uRecord(iter,:)=[final_tau,tau];
     % compute stopping criteria and test for termination
     switch stopCriterion
         case 0,

@@ -1,4 +1,4 @@
-function [opt,EAAt,invEAAt]=loadLinear(obj,opt)
+function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 

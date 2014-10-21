@@ -50,8 +50,8 @@ classdef FISTA_ADMM_NNL1 < Methods
                     if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
                         temp1=temp1+1;
-                        obj.cumu=0;
                         obj.t=obj.t*obj.stepShrnk;
+                        obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
                     newX = y - obj.grad/obj.t;
@@ -164,3 +164,4 @@ classdef FISTA_ADMM_NNL1 < Methods
         end
     end
 end
+

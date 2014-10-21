@@ -54,7 +54,7 @@ classdef FISTA_L1 < Methods
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        if(temp && obj.p==1)
+                        if(obj.ppp<=20 && temp && obj.p==1)
                             obj.t=obj.t*obj.stepShrnk;
                             continue;
                         else break;

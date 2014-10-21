@@ -4,12 +4,24 @@ classdef NPG < handle
             opt.continuation=false; opt.alphaStep='FISTA_ADMM_NNL1';
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
-        function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
+        function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='FISTA_ADMM_NNL1'; opt.adaptiveStep=false;
+            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='IST_ADMM_NNL1'; opt.adaptiveStep=true;
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=true; opt.alphaStep='FISTA_ADMM_NNL1';
+            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGc_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='FISTA_ADMM_NNL1'; opt.adaptiveStep=false;
+            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = PGc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='IST_ADMM_NNL1'; opt.adaptiveStep=true;
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGsc(Phi,Phit,Psi,Psit,y,xInit,opt)
@@ -23,10 +35,13 @@ classdef NPG < handle
         function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='FISTA_L1'; opt.adaptiveStep=false;
             % to call FISTA, user need to specify the choice for the initial step size to be either 'fixed' or 'BB'
+            % default is 'BB'
             % opt.initStep='fixed'; % 'BB'; %
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = FPCas(Phi,Phit,Psi,Psit,y,xInit,opt)
+            if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+            if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             AO=A_operator(A,At);
             option.x0=Psit(xInit);
@@ -37,7 +52,9 @@ classdef NPG < handle
             out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 pNorm(Psit(out.alpha),1)];
-            out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+            if(isfield(opt,'trueAlpha'))
+                out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+            end
             out.opt = opt;
             fprintf('fpcas cost=%g, RMSE=%g\n',out.f,out.RMSE);
         end
@@ -63,10 +80,10 @@ classdef NPG < handle
 
         function out = SpaRSA(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA start\n');
-            if(~isfield(opt,'verbose')) opt.verbose=false; end
+            if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
             ppsi = @(xxx,uuu,thrsh) Psi(Utils.softThresh(Psit(xxx),uuu));
             rrrr = @(xxx) pNorm(Psit(xxx),1);
-            [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,mse]=...
+            [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...
                 SpaRSA_mod(y,Phi,opt.u,...
                 'AT',Phit,...
                 'Psi',ppsi,...
@@ -79,21 +96,20 @@ classdef NPG < handle
                 'Safeguard',1,...
                 'Monotone',0,...
                 'Continuation',1,...
-                'Verbose',opt.verbose,...
+                'Verbose',opt.debugLevel>0,...
                 'MaxiterA',opt.maxItr);
-            clear('out');
             out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
-            out.RMSE=mse.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
-            out.stepSize=mse.stepSize; out.difAlpha=mse.difAlpha;
+            out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
             fprintf('SpaRSA cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
         end
 
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
-            if(~isfield(opt,'verbose')) opt.verbose=false; end
+            if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
             ppsi = @(xxx,uuu,thrsh) FISTA_ADMM_NNL1.innerADMM_v4(Psi,Psit,xxx,uuu,thrsh);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
-            [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,mse]=...
+            xInit(xInit<0)=0;
+            [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...
                 SpaRSA_mod(y,Phi,opt.u,...
                 'AT',Phit,...
                 'Psi',ppsi,...
@@ -106,12 +122,10 @@ classdef NPG < handle
                 'Safeguard',1,...
                 'Monotone',0,...
                 'Continuation',1,...
-                'Verbose',opt.verbose,...
+                'Verbose',opt.debugLevel>0,...
                 'MaxiterA',opt.maxItr);
-            clear('out');
             out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
-            out.RMSE=mse.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
-            out.stepSize=mse.stepSize; out.difAlpha=mse.difAlpha;
+            out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
             fprintf('SpaRSA nonnegative cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
         end
     end
