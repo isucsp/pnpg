@@ -321,6 +321,13 @@ if(any(runList==902))
     sparsaRMSE= mean(Cell.getField(sparsa(:,:,1:K),'RMSE'),3);
     sparsnRMSE= mean(Cell.getField(sparsn(:,:,1:K),'RMSE'),3);
 
+    npgnasTime = mean(Cell.getField(   npg_nads(:,:,1:K),'time'),3);
+    npgcnasTime= mean(Cell.getField(  npgc_nads(:,:,1:K),'time'),3);
+    npgnasCost = mean(Cell.getField(   npg_nads(:,:,1:K),'cost'),3);
+    npgcnasCost= mean(Cell.getField(  npgc_nads(:,:,1:K),'cost'),3);
+    npgnasRMSE = mean(Cell.getField(   npg_nads(:,:,1:K),'RMSE'),3);
+    npgcnasRMSE= mean(Cell.getField(  npgc_nads(:,:,1:K),'RMSE'),3);
+
     [r,c1]=find(   npgRMSE== repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
     [r,c2]=find(  npgcRMSE== repmat(min(  npgcRMSE,[],2),1,5)); [r,idx2]=sort(r);
     [r,c4]=find(spiralRMSE== repmat(min(spiralRMSE,[],2),1,5)); [r,idx4]=sort(r);
