@@ -36,11 +36,6 @@ if(any(runList==000))
     eps=randn(n,1);
     y=fx+eps;
     tic;
-    options=glmnetSet;
-    options.thresh=1e-12;
-    gn=glmnet(x,y,'gaussian',options);
-    gn.time=toc;
-    tic;
     gns=glmnet(sx,y,'gaussian',options);
     gns.time=toc;
     conf.Phi=@(aaa) x*aaa;
@@ -49,7 +44,6 @@ if(any(runList==000))
     conf.Psit=@(aaa) aaa;
     opt.trueAlpha=[beta(:);zeros(p-nzc,1)];
     opt.thresh=1e-12;
-    trueAlphaNorm=sqrNorm(opt.trueAlpha);
     for i=1:length(gn.lambda)
         opt.u=gn.lambda(i)*n;
         gn.rmse(i)=sqrNorm(gn.beta(:,i)-opt.trueAlpha)/trueAlphaNorm;
@@ -238,12 +232,15 @@ if(any(runList==002))
     for k=1:5
         for i=1:length(m)
             opt.m=m(i); opt.snr=inf;
-            [opt,~,invEAAt]=loadLinear(conf,opt);
+            [opt,~,invEAAt,A]=loadLinear(conf,opt);
             initSig = conf.Phit(invEAAt*conf.y);
+
+            opt.u = u(i)*10^(-2:2)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
+            glmnet{i,k}=NPG.glmnet(A,wvltMat(length(opt.trueAlpha),conf.dwt_L,conf.daub),conf.y,initSig,opt);
+
             for j=1:5
                 fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
                 opt.u = u(i)*10^(j-3)*pNorm(conf.Psit(conf.Phit(conf.y)),inf);
-
 
                 % if(k==2) return; end;
                 % if(i~=6) continue; end
@@ -281,6 +278,7 @@ if(any(runList==002))
                 fista {i,j,k}=NPG.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                 fpcas {i,j,k}=NPG.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             end
+
             save(filename);
         end
     end

@@ -128,7 +128,57 @@ classdef NPG < handle
             out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
             fprintf('SpaRSA nonnegative cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
         end
+        function out = glmnet(Phi,Psi,y,xInit,opt)
+            if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+            if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+
+            tic;
+            A = Phi*Psi;
+            options=glmnetSet;
+            options.thresh=opt.thresh;
+            options.maxit=opt.maxItr;
+            if(length(opt.u)>1)
+                options.nlambda=length(opt.u);
+                options.lambda=opt.u/length(y);
+            end
+
+            switch lower(opt.noiseType)
+                case lower('poissonLogLink')
+                    out=glmnet(A,y,'poisson',options);
+                case 'gaussian'
+                    options.intr = false;
+                    options.standardize=false;
+                    out=glmnet(A,y,'gaussian',options);
+            end
+
+            out.time=toc;
+            out.opt = opt;
+
+            trueAlphaNorm=sqrNorm(opt.trueAlpha);
+            for i=1:length(out.lambda)
+                out.alpha(:,i) = Psi*out.beta(:,i);
+                out.u(i)=out.lambda(i)*length(y);
+                if(isfield(opt,'trueAlpha'))
+                    out.RMSE(i)=sqrNorm(out.alpha(:,i)-opt.trueAlpha)/trueAlphaNorm;
+                end
+                switch lower(opt.noiseType)
+                    case 'gaussian'
+                        out.fVal(:,i)=[0.5*sqrNorm(Phi*out.alpha(:,i)-y);...
+                            sqrNorm(out.alpha(:,i).*(out.alpha(:,i)<0));...
+                            pNorm(Psi'*out.alpha(:,i)),1)];
+                        out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
+                    case lower('poissonLogLink')
+                        PhiAlpha=Phi*out.alpha(:,i); weight = exp(-PhiAlpha);
+                        sumy=sum(y); sumWeight=sum(weight);
+                        f=sumy*log(sumWeight)+innerProd(y,PhiAlpha);
+                        out.fVal=[f;...
+                            sqrNorm(out.alpha.*(out.alpha<0));...
+                            pNorm(Psit(out.alpha),1)];
+                        out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
+                end
+            end
+            fprintf('glmnet cost=%g, RMSE=%g, time=%f\n',out.f(end),out.RMSE(end),out.time);
+        end
     end
 end
-
 
