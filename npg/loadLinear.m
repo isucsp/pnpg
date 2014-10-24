@@ -78,21 +78,27 @@ function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
         error('error input matrixType');
     end
 
-    if(strcmpi(opt.noiseType,'gaussian'))
-        v = randn(opt.m,1);
-        v = v*(norm(A*x0)/sqrt(opt.snr*opt.m));
-        b = A*x0 + v;
-        % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
-    elseif(strcmpi(opt.noiseType,'poisson'))
-        y = A*x0;
-        a = (opt.snr-1)*sum(y)/sum(y.^2);
-        a = 1000; % this is equivalent to SNR ~ 3e5
-        %x0=x0*1000;
-        x0=a*x0;
-        b = poissrnd(a*y);
-        % figure; showImg(A);
-    else
-        error('wrong input noiseType');
+    y=A*x0;
+
+    switch lower(opt.noiseType)
+        case lower('gaussian')
+            v = randn(opt.m,1);
+            v = v*(norm(y)/sqrt(opt.snr*opt.m));
+            b = y + v;
+            % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
+        case lower('poisson')
+            a = (opt.snr-1)*sum(y)/sum(y.^2);
+            % a = 1000; is equivalent to SNR ~ 3e5
+            x0=a*x0;
+            b = poissrnd(a*y);
+            % figure; showImg(A);
+        case lower('poissonLogLink')
+            y = exp(-y);
+            a = (opt.snr-1)*sum(y)/sum(y.^2);
+            b = poissrnd(a*y);
+            % figure; showImg(A);
+        otherwise
+            error('wrong input noiseType');
     end
 
     %fprintf('solving instance with %d examples, %d variables\n', opt.m, n);

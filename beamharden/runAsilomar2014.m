@@ -1096,7 +1096,6 @@ if(any(runList==009))
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
-        conf.y = conf.y/max(conf.y(:)); % important to normalize
         initSig = maskFunc(conf.FBP(-log(conf.y)),opt.mask~=0);
         % initSig = opt.trueAlpha;
         for j=1:1
