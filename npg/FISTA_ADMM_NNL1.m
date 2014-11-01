@@ -34,7 +34,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            if(obj.restart>=0) obj.restart=0; end
+            if(obj.restart>0) obj.restart=0; end
             pp=0;
             while(pp<obj.maxItr)
                 pp=pp+1;
@@ -59,26 +59,34 @@ classdef FISTA_ADMM_NNL1 < Methods
                         newX,obj.u/obj.t,obj.admmTol*obj.difAlpha);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        if(temp && obj.p==1)
+                        if(obj.ppp<=20 && temp && obj.p==1)
                             obj.t=obj.t*obj.stepShrnk;
                             continue;
                         else break;
                         end
-                    else obj.t=obj.t/obj.stepShrnk; temp=false;
+                    else obj.t=obj.t/obj.stepShrnk; temp=false; obj.cumuTol=obj.cumuTol+2;
                     end
                 end
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
                 temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if(obj.restart==0 && (~isempty(obj.cost)) && temp>obj.cost)
-                    obj.theta=0; pp=pp-1;
-                    obj.restart= 1; % make sure only restart once each iteration
-                    continue;
-                end
                 if(temp>obj.cost)
-                    obj.nonInc=obj.nonInc+1;
-                    if(obj.nonInc>5) newX=obj.alpha; end
+                    switch(obj.restart)
+                        case 0
+                            obj.theta=0;
+                            obj.restart= 1; % make sure only restart once each iteration
+                            pp=pp-1;
+                            continue;
+                        case 1
+                            obj.restart= 2; % make sure only restart once each iteration
+                            pp=pp-1;
+                            obj.difAlpha=0;
+                            continue;
+                        otherwise
+                            newX=obj.alpha;
+                            temp=obj.cost;
+                    end
                 end
                 obj.cost = temp;
                 obj.stepSize = 1/obj.t;

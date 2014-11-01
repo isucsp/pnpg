@@ -20,13 +20,10 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
-if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'initStep')) opt.initStep='BB'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
-if(~isfield(opt,'continuation')) opt.continuation=false; end
-if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
-if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-3; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
@@ -39,6 +36,18 @@ if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+% continuation setup
+if(~isfield(opt,'continuation')) opt.continuation=false; end
+if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
+if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-3; end
+if(~isfield(opt,'contEta')) opt.contEta=1e-2; end
+if(~isfield(opt,'contGamma')) opt.contGamma=1e4; end
+% find rse vs a, this option if true will disable "continuation"
+if(~isfield(opt,'fullcont')) opt.fullcont=false; end
+
+if(opt.fullcont)
+    opt.continuation=false;
+end
 
 alpha=xInit;
 
@@ -110,19 +119,25 @@ if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
     alphaStep.adaptiveStep=opt.adaptiveStep;
 end
 
-if(opt.continuation)
-    [~,g]=alphaStep.fArray{1}(alpha);
-    alphaStep.u = 0.1*pNorm(g,inf);
-    alphaStep.u = min(alphaStep.u,opt.u*1e4);
-    alphaStep.u = max(alphaStep.u,opt.u);
-    if(alphaStep.u*opt.contShrnk<=opt.u)
-        opt.continuation=false;
-        alphaStep.u=opt.u;
+if(opt.continuation || opt.fullcont)
+    contIdx=1;
+    if(length(opt.u)>1)
+        alphaStep.u = opt.u(contIdx);
     else
-        qThresh = opt.contCrtrn/opt.thresh;
-        lnQU = log(alphaStep.u/opt.u);
+        [~,g]=alphaStep.fArray{1}(alpha);
+        alphaStep.u = opt.contEta*pNorm(Psit(g),inf);
+        alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
+        alphaStep.u = max(alphaStep.u,opt.u);
+        if(alphaStep.u*opt.contShrnk<=opt.u)
+            opt.continuation=false;
+            alphaStep.u=opt.u;
+        end
+        clear('g');
     end
-    clear('g');
+    if(opt.continuation)
+        qThresh = opt.contCrtrn/opt.thresh;
+        lnQU = log(alphaStep.u/opt.u(end));
+    end
 else alphaStep.u = opt.u;
     fprintf('opt.u=%g\n',opt.u);
 end
@@ -143,6 +158,12 @@ else
     collectInnerSearch=false;
 end
 
+if(any(strcmp(properties(alphaStep),'nonInc')))
+    collectNonInc=true;
+else
+    collectNonInc=false;
+end
+
 tic; p=0; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
@@ -157,6 +178,8 @@ while(true)
     out.cost(p) = alphaStep.cost;
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
+    if(opt.restart) out.restart(p)=alphaStep.restart; end
+    if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(isfield(opt,'getBB') && opt.getBB)
         out.BB(p,:)=alphaStep.stepSizeInit('BB');
@@ -167,21 +190,37 @@ while(true)
 
     alpha = alphaStep.alpha;
 
-    if(opt.continuation)
-        out.uRecord(p,:)=[opt.u,alphaStep.u];
-        str=sprintf([str ' u=%-6g'],alphaStep.u);
-        temp=alphaStep.u/opt.u;
-        if(temp>1 && out.difAlpha(p)< (opt.thresh*qThresh^(log(temp)/lnQU)) )
-            alphaStep.u = min(alphaStep.u*opt.contShrnk,0.1*pNorm(alphaStep.grad,inf));
-            alphaStep.u = max(alphaStep.u,opt.u);
-        end
-    end
-
     str=sprintf([str ' cost=%-6g'],out.cost(p));
 
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=computError(alpha);
         str=sprintf([str ' RSE=%g'],out.RMSE(p));
+    end
+
+
+    if(opt.continuation || opt.fullcont)
+        out.uRecord(p,:)=[opt.u(end),alphaStep.u];
+        str=sprintf([str ' u=%-6g'],alphaStep.u);
+        temp=alphaStep.u/opt.u(end);
+        if(opt.continuation)
+            temp1=(opt.thresh*qThresh^(log(temp)/lnQU));
+            temp1=max(temp1,1e-5);
+        else
+            temp1=opt.thresh;
+        end
+        out.contThresh(p)=temp1;
+        if(temp>1 && out.difAlpha(p) < temp1 )
+            out.contAlpha(:,contIdx)=alpha;
+            if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
+            contIdx=contIdx+1;
+            if(length(opt.u)>1)
+                alphaStep.u = opt.u(contIdx);
+            else
+                alphaStep.u = min(alphaStep.u*opt.contShrnk,opt.contEta*pNorm(Psit(alphaStep.grad),inf));
+                alphaStep.u = max(alphaStep.u,opt.u);
+            end
+            alphaStep.reset();
+        end
     end
 
     str=sprintf([str ' difAlpha=%g aSearch=%d'],out.difAlpha(p),alphaStep.ppp);
@@ -230,7 +269,7 @@ while(true)
         end
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u))
+    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
         convThresh=convThresh+1;
     end
     if(p >= opt.maxItr || convThresh>2)

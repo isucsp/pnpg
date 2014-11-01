@@ -26,7 +26,7 @@ classdef Methods < handle
         u       % coefficient of l1 norm term
         M = 5;  % keep the record of objective from the last M iterations
         oldCost
-        cost;
+        cost=inf;
 
         % for FISTA
         p = 0;

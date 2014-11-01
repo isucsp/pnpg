@@ -32,7 +32,7 @@ classdef IST_ADMM_NNL1 < Methods
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            pp=0;
+            pp=0; resetDifAlpha=0;
             while(pp<obj.maxItr)
                 pp=pp+1;
                 y=obj.alpha;
@@ -54,12 +54,12 @@ classdef IST_ADMM_NNL1 < Methods
                         newX,obj.u/obj.t,obj.admmTol*obj.difAlpha);
                     obj.newCost=obj.func(newX);
                     if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        if(temp && obj.p==1)
+                        if(obj.ppp<=20 && temp && obj.p==1)
                             obj.t=obj.t*obj.stepShrnk;
                             continue;
                         else break;
                         end
-                    else obj.t=obj.t/obj.stepShrnk; temp=false;
+                    else obj.t=obj.t/obj.stepShrnk; temp=false; obj.cumuTol=obj.cumuTol+2;
                     end
                 end
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
@@ -67,6 +67,18 @@ classdef IST_ADMM_NNL1 < Methods
                 if(temp>obj.cost)
                     obj.nonInc=obj.nonInc+1;
                     if(obj.nonInc>5) newX=obj.alpha; end
+                end
+                if(temp>obj.cost)
+                    switch(resetDifAlpha)
+                        case 0
+                            resetDifAlpha= 1;
+                            pp=pp-1;
+                            obj.difAlpha=0;
+                            continue;
+                        otherwise
+                            newX=obj.alpha;
+                            temp=obj.cost;
+                    end
                 end
                 obj.cost = temp;
                 obj.stepSize = 1/obj.t;
@@ -81,6 +93,9 @@ classdef IST_ADMM_NNL1 < Methods
                 if(obj.difAlpha<=obj.thresh) break; end
             end
             out = obj.alpha;
+        end
+        function reset(obj)
+            obj.theta=0; obj.preAlpha=obj.alpha;
         end
     end
 end

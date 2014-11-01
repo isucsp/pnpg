@@ -1,4 +1,4 @@
-function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
+function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 
@@ -56,11 +56,11 @@ function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
 
     x0=x(:);
     if(strcmpi(opt.matrixType,'nonneg'))
-        A = rand(opt.m,n);
-        a=0.3;
-        idx=(A<a);
-        A(idx)=0;
-        A(~idx)=(A(~idx)-a)/(1-a);
+        Phi = rand(opt.m,n);
+        a=0.9;
+        idx=(Phi<a);
+        Phi(idx)=0;
+        Phi(~idx)=(Phi(~idx)-a)/(1-a);
 
         c=n/12*(1-a)*(1+3*a);
         d=n/4*(1-a)^2;
@@ -69,8 +69,8 @@ function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
         invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
 
     elseif(strcmpi(opt.matrixType,'gaussian'))
-        A = randn(opt.m,n);
-        A = A*spdiags(1./sqrt(sum(A.^2))',0,n,n); % normalize columns
+        Phi = randn(opt.m,n);
+        Phi = Phi*spdiags(1./sqrt(sum(Phi.^2))',0,n,n); % normalize columns
         % E(AA^T)= n/opt.m I
         EAAt = n/opt.m;
         invEAAt = opt.m/n;
@@ -78,39 +78,42 @@ function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
         error('error input matrixType');
     end
 
-    y=A*x0;
-
     switch lower(opt.noiseType)
         case lower('gaussian')
+            y=Phi*x0;
             v = randn(opt.m,1);
             v = v*(norm(y)/sqrt(opt.snr*opt.m));
-            b = y + v;
-            % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(A*x0)^2/norm(v)^2);
+            y = y + v;
+            % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(Phi*x0)^2/norm(v)^2);
         case lower('poisson')
+            y=Phi*x0;
             a = (opt.snr-1)*sum(y)/sum(y.^2);
             % a = 1000; is equivalent to SNR ~ 3e5
             x0=a*x0;
-            b = poissrnd(a*y);
-            % figure; showImg(A);
+            y = poissrnd(a*y);
+            % figure; showImg(Phi);
         case lower('poissonLogLink')
-            y = exp(-y);
-            a = (opt.snr-1)*sum(y)/sum(y.^2);
-            b = poissrnd(a*y);
-            % figure; showImg(A);
+            % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
+            y=Phi*x0; a=min(y); b=max(y); A=10; B=2^16/2;
+            scale=(log(B)-log(A))/(b-a);
+            opt.I0=exp( (b*log(B) - a*log(A))/(b-a) );
+            Phi = Phi * scale;
+            EAAt = EAAt*scale^2;
+            invEAAt = invEAAt/scale^2;
+            y = opt.I0*exp(-Phi*x0);
+            y = poissrnd(y);
+            % figure; showImg(Phi);
         otherwise
             error('wrong input noiseType');
     end
 
     %fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
 
-    gamma_max = norm(A'*b,'inf');
-    gamma = 0.1*gamma_max;
-
     obj.trueImg = x0;
-    obj.y = b;
+    obj.y = y;
 
-    obj.Phi = @(xx) A*xx(:);
-    obj.Phit = @(xx) A'*xx(:);
+    obj.Phi = @(xx) Phi*xx(:);
+    obj.Phit = @(xx) Phi'*xx(:);
 
     obj.dwt_L= 3;        %levels of wavelet transform
     obj.daub = 4;
@@ -121,7 +124,7 @@ function [opt,EAAt,invEAAt,A]=loadLinear(obj,opt)
     obj.Psit= @(xx)  mdwt(xx,daub_H,obj.dwt_L);
 
     opt.trueAlpha=x0;
-    opt.L = max(svd(A))^2;
+    opt.L = max(svd(Phi))^2;
     if(strcmpi(opt.noiseType,'poisson'))
         opt.L=opt.L/min(obj.y);
     end

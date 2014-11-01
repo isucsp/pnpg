@@ -39,6 +39,31 @@ classdef NPG < handle
             % opt.initStep='fixed'; % 'BB'; %
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out = A(xxx, mode , Phi, Phit)
+            if(mode==1) out = Phi(xxx); else out = Phit(xxx); end
+        end
+        function out = FPC(Phi,Phit,Psi,Psit,y,xInit,opt)
+            if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+            if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+            A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
+            AO= @(xx,mode) NPG.A(xx,mode,A,At);
+            option.x0=Psit(xInit);
+            if(isfield(opt,'trueAlpha'))
+                option.xs=Psit(opt.trueAlpha);
+            end
+            option.xtol=opt.thresh;
+            option.mxitr=opt.maxItr;
+            option.scale=false;
+            out = fpc_bb_mod(length(option.x0),AO,y,1/opt.u,[],option);
+            out.alpha = Psi(out.x);
+            out.difAlpha = out.step;
+            if(isfield(opt,'trueAlpha'))
+                out.RMSE=out.n2re.^2;
+                %sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+            end
+            out.opt = opt;
+            fprintf('fpcas cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+        end
         function out = FPCas(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
@@ -55,6 +80,8 @@ classdef NPG < handle
             if(isfield(opt,'trueAlpha'))
                 out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             end
+            out.cost=out.f;
+            out.time=out.cpu;
             out.opt = opt;
             fprintf('fpcas cost=%g, RMSE=%g\n',out.f,out.RMSE);
         end
@@ -74,6 +101,7 @@ classdef NPG < handle
             out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 pNorm(Psit(out.alpha),1)];
+            out.RMSE=out.reconerror;
             out.opt=opt;
             fprintf('SPIRAL cost=%g, RMSE=%g\n',out.cost(end),out.reconerror(end));
         end
@@ -135,21 +163,33 @@ classdef NPG < handle
             tic;
             A = Phi*Psi;
             options=glmnetSet;
+            % The following suggests that to get to the same RMSE, glmnet needs
+            % far smaller convergence criteria
             options.thresh=opt.thresh;
-            options.maxit=opt.maxItr;
-            if(length(opt.u)>1)
-                options.nlambda=length(opt.u);
-                options.lambda=opt.u/length(y);
-            end
+            % options.maxit=opt.maxItr;
 
             switch lower(opt.noiseType)
                 case lower('poissonLogLink')
-                    out=glmnet(A,y,'poisson',options);
+                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
+                    [~,g]=L(xInit*0);
+                    u_max=pNorm(Psi'*g,inf);
+                    model='poisson';
+                    options.intr = true; % need the interception
+                    options.standardize=false;
+                    A=-A;
                 case 'gaussian'
+                    L = @(aaa) Utils.linearModel(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
+                    [~,g]=L(xInit*0);
+                    u_max=pNorm(Psi'*g,inf);
+                    u_max=pNorm(A'*y,inf);
                     options.intr = false;
                     options.standardize=false;
-                    out=glmnet(A,y,'gaussian',options);
+                    model='gaussian';
             end
+            if(length(opt.u)>1)
+                options.lambda=opt.u/length(y);
+            end
+            out=glmnet(A,y,model,options);
 
             out.time=toc;
             out.opt = opt;
@@ -158,26 +198,16 @@ classdef NPG < handle
             for i=1:length(out.lambda)
                 out.alpha(:,i) = Psi*out.beta(:,i);
                 out.u(i)=out.lambda(i)*length(y);
+                out.a(i)=log10(out.u(i)/u_max);
                 if(isfield(opt,'trueAlpha'))
                     out.RMSE(i)=sqrNorm(out.alpha(:,i)-opt.trueAlpha)/trueAlphaNorm;
                 end
-                switch lower(opt.noiseType)
-                    case 'gaussian'
-                        out.fVal(:,i)=[0.5*sqrNorm(Phi*out.alpha(:,i)-y);...
-                            sqrNorm(out.alpha(:,i).*(out.alpha(:,i)<0));...
-                            pNorm(Psi'*out.alpha(:,i)),1)];
-                        out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
-                    case lower('poissonLogLink')
-                        PhiAlpha=Phi*out.alpha(:,i); weight = exp(-PhiAlpha);
-                        sumy=sum(y); sumWeight=sum(weight);
-                        f=sumy*log(sumWeight)+innerProd(y,PhiAlpha);
-                        out.fVal=[f;...
-                            sqrNorm(out.alpha.*(out.alpha<0));...
-                            pNorm(Psit(out.alpha),1)];
-                        out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
-                end
+                out.fVal(:,i)=[L(out.alpha(:,i));...
+                    sqrNorm(out.alpha.*(out.alpha<0));...
+                    pNorm(Psi'*(out.alpha),1)];
+                out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
             end
-            fprintf('glmnet cost=%g, RMSE=%g, time=%f\n',out.f(end),out.RMSE(end),out.time);
+            fprintf('glmnet cost=%g, RMSE=%g, time=%f\n',out.cost(end),min(out.RMSE()),out.time);
         end
     end
 end
