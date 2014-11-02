@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 14 Sep 2014 10:13:42 PM CDT
+% $Revision: 0.2 $ $Date: Sat 01 Nov 2014 10:41:29 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -90,6 +90,8 @@ classdef ConfigCT < handle
                     loadPellet(obj);
                 case 'lasso'
                     loadLasso(obj);
+                case 'wrist'
+                    loadWrist(obj);
             end
             genOperators(obj,obj.PhiMode);
 

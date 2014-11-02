@@ -208,7 +208,7 @@ while(true)
         else
             temp1=opt.thresh;
         end
-        out.contThresh(p)=temp1;
+        if(temp>1) out.contThresh(p)=temp1; else out.contThresh(p)=opt.thresh; end;
         if(temp>1 && out.difAlpha(p) < temp1 )
             out.contAlpha(:,contIdx)=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end

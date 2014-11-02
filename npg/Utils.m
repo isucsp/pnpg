@@ -132,8 +132,8 @@ classdef Utils < handle
         end
 
         function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
-            eps=1e-15;
-            PhiAlpha=Phi(alpha)+eps;
+            PhiAlpha=Phi(alpha);
+            if(norm(alpha)==0) PhiAlpha=ones(size(PhiAlpha)); end;
             f=sum(PhiAlpha(:))-innerProd(y,log(PhiAlpha));
             if(nargout>=2)
                 g=Phit(  1-y./PhiAlpha  );
