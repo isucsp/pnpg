@@ -1,10 +1,12 @@
-function loadWrist(obj)
+function loadWrist(obj,snr,noiseType)
     %theta=1:180;     %for phantom
     %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
     %theta=1:160;  % Dogandzic2011Asilomar
 
     load('wrist.mat');
     obj.trueImg=Img2D;
+    obj.imgSize=sqrt(length(obj.trueImg(:)));
+    keyboard
 
     daub = 6;
     obj.wav=daubcqf(daub);

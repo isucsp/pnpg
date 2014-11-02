@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sat 01 Nov 2014 10:41:29 PM CDT
+% $Revision: 0.2 $ $Date: Sun 02 Nov 2014 05:52:23 AM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -91,7 +91,7 @@ classdef ConfigCT < handle
                 case 'lasso'
                     loadLasso(obj);
                 case 'wrist'
-                    loadWrist(obj);
+                    loadWrist(obj,opt.snr,opt.noiseType);
             end
             genOperators(obj,obj.PhiMode);
 
