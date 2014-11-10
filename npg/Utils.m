@@ -133,8 +133,10 @@ classdef Utils < handle
 
         function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
             PhiAlpha=Phi(alpha);
-            if(norm(alpha)==0) PhiAlpha=ones(size(PhiAlpha)); end;
+            if(norm(alpha)<1e-14) PhiAlpha=ones(size(PhiAlpha)); end;
+            PhiAlpha(PhiAlpha<=0)=1;
             f=sum(PhiAlpha(:))-innerProd(y,log(PhiAlpha));
+            if(isnan(f)) keyboard; end
             if(nargout>=2)
                 g=Phit(  1-y./PhiAlpha  );
                 if(nargout>=3)

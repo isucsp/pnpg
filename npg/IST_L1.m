@@ -63,13 +63,15 @@ classdef IST_ADMM_NNL1 < Methods
                     else obj.t=obj.t/obj.stepShrnk; temp=false; obj.cumuTol=obj.cumuTol+2;
                     end
                 end
+                obj.stepSize = 1/obj.t;
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
                 temp = obj.newCost+obj.u*obj.fVal(3);
                 if(temp>obj.cost)
                     newX=obj.alpha; temp=obj.cost;
+                    recoverT=obj.stepSizeInit('bb');
+                    obj.t=min([obj.t;recoverT(:)]);
                 end
                 obj.cost = temp;
-                obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 

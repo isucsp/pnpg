@@ -104,7 +104,7 @@ classdef Methods < handle
                     error('unkown selection for initial step');
             end
             if(isnan(t)) t=ones(size(t)); end
-            if(nargout==0) obj.t=t(1); end
+            if(nargout==0) obj.t=min(t); end
         end
         function set.M(obj,M)
             obj.M = M;

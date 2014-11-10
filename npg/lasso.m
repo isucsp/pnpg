@@ -44,6 +44,7 @@ if(~isfield(opt,'contEta')) opt.contEta=1e-2; end
 if(~isfield(opt,'contGamma')) opt.contGamma=1e4; end
 % find rse vs a, this option if true will disable "continuation"
 if(~isfield(opt,'fullcont')) opt.fullcont=false; end
+if(~isfield(opt,'getBB')) opt.getBB=false; end
 
 if(opt.fullcont)
     opt.continuation=false;
@@ -181,9 +182,7 @@ while(true)
     if(opt.restart) out.restart(p)=alphaStep.restart; end
     if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
-    if(isfield(opt,'getBB') && opt.getBB)
-        out.BB(p,:)=alphaStep.stepSizeInit('BB');
-    end
+    if(opt.getBB) out.BB(p,:)=alphaStep.stepSizeInit('BB'); end
     
     out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end

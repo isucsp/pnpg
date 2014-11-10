@@ -62,6 +62,7 @@ classdef FISTA_L1 < Methods
                 end
                 obj.fVal(3) = pNorm(newSi,1);
                 temp = obj.newCost+obj.u*obj.fVal(3);
+                obj.stepSize = 1/obj.t;
 
                 % restart
                 if(temp>obj.cost)
@@ -74,10 +75,11 @@ classdef FISTA_L1 < Methods
                         case 1
                             newX=obj.alpha;
                             temp=obj.cost;
+                            recoverT=obj.stepSizeInit('bb');
+                            obj.t=min([obj.t;recoverT(:)]);
                     end
                 end
                 obj.cost = temp;
-                obj.stepSize = 1/obj.t;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 

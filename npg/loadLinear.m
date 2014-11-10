@@ -1,4 +1,4 @@
-function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
+function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     %s = RandStream.create('mt19937ar','seed',0);
     %RandStream.setGlobalStream(s);
 
@@ -36,7 +36,7 @@ function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
     x(t>=tics(20) & t<tics(21))=1.6*(((sum(t>=tics(20) & t<tics(21))-1:-1:0)/sum(t>=tics(20) & t<tics(21))).^2);
     x(t>=tics(21))=0;
 
-    if(~exist('obj'))
+    if(~exist('opt'))
         [~,l1norm]=Utils.testSparsity(x);
         opt.l1norm=l1norm;
         opt.x=x;
@@ -57,23 +57,19 @@ function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
     x0=x(:);
     if(strcmpi(opt.matrixType,'nonneg'))
         Phi = rand(opt.m,n);
-        a=0.9;
-        idx=(Phi<a);
-        Phi(idx)=0;
-        Phi(~idx)=(Phi(~idx)-a)/(1-a);
+        a=0;
+        idx=(Phi<a); Phi(idx)=0; Phi(~idx)=(Phi(~idx)-a)/(1-a);
 
-        c=n/12*(1-a)*(1+3*a);
-        d=n/4*(1-a)^2;
+        c=n/12*(1-a)*(1+3*a); d=n/4*(1-a)^2;
         % E{AA^T} = c I + d 1*1^T
         EAAt = c*eye(opt.m) + d*ones(opt.m);
         invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
-
+        sqrNormPhix=(c*norm(x0)^2+d*sum(abs(x0))^2)*opt.m/n;
     elseif(strcmpi(opt.matrixType,'gaussian'))
         Phi = randn(opt.m,n);
-        Phi = Phi*spdiags(1./sqrt(sum(Phi.^2))',0,n,n); % normalize columns
-        % E(AA^T)= n/opt.m I
-        EAAt = n/opt.m;
-        invEAAt = opt.m/n;
+        EAAt = n;
+        invEAAt = 1/n;
+        sqrNormPhix=opt.m*norm(x0)^2;
     else
         error('error input matrixType');
     end
@@ -81,15 +77,14 @@ function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
     switch lower(opt.noiseType)
         case lower('gaussian')
             y=Phi*x0;
-            v = randn(opt.m,1);
-            v = v*(norm(y)/sqrt(opt.snr*opt.m));
+            v = randn(opt.m,1)*sqrt(sqrNormPhix/(opt.m*opt.snr));
             y = y + v;
             % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(Phi*x0)^2/norm(v)^2);
         case lower('poisson')
             y=Phi*x0;
-            a = (opt.snr-1)*sum(y)/sum(y.^2);
+            a = (opt.snr)*sum(y)/sum(y.^2);
             % a = 1000; is equivalent to SNR ~ 3e5
-            x0=a*x0;
+            Phi=a*Phi;
             y = poissrnd(a*y);
             % figure; showImg(Phi);
         case lower('poissonLogLink')
@@ -109,24 +104,18 @@ function [opt,EAAt,invEAAt,Phi]=loadLinear(obj,opt)
 
     %fprintf('solving instance with %d examples, %d variables\n', opt.m, n);
 
-    obj.trueImg = x0;
-    obj.y = y;
+    Phif = @(xx) Phi*xx(:);
+    Phitf = @(xx) Phi'*xx(:);
 
-    obj.Phi = @(xx) Phi*xx(:);
-    obj.Phit = @(xx) Phi'*xx(:);
-
-    obj.dwt_L= 3;        %levels of wavelet transform
-    obj.daub = 4;
+    dwt_L= 3;        %levels of wavelet transform
+    daub = 4;
 
     % caution: don't use the wavelet tools from matlab, it is slow
-    daub_H = daubcqf(obj.daub);
-    obj.Psi = @(xx) midwt(xx,daub_H,obj.dwt_L);
-    obj.Psit= @(xx)  mdwt(xx,daub_H,obj.dwt_L);
+    daub_H = daubcqf(daub);
+    Psi = @(xx) midwt(xx,daub_H,dwt_L);
+    Psit= @(xx)  mdwt(xx,daub_H,dwt_L);
 
     opt.trueAlpha=x0;
     opt.L = max(svd(Phi))^2;
-    if(strcmpi(opt.noiseType,'poisson'))
-        opt.L=opt.L/min(obj.y);
-    end
 end
 

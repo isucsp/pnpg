@@ -311,17 +311,17 @@ if(any(runList==004))
     opt.noiseType='poisson';
 
     j=1;
-    for i=1:length(prjFull)
+    for i=length(prjFull):-1:1
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
+        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
         L = @(aaa) Utils.poissonModel(aaa,conf.Phi,conf.Phit,conf.y);
         [~,g]=L(initSig*0); u_max=pNorm(conf.Psit(g),inf);
-        initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
 
         fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
 
         opt.fullcont=true;
-        opt.u=10.^(-2:-0.5:-6)*u_max;
+        opt.u=10.^(-4:-0.5:-10)*u_max;
         if(any([1 3 6]==i))
             npgFull   {i}=NPG.main   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             npgsFull  {i}=NPG.NPGs   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -352,37 +352,44 @@ end
 
 
 % vary the SNR for m=600, u is picked to give the best result
-K = 5;
 if(any(runList==005))
     filename = [mfilename '_005.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('opt');
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-    conf=ConfigCT();
-    opt.debugLevel=0;
-    opt.maxItr=1e4; opt.thresh=1e-6;
-    m=[600];
+    opt.debugLevel=0; opt.maxItr=1e4; opt.thresh=1e-6;
+    m  =[ 600 ];
     snr=[  10,  50, 100, 200, 500, 1e3, 1e4, 1e5, 1e6, 1e7];
-    a  =[1e-2,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5];
+    a  =[1e-1,1e-2,1e-2,1e-2,1e-2,1e-3,1e-3,1e-4,1e-4,1e-5];
+    aa =10.^(0:-1:-10);
 
-    for k=1:K
+    for k=1:1
         for i=1:length(snr)
             opt.m=m; opt.snr=snr(i);
-            [opt,~,invEAAt]=loadLinear(conf,opt);
-            initSig = conf.Phit(invEAAt*conf.y);
-            for j=1:5
-                opt.u = a(i)*10^(j-3);
-                fprintf('%s, i=%d, j=%d, k=%d\n','FISTA_ADMM_NNL1',i,j,k);
+            [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+            initSig = Phit(invEAAt*y);
+            u_max=pNorm(Psit(Phit(y)),inf);
 
-                npg   {i,j,k}=NPG.main   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgc  {i,j,k}=NPG.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                fista {i,j,k}=NPG.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgs  {i,j,k}=NPG.NPGsc  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                spiral{i,j,k}=NPG.SPIRAL (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                fpcas {i,j,k}=NPG.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                sparsa{i,j,k}=NPG.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                sparsn{i,j,k}=NPG.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-            end
+            opt.fullcont=true;
+            opt.u=aa*u_max;
+            npgFull {i,k}=NPG.main(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
+            fprintf('i=%d, good a = %e\n',i,aa(out.contRMSE==min(out.contRMSE)));
+            npgsFull{i,k}=NPG.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgsFull{i,k};
+            fprintf('i=%d, good a = %e\n',i,aa(out.contRMSE==min(out.contRMSE)));
+            opt.fullcont=false;
+            save(filename); continue;
+
+            j=1;
+            opt.u = a(i)*u_max;
+            fprintf('%s, i=%d, j=%d, k=%d\n','Example_005',i,j,k);
+            npg   {i,j,k}=NPG.main   (Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgc  {i,j,k}=NPG.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+            sparsn{i,j,k}=NPG.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
+            spiral{i,j,k}=NPG.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+            fista {i,j,k}=NPG.FISTA  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgsc {i,j,k}=NPG.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            fpcas {i,j,k}=NPG.FPCas  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            sparsa{i,j,k}=NPG.SpaRSA (Phi,Phit,Psi,Psit,y,initSig,opt);
             save(filename);
         end
     end

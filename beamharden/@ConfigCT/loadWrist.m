@@ -6,7 +6,6 @@ function loadWrist(obj,snr,noiseType)
     load('wrist.mat');
     obj.trueImg=Img2D;
     obj.imgSize=sqrt(length(obj.trueImg(:)));
-    keyboard
 
     daub = 6;
     obj.wav=daubcqf(daub);
@@ -47,8 +46,8 @@ function loadWrist(obj,snr,noiseType)
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
 
-                PhiAlpha=obj.Phi(obj.trueImg);
-                a = opt.snr*sum(y)/sum(y.^2);
+                PhiAlpha=obj.Phi(obj.trueImg(mask~=0));
+                a = snr*sum(y)/sum(y.^2);
                 obj.Ts = obj.Ts*a;
 
                 obj.y = poissrnd(a*PhiAlpha);
