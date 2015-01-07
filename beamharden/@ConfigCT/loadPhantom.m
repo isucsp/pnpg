@@ -1,6 +1,8 @@
-function loadPhantom(obj)
+function loadPhantom(obj,snr,noiseType)
     % use 'Modified Shepp-Logain' Phantom for the truth
     obj.trueImg=phantom(obj.imgSize);
+    obj.trueImg(obj.trueImg<0)=0;
+    obj.prjWidth= obj.imgSize/obj.dSize;
 
     %levels of wavelet transform
     if(obj.imgSize<=512)
@@ -31,16 +33,38 @@ function loadPhantom(obj)
     if(obj.beamharden)
         error('\nPhantom with beamhardening is not implementaed\n');
     else
-        obj.Ts=0.1;
-        conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
-        conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
-        conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
-        conf.effectiveRate=obj.effectiveRate;
-        conf.d=obj.dist;
+        switch lower(noiseType)
+            case lower('poissonLogLink')
+                % u = 2e-4 is good choice
+                scale = 1e-1;           % determins Ts
+                obj.Ts=1;
+                genOperators(obj, obj.PhiModeGen);
 
-        mPrj(0,conf,'config');
-        maskIdx = find(obj.mask~=0);
-        Phi =@(s) mPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-        obj.y = Phi(obj.trueImg(obj.mask~=0));
+                PhiAlpha = obj.Phi(obj.trueImg(mask~=0));
+                obj.Ts = log(1/scale)/max(PhiAlpha);
+
+                PhiAlpha = PhiAlpha*obj.Ts;
+                y = exp(-PhiAlpha);
+                I0 = (snr-1)*sum(y)/sum(y.^2);
+                obj.y = poissrnd(I0*y);
+                obj.y(obj.y==0) = 1;
+            case 'poisson'
+                obj.Ts=1;
+                genOperators(obj, obj.PhiModeGen);
+
+                PhiAlpha=obj.Phi(obj.trueImg(mask~=0));
+                a = snr*sum(PhiAlpha)/sum(PhiAlpha.^2);
+                obj.trueImg = obj.trueImg*a;
+                obj.y = poissrnd(a*PhiAlpha);
+            case 'gaussian'
+                obj.Ts=1;
+                genOperators(obj, obj.PhiModeGen);
+                obj.y = obj.Phi(obj.trueImg(mask~=0));
+
+                v = randn(size(obj.y));
+                v = v*(norm(obj.y)/sqrt(snr*length(obj.y)));
+                obj.y = obj.y + v;
+        end
     end
 end
+

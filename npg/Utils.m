@@ -7,6 +7,16 @@ classdef Utils < handle
             y(x<0) = x(x<0)+thresh;
             y(idx) = 0;
         end
+        function mat = getMat(func,ncol)
+            mat = zeros(length(func(zeros(ncol,1))),ncol);
+            x = zeros(ncol,1);
+            str='';
+            for j=1:ncol
+                strlen=length(str); str=sprintf('j=%d',j); fprintf([repmat('\b',1,strlen) '%s'],str);
+                x(j)=1; mat(:,j)=func(x); x(j)=0;
+            end
+            fprintf('\n');
+        end
         function [f,g,h] = augLag(x,z)
             g=x-z;
             f=sqrNorm(x-z)/2;
@@ -131,16 +141,30 @@ classdef Utils < handle
             end
         end
 
-        function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
-            PhiAlpha=Phi(alpha);
-            if(norm(alpha)<1e-14) PhiAlpha=ones(size(PhiAlpha)); end;
-            PhiAlpha(PhiAlpha<=0)=1;
-            f=sum(PhiAlpha(:))-innerProd(y,log(PhiAlpha));
-            if(isnan(f)) keyboard; end
+        function [f,g,h] = poissonModelAppr(alpha,Phi,Phit,y,b,EPS)
+            if(nargin<5)
+                b=zeros(size(y));
+            end
+            if(nargin==6) eps=EPS; else eps=1e-10; end
+
+            PhiAlpha=Phi(alpha)+b;
+            nzpx=(PhiAlpha>eps);
+            nzy=(y>0);
+            f=sum(PhiAlpha(:)-y);
+            f=f-innerProd(y(nzpx & nzy),log(PhiAlpha(nzpx & nzy)./y(nzpx & nzy)));
+            f=f-innerProd(y(~nzpx & nzy),...
+                log(eps)-1.5+2*PhiAlpha(~nzpx & nzy)/eps-(PhiAlpha(~nzpx & nzy).^2)/4/eps^2-log(y(~nzpx & nzy)));
+
             if(nargout>=2)
-                g=Phit(  1-y./PhiAlpha  );
+                % if(any(nzy & (~nzpx))) keyboard; end
+                t=zeros(size(y));
+                t(nzpx)=1-y(nzpx)./PhiAlpha(nzpx);
+                t(~nzpx)= 1-y(~nzpx).*(2/eps-PhiAlpha(~nzpx)/eps^2);
+                g=Phit( t );
                 if(nargout>=3)
-                    weight=y./(PhiAlpha.^2);
+                    weight=zeros(size(y));
+                    weight(nzpx)=y(nzpx)./(PhiAlpha(nzpx).^2);
+                    weight(~nzpx)=y(~nzpx)/(eps^2);
                     h=@(x,opt) hessian(weight,x,opt);
                 end
             end
@@ -154,9 +178,43 @@ classdef Utils < handle
             end
         end
 
-        % The following model assumes the y=exp(-Φα)
-        function [f,g,h] = poissonModelLogLink0(alpha,Phi,Phit,y)
-            PhiAlpha=Phi(alpha); weight = exp(-PhiAlpha);
+        function [f,g,h] = poissonModel(alpha,Phi,Phit,y,b,EPS)
+            if(nargin<5) b=zeros(size(y)); end
+            if(nargin==6) eps=EPS; else eps=0; end
+
+            PhiAlpha=Phi(alpha)+b;
+            nzy=(y~=0);
+            nzpx=(PhiAlpha~=0);
+            f=sum(PhiAlpha(:))-innerProd(y(nzy),log(PhiAlpha(nzy)+eps));
+
+            if(isnan(f)) keyboard; end
+            if(any(isnan(alpha))) keyboard; end
+            if(any(isnan(PhiAlpha))) keyboard; end
+
+            if(nargout>=2)
+                % if(any(nzy & (~nzpx))) keyboard; end
+                t=zeros(size(y));
+                t(nzpx)=1-y(nzpx)./(PhiAlpha(nzpx)+eps);
+                g=Phit( t );
+                if(nargout>=3)
+                    weight=zeros(size(y));
+                    weight(nzpx)=y(nzpx)./((PhiAlpha(nzpx)+eps).^2);
+                    h=@(x,opt) hessian(weight,x,opt);
+                end
+            end
+            function hh=hessian(weight,x,opt)
+                z = Phi(x);
+                if(opt==1)
+                    hh = Phit(weight.*z);
+                else
+                    hh = innerProd(z,weight.*z);
+                end
+            end
+        end
+
+        % The following model assumes the y=I_0 * exp(-Φα), where I_0 is known
+        function [f,g,h] = poissonModelLogLink0(alpha,Phi,Phit,y,I0)
+            PhiAlpha=Phi(alpha); weight = exp(log(I0)-PhiAlpha);
             f=sum(weight)+innerProd(y,PhiAlpha);
             if(nargout>=2)
                 g=Phit(  y(:) - weight  );
@@ -198,20 +256,53 @@ classdef Utils < handle
 
         function [dif,l1norm]=testSparsity(x)
             k=0;
+            minRSE=inf; maxRSE=0;
+            n=max(size(x));
+            if(n==length(x(:)))
+                L=floor(log2(n));
+            else
+                L=floor(log2(min(size(x))));
+            end
             for perce=0.7:0.01:0.98
                 k=k+1;
-                for i=1:9
+                for i=1:min(L,9)
                     for j=1:4
                         level = i; wave = 2*j;
                         [dif(i,j,k),~,l1norm(i,j)]=Utils.getError(x,perce,level,wave);
                     end
                 end
-                minDif=dif(:,:,k); minDif=min(minDif(minDif>0));
+                minDif=dif(:,:,k); minDif=minDif(:);
+                if(any(minDif<=0)) keyboard; end
+                minRSE = min( minRSE, min(minDif(minDif>0)));
+                maxRSE = max( maxRSE, max(minDif(minDif>0)));
+                minDif=min(minDif(minDif>0));
+                if(~isscalar(minDif)) keyboard; end
                 [i,j]=find(dif(:,:,k)==minDif);
                 fprintf('level=%d,daub=%d  :  %g%% of signal achieves %g%%\n',i,2*j,(1-perce)*100,dif(i,j,k)*100);
             end
             [i,j]=find(l1norm==min(l1norm(l1norm>0)));
             fprintf('level=%d,daub=%d  :  |x|_1 of signal achieves %g\n',i,2*j,l1norm(i,j));
+
+            k=1;
+            for rse = logspace(log10(1e-5), log10(0.5), 20)
+                for i=1:min(L,9)
+                    for j=1:4
+                        level = i; wave = 2*j;
+                        low=0; high=1;
+                        while(high-low>1e-10)
+                            perce=(low+high)/2;
+                            [dif1(i,j,k),coef]=Utils.getError(x,perce,level,wave);
+                            if(dif1(i,j,k)<=rse) low=perce; else high=perce; end
+                        end
+                        l1norm1(i,j,k)=sum(abs(coef(1:ceil((1-perce)*length(coef)))));
+                    end
+                end
+                minNorm=min(reshape(l1norm1(:,:,k),[],1));
+                [i,j]=find(l1norm1(:,:,k)==minNorm);
+                fprintf('level=%d,daub=%d  :  |x|_1=%g for signal achieves %g%%\n',i,2*j,minNorm,dif1(i,j,k)*100);
+
+                k=k+1;
+            end
         end
 
         function [dif,coef,l1norm]=getError(x,perce,level,wave)
@@ -224,8 +315,15 @@ classdef Utils < handle
             wav(idx(1:floor(perce*length(x(:)))))=0;
             recX=midwt(wav,h,level);
             %figure(1); plot(recX); hold on; plot(x,'r');
-            dif=sqrNorm(x-recX)/sqrNorm(x);
+            dif=sqrNorm(x-recX)/max(sqrNorm(x),1e-10);
             l1norm=sum(abs(coef(:)));
+        end
+
+        function mask = getCircularMask(n)
+            mask = zeros(n);
+            [x,y]=meshgrid(0:n-1);
+            idx = sqrt((x-n/2).^2+(y-n/2).^2)<(n/2-1);
+            mask(idx)=1;
         end
     end
 end

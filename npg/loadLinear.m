@@ -36,7 +36,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     x(t>=tics(20) & t<tics(21))=1.6*(((sum(t>=tics(20) & t<tics(21))-1:-1:0)/sum(t>=tics(20) & t<tics(21))).^2);
     x(t>=tics(21))=0;
 
-    if(~exist('opt'))
+    if(~exist('opt','var'))
         [~,l1norm]=Utils.testSparsity(x);
         opt.l1norm=l1norm;
         opt.x=x;
@@ -45,7 +45,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     end
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    if(~exist('opt')) opt.m=500; end
+    if(~exist('opt','var')) opt.m=500; end
     if(~isfield(opt,'m')) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
@@ -57,7 +57,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     x0=x(:);
     if(strcmpi(opt.matrixType,'nonneg'))
         Phi = rand(opt.m,n);
-        a=0;
+        a=0.3;
         idx=(Phi<a); Phi(idx)=0; Phi(~idx)=(Phi(~idx)-a)/(1-a);
 
         c=n/12*(1-a)*(1+3*a); d=n/4*(1-a)^2;
@@ -67,9 +67,21 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
         sqrNormPhix=(c*norm(x0)^2+d*sum(abs(x0))^2)*opt.m/n;
     elseif(strcmpi(opt.matrixType,'gaussian'))
         Phi = randn(opt.m,n);
-        EAAt = n;
-        invEAAt = 1/n;
-        sqrNormPhix=opt.m*norm(x0)^2;
+        Phi = Phi*spdiags(1./sqrt(sum(Phi.^2))',0,n,n); % normalize columns
+        % E(AA^T)= n/opt.m I
+        EAAt = n/opt.m;
+        invEAAt = opt.m/n;
+
+        % EAAt = n;
+        % invEAAt = 1/n;
+        % sqrNormPhix=opt.m*norm(x0)^2;
+    elseif(strcmpi(opt.matrixType,'conv'))
+        temp=zeros(1,n); temp(1:41)=1;
+        Phi = toeplitz(temp);
+        Phi = Phi(sort(randperm(n,opt.m)),:);
+
+        EAAt=Phi*Phi';
+        invEAAt=inv(EAAt);
     else
         error('error input matrixType');
     end
@@ -77,27 +89,35 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     switch lower(opt.noiseType)
         case lower('gaussian')
             y=Phi*x0;
-            v = randn(opt.m,1)*sqrt(sqrNormPhix/(opt.m*opt.snr));
+            v = randn(opt.m,1);
+            v = v*(norm(y)/sqrt(opt.snr*opt.m));
+
+            % v = randn(opt.m,1)*sqrt(sqrNormPhix/(opt.m*opt.snr));
             y = y + v;
             % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(Phi*x0)^2/norm(v)^2);
         case lower('poisson')
+            % for SNR changing, only Φα matters. Scale can be multiplied to
+            % either Φ or α. But for stability of algorithm, we multiply it
+            % to α.
             y=Phi*x0;
-            a = (opt.snr)*sum(y)/sum(y.^2);
-            % a = 1000; is equivalent to SNR ~ 3e5
-            Phi=a*Phi;
-            y = poissrnd(a*y);
+            scale = (opt.snr)*sum(y)/sum(y.^2);
+
+            % It is better to scale the signal itself for stability
+            x0=x0*scale;
+            y = poissrnd(scale*y);
             % figure; showImg(Phi);
         case lower('poissonLogLink')
             % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
-            y=Phi*x0; a=min(y); b=max(y); A=10; B=2^16/2;
+            y=Phi*x0; a=min(y); b=max(y); A=50; B=2^16;
             scale=(log(B)-log(A))/(b-a);
             opt.I0=exp( (b*log(B) - a*log(A))/(b-a) );
+
             Phi = Phi * scale;
             EAAt = EAAt*scale^2;
             invEAAt = invEAAt/scale^2;
             y = opt.I0*exp(-Phi*x0);
             y = poissrnd(y);
-            % figure; showImg(Phi);
+            %figure; showImg(Phi);
         otherwise
             error('wrong input noiseType');
     end
@@ -117,5 +137,6 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
 
     opt.trueAlpha=x0;
     opt.L = max(svd(Phi))^2;
+
 end
 

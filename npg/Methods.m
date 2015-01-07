@@ -16,6 +16,9 @@ classdef Methods < handle
         stepSize=0;
         converged = false;
         warned = false;
+        debug;
+        % steps at the beginning with BB stepsize and then backtracking
+        preSteps=10;
         % for NCG_PR
 
         % for SpaRSA
@@ -82,29 +85,33 @@ classdef Methods < handle
                 end
             end
         end
-        function t=stepSizeInit(obj,select,L)
+        function t=stepSizeInit(obj,select,opt)
             switch (lower(select))
                 case 'bb'   % use BB method to guess the initial stepSize
+                    if(~exist('opt','var'))
+                        opt=1e-5;
+                    end
                     [~,grad1] = obj.func(obj.alpha);
-                    temp = 1e-5*grad1/pNorm(grad1);
+                    temp = opt*grad1/pNorm(grad1);
                     [~,grad2] = obj.func(obj.alpha-temp);
-
-
-
-                    t = [pNorm(grad1-grad2)/pNorm(temp), innerProd(grad1-grad2,temp)/sqrNorm(temp)];
-
-
-
+                    t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
                 case 'hessian'
-                    [~,grad,hessian] = obj.func(obj.alpha);
-                    t = hessian(grad,2)/sqrNorm(grad);
+                    if(exist('opt','var'))
+                        [~,~,hessian] = obj.func(obj.alpha);
+                        t = hessian(opt-obj.alpha,2)/sqrNorm(opt-obj.alpha);
+                    else
+                        [~,gradient,hessian] = obj.func(obj.alpha);
+                        t = hessian(gradient,2)/sqrNorm(gradient);
+                    end
                 case 'fixed'
-                    t = L;
+                    t = opt;
                 otherwise
                     error('unkown selection for initial step');
             end
             if(isnan(t)) t=ones(size(t)); end
             if(nargout==0) obj.t=min(t); end
+        end
+        function reset(obj)
         end
         function set.M(obj,M)
             obj.M = M;
@@ -117,6 +124,7 @@ classdef Methods < handle
             else
                 obj.coef(obj.n+1)=u;
             end
+            obj.cost = obj.func(obj.alpha)+obj.u*pNorm(obj.Psit(obj.alpha),1);
         end
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 

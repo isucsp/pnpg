@@ -415,6 +415,11 @@ for itr = 1:opts.mxitr
     Out.curGtol(itr) = opts.gtol;
     Out.curGtol_scale_x(itr) = opts.gtol_scale_x;
     Out.f_rel_tol(itr) = opts.f_rel_tol;
+    Out.time(itr) = cputime-Out.cpu;
+    Out.cost(itr) = f;
+    if(isfield(opts,'trueAlpha'))
+        Out.RMSE(itr)=(norm(x-opts.trueAlpha)/norm(opts.trueAlpha))^2;
+    end
 
     if ((crit2f<opts.gtol) || (crit2f<=norm_x*opts.gtol_scale_x) || (mu == muf && f_rel < opts.f_rel_tol))
     % if (mu==muf && (nrmxxp/norm_x)<opts.rel_dif_x)

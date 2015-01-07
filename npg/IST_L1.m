@@ -1,4 +1,4 @@
-classdef IST_ADMM_NNL1 < Methods
+classdef IST_L1 < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -14,9 +14,6 @@ classdef IST_ADMM_NNL1 < Methods
         newCost;
         nonInc=0;
         innerSearch
-
-        debug = false;
-
         adaptiveStep=true;
     end
     methods
@@ -32,7 +29,7 @@ classdef IST_ADMM_NNL1 < Methods
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.p = obj.p+1; obj.warned = false;
-            pp=0;
+            pp=0; obj.debug='';
             while(pp<obj.maxItr)
                 pp=pp+1;
                 y=obj.alpha;
@@ -41,11 +38,11 @@ classdef IST_ADMM_NNL1 < Methods
                 si = obj.Psit(y); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
-                obj.ppp=0; temp=true; temp1=0;
+                obj.ppp=0; goodStep=true; temp=0; goodMM=true;
                 while(true)
-                    if(temp && temp1<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    if(goodStep && temp<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
-                        temp1=temp1+1;
+                        temp=temp+1;
                         obj.t=obj.t*obj.stepShrnk;
                         obj.cumu=0;
                     end
@@ -54,38 +51,49 @@ classdef IST_ADMM_NNL1 < Methods
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
-                    if(obj.ppp>20 || obj.newCost<=oldCost+innerProd(obj.grad, newX-y)+sqrNorm(newX-y)*obj.t/2)
-                        if(obj.ppp<=20 && temp && obj.p==1)
-                            obj.t=obj.t*obj.stepShrnk;
-                            continue;
-                        else break;
+                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
+                    if(obj.newCost<=LMM)
+                        if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
+                            obj.t=obj.t*obj.stepShrnk; continue;
+                        else
+                            break;
                         end
-                    else obj.t=obj.t/obj.stepShrnk; temp=false; obj.cumuTol=obj.cumuTol+2;
+                    else
+                        if(obj.ppp<=20)
+                            obj.t=obj.t/obj.stepShrnk; goodStep=false; 
+                        else
+                            goodMM=false;
+                            obj.debug=[obj.debug 'falseMM'];
+                            break;
+                        end
                     end
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
                 temp = obj.newCost+obj.u*obj.fVal(3);
                 if(temp>obj.cost)
-                    newX=obj.alpha; temp=obj.cost;
-                    recoverT=obj.stepSizeInit('bb');
-                    obj.t=min([obj.t;recoverT(:)]);
+                    if(goodMM)
+                        obj.debug=[obj.debug 'forceConverge'];
+                        newX=obj.alpha;
+                        temp=obj.cost;
+                    else
+                        pp=pp-1;
+                        obj.debug=[obj.debug 'falseMonotone'];
+                        continue;
+                    end
                 end
                 obj.cost = temp;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 
-                if(obj.ppp==1 && obj.adaptiveStep) obj.cumu=obj.cumu+1;
-                else obj.cumu=0; end
-                %set(0,'CurrentFigure',123);
-                %subplot(2,1,1); semilogy(obj.p,obj.newCost,'.'); hold on;
-                %subplot(2,1,2); semilogy(obj.p,obj.difAlpha,'.'); hold on;
+                if(obj.ppp==1 && obj.adaptiveStep)
+                    obj.cumu=obj.cumu+1;
+                else
+                    obj.cumu=0;
+                end
                 if(obj.difAlpha<=obj.thresh) break; end
             end
             out = obj.alpha;
-        end
-        function reset(obj)
-            obj.theta=0; obj.preAlpha=obj.alpha;
         end
     end
 end

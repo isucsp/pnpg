@@ -20,8 +20,9 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
+if(~isfield(opt,'preSteps')) opt.preSteps=2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
-if(~isfield(opt,'initStep')) opt.initStep='BB'; end
+if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive α
@@ -44,7 +45,6 @@ if(~isfield(opt,'contEta')) opt.contEta=1e-2; end
 if(~isfield(opt,'contGamma')) opt.contGamma=1e4; end
 % find rse vs a, this option if true will disable "continuation"
 if(~isfield(opt,'fullcont')) opt.fullcont=false; end
-if(~isfield(opt,'getBB')) opt.getBB=false; end
 
 if(opt.fullcont)
     opt.continuation=false;
@@ -66,8 +66,8 @@ if(isfield(opt,'trueAlpha'))
     end
 end
 
-if(opt.debugLevel>=2) figCost=1000; figure(figCost); end
-if(opt.debugLevel>=3) figRes=1001; figure(figRes); end
+if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
+if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
 if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.alphaStep)
@@ -82,7 +82,7 @@ switch lower(opt.alphaStep)
             alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
     case {lower('SpaRSA')}
-        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,alphaStep.M);
+        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
     case lower('FISTA_L1')
         alphaStep=FISTA_L1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_NN')
@@ -91,8 +91,11 @@ switch lower(opt.alphaStep)
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_ADMM_NNL1')
         alphaStep=FISTA_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
-        if(isfield(opt,'admmAbsTol')) alphaStep.admmAbsTol=opt.admmAbsTol; end
-        if(isfield(opt,'admmTol')) alphaStep.admmTol=opt.admmTol; end
+        if(strcmpi(opt.noiseType,'poisson'))
+            alphaStep.forcePositive=true;
+            % opt.alphaStep='IST_ADMM_NNL1';
+            % alphaStep=IST_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+        end
     case lower('IST_ADMM_NNL1')
         alphaStep=IST_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
@@ -105,28 +108,47 @@ end
 switch lower(opt.noiseType)
     case lower('poissonLogLink')
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
+    case lower('poissonLogLink0')
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink0(aaa,Phi,Phit,y,opt.I0);
     case 'poisson'
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y);
+        if(isfield(opt,'bb'))
+            temp=reshape(opt.bb,size(y));
+            alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
+        else
+            alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y);
+        end
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
-if(any(strcmp(properties(alphaStep),'restart')) && (~opt.restart))
-    alphaStep.restart=-1;
+if(any(strcmp(properties(alphaStep),'restart')))
+    if(~opt.restart) alphaStep.restart=-1; end
+else
+    opt.restart=false;
 end
 if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
         && isfield(opt,'adaptiveStep'))
     alphaStep.adaptiveStep=opt.adaptiveStep;
 end
+if(any(strcmp(properties(alphaStep),'admmAbsTol'))...
+        && isfield(opt,'admmAbsTol'))
+    alphaStep.admmAbsTol=opt.admmAbsTol;
+end
+if(any(strcmp(properties(alphaStep),'admmTol'))...
+        && isfield(opt,'admmTol'))
+    alphaStep.admmTol=opt.admmTol;
+end
 
 if(opt.continuation || opt.fullcont)
     contIdx=1;
+    inf_psit_grad=opt.u(1);
     if(length(opt.u)>1)
         alphaStep.u = opt.u(contIdx);
     else
         [~,g]=alphaStep.fArray{1}(alpha);
-        alphaStep.u = opt.contEta*pNorm(Psit(g),inf);
+        inf_psit_grad=pNorm(Psit(g),inf);
+        alphaStep.u = opt.contEta*inf_psit_grad;
         alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
         alphaStep.u = max(alphaStep.u,opt.u);
         if(alphaStep.u*opt.contShrnk<=opt.u)
@@ -159,6 +181,17 @@ else
     collectInnerSearch=false;
 end
 
+if(any(strcmp(properties(alphaStep),'debug')))
+    collectDebug=true;
+    out.debug={};
+else
+    collectDebug=false;
+end
+
+if(any(strcmp(properties(alphaStep),'preSteps')))
+    alphaStep.preSteps=opt.preSteps;
+end
+
 if(any(strcmp(properties(alphaStep),'nonInc')))
     collectNonInc=true;
 else
@@ -170,10 +203,12 @@ tic; p=0; strlen=0; convThresh=0;
 while(true)
     p=p+1;
     str=sprintf('p=%-4d',p);
+    if(p<=opt.preSteps && ~strcmpi(opt.initStep,'fixed'))
+        temp=alphaStep.stepSizeInit(opt.initStep);
+        alphaStep.t=min(alphaStep.t,temp);
+    end
     
     alphaStep.main();
-
-    % if(p>=641) keyboard; end
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
@@ -182,7 +217,15 @@ while(true)
     if(opt.restart) out.restart(p)=alphaStep.restart; end
     if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
-    if(opt.getBB) out.BB(p,:)=alphaStep.stepSizeInit('BB'); end
+    if(collectDebug && ~isempty(alphaStep.debug))
+        out.debug{size(out.debug,1)+1,1}=p;
+        out.debug{size(out.debug,1),2}=alphaStep.debug;
+    end;
+    if(opt.debugLevel>1)
+        out.BB(p,1)=alphaStep.stepSizeInit('BB');
+        out.BB(p,2)=alphaStep.stepSizeInit('hessian');
+        % alphaStep.stepSizeInit('hessian',alpha);
+    end
     
     out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
@@ -198,7 +241,7 @@ while(true)
 
 
     if(opt.continuation || opt.fullcont)
-        out.uRecord(p,:)=[opt.u(end),alphaStep.u];
+        out.uRecord(p,:)=[opt.u(end),alphaStep.u,inf_psit_grad];
         str=sprintf([str ' u=%-6g'],alphaStep.u);
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
@@ -209,13 +252,14 @@ while(true)
         end
         if(temp>1) out.contThresh(p)=temp1; else out.contThresh(p)=opt.thresh; end;
         if(temp>1 && out.difAlpha(p) < temp1 )
-            out.contAlpha(:,contIdx)=alpha;
+            out.contAlpha{contIdx}=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
+            inf_psit_grad=pNorm(Psit(alphaStep.grad),inf);
             contIdx=contIdx+1;
             if(length(opt.u)>1)
                 alphaStep.u = opt.u(contIdx);
             else
-                alphaStep.u = min(alphaStep.u*opt.contShrnk,opt.contEta*pNorm(Psit(alphaStep.grad),inf));
+                alphaStep.u = min(alphaStep.u*opt.contShrnk,inf_psit_grad*opt.contEta);
                 alphaStep.u = max(alphaStep.u,opt.u);
             end
             alphaStep.reset();
@@ -227,11 +271,13 @@ while(true)
         str=sprintf([str ' difCost=%g'], out.difCost(p));
     end
     
-    if(p>1 && opt.debugLevel>=2)
+    if(p>1 && opt.debugLevel>=3)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
-        title(sprintf('cost(%d)=%g',p,out.cost(p)));
+        if(out.cost(p)>0)
+            semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
+            title(sprintf('cost(%d)=%g',p,out.cost(p)));
+        end
 
         if(isfield(opt,'trueAlpha'))
             subplot(2,1,2);
@@ -241,7 +287,7 @@ while(true)
         drawnow;
     end
 
-    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
+    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=4)
         set(0,'CurrentFigure',figRes);
         style={'r','g','b'};
         for i=1:length(out.fVal(p,:))
@@ -279,7 +325,12 @@ end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-fprintf('\n');
+fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
+if(isfield(opt,'trueAlpha'))
+    fprintf(', RMSE=%g\n',out.RMSE(end));
+else
+    fprintf('\n');
+end
 
 end
 

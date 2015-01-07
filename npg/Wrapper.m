@@ -1,6 +1,6 @@
-classdef NPG < handle
+classdef Wrapper < handle
     methods(Static)
-        function out = main(Phi,Phit,Psi,Psit,y,xInit,opt)
+        function out = NPG(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='FISTA_ADMM_NNL1';
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
@@ -39,14 +39,11 @@ classdef NPG < handle
             % opt.initStep='fixed'; % 'BB'; %
             out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
-        function out = A(xxx, mode , Phi, Phit)
-            if(mode==1) out = Phi(xxx); else out = Phit(xxx); end
-        end
         function out = FPC(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
-            AO= @(xx,mode) NPG.A(xx,mode,A,At);
+            AO= @(xx,mode) AA(xx,mode,A,At);
             option.x0=Psit(xInit);
             if(isfield(opt,'trueAlpha'))
                 option.xs=Psit(opt.trueAlpha);
@@ -62,38 +59,45 @@ classdef NPG < handle
                 %sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             end
             out.opt = opt;
-            fprintf('fpcas cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+            fprintf('fpc cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+            function out = AA(xxx, mode , Phi, Phit)
+                if(mode==1) out = Phi(xxx); else out = Phit(xxx); end
+            end
         end
         function out = FPCas(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+            if(isfield(opt,'trueAlpha')) option.trueAlpha=Psit(opt.trueAlpha); end
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             AO=A_operator(A,At);
             option.x0=Psit(xInit);
             option.mxitr=opt.maxItr;
-            option.gtol = 1e-20; option.gtol_scale_x = opt.thresh;
+            option.gtol = 0;
+            option.gtol_scale_x = opt.thresh;
             [s, out] = FPC_AS_mod(length(option.x0),AO,y,opt.u,[],option);
             out.alpha = Psi(s);
             out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 pNorm(Psit(out.alpha),1)];
-            if(isfield(opt,'trueAlpha'))
+            if(isfield(opt,'trueAlpha') && ~isfield(out,'RMSE'))
                 out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             end
-            out.cost=out.f;
-            out.time=out.cpu;
+            if(~isfield(out,'cost')) out.cost=out.f; end
+            if(~isfield(out,'time')) out.time=out.cpu; end
             out.opt = opt;
-            fprintf('fpcas cost=%g, RMSE=%g\n',out.f,out.RMSE);
+            fprintf('fpcas cost=%g, RMSE=%g\n',out.f(end),out.RMSE(end));
         end
         function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt)
             subtolerance=1e-5;
             if(~isfield(opt,'verbose')) opt.verbose=100; end
+            if(~isfield(opt,'bb')) opt.bb=zeros(size(y)); end
             [out.alpha, out.p, out.cost, out.reconerror, out.time,out.difAlpha] = ...
                 SPIRALTAP_mod(y,Phi,opt.u,'penalty','ONB',...
                 'AT',Phit,'W',Psi,'WT',Psit,'noisetype',opt.noiseType,...
                 'initialization',xInit,'maxiter',opt.maxItr,...
                 'miniter',0,'stopcriterion',3,...
                 'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+                'bb',opt.bb,...
                 'subtolerance',subtolerance,'monotone',1,...
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
                 'reconerrortype',3,'savedifalpha',1,...
@@ -134,7 +138,7 @@ classdef NPG < handle
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
             if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-            ppsi = @(xxx,uuu,thrsh) FISTA_ADMM_NNL1.innerADMM_v4(Psi,Psit,xxx,uuu,thrsh);
+            ppsi = @(xxx,uuu,thrsh) FISTA_ADMM_NNL1.adaptiveADMM(Psi,Psit,xxx,uuu,thrsh,100);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             xInit(xInit<0)=0;
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...

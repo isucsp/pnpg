@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 02 Nov 2014 05:52:23 AM CST
+% $Revision: 0.2 $ $Date: Tue 25 Nov 2014 03:48:42 PM CST
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -36,6 +36,7 @@ classdef ConfigCT < handle
         rCoeff
 
         CTdata      % the raw data from the measurement in the matrix form
+        I0
         y
         mask
         maskk
@@ -77,7 +78,7 @@ classdef ConfigCT < handle
                 case 'phantom_1'
                     loadPhantom_1(obj);
                 case 'phantom'
-                    loadPhantom(obj);
+                    loadPhantom(obj,opt.snr,opt.noiseType);
                 case lower('castSim')
                     loadCastSim(obj);
                 case lower('glassBeadsSim')

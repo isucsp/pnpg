@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Fri 24 Oct 2014 01:49:04 AM CDT
+% $Revision: 0.3 $ $Date: Fri 26 Dec 2014 05:43:39 PM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -15,6 +15,11 @@ addpath([pathstr '/../npg']);
 addpath([pathstr '/../prj']);
 addpath([pathstr '/../irt/nufft']);
 addpath([pathstr '/../irt/systems']);
+addpath([pathstr '/../irt']);
+addpath([pathstr '/../irt/emission']);
+addpath([pathstr '/../irt/transmission']);
+addpath([pathstr '/../irt/fbp']);
+addpath([pathstr '/../irt/data']);
 addpath([pathstr '/../irt/utilities']);
 addpath([pathstr '/../others/']);
 addpath([pathstr '/../others/FPC_AS']);
@@ -30,5 +35,5 @@ addpath([pathstr]);
 % %!make clean
 % !make mCPUPrj mParPrj solveTriDiag mGPUPrj 
 % cd(pathstr)
-% clear a pathstr;
+clear a pathstr;
 

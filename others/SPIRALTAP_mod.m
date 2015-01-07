@@ -105,6 +105,9 @@
 %                   will be iter + 1.
 %
 
+% modified by Renliang Gu to add support for the background radiation
+% poisson(Ax+bb)
+
 function [x, varargout] = SPIRALTAP(y, A, tau, varargin)
 % ==== Set default/initial parameter values ====
 % ---- All Methods ----
@@ -140,6 +143,9 @@ subminiter = 1;
 submaxiter = 50;
 substopcriterion = 0;
 subtolerance = 1e-5;
+
+% modified by Renliang Gu to add background noise support
+bb = zeros(size(y));
 % Don't forget convergence criterion
 
 % ---- For Choosing Alpha ----
@@ -212,6 +218,7 @@ else
             case 'savedifalpha';        savedifalpha        = varargin{ii+1}; %
             case 'warnings';            warnings            = varargin{ii+1};
             case 'recenter';            recenter            = varargin{ii+1};
+            case 'bb';                  bb                  = varargin{ii+1};
         otherwise
                 % Something wrong with the parameter string
                 error(['Unrecognized option: ''', varargin{ii}, '''']);
@@ -523,11 +530,12 @@ end
 % --- The below assumes that all parameters above are valid ---
 % Initialize Main Algorithm 
 x = xinit;
+bb=reshape(bb,size(y));
 Ax = A(x);
 alpha = alphainit;
 Axprevious = Ax;
 xprevious = x;
-grad = computegrad(y,Ax,AT,noisetype,logepsilon);
+grad = computegrad(y,Ax,bb,AT,noisetype,logepsilon);
 
 % Prealocate arrays for storing results
 % Initialize cputime and objective empty anyway (avoids errors in subfunctions):
@@ -542,7 +550,7 @@ if savedifalpha
 end
 if saveobjective
     objective = zeros(maxiter+1,1);
-    objective(iter) = computeobjective(x,y,Ax,tau,noisetype,logepsilon,penalty,WT);
+    objective(iter) = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,penalty,WT);
 end
 if savereconerror
     reconerror = zeros(maxiter+1,1);
@@ -622,7 +630,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     normsqdx = sum( dx(:).^2 );
                     
                     % --- Compute the resulting objective 
-                    objective(iter + 1) = computeobjective(x,y,Ax,tau,...
+                    objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
                         noisetype,logepsilon,penalty,WT);
                         
                     if ( objective(iter+1) <= (maxpastobjective ...
@@ -646,7 +654,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 Adx = Ax - Adx;
                 normsqdx = sum( dx(:).^2 );
                 if saveobjective
-                    objective(iter + 1) = computeobjective(x,y,Ax,tau,...
+                    objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
                         noisetype,logepsilon,penalty,WT);
                 end
                     
@@ -666,7 +674,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     end
 
     % Needed for next iteration and also termination criteria
-    grad = computegrad(y,Ax,AT,noisetype,logepsilon);
+    grad = computegrad(y,Ax,bb,AT,noisetype,logepsilon);
 
     [converged,temp] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime(iter+1), objective);
@@ -710,7 +718,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
             % Adx is overwritten at top of iteration, so this is an ok reuse
             switch lower(noisetype)
                 case 'poisson'
-                    Adx = Adx.*sqrty./(Ax + logepsilon); 
+                    Adx = Adx.*sqrty./(Ax + bb + logepsilon); 
                 case 'gaussian'
                     % No need to scale Adx
             end
@@ -784,11 +792,12 @@ end
 % =========================
 % = Gradient Computation: =
 % =========================
-function grad = computegrad(y,Ax,AT,noisetype,logepsilon)
+function grad = computegrad(y,Ax,bb,AT,noisetype,logepsilon)
     % Perhaps change to varargin 
+    % ???
     switch lower(noisetype)
         case 'poisson'
-            grad = AT(1 - (y./(Ax + logepsilon)));
+            grad = AT(1 - (y./(Ax + bb + logepsilon)));
         case 'gaussian'
             grad = AT(Ax - y);
     end
@@ -797,14 +806,15 @@ end
 % ==========================
 % = Objective Computation: =
 % ==========================
-function objective = computeobjective(x,y,Ax,tau,noisetype,logepsilon,...
+function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
     penalty,varargin)
 % Perhaps change to varargin 
 % 1) Compute log-likelihood:
 switch lower(noisetype)
     case 'poisson'
-        precompute = y.*log(Ax + logepsilon);
-        objective = sum(Ax(:)) - sum(precompute(:));
+        precompute = y.*log(Ax + bb + logepsilon);
+        objective = sum(Ax(:)+bb(:)) - sum(precompute(:));
+        objective = objective - (sum(y)-sum(y(y>0).*log(y(y>0))));
     case 'gaussian'
         objective = sum( (y(:) - Ax(:)).^2)./2;
 end
@@ -843,6 +853,8 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
                                    
             subsolution = constrainedl2l1denoise(step,W,WT,tau./alpha,mu,...
                 subminiter,submaxiter,substopcriterion,subtolerance);
+            % subsolution = FISTA_ADMM_NNL1.adaptiveADMM(W,WT,...
+            %             step,tau./alpha,subtolerance,submaxiter);
         case 'rdp'
             subsolution = haarTVApprox2DNN_recentered(step,tau./alpha,-mu);
         case 'rdp-ti'

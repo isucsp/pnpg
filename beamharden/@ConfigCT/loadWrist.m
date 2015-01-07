@@ -6,6 +6,7 @@ function loadWrist(obj,snr,noiseType)
     load('wrist.mat');
     obj.trueImg=Img2D;
     obj.imgSize=sqrt(length(obj.trueImg(:)));
+    obj.prjWidth= obj.imgSize/obj.dSize;
 
     daub = 6;
     obj.wav=daubcqf(daub);
@@ -23,6 +24,9 @@ function loadWrist(obj,snr,noiseType)
         else
             maskk=wvltMask(mask,obj.dwt_L,daub,wvltName);
         end
+    else
+        mask=ones(obj.imgSize);
+        maskk=ones(obj.imgSize);
     end
     obj.mask = mask; obj.maskk= maskk;
     
@@ -47,14 +51,17 @@ function loadWrist(obj,snr,noiseType)
                 genOperators(obj, obj.PhiModeGen);
 
                 PhiAlpha=obj.Phi(obj.trueImg(mask~=0));
-                a = snr*sum(y)/sum(y.^2);
-                obj.Ts = obj.Ts*a;
-
+                a = snr*sum(PhiAlpha)/sum(PhiAlpha.^2);
+                obj.trueImg = obj.trueImg*a;
                 obj.y = poissrnd(a*PhiAlpha);
             case 'gaussian'
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
                 obj.y = obj.Phi(obj.trueImg(mask~=0));
+
+                v = randn(size(obj.y));
+                v = v*(norm(obj.y)/sqrt(snr*length(obj.y)));
+                obj.y = obj.y + v;
         end
     end
 end

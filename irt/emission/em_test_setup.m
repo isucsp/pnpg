@@ -9,7 +9,7 @@
 % true emission image
 if ~isvar('xtrue'), printm 'xtrue'
 	if ~isvar('ig')
-		ig = image_geom('nx', 64, 'ny', 60, 'fov', 500);
+		ig = image_geom('nx', 128, 'ny', 128, 'fov', 500);
 	end
 	xtrue = read_zubal_emis('nx', ig.nx, 'ny', ig.ny);
 	mumap = read_zubal_attn('nx', ig.nx, 'ny', ig.ny);
@@ -40,7 +40,6 @@ if ~isvar('G'), printm 'system'
 		os_run(sprintf('wt -chat 0 col2row %s %s', f.wtr, f.wtf))
 	end
 end
-
 
 % noisy measurements
 if ~isvar('yi'), printm 'data yi'
