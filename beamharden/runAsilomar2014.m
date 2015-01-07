@@ -289,13 +289,13 @@ if(any(runList==003))
     K=1;
 
     a = -5;
-    aa =(-2:-0.5:-8);
+    aa =(-2:-0.5:-12);
 
     for k=1:K
         for i=1:length(count)
             [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
             fbp{i,k}.alpha=maskFunc(fbpfunc(y),opt.mask~=0);
-            fbp{i,k}.alpha=max(initSig,0);
+            fbp{i,k}.alpha=max(fbp{i,k}.alpha,0);
 
             fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha));
             fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
@@ -304,6 +304,8 @@ if(any(runList==003))
 
             initSig=fbp{i,k}.alpha;
             %initSig=opt.trueAlpha;
+            if(i<3) continue; end
+
 
             opt.fullcont=true;
             opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-12;
