@@ -131,6 +131,7 @@ classdef Utils < handle
             end
         end
 
+        % The Poisson Generalized Linear Model with identity log link: Ey=Φα
         function [f,g,h] = poissonModel(alpha,Phi,Phit,y)
             eps=1e-15;
             PhiAlpha=Phi(alpha)+eps;
