@@ -93,9 +93,8 @@ classdef FISTA_ADMM_NNL1 < Methods
                         if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
-                            pp=pp-1;
                             obj.debug=[obj.debug 'restart'];
-                            continue;
+                            pp=pp-1; continue;
                         else
                             if(obj.innerSearch<obj.maxInnerItr)
                                 obj.restart= 2;

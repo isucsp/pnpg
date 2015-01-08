@@ -39,13 +39,13 @@ classdef FISTA_L1 < Methods
                 si = obj.Psit(y); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
-                obj.ppp=0; goodStep=true; temp=0; goodMM=true;
+                obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 while(true)
-                    if(goodStep && temp<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
-                        temp=temp+1;
                         obj.t=obj.t*obj.stepShrnk;
                         obj.cumu=0;
+                        incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
                     wi=si-dsi/obj.t;
@@ -54,7 +54,7 @@ classdef FISTA_L1 < Methods
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
                     if(obj.newCost<=LMM)
-                        if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
                             break;
@@ -62,7 +62,10 @@ classdef FISTA_L1 < Methods
                     else
                         if(obj.ppp<=20)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
-                            if(temp==1) obj.cumuTol=obj.cumuTol+4; end
+                            if(incStep)
+                                obj.cumuTol=obj.cumuTol+4;
+                                incStep=false;
+                            end
                         else
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
@@ -80,18 +83,15 @@ classdef FISTA_L1 < Methods
                         if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
-                            pp=pp-1;
                             obj.debug=[obj.debug 'restart'];
-                            continue;
+                            pp=pp-1; continue;
                         else
                             obj.debug=[obj.debug 'forceConverge'];
-                            newX=obj.alpha;
-                            temp=obj.cost;
+                            newX=obj.alpha; temp=obj.cost;
                         end
                     else
-                        pp=pp-1;
                         obj.debug=[obj.debug 'falseMonotone'];
-                        continue;
+                        pp=pp-1; continue;
                     end
                 end
                 obj.cost = temp;
