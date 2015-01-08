@@ -1,5 +1,5 @@
 function x = constrainedl2l1denoise(y,W,WT,tau,mu,miniter,maxiter,...
-    stopcriterion,tolerance)
+    stopcriterion,tolerance,f)
 % For now, the tolerance is the relative duality gap, and is the only
 % convergence criterion implemented
 % Also, in the future it would be good to output the number of nonzeros
@@ -46,6 +46,17 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
         end
     end
     iter = iter + 1;
+
+  % set(0,'CurrentFigure',123);
+  % semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,residual,'b.'); hold on;
+  % drawnow;
+  % set(0,'CurrentFigure',125);
+  % semilogy(iter,0.5*sqrNorm(abs(W(theta))-W(y))*0+sum(abs(theta)),'r.'); hold on;
+  % semilogy(iter,f(W(theta)),'ro');
+  % norm(W(WT(W(theta)))-W(theta))
+  % drawnow;
+
 end    
 x = abs(W(theta)); %note, sometimes W returns small negative values
 end
+

@@ -29,20 +29,18 @@ function loadGlassBeadsSim(obj,snr,noiseType)
     if(~obj.beamharden)
         switch lower(noiseType)
             case lower('poissonLogLink')
-                % u = 2e-4 is good choice
-                scale = 1e-1;           % determins Ts
+
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
+                % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
+                y = obj.Phi(obj.trueImg(mask~=0));
+                a=min(y); b=max(y); A=10; B=2^12;
+                scale=(log(B)-log(A))/(b-a);
+                obj.I0=exp( (b*log(B) - a*log(A))/(b-a) );
 
-                PhiAlpha = obj.Phi(obj.trueImg(mask~=0));
-                obj.Ts = log(1/scale)/max(PhiAlpha);
-
-                PhiAlpha = PhiAlpha*obj.Ts;
-                y = exp(-PhiAlpha);
-                I0 = (snr-1)*sum(y)/sum(y.^2);
-                obj.y = poissrnd(I0*y);
-                obj.y(obj.y==0) = 1;
-            case 'poisson'
+                obj.Ts=obj.Ts*scale;
+                y = obj.I0*exp(-y*scale);
+                obj.y = poissrnd(y);
             case 'gaussian'
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
