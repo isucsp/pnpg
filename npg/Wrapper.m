@@ -37,7 +37,11 @@ classdef Wrapper < handle
             % to call FISTA, user need to specify the choice for the initial step size to be either 'fixed' or 'BB'
             % default is 'BB'
             % opt.initStep='fixed'; % 'BB'; %
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
+            B = @(xx) xx;
+            opt.trueAlpha=Psit(opt.trueAlpha);
+            out=lasso(A,At,B,B,y,Psit(xInit),opt);
+            out.alpha=Psi(out.alpha);
         end
         function out = FPC(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
@@ -71,6 +75,7 @@ classdef Wrapper < handle
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             AO=A_operator(A,At);
             option.x0=Psit(xInit);
+            option.minK=floor(0.01*length(option.x0(:)));
             option.mxitr=opt.maxItr;
             option.gtol = 0;
             option.gtol_scale_x = opt.thresh;
