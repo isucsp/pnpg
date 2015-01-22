@@ -1,5 +1,7 @@
 
 *.mat
+*.bak
+*.png
 *.log
 *.aux
 *.zip
