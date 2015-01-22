@@ -93,7 +93,7 @@ if(any(runList==002))
         for j=4:4
             fprintf('%s, i=%d, j=%d\n','linearized NPG',i,j);
             opt.u = u(i)*10^(j-2);
-            opt.continuation = false; opt.alphaStep='FISTA_ADMM_NNL1';
+            opt.continuation = false; opt.alphaStep='NPG';
             npg{i,j}=BH.LinNPG(conf.Phi,conf.Phit,...
                 conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename,'npg','-append');
@@ -155,7 +155,7 @@ if(any(runList==002))
     end
 end
 
-% dis, max 20 (default) AS steps, CastSim, FISTA_ADMM_NNL1(default)
+% dis, max 20 (default) AS steps, CastSim, NPG(default)
 % Also compare the continuation and non-continuation
 % This section has very strong connection with 001
 if(any(runList==012))
@@ -329,28 +329,28 @@ if(any(runList==033))
     opt.maxItr=2000;
 
     opt.skipIe=true;
-    opt.alphaStep='FISTA_ADMM_NNL1';
+    opt.alphaStep='NPG';
     newnewRestart=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'newnewRestart','-append');
     return;
 
     opt.skipIe=true;
-    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=1; j=1; opt.alphaStep='NPG';
     newRestart{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'newRestart','-append');
     return;
 
     opt.skipIe=true;
-    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=2; j=1; opt.alphaStep='NPG';
     oldRestart{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'oldRestart','-append');
 end
    
 
-% dis, compare the FISTA_ADMM_NNL1 and NCG_PR for both continuation and 
+% dis, compare the NPG and NCG_PR for both continuation and 
 % non-continuation
 if(any(runList==021))
     filename = [mfilename '_021.mat'];
@@ -364,27 +364,27 @@ if(any(runList==021))
    
     % opt.adaptiveStep=false;
     % temp=opt.thresh; opt.thresh=1e-15;
-    % i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    % i=1; j=3; opt.alphaStep='PG';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % opt.thresh=temp;
     % save(filename,'out','-append');
 
-    % i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    % i=1; j=1; opt.alphaStep='NPG';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
 
 
     % opt.debugLevel=6;
-    % i=1; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
+    % i=1; j=6; opt.alphaStep='NPG';
     % opt.CenterB=false;
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
     % rmfield(opt,'CenterB');
 
-    % i=1; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
+    % i=1; j=5; opt.alphaStep='NPG';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
@@ -394,7 +394,7 @@ if(any(runList==021))
     % %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % % save(filename,'out','-append');
 
-    % i=1; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
+    % i=1; j=4; opt.alphaStep='NPG';
     % opt.adaptiveStep=100; opt.cumuTol=10;
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -403,7 +403,7 @@ if(any(runList==021))
     % save(filename,'out','-append');
 
     opt.skipIe=true;
-    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=2; j=1; opt.alphaStep='NPG';
     out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out','-append');
@@ -415,19 +415,19 @@ if(any(runList==021))
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
 
-    % i=2; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    % i=2; j=3; opt.alphaStep='PG';
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
     % save(filename,'out','-append');
    
     opt.thresh=1e-6;
-    i=2; j=4; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=2; j=4; opt.alphaStep='NPG';
     out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out','-append');
 
     % opt.thresh=1e-6;
-    % i=2; j=5; opt.alphaStep='FISTA_ADMM_NNL1';
+    % i=2; j=5; opt.alphaStep='NPG';
     % opt.adaptiveStep=false;
     % out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
     %     conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -435,7 +435,7 @@ if(any(runList==021))
     % opt.adaptiveStep=true;
 
     opt.thresh=1e-6; opt.adaptiveStep=100; opt.cumuTol=10;
-    i=2; j=6; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=2; j=6; opt.alphaStep='NPG';
     out{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out','-append');
@@ -507,18 +507,18 @@ if(any(runList==022))
     opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1; opt.thresh=1e-6;
 
-    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=false; 
+    opt.alphaStep='NPG'; opt.CenterB=false; 
     out1=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out1','-append');
 
-    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=true;
+    opt.alphaStep='NPG'; opt.CenterB=true;
     opt.correctCenterB=false;
     out2=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out2','-append');
 
-    opt.alphaStep='FISTA_ADMM_NNL1'; opt.CenterB=true;
+    opt.alphaStep='NPG'; opt.CenterB=true;
     opt.correctCenterB=true;
     out3=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
@@ -744,7 +744,7 @@ if(any(runList==999))
     opt.showImg=true;
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep = 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     opt.uMode='abs';
     % 1:3, where i=2 (i.e. u=1e-3 gives the best solution
     for i=1:-3

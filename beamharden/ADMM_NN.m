@@ -24,7 +24,7 @@ classdef ADMM_NN < Methods
         function main(obj)
             obj.p = obj.p+1; obj.warned = false;
             for i=1:obj.maxItr
-                subProb = FISTA_L1(2,obj.alpha,1e3,obj.stepShrnk,obj.Psi,obj.Psit);
+                subProb = NPGs(2,obj.alpha,1e3,obj.stepShrnk,obj.Psi,obj.Psit);
                 subProb.u=obj.u;
                 subProb.absTol = 1e-14;
                 subProb.fArray{1} = obj.fArray{1};

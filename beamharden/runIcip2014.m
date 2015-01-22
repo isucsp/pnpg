@@ -37,7 +37,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     opt.u = 1e-3;
     initSig = conf.FBP(conf.y);
     initSig = initSig(opt.mask~=0);
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep = 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     out0=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out0','-append');
@@ -64,7 +64,7 @@ if(any(runList==0.01)) % reserved for debug and for the best result
     initSig = initSig(opt.mask~=0);
     for i=1:3
         opt.u = 10^(-i);
-        opt.alphaStep='FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+        opt.alphaStep='NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
         out_knownIe_FISTA{i}=beamhardenSpline(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'out_knownIe_FISTA','-append');
@@ -346,10 +346,10 @@ if(any(runList==010))
     u=10.^[-1 -2 -3 -4 -5 -6];
     for i=1
         for j=6
-            fprintf('%s, i=%d, j=%d\n','FISTA_ADMM_NNL1',i,j);
+            fprintf('%s, i=%d, j=%d\n','NPG',i,j);
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2; opt.u = u(j);
             opt=conf.setup(opt);
-            opt.alphaStep='FISTA_ADMM_NNL1';
+            opt.alphaStep='NPG';
             y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
             initSig = maskFunc(conf.FBP(y),opt.mask~=0);
             out010{i,j}=lasso(conf.Phi,conf.Phit,...
@@ -375,7 +375,7 @@ if(any(runList==11)) % dis, single AS step,
     end
 end
 
-% dis, max 20 (default) AS steps, CastSim, FISTA_ADMM_NNL1(default)
+% dis, max 20 (default) AS steps, CastSim, NPG(default)
 % Also compare the continuation and non-continuation
 % This section has very strong connection with 001
 if(any(runList==012))
@@ -535,7 +535,7 @@ if(any(runList==16)) % b1, max AS step,
     end
 end
 
-% dis, compare the FISTA_ADMM_NNL1 and NCG_PR for both continuation and 
+% dis, compare the NPG and NCG_PR for both continuation and 
 % non-continuation
 if(any(runList==021))
     load(filename,'out021');
@@ -543,7 +543,7 @@ if(any(runList==021))
     conf.prjFull = 360; conf.prjNum = conf.prjFull/2; opt.u =  1e-4;
     opt=conf.setup(opt); initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     opt.maxIeSteps=1;
-    i=1; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=1; j=1; opt.alphaStep='NPG';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
@@ -553,13 +553,13 @@ if(any(runList==021))
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
 
-    i=1; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    i=1; j=3; opt.alphaStep='PG';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
 
     opt.skipIe=true;
-    i=2; j=1; opt.alphaStep='FISTA_ADMM_NNL1';
+    i=2; j=1; opt.alphaStep='NPG';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
@@ -569,7 +569,7 @@ if(any(runList==021))
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
 
-    i=2; j=3; opt.alphaStep='IST_ADMM_NNL1';
+    i=2; j=3; opt.alphaStep='PG';
     out021{i,j}=beamhardenSpline(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
     save(filename,'out021','-append');
@@ -772,7 +772,7 @@ if(any(runList==999))
     opt.showImg=true;
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     
-    opt.alphaStep = 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep = 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     opt.uMode='abs';
     % 1:3, where i=2 (i.e. u=1e-3 gives the best solution
     for i=1:-3

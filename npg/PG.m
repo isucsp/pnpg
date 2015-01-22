@@ -1,4 +1,4 @@
-classdef IST_L1 < Methods
+classdef PG < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -15,9 +15,10 @@ classdef IST_L1 < Methods
         nonInc=0;
         innerSearch
         adaptiveStep=true;
+        maxInnerItr=100;
     end
     methods
-        function obj = IST_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = PG(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
@@ -35,7 +36,6 @@ classdef IST_L1 < Methods
                 y=obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(y);
-                si = obj.Psit(y); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
                 obj.ppp=0; goodStep=true; temp=0; goodMM=true;
@@ -47,9 +47,9 @@ classdef IST_L1 < Methods
                         obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
-                    wi=si-dsi/obj.t;
-                    newSi=Utils.softThresh(wi,obj.u/obj.t);
-                    newX = obj.Psi(newSi);
+                    newX = y - obj.grad/obj.t;
+                    [newX,obj.innerSearch] = NPG.adaptiveADMM(obj.Psi,obj.Psit,...
+                        newX,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
                     if(obj.newCost<=LMM)
@@ -61,6 +61,7 @@ classdef IST_L1 < Methods
                     else
                         if(obj.ppp<=20)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
+                            if(temp==1) obj.cumuTol=obj.cumuTol+4; end
                         else
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
@@ -73,9 +74,16 @@ classdef IST_L1 < Methods
                 temp = obj.newCost+obj.u*obj.fVal(3);
                 if(temp>obj.cost)
                     if(goodMM)
-                        obj.debug=[obj.debug 'forceConverge'];
-                        newX=obj.alpha;
-                        temp=obj.cost;
+                        if(obj.innerSearch<obj.maxInnerItr)
+                            pp=pp-1;
+                            obj.difAlpha=0;
+                            obj.debug=[obj.debug 'resetDifAlpha'];
+                            continue;
+                        else
+                            obj.debug=[obj.debug 'forceConverge'];
+                            newX=obj.alpha;
+                            temp=obj.cost;
+                        end
                     else
                         pp=pp-1;
                         obj.debug=[obj.debug 'falseMonotone'];

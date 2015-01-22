@@ -1,46 +1,54 @@
 classdef Wrapper < handle
     methods(Static)
         function out = NPG(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='FISTA_ADMM_NNL1';
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=false; opt.alphaStep='NPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='FISTA_ADMM_NNL1'; opt.adaptiveStep=false;
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='IST_ADMM_NNL1'; opt.adaptiveStep=true;
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='FISTA_ADMM_NNL1';
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=true; opt.alphaStep='NPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGc_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='FISTA_ADMM_NNL1'; opt.adaptiveStep=false;
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=true; opt.alphaStep='NPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = PGc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='IST_ADMM_NNL1'; opt.adaptiveStep=true;
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=true; opt.alphaStep='PG'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGsc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='FISTA_L1';
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=true; opt.alphaStep='NPGs';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = NPGs(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='FISTA_L1';
-            out=lasso(Phi,Phit,Psi,Psit,y,xInit,opt);
+            opt.continuation=false; opt.alphaStep='NPGs';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGs_syn(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPGs';
+            A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
+            B = @(xx) xx;
+            opt.trueAlpha=Psit(opt.trueAlpha);
+            out=solver(A,At,B,B,y,Psit(xInit),opt);
+            out.alpha=Psi(out.alpha);
         end
         function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='FISTA_L1'; opt.adaptiveStep=false;
+            opt.continuation=false; opt.alphaStep='NPGs'; opt.adaptiveStep=false;
             % to call FISTA, user need to specify the choice for the initial step size to be either 'fixed' or 'BB'
             % default is 'BB'
             % opt.initStep='fixed'; % 'BB'; %
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             B = @(xx) xx;
             opt.trueAlpha=Psit(opt.trueAlpha);
-            out=lasso(A,At,B,B,y,Psit(xInit),opt);
+            out=solver(A,At,B,B,y,Psit(xInit),opt);
             out.alpha=Psi(out.alpha);
         end
         function out = FPC(Phi,Phit,Psi,Psit,y,xInit,opt)
@@ -72,10 +80,11 @@ classdef Wrapper < handle
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
             if(isfield(opt,'trueAlpha')) option.trueAlpha=Psit(opt.trueAlpha); end
+            if(isfield(opt,'minK')) option.minK=opt.minK; end
+            if(isfield(opt,'maxK')) option.maxK=opt.maxK; end
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             AO=A_operator(A,At);
             option.x0=Psit(xInit);
-            option.minK=floor(0.01*length(option.x0(:)));
             option.mxitr=opt.maxItr;
             option.gtol = 0;
             option.gtol_scale_x = opt.thresh;
@@ -143,7 +152,7 @@ classdef Wrapper < handle
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
             if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-            ppsi = @(xxx,uuu,thrsh) FISTA_ADMM_NNL1.adaptiveADMM(Psi,Psit,xxx,uuu,thrsh,100);
+            ppsi = @(xxx,uuu,thrsh) NPG.adaptiveADMM(Psi,Psit,xxx,uuu,thrsh,100);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             xInit(xInit<0)=0;
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...

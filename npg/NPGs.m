@@ -1,4 +1,4 @@
-classdef FISTA_L1 < Methods
+classdef NPGs < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -16,7 +16,7 @@ classdef FISTA_L1 < Methods
         adaptiveStep=true;
     end
     methods
-        function obj = FISTA_L1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = NPGs(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;

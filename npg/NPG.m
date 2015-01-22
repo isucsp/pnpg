@@ -1,4 +1,4 @@
-classdef FISTA_ADMM_NNL1 < Methods
+classdef NPG < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -22,7 +22,7 @@ classdef FISTA_ADMM_NNL1 < Methods
         maxInnerItr=100;
     end
     methods
-        function obj = FISTA_ADMM_NNL1(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;

@@ -1,5 +1,5 @@
-function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
-%lasso    Solve a linear problem
+function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
+%solver    Solve a linear problem
 %
 %                          0.5*||Φα-y||^2 + u*||Ψ'α||_1
 %
@@ -19,7 +19,7 @@ function out = lasso(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   Author: Renliang Gu (renliang@iastate.edu)
 %
 
-if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_L1'; end
+if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
 if(~isfield(opt,'preSteps')) opt.preSteps=2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
@@ -83,21 +83,21 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case lower('FISTA_L1')
-        alphaStep=FISTA_L1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('NPGs')
+        alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
-    case lower('FISTA_ADMM_NNL1')
-        alphaStep=FISTA_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('NPG')
+        alphaStep=NPG(1,alpha,1,opt.stepShrnk,Psi,Psit);
         if(strcmpi(opt.noiseType,'poisson'))
             alphaStep.forcePositive=true;
-            % opt.alphaStep='IST_ADMM_NNL1';
-            % alphaStep=IST_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+            % opt.alphaStep='PG';
+            % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
         end
-    case lower('IST_ADMM_NNL1')
-        alphaStep=IST_ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('PG')
+        alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}

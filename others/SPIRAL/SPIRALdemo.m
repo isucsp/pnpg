@@ -108,14 +108,14 @@ switch demo
         save(filename,'spiral001','-append');
 
         opt.continuation=true;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npgC001{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npgC001{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npgC001','-append');
 
         opt.continuation=false;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npg001{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npg001{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npg001','-append');
         
@@ -247,14 +247,14 @@ switch demo
         opt.noiseType='poisson'; opt.thresh=tolerance; opt.trueAlpha=f;
 
         opt.continuation=false;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npg002{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npg002{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npg002','-append');
         
         opt.continuation=true;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npgC002{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npgC002','-append');
 
@@ -540,14 +540,14 @@ switch demo
         save(filename,'spiral003','-append');
 
         opt.continuation=false;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npg003{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npg003{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npg003','-append');
         
         opt.continuation=true;
-        opt.alphaStep='FISTA_ADMM_NNL1';
-        npgC002{i,j}=lasso(conf.Phi,conf.Phit,...
+        opt.alphaStep='NPG';
+        npgC002{i,j}=solver(conf.Phi,conf.Phit,...
             conf.Psi,conf.Psit,conf.y,initSig,opt);
         save(filename,'npgC002','-append');
 

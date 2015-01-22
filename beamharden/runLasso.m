@@ -5,7 +5,7 @@ function [conf,opt] = runLasso(runList)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.2 $ $Date: Mon 24 Mar 2014 02:16:45 PM CDT
+%   $Revision: 0.2 $ $Date: Thu 22 Jan 2015 03:16:34 PM CST
 %   v_0.2:      Changed to class oriented for easy configuration
 
 if(nargin==0 || ~isempty(runList))
@@ -32,7 +32,7 @@ if(any(runList==0)) % reserved for debug and for the best result
     conf.PhiMode='cpuPrj'; %'basic'; %'filtered'; %'weighted'; %
     conf.imageName='phantom'; %'castSim'; %'phantom' %'twoMaterials'; 
 
-    opt.alphaStep='FISTA_L1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep='NPGs'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     opt=conf.setup(opt);
     opt.u=1e-4;
     opt.thresh=1e-14;
@@ -66,7 +66,7 @@ if(any(runList==1)) % FISTA_NNL1
 
     opt.u=1e-4;
     opt.debugLevel=1;
-    opt.alphaStep='FISTA_ADMM_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep='NPG';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
     %opt=conf.loadLasso(opt);
     prefix='Lasso';
@@ -102,7 +102,7 @@ if(any(runList==2))
 
     opt.u=1e-4;
     opt.debugLevel=6;
-    opt.alphaStep='FISTA_L1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep='NPGs';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     
     %conf.y=conf.y+randn(size(conf.y))*sqrt(1e-8*(norm(conf.y(:)).^2)/length(conf.y(:)));
     %opt=conf.loadLasso(opt);
@@ -136,7 +136,7 @@ if(any(runList==3)) % SPIRAL-G
     initSig = initSig(opt.mask~=0);
     %initSig = opt.trueAlpha;
     %initSig = out1.alpha;
-    opt.alphaStep='FISTA_ADMM_NNL1';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep='NPG';%'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     subtolerance=1e-6;
     out=[];
     [out.alpha, out.p, out.cost, out.reconerror, out.time, ...
@@ -152,9 +152,9 @@ if(any(runList==3)) % SPIRAL-G
         'savesolutionpath',1,'verbose',100);
     out_phantom_1_spiral_monotone=out;
     save(filename,'out_phantom_1_spiral_monotone','-append');
-    out_phantom_1_FISTA_ADMM_NNL1_a8=lasso(conf.Phi,conf.Phit,...
+    out_phantom_1_NPG_a8=lasso(conf.Phi,conf.Phit,...
         conf.Psi,conf.Psit,conf.y,initSig,opt);
-    save(filename,'out_phantom_1_FISTA_ADMM_NNL1_a8','-append');
+    save(filename,'out_phantom_1_NPG_a8','-append');
 end
 
 if(any(runList==999))
@@ -172,7 +172,7 @@ if(any(runList==999))
     opt.maxItr=2e3;
     opt.debugLevel=5;
     opt.showImg=true;
-    opt.alphaStep='FISTA_L1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+    opt.alphaStep='NPGs'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
     opt.u=1e-4;
     initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
     %initSig=opt.trueAlpha;

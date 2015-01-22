@@ -54,8 +54,8 @@ if(~isfield(opt,'showImg')) opt.showImg=false; end
 % the higher, the more information. Set to 0 to turn off.
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
-% 'FISTA_ADMM_NNL1'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
-if(~isfield(opt,'alphaStep')) opt.alphaStep='FISTA_ADMM_NNL1'; end
+% 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+if(~isfield(opt,'alphaStep')) opt.alphaStep='NPG'; end
 if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
@@ -164,12 +164,12 @@ switch lower(opt.alphaStep)
         alphaStep.Psi = Psi;
         alphaStep.Psit = Psit;
         alphaStep.M = 5;
-    case lower('FISTA_L1')
-        alphaStep=FISTA_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-    case lower('FISTA_ADMM_NNL1')
-        alphaStep=FISTA_ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-    case lower('IST_ADMM_NNL1')
-        alphaStep=IST_ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+    case lower('NPGs')
+        alphaStep=NPGs(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+    case lower('NPG')
+        alphaStep=NPG(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+    case lower('PG')
+        alphaStep=PG(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_L1')}
