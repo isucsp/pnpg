@@ -55,35 +55,46 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     n = length(x);      % number of features
 
     x0=x(:);
-    if(strcmpi(opt.matrixType,'nonneg'))
-        Phi = rand(opt.m,n);
-        a=0.3;
-        idx=(Phi<a); Phi(idx)=0; Phi(~idx)=(Phi(~idx)-a)/(1-a);
+    switch lower(opt.matrixType)
+        case 'nonneg'
+            Phi = rand(opt.m,n);
+            a=0.3;
+            idx=(Phi<a); Phi(idx)=0; Phi(~idx)=(Phi(~idx)-a)/(1-a);
 
-        c=n/12*(1-a)*(1+3*a); d=n/4*(1-a)^2;
-        % E{AA^T} = c I + d 1*1^T
-        EAAt = c*eye(opt.m) + d*ones(opt.m);
-        invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
-        sqrNormPhix=(c*norm(x0)^2+d*sum(abs(x0))^2)*opt.m/n;
-    elseif(strcmpi(opt.matrixType,'gaussian'))
-        Phi = randn(opt.m,n);
-        Phi = Phi*spdiags(1./sqrt(sum(Phi.^2))',0,n,n); % normalize columns
-        % E(AA^T)= n/opt.m I
-        EAAt = n/opt.m;
-        invEAAt = opt.m/n;
+            c=n/12*(1-a)*(1+3*a); d=n/4*(1-a)^2;
+            % E{AA^T} = c I + d 1*1^T
+            EAAt = c*eye(opt.m) + d*ones(opt.m);
+            invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
+            sqrNormPhix=(c*norm(x0)^2+d*sum(abs(x0))^2)*opt.m/n;
+        case 'gaussian'
+            Phi = randn(opt.m,n);
+            Phi = Phi*spdiags(1./sqrt(sum(Phi.^2))',0,n,n); % normalize columns
+            % E(AA^T)= n/opt.m I
+            EAAt = n/opt.m;
+            invEAAt = opt.m/n;
 
-        % EAAt = n;
-        % invEAAt = 1/n;
-        % sqrNormPhix=opt.m*norm(x0)^2;
-    elseif(strcmpi(opt.matrixType,'conv'))
-        temp=zeros(1,n); temp(1:41)=1;
-        Phi = toeplitz(temp);
-        Phi = Phi(sort(randperm(n,opt.m)),:);
+            % EAAt = n;
+            % invEAAt = 1/n;
+            % sqrNormPhix=opt.m*norm(x0)^2;
+        case 'conv'
+            temp=zeros(1,n); temp(1:41)=1;
+            Phi = toeplitz(temp);
+            Phi = Phi(sort(randperm(n,opt.m)),:);
 
-        EAAt=Phi*Phi';
-        invEAAt=inv(EAAt);
-    else
-        error('error input matrixType');
+            EAAt=Phi*Phi';
+            invEAAt=inv(EAAt);
+        case 'nonneg2'  % this is for test only
+            Phi = rand(opt.m,n);
+            a=0.95;
+            idx=(Phi<a); Phi(idx)=0; Phi(~idx)=(Phi(~idx)-a)/(1-a);
+
+            c=n/12*(1-a)*(1+3*a); d=n/4*(1-a)^2;
+            % E{AA^T} = c I + d 1*1^T
+            EAAt = c*eye(opt.m) + d*ones(opt.m);
+            invEAAt= 1/c * (eye(opt.m) - d/(c+d*opt.m)*ones(opt.m));
+            sqrNormPhix=(c*norm(x0)^2+d*sum(abs(x0))^2)*opt.m/n;
+        otherwise
+            error('error input matrixType');
     end
 
     switch lower(opt.noiseType)
@@ -95,12 +106,27 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
             % v = randn(opt.m,1)*sqrt(sqrNormPhix/(opt.m*opt.snr));
             y = y + v;
             % fprintf('nnz(x0) = %d; signal-to-noise ratio: %.2f\n', nnz(x0), norm(Phi*x0)^2/norm(v)^2);
+        case lower('poisson2')
+            % for SNR changing, only Φα matters. Scale can be multiplied to
+            % either Φ or α. But for stability of algorithm, we multiply it
+            % to α.
+            y=Phi*x0;
+            fprintf('snr=%g\n',sum(y.^2)/sum(y));
+            scale = (opt.snr)*sum(y)/sum(y.^2);
+            scale = 1000;
+            fprintf('scale=%g\n',scale);
+
+            % It is better to scale the signal itself for stability
+            y = poissrnd(scale*y)/scale;
+            % figure; showImg(Phi);
         case lower('poisson')
             % for SNR changing, only Φα matters. Scale can be multiplied to
             % either Φ or α. But for stability of algorithm, we multiply it
             % to α.
             y=Phi*x0;
             scale = (opt.snr)*sum(y)/sum(y.^2);
+
+            fprintf('scale=%g\n',scale);
 
             % It is better to scale the signal itself for stability
             x0=x0*scale;

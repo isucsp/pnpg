@@ -176,7 +176,11 @@ computereconerror = 0; % by default assume f is not given
 reconerrortype = 0; 
 savecputime = 0;
 savesolutionpath = 0;
-savedifalpha = 0;
+
+% options added by renliang
+savedifalpha = false;
+savestepsize = false;
+savetruecost = false;
 
 % ---- Read in the input parameters ----
 if (rem(length(varargin),2)==1)
@@ -215,7 +219,10 @@ else
             case 'savecputime';         savecputime         = varargin{ii+1}; %
             case 'reconerrortype';      reconerrortype      = varargin{ii+1};
             case 'savesolutionpath';    savesolutionpath    = varargin{ii+1}; %
+
             case 'savedifalpha';        savedifalpha        = varargin{ii+1}; %
+            case 'savetruecost';        savetruecost        = varargin{ii+1}; %
+            case 'savestepsize';        savestepsize        = varargin{ii+1}; %
             case 'warnings';            warnings            = varargin{ii+1};
             case 'recenter';            recenter            = varargin{ii+1};
             case 'bb';                  bb                  = varargin{ii+1};
@@ -358,6 +365,16 @@ end
 if (numel(savedifalpha) ~= 1)  || (sum( savedifalpha == [0 1] ) ~= 1)
     error(['The option to save the difAlpha ',...
         'savedifalpha'' ',...
+        'must be a binary scalar (either 0 or 1).'])
+end
+if (numel(savetruecost) ~= 1)  || (sum( savetruecost == [0 1] ) ~= 1)
+    error(['The option to save the TrueCost ',...
+        'savetruecost'' ',...
+        'must be a binary scalar (either 0 or 1).'])
+end
+if (numel(savestepsize) ~= 1)  || (sum( savestepsize == [0 1] ) ~= 1)
+    error(['The option to save the stepSize ',...
+        'savestepsize'' ',...
         'must be a binary scalar (either 0 or 1).'])
 end
 % SAVESOLUTIONPATH: Just a binary indicator, check if not equal to 0 or 1.
@@ -517,12 +534,12 @@ if (nargout == 0) && warnings
 	pause(1);
 end
 if (nargout < (2 + saveobjective + savereconerror ...
-        + savecputime + savesolutionpath+savedifalpha)) && warnings
+        + savecputime + savesolutionpath+(savedifalpha|savetruecost|savestepsize))) && warnings
     disp(['Warning:  Insufficient output parameters given to save ',...
         'the full output with the given options.']);
 end
 if nargout > (2 + saveobjective + savereconerror ...
-        + savecputime + savesolutionpath+savedifalpha)
+        + savecputime + savesolutionpath+(savedifalpha|savetruecost|savestepsize))
         error('Too many output arguments specified for the given options.')
 end
 
@@ -545,27 +562,29 @@ objective = [];
 if savecputime
     cputime = zeros(maxiter+1,1);
 end
-if savedifalpha
-    difAlpha= zeros(maxiter+1,1);
-end
 if saveobjective
     objective = zeros(maxiter+1,1);
-    objective(iter) = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,penalty,WT);
+    objective(iter)=computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,penalty,WT);
 end
+
 if savereconerror
     reconerror = zeros(maxiter+1,1);
     switch reconerrortype
         case 0 % RMS Error
             normtrue = sqrt( sum(truth(:).^2) );
+            if(normtrue==0) normtrue=1; end
             computereconerror = @(x) sqrt( sum( (x(:) + mu - truth(:) ).^2))./normtrue;
         case 1 % Relative absolute error
             normtrue = sum( abs(truth(:)) );
+            if(normtrue==0) normtrue=1; end
             computereconerror = @(x) sum( abs (x(:) + mu - truth(:)) )./normtrue;
         case 2  % Relative Square Error
             sqrNormTrue = sqrNorm(truth);
+            if(sqrNormTrue==0) sqrNormTrue=1; end
             computereconerror = @(x) 1-innerProd(x,truth)^2/sqrNorm(x)/sqrNormTrue;
         case 3 % RMS Error
             normtrue = sum(truth(:).^2);
+            if(normtrue==0) normtrue=1; end
             computereconerror = @(x) sum( (x(:) + mu - truth(:) ).^2)./normtrue;
     end
     reconerror(iter) = computereconerror(xinit);
@@ -577,6 +596,18 @@ if savesolutionpath
     solutionpath(1:maxiter+1) = struct('step',zeros(size(xinit)),...
         'iterate',zeros(size(xinit)));
     solutionpath(1).iterate = xinit;
+end
+
+if savedifalpha
+    out.difAlpha=zeros(maxiter+1,1);
+end
+if savetruecost
+    out.trueCost=zeros(maxiter+1,1);
+    out.trueCost(iter)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+end
+if savestepsize
+    out.stepSize=zeros(maxiter+1,1);
+    out.stepSize(iter)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
 end
 
 if (verbose > 0)
@@ -615,7 +646,6 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 maxpastobjective = max(objective(past));
                 accept = 0;
                 while (accept == 0)
-                    
                     % --- Compute the step, and perform Gaussian 
                     %     denoising subproblem ----
                     dx = xprevious;
@@ -632,6 +662,10 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     % --- Compute the resulting objective 
                     objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
                         noisetype,logepsilon,penalty,WT);
+
+                    if savetruecost
+                        out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+                    end
                         
                     if ( objective(iter+1) <= (maxpastobjective ...
                             - acceptdecrease*alpha/2*normsqdx) ) ...
@@ -657,6 +691,9 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
                         noisetype,logepsilon,penalty,WT);
                 end
+                if savetruecost
+                    out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+                end
                     
             end
     end
@@ -679,7 +716,10 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     [converged,temp] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime(iter+1), objective);
     if savedifalpha
-        difAlpha(iter+1) = temp;
+        out.difAlpha(iter+1) = temp;
+    end
+    if savestepsize
+        out.stepSize(iter+1) = 1./alpha;
     end
 
     % Display progress
@@ -700,7 +740,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 abs(objective(iter)))
         end      
         if savedifalpha
-            fprintf(', difAlpha: %11.4e',difAlpha(iter+1));
+            fprintf(', difAlpha: %11.4e',out.difAlpha(iter+1));
         end
         if savereconerror
             fprintf(', Err: %11.4e',reconerror(iter+1))
@@ -757,11 +797,21 @@ end
 if savecputime
     varargout = [varargout {cputime(1:iter+1)}];
 end
-if savedifalpha
-    varargout = [varargout {difAlpha(1:iter+1)}];
-end
 if savesolutionpath
     varargout = [varargout {solutionpath(1:iter+1)}];
+end
+
+if (savedifalpha)
+    out.difAlpha(iter+2:end)=[];
+end
+if savetruecost
+    out.trueCost(iter+2:end)=[];
+end
+if savestepsize
+    out.stepSize(iter+2:end)=[];
+end
+if (savedifalpha || savestepsize || savetruecost)
+    varargout = [varargout {out}];
 end
 
 if (verbose > 0)

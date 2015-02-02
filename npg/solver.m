@@ -59,9 +59,11 @@ if(isfield(opt,'trueAlpha'))
             computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
         case 1
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
+            if(trueAlphaNorm==0) trueAlphaNorm=eps; end
             computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
         case 2
             trueAlphaNorm=pNorm(opt.trueAlpha);
+            if(trueAlphaNorm==0) trueAlphaNorm=eps; end
             computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
     end
 end
@@ -110,13 +112,14 @@ switch lower(opt.noiseType)
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
     case lower('poissonLogLink0')
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink0(aaa,Phi,Phit,y,opt.I0);
-    case 'poisson'
+    case {'poisson', 'poisson2'} % poisson2 is for test
         if(isfield(opt,'bb'))
             temp=reshape(opt.bb,size(y));
-            alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
         else
-            alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y);
+            temp=0;
         end
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
+        trueCost = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp,1e-100);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
 end
@@ -212,6 +215,7 @@ while(true)
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
+
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
     if(opt.restart) out.restart(p)=alphaStep.restart; end
@@ -231,6 +235,9 @@ while(true)
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
     alpha = alphaStep.alpha;
+    if(isfield(opt,'saveTrueCost') && opt.saveTrueCost && strcmpi(opt.noiseType,'poisson') )
+            out.trueCost(p)=trueCost(alpha)+alphaStep.u*pNorm(Psit(alpha),1);
+    end
 
     str=sprintf([str ' cost=%-6g'],out.cost(p));
 

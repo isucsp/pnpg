@@ -36,6 +36,13 @@ classdef Methods < handle
         ppp = 0;
 
     end
+    methods (Access = protected)
+        % this method can be redefined in the subclasses for an indicator
+        % of a constraints.
+        function res=indicate(obj)
+            res=0;
+        end
+    end
     methods
         function obj = Methods(n,alpha)
             if(nargin>0)
@@ -124,7 +131,7 @@ classdef Methods < handle
             else
                 obj.coef(obj.n+1)=u;
             end
-            obj.cost = obj.func(obj.alpha)+obj.u*pNorm(obj.Psit(obj.alpha),1);
+            obj.cost = obj.func(obj.alpha)+obj.u*pNorm(obj.Psit(obj.alpha),1)+obj.indicate();
         end
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 

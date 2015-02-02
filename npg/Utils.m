@@ -144,7 +144,7 @@ classdef Utils < handle
         % The Poisson Generalized Linear Model with identity log link: Ey=Φα
         function [f,g,h] = poissonModelAppr(alpha,Phi,Phit,y,b,EPS)
             if(nargin<5)
-                b=zeros(size(y));
+                b=0;
             end
             if(nargin==6) eps=EPS; else eps=1e-10; end
 

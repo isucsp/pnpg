@@ -23,6 +23,7 @@ classdef NPG < Methods
     end
     methods
         function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        %   alpha(alpha<0)=0;
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
@@ -37,6 +38,7 @@ classdef NPG < Methods
             obj.p = obj.p+1; obj.warned = false;
             pp=0; obj.debug='';
             if(obj.restart>0) obj.restart=0; end
+
             while(pp<obj.maxItr)
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
@@ -64,13 +66,13 @@ classdef NPG < Methods
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
                     if(obj.newCost<=LMM)
-                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep)
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
                             break;
                         end
                     else
-                        if(obj.ppp<=20)
+                        if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
                                 obj.cumuTol=obj.cumuTol+4;
@@ -128,6 +130,14 @@ classdef NPG < Methods
             obj.theta=0; obj.preAlpha=obj.alpha;
             recoverT=obj.stepSizeInit('hessian');
             obj.t=min([obj.t;max(recoverT)]);
+        end
+    end
+    methods (Access = protected)
+        % this method can be redefined in the subclasses for an indicator
+        % of a constraints.
+        function res=indicate(obj)
+            if(any(obj.alpha<0)) res=inf;
+            else res=0; end
         end
     end
     methods(Static)
