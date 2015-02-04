@@ -1341,9 +1341,10 @@ if(any(runList==903))
     fprintf('PET Poisson example\n');
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
-    a = [-2.5 -4 -6 -7.5 -10 -11.5];
+    a  = [0 0 0 0 0 -1];
+    as = [2 2 2 1 1  1];
 
-    K = 1;
+    K = 3;
 
     npgTime   = mean(Cell.getField(   npg(:,:,1:K),'time'),3);
     npgcTime  = mean(Cell.getField(  npgc(:,:,1:K),'time'),3);
@@ -1372,18 +1373,20 @@ if(any(runList==903))
     loglog(count,spiralRMSE,'k-^');
     loglog(count,  npgcRMSE,'k*-.');
     loglog(count,  npgsRMSE,'c>-');
-    legend('npg','fbp','spiral','npgc','npgs');
+    loglog(count, npgscRMSE,'gs-');
+    legend('npg','fbp','spiral','npgc','npgs','npgsc');
 
     figure;
     loglog(count,   npgTime,'r-*'); hold on;
     loglog(count,spiralTime,'k-^');
     loglog(count,  npgcTime,'k*-.');
     loglog(count,  npgsTime,'c>-');
-    legend('npg','spiral','npgc','npgs');
+    loglog(count, npgscTime,'gs-');
+    legend('npg','spiral','npgc','npgs','npgsc');
 
-    forSave=[npgTime, npgcTime, npgsTime, spiralTime,...
-             npgCost, npgcCost, npgsCost, spiralCost,...
-             npgRMSE, npgcRMSE, npgsRMSE, spiralRMSE,...
+    forSave=[npgTime, npgcTime, npgsTime, npgscTime, spiralTime,...
+             npgCost, npgcCost, npgsCost, npgscCost, spiralCost,...
+             npgRMSE, npgcRMSE, npgsRMSE, npgscRMSE, spiralRMSE,...
         fbpRMSE, count(:)];
     save('varyCntPET.data','forSave','-ascii');
 
@@ -1401,6 +1404,10 @@ if(any(runList==903))
     t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
     t=t+1; forSave(1:length(out.time),t)=out.time;
     out=npgs{mIdx,1,1};
+    t=t+1; forSave(1:length(out.cost),t)=out.cost;
+    t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+    t=t+1; forSave(1:length(out.time),t)=out.time;
+    out=npgsc{mIdx,1,1};
     t=t+1; forSave(1:length(out.cost),t)=out.cost;
     t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
     t=t+1; forSave(1:length(out.time),t)=out.time;
@@ -1440,8 +1447,25 @@ if(any(runList==903))
     img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
     img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
     img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
+
+    idx=4;
+    fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
+    fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
+    fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+    fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+    fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
+    fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
+    img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
+    img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet2.png')
+    img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet2.png')
+    img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
+    img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
+    img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet2.png')
+    img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
     
+    keyboard
     system(['mv varyCntPET.data cost_itrPET.data ' paperDir]);
+    close all;
 end
 
 if(any(runList==904))
