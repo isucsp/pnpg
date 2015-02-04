@@ -284,11 +284,11 @@ if(any(runList==003))
     opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
-    K=15;
+    K=12;
 
-    a = [-2.5 -4 -6 -7.5 -10 -11.5];
-    a = [0, 0, 0, 0, 0, 0];
-    aa =(3:-0.5:-6);
+    a  = [0, 0, 0, 0, 0, -1];
+    as = [2, 2, 2, 1, 1,  1];
+    aa = (3:-0.5:-6);
 
     for k=1:K
         for i=1:length(count)
@@ -299,10 +299,8 @@ if(any(runList==003))
             fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha));
             fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
             %u_max=pNorm(Psit(Phit(1-y./opt.bb(:))),inf);
-            u_max=pNorm(Psit(Phit(y)),inf);
+            %u_max=pNorm(Psit(Phit(y)),inf);
             u_max=1;
-
-            if(k==1 && i<6) continue; end
 
             initSig=max(fbp{i,1,k}.alpha,0);
             %initSig=opt.trueAlpha;
@@ -313,15 +311,16 @@ if(any(runList==003))
 %           fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
 %           opt.fullcont=false;
 
-            for j=3:9
-                opt.u = 10^a(i)*u_max*10^(j-5);
-                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
-%               npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
+            j=1;
+            fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
+            opt.u = 10^a(i)*u_max;
+            npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+            spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%           npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+            opt.u = 10^as(i)*u_max;
+%           npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%           npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %           % following are methods for weighted versions
 %           ty=max(sqrt(y),1);
