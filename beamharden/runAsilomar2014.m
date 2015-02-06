@@ -304,6 +304,8 @@ if(any(runList==003))
 
             initSig=max(fbp{i,1,k}.alpha,0);
             %initSig=opt.trueAlpha;
+            
+            if(k>2) return; end
 
 %           opt.fullcont=true;
 %           opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-12;
@@ -314,9 +316,12 @@ if(any(runList==003))
             j=1;
             fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
             opt.u = 10^a(i)*u_max;
-            npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%           npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+%           spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 %           npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+            if(i==5 && k==2)
+                npgsc_s=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            end
 
             opt.u = 10^as(i)*u_max;
 %           npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -1433,13 +1438,14 @@ if(any(runList==903))
     imwrite(xtrue/max(xtrue(:)),'pet.png');
     imwrite(mumap/max(mumap(:)),'mumap.png');
 
-    idx=5;
+    idx=5+6;
     fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
     fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
     fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
     fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
     fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
     fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
+    fprintf('NPGscS: (%g%%, %g%%)\n',    npgsc_s.RMSE(end)*100,rmseTruncate(npgsc_s   )*100);
     img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
     img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet.png')
     img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet.png')
@@ -1447,6 +1453,7 @@ if(any(runList==903))
     img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
     img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
     img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
+    img=showImgMask( npgsc_s.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGscS_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGscS_pet.png')
 
     idx=4;
     fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
