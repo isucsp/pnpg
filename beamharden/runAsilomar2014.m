@@ -764,18 +764,18 @@ if(any(runList==009))
     conf.beamharden = false;
 
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    aa = -1:-0.2:-10;
+    aa = -1:-1:-10;
     opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
     opt.noiseType='poissonLogLink'; %'gaussian'; %
     for i=5:length(prjFull)
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
-        initSig = maskFunc(conf.FBP(-log(conf.y)),opt.mask~=0);
+        fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
+        initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
 
-        fbp{i,j}.img=conf.FBP(-log(conf.y));
+        fbp{i,j}.img=conf.FBP(-log(conf.y/conf.I0));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
-        fbp{i,j}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j}.alpha))/sqrNorm(conf.y);
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
 
@@ -783,21 +783,23 @@ if(any(runList==009))
         % initSig = opt.trueAlpha;
         u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf);
        
-        opt.fullcont=true;
-        opt.u=10.^aa*u_max;
-        npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgFull{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgsFull{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        opt.fullcont=false;
-        save(filename); continue;
+%       opt.fullcont=true;
+%       opt.u=10.^aa*u_max;
+%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgFull{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgsFull{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       opt.fullcont=false;
+%       save(filename); continue;
 
-        j=1;
-        fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-
-        opt.u = 10^a(i)*u_max;
-        npg{i,j}=Wrapper.npgc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-        npgs{i,j}=Wrapper.npgsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+        a=-4:-0.25:-5;
+        for j=1:5;
+            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+            opt.u = 10^a(j)*u_max;
+            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename); continue;
+        end
 
         % fit with the poisson model with log link but known I0
         u=10.^[-6 -6 -6 -6 -5 -4];
@@ -974,23 +976,23 @@ if(any(runList==902))
     semilogy(m,  npgcRMSE((uNonneg-1)*9+(1:9)),'c-p');
     semilogy(m,spiralRMSE((uNonneg-1)*9+(1:9)),'k-^');
     semilogy(m,sparsnRMSE((uNonneg-1)*9+(1:9)),'r-x');
-    semilogy(m,  npgsRMSE((uNeg   -1)*9+(1:9)),'k-s');
-    semilogy(m, fpcasRMSE((uNeg   -1)*9+(1:9)),'g-o');
-    semilogy(m, fistaRMSE((uNeg   -1)*9+(1:9)),'b-.');
-    semilogy(m,sparsaRMSE((uNeg   -1)*9+(1:9)),'y-p');
-%   semilogy(m,  gnetRMSE((uNeg   -1)*9+(1:9)),'r:>');
-    semilogy(m, npgscRMSE((uNeg   -1)*9+(1:9)),'k-.');
+    semilogy(m,  npgsRMSE((uNonneg-1)*9+(1:9)),'k-s');
+    semilogy(m, fpcasRMSE((uNonneg-1)*9+(1:9)),'g-o');
+    semilogy(m, fistaRMSE((uNonneg-1)*9+(1:9)),'b-.');
+    semilogy(m,sparsaRMSE((uNonneg-1)*9+(1:9)),'y-p');
+%   semilogy(m,  gnetRMSE((uNonneg-1)*9+(1:9)),'r:>');
+    semilogy(m, npgscRMSE((uNonneg-1)*9+(1:9)),'k-.');
     legend('npg','npgc','spiral','sparsa','npgs','fpcas','fista','sparsa','npgsc');
     figure;
     semilogy(m,   npgTime((uNonneg-1)*9+(1:9)),'r-*'); hold on;
     semilogy(m,  npgcTime((uNonneg-1)*9+(1:9)),'c-p');
     semilogy(m,spiralTime((uNonneg-1)*9+(1:9)),'k-^');
     semilogy(m,sparsnTime((uNonneg-1)*9+(1:9)),'r-x');
-    semilogy(m,  npgsTime((uNeg   -1)*9+(1:9)),'k-s');
-    semilogy(m, fpcasTime((uNeg   -1)*9+(1:9)),'g-o');
-    semilogy(m, fistaTime((uNeg   -1)*9+(1:9)),'b-.');
-    semilogy(m,sparsaTime((uNeg   -1)*9+(1:9)),'y-p');
-    semilogy(m, npgscTime((uNeg   -1)*9+(1:9)),'k-.');
+    semilogy(m,  npgsTime((uNonneg-1)*9+(1:9)),'k-s');
+    semilogy(m, fpcasTime((uNonneg-1)*9+(1:9)),'g-o');
+    semilogy(m, fistaTime((uNonneg-1)*9+(1:9)),'b-.');
+    semilogy(m,sparsaTime((uNonneg-1)*9+(1:9)),'y-p');
+    semilogy(m, npgscTime((uNonneg-1)*9+(1:9)),'k-.');
     legend('npg','npgc','spiral','sparsa','npgs','fpcas','fista','sparsa','npgsc');
 
     f=fopen('selectedTime.data','w');
@@ -1008,6 +1010,8 @@ if(any(runList==902))
             m(mIdx),num2str(log10(u((mIdx)))+uNonneg(mIdx)-3), num2str(log10(u(mIdx))+uNeg(mIdx)-3));
     end
     fclose(f);
+
+    keyboard
 
     as=1:5;
     forSave=[]; forTime=[];
@@ -1349,7 +1353,7 @@ if(any(runList==903))
     a  = [0 0 0 0 0 -1];
     as = [2 2 2 1 1  1];
 
-    K = 3;
+    K = 12;
 
     npgTime   = mean(Cell.getField(   npg(:,:,1:K),'time'),3);
     npgcTime  = mean(Cell.getField(  npgc(:,:,1:K),'time'),3);
