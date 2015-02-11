@@ -780,7 +780,7 @@ if(any(runList==009))
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
 
         % Now we do the nomalize to the measurements without affecting the
-        % objective function
+        % objective function. Doing this reduces numerical problems
         y = conf.y/sum(conf.y);
 
         % the poisson model with log link, where I0 is unknown
