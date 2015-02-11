@@ -767,37 +767,41 @@ if(any(runList==009))
     aa = -1:-1:-10;
     opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
     opt.noiseType='poissonLogLink'; %'gaussian'; %
-    for i=5:length(prjFull)
+    for i=[5 6 1 2 3 4]
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
         fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
         initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
 
-        fbp{i,j}.img=conf.FBP(-log(conf.y/conf.I0));
+        fbp{i,j}.img=conf.FBP(-log(conf.y/max(conf.y)));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
 
+        % Now we do the nomalize to the measurements without affecting the
+        % objective function
+        y = conf.y/sum(conf.y);
+
         % the poisson model with log link, where I0 is unknown
         % initSig = opt.trueAlpha;
-        u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf);
+        u_max=pNorm(conf.Psit(conf.Phit(y-mean(y))),inf);
        
 %       opt.fullcont=true;
 %       opt.u=10.^aa*u_max;
-%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgFull{i};
+%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgFull{i};
 %       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgsFull{i};
+%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgsFull{i};
 %       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
 %       opt.fullcont=false;
 %       save(filename); continue;
 
-        a=-4:-0.25:-5;
+        a{i}=[-3.5 -3.75 -4 -4.25, -4.5];
         for j=1:5;
             fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
             opt.u = 10^a(j)*u_max;
-            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
+            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
             save(filename); continue;
         end
 
