@@ -774,12 +774,12 @@ if(any(runList==009))
         fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
         initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
 
-        if(i~=3) continue; end
-
+        j=1;
         fbp{i,j}.img=conf.FBP(-log(conf.y/max(conf.y)));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+        fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
         % Now we do the nomalize to the measurements without affecting the
         % objective function
@@ -2033,45 +2033,49 @@ if(any(runList==909))
     prjFull = [60, 80, 100, 120, 180, 360]; j=1;
     fprintf('Poisson Log link example with glass beads\n');
 
-    k=1;
-    npgTime   = showResult(   npg(:,:,k),2,'time');
-    npgsTime  = showResult(  npgs(:,:,k),2,'time');
-    % fbpTime   = showResult(   fbp(:,:,k),2,'time');
+    npgTime   = Cell.getField(   npg,'time');
+    npgsTime  = Cell.getField(  npgs,'time');
+    npgCost   = Cell.getField(   npg,'cost');
+    npgsCost  = Cell.getField(  npgs,'cost');
+    npgRMSE   = Cell.getField(   npg,'RMSE');
+    npgsRMSE  = Cell.getField(  npgs,'RMSE');
+    fbpRMSE   = Cell.getField(   fbp,'RMSE');
 
-    npgCost   = showResult(   npg(:,:,k),2,'cost');
-    npgsCost  = showResult(  npgs(:,:,k),2,'cost');
-    % fbpCost   = showResult(   fbp(:,:,k),2,'cost');
+    for i=1:length(npgsRMSE(:,1))
+        for j=1:length(npgsRMSE(1,:))
+            npgsTranRMSE(i,j) = rmseTruncate(npgs{i,j});
+        end
+    end
 
-    npgRMSE   = showResult(   npg(:,:,k),2,'RMSE');
-    npgsRMSE  = showResult(  npgs(:,:,k),2,'RMSE');
-    fbpRMSE   = showResult(   fbp(:,:,k),2,'RMSE');
-
-    % [r,c1]=find(   npgRMSE==repmat(min(   npgRMSE,[],2),1,3)); [r,idx1]=sort(r);
-    % [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,3)); [r,idx2]=sort(r);
-    % [r,c3]=find(   fbpRMSE==repmat(min(   fbpRMSE,[],2),1,3)); [r,idx3]=sort(r);
-    % [c1(idx1) ,c2(idx2) ,c3(idx3)]
-    idx1 = 2;    
-    idx2 = 2;
-    idx3 = 2;
-
-    figure;
-    semilogy(prjFull,   npgRMSE(:,idx1),'r-*'); hold on;
-    loglog(prjFull,  npgsRMSE(:,idx2),'c-p');
-    loglog(prjFull, fbpRMSE(:,idx3),'g-s');
+    [r,c1]=find(   npgRMSE==repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
+    [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,5)); [r,idx2]=sort(r);
+    [r,c3]=find(  npgsTranRMSE==repmat(min(  npgsTranRMSE,[],2),1,5)); [r,idx3]=sort(r);
+    disp([c1(idx1) ,c2(idx2), c3(idx3)]);
+    idx1=(c1(idx1)-1)*6+1:6;
+    idx2=(c2(idx2)-1)*6+1:6;
+    idx3=(c3(idx3)-1)*6+1:6;
 
     figure;
-    plot(prjFull,   npgTime(:,idx1),'r-*'); hold on;
-    loglog(prjFull,  npgsTime(:,idx2),'c-p');
+    semilogy(prjFull,   npgRMSE(idx1),'r-*'); hold on;
+    plot(prjFull,  npgsRMSE(idx2),'c-p');
+    plot(prjFull,  npgsTranRMSE(idx3),'b.-');
+    plot(prjFull, fbpRMSE(:),'g-s');
+    legend('npg','npgs','npgsTran','fbp');
+
+    figure;
+    plot(prjFull,   npgTime(idx1),'r-*'); hold on;
+    loglog(prjFull,  npgsTime(idx2),'c-p');
     %loglog(prjFull,   fbpTime(:,idx3),'g-s');
+    legend('npg','npgs');
 
     forSave=[];
-    forSave=[forSave,    npgRMSE(:,idx1)];
-    forSave=[forSave,   npgsRMSE(:,idx2)];
-    forSave=[forSave,    fbpRMSE(:,idx3)];
+    forSave=[forSave,     npgRMSE(idx1)];
+    forSave=[forSave,    npgsRMSE(idx2)];
+    forSave=[forSave,     fbpRMSE(:)];
+    forSave=[forSave,npgsTranRMSE(idx3)];
 
-    forSave=[forSave,    npgTime(:,idx1)];
-    forSave=[forSave,   npgsTime(:,idx2)];
-    % forSave=[forSave,    fbpTime(:,idx3)];
+    forSave=[forSave,     npgTime(idx1)];
+    forSave=[forSave,    npgsTime(idx2)];
 
     % forSave=[forSave,    npgCost(:,idx1)];
     % forSave=[forSave,   npgsCost(:,idx2)];
@@ -2080,9 +2084,11 @@ if(any(runList==909))
     forSave=[forSave, prjFull(:)];
     save('varyPrjGlassBead.data','forSave','-ascii');
 
-    idx=4;
+    idx=5;
     img=showImgMask(npg {idx,idx1}.alpha,npg{idx,idx1}.opt.mask);
     maxImg=max(img(:));
+    imwrite(img/maxImg,'NPGgb.png','png');
+    img=showImgMask(opt.trueAlpha,npg{idx,idx1}.opt.mask);
     imwrite(img/maxImg,'NPGgb.png','png');
     img=showImgMask(npgs{idx,idx2}.alpha,npg{idx,idx1}.opt.mask);
     imwrite(img/maxImg,'NPGSgb.png','png');
