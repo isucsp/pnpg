@@ -758,8 +758,8 @@ if(any(runList==009))
     clear('opt');
     conf=ConfigCT();
     conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'gpuPrj';
-    conf.PhiModeGen = 'gpuPrj';
+    conf.PhiMode = 'cpuPrj';
+    conf.PhiModeGen = 'cpuPrj';
     conf.dist = 17000;
     conf.beamharden = false;
 
@@ -773,6 +773,8 @@ if(any(runList==009))
         opt=conf.setup(opt);
         fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
         initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
+
+        if(i~=3) continue; end
 
         fbp{i,j}.img=conf.FBP(-log(conf.y/max(conf.y)));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
@@ -802,8 +804,9 @@ if(any(runList==009))
             opt.u = 10^a(j)*u_max;
             npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
             npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
-            save(filename); continue;
+            save(filename);
         end
+        continue;
 
         % fit with the poisson model with log link but known I0
         u=10.^[-6 -6 -6 -6 -5 -4];
