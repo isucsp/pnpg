@@ -796,7 +796,7 @@ if(any(runList==009))
 %       opt.fullcont=false;
 %       save(filename); continue;
 
-        a{i}=[-3.5 -3.75 -4 -4.25, -4.5];
+        a=[-3.5 -3.75 -4 -4.25 -4.5];
         for j=1:5;
             fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
             opt.u = 10^a(j)*u_max;
