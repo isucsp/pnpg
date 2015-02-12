@@ -758,8 +758,8 @@ if(any(runList==009))
     clear('opt');
     conf=ConfigCT();
     conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'cpuPrj';
-    conf.PhiModeGen = 'cpuPrj';
+    conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
+    conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
     conf.dist = 17000;
     conf.beamharden = false;
 
@@ -798,26 +798,44 @@ if(any(runList==009))
 %       opt.fullcont=false;
 %       save(filename); continue;
 
-        a=[-3.5 -3.75 -4 -4.25 -4.5];
-        for j=1:5;
-            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-            opt.u = 10^a(j)*u_max;
-            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
-            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
-            save(filename);
-        end
-        continue;
+%       a=[-3.5 -3.75 -4 -4.25 -4.5];
+%       for j=1:5;
+%           fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+%           opt.u = 10^a(j)*u_max;
+%           npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
+%           npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
+%           save(filename);
+%       end
+%       continue
 
         % fit with the poisson model with log link but known I0
-        u=10.^[-6 -6 -6 -6 -5 -4];
-        opt.u = u(i)*10^(j-2);
-        opt.noiseType='gaussian'; opt.continuation=false;
-        opt.alphaStep='NPG';
-        npgLin{i,j}=solver(conf.Phi,conf.Phit,...
-            conf.Psi,conf.Psit,-log(conf.y),initSig,opt);
-        save(filename,'npgLin','-append');
-        opt.noiseType='poissonLogLink';
+        temp=opt; opt.I0=conf.I0;
 
+        opt.noiseType='poissonLogLink0';
+        u_max=pNorm(conf.Psit(conf.Phit(y-opt.I0)),inf);
+        opt.fullcont=true;
+        opt.u=10.^aa*u_max;
+        npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npg0Full{i};
+        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+        npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgs0Full{i};
+        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+        opt.fullcont=false;
+
+        opt.noiseType='gaussian';
+        wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
+        wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
+        wy=sqrt(conf.y).*(log(opt.I0)-log(conf.y));
+        u_max=pNorm(conf.Psit(wPhit(wy)),inf);
+        opt.fullcont=true;
+        opt.u=10.^aa*u_max;
+        wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
+        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+        wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
+        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+        opt.fullcont=false;
+
+        opt=temp;
+         
         % fit with the approximated Gaussian model
 
         save(filename);
@@ -2051,9 +2069,10 @@ if(any(runList==909))
     [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,5)); [r,idx2]=sort(r);
     [r,c3]=find(  npgsTranRMSE==repmat(min(  npgsTranRMSE,[],2),1,5)); [r,idx3]=sort(r);
     disp([c1(idx1) ,c2(idx2), c3(idx3)]);
-    idx1=(c1(idx1)-1)*6+1:6;
-    idx2=(c2(idx2)-1)*6+1:6;
-    idx3=(c3(idx3)-1)*6+1:6;
+    idx1=(c1(idx1)-1)*6+(1:6)';
+    idx2=(c2(idx2)-1)*6+(1:6)';
+    idx3=(c3(idx3)-1)*6+(1:6)';
+    idx2=idx1;
 
     figure;
     semilogy(prjFull,   npgRMSE(idx1),'r-*'); hold on;
@@ -2085,21 +2104,23 @@ if(any(runList==909))
     save('varyPrjGlassBead.data','forSave','-ascii');
 
     idx=5;
-    img=showImgMask(npg {idx,idx1}.alpha,npg{idx,idx1}.opt.mask);
+    img=showImgMask(npg {idx1(idx)}.alpha,npg{idx1(idx)}.opt.mask);
     maxImg=max(img(:));
+    maxImg=1.2;
+    figure; showImg(img);
     imwrite(img/maxImg,'NPGgb.png','png');
-    img=showImgMask(opt.trueAlpha,npg{idx,idx1}.opt.mask);
-    imwrite(img/maxImg,'NPGgb.png','png');
-    img=showImgMask(npgs{idx,idx2}.alpha,npg{idx,idx1}.opt.mask);
-    imwrite(img/maxImg,'NPGSgb.png','png');
-    img=showImgMask(fbp {idx,idx3}.alpha,npg{idx,idx1}.opt.mask);
-    imwrite(img/maxImg,'FBPgb.png','png');
+    img=showImgMask(npgs{idx2(idx)}.alpha,npg{idx1(idx)}.opt.mask);
+    imwrite(img/maxImg,'NPGSgb.png','png'); figure; showImg(img,0,maxImg);
+    img=showImgMask(fbp {idx}.alpha,npg{idx1(idx)}.opt.mask);
+    imwrite(img/maxImg,'FBPgb.png','png'); figure; showImg(img,0,maxImg);
+    img=showImgMask(opt.trueAlpha,npg{idx1(idx)}.opt.mask);
+    imwrite(img/maxImg,'glassbeads.png','png');
 
-    disp([npg{idx,idx1}.RMSE(end), npgs{idx,idx2}.RMSE(end), fbp{idx,idx3}.RMSE]);
-    trueAlpha=npg{idx,idx1}.opt.trueAlpha;
-    disp([rmseTruncate(npg{idx,idx1},trueAlpha), rmseTruncate(npgs{idx,idx2},trueAlpha), rmseTruncate(fbp{idx,idx3},trueAlpha)]);
+    disp([npg{idx1(idx)}.RMSE(end), npgs{idx2(idx)}.RMSE(end), fbp{idx}.RMSE]);
+    trueAlpha=npg{idx1(idx)}.opt.trueAlpha;
+    disp([rmseTruncate(npg{idx1(idx)},trueAlpha), rmseTruncate(npgs{idx2(idx)},trueAlpha), rmseTruncate(fbp{idx},trueAlpha)]);
 
-    system(['mv varyPrjGlassBead.data NPGgb.png NPGSgb.png FBPgb.png ' paperDir]);
+    system(['mv varyPrjGlassBead.data NPGgb.png NPGSgb.png FBPgb.png glassbeads.png ' paperDir]);
     keyboard
 end
 
