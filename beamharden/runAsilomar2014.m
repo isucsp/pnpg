@@ -758,8 +758,8 @@ if(any(runList==009))
     clear('opt');
     conf=ConfigCT();
     conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-    conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
+    conf.PhiMode = 'cpuPrj';    % change the option to cpuPrj if no GPU equipped
+    conf.PhiModeGen = 'cpuPrj'; % change the option to cpuPrj if no GPU equipped
     conf.dist = 17000;
     conf.beamharden = false;
 
@@ -780,6 +780,8 @@ if(any(runList==009))
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
         fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
+
+        if(i~=3) continue; end
 
         % Now we do the nomalize to the measurements without affecting the
         % objective function. Doing this reduces numerical problems
