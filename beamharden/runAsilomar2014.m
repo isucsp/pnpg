@@ -758,8 +758,8 @@ if(any(runList==009))
     clear('opt');
     conf=ConfigCT();
     conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-    conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
+    conf.PhiMode = 'cpuPrj';    % change the option to cpuPrj if no GPU equipped
+    conf.PhiModeGen = 'cpuPrj'; % change the option to cpuPrj if no GPU equipped
     conf.dist = 17000;
     conf.beamharden = false;
 
@@ -780,6 +780,7 @@ if(any(runList==009))
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
         fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
+        if(i~=3) continue; end
         % the poisson model with log link, where I0 is unknown
         % initSig = opt.trueAlpha;
         % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
