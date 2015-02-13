@@ -768,32 +768,29 @@ if(any(runList==009))
     opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
     opt.noiseType='poissonLogLink'; %'gaussian'; %
     for i=[5 6 1 2 3 4]
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
-        fprintf('min=%d, max=%d\n',min(conf.y), max(conf.y));
+        fprintf('i=%d, min=%d, max=%d\n',i,min(conf.y), max(conf.y));
         initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
 
-        j=1;
         fbp{i,j}.img=conf.FBP(-log(conf.y/max(conf.y)));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
         fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
-        % Now we do the nomalize to the measurements without affecting the
-        % objective function. Doing this reduces numerical problems
-        y = conf.y/sum(conf.y);
-
         % the poisson model with log link, where I0 is unknown
         % initSig = opt.trueAlpha;
-        u_max=pNorm(conf.Psit(conf.Phit(y-mean(y))),inf);
-       
+        % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
+        % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(conf.y/opt.I0))),inf) % for loglink0 approximated by weight
+        u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
+
 %       opt.fullcont=true;
 %       opt.u=10.^aa*u_max;
-%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgFull{i};
+%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgFull{i};
 %       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgsFull{i};
+%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgsFull{i};
 %       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
 %       opt.fullcont=false;
 %       save(filename); continue;
@@ -802,8 +799,8 @@ if(any(runList==009))
 %       for j=1:5;
 %           fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
 %           opt.u = 10^a(j)*u_max;
-%           npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
-%           npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt);
+%           npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%           npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
 %           save(filename);
 %       end
 %       continue
@@ -812,27 +809,26 @@ if(any(runList==009))
         temp=opt; opt.I0=conf.I0;
 
         opt.noiseType='poissonLogLink0';
-        u_max=pNorm(conf.Psit(conf.Phit(y-opt.I0)),inf);
         opt.fullcont=true;
         opt.u=10.^aa*u_max;
-        npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npg0Full{i};
+        npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
         fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,y,initSig,opt); out=npgs0Full{i};
+        npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
         fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
         opt.fullcont=false;
 
-        opt.noiseType='gaussian';
-        wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
-        wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
-        wy=sqrt(conf.y).*(log(opt.I0)-log(conf.y));
-        u_max=pNorm(conf.Psit(wPhit(wy)),inf);
-        opt.fullcont=true;
-        opt.u=10.^aa*u_max;
-        wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        opt.fullcont=false;
+%       opt.noiseType='gaussian';
+%       wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
+%       wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
+%       wy=sqrt(conf.y).*(log(opt.I0)-log(conf.y));
+%       u_max=pNorm(conf.Psit(wPhit(wy)),inf);
+%       opt.fullcont=true;
+%       opt.u=10.^aa*u_max;
+%       wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       opt.fullcont=false;
 
         opt=temp;
          
@@ -2087,6 +2083,11 @@ if(any(runList==909))
     %loglog(prjFull,   fbpTime(:,idx3),'g-s');
     legend('npg','npgs');
 
+    for i=1:length(wnpgsFull)
+        wnpgRMSE(i)=min(wnpgFull{i}.contRMSE);
+        wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
+    end
+
     forSave=[];
     forSave=[forSave,     npgRMSE(idx1)];
     forSave=[forSave,    npgsRMSE(idx2)];
@@ -2100,7 +2101,9 @@ if(any(runList==909))
     % forSave=[forSave,   npgsCost(:,idx2)];
     % forSave=[forSave,    fbpCost(:,idx3)];
 
-    forSave=[forSave, prjFull(:)];
+    forSave=[forSave,  prjFull(:)];
+    forSave=[forSave,    wnpgRMSE(:)];
+    forSave=[forSave,   wnpgsRMSE(:)];
     save('varyPrjGlassBead.data','forSave','-ascii');
 
     idx=5;

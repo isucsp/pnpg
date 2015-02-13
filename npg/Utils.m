@@ -216,7 +216,8 @@ classdef Utils < handle
         % The following model assumes the y=I_0 * exp(-Φα), where I_0 is known
         function [f,g,h] = poissonModelLogLink0(alpha,Phi,Phit,y,I0)
             PhiAlpha=Phi(alpha); weight = exp(log(I0)-PhiAlpha);
-            f=sum(weight)+innerProd(y,PhiAlpha);
+            nzy=(y~=0);
+            f=sum(weight-y)+innerProd(y(nzy),PhiAlpha(nzy)+log(y(nzy)/I0));
             if(nargout>=2)
                 g=Phit(  y(:) - weight  );
                 if(nargout>=3)
@@ -237,7 +238,9 @@ classdef Utils < handle
         function [f,g,h] = poissonModelLogLink(alpha,Phi,Phit,y)
             PhiAlpha=Phi(alpha); weight = exp(-PhiAlpha);
             sumy=sum(y); sumWeight=sum(weight);
-            f=sumy*log(sumWeight)+innerProd(y,PhiAlpha);
+            nzy=(y~=0);
+            f=innerProd(y(nzy), PhiAlpha(nzy)+log(y(nzy)*sumWeight/sumy));
+            % f=sumy*log(sumWeight)+innerProd(y,PhiAlpha);
             if(nargout>=2)
                 g=Phit(  y(:) - weight*sumy/sumWeight  );
                 if(nargout>=3)
