@@ -754,12 +754,12 @@ end
 % function
 if(any(runList==009))
     filename = [mfilename '_009.mat'];
-    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+    % if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('opt');
     conf=ConfigCT();
     conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'cpuPrj';    % change the option to cpuPrj if no GPU equipped
-    conf.PhiModeGen = 'cpuPrj'; % change the option to cpuPrj if no GPU equipped
+    conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
+    conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
     conf.dist = 17000;
     conf.beamharden = false;
 
@@ -780,7 +780,8 @@ if(any(runList==009))
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
         fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
-        if(i~=2) continue; end
+        keyboard
+
         % the poisson model with log link, where I0 is unknown
         % initSig = opt.trueAlpha;
         % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
@@ -810,13 +811,27 @@ if(any(runList==009))
         temp=opt; opt.I0=conf.I0;
 
         opt.noiseType='poissonLogLink0';
-        opt.fullcont=true;
-        opt.u=10.^aa*u_max;
-        npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
-        fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-        opt.fullcont=false;
+%       opt.fullcont=true;
+%       opt.u=10.^aa*u_max;
+%       npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
+%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%       opt.fullcont=false;
+         
+        a=[-3.5 -3.75 -4 -4.25 -4.5];
+        bb=[ 2 2 3 3 3 4];
+        if((any([1 2 6]==i)))
+            for j=1:5;
+                if(j~=bb(i)) continue; end
+                fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+                opt.u = 10^a(j)*u_max;
+                npg0{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                npgs0{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename);
+            end
+        end
+        continue
 
 %       opt.noiseType='gaussian';
 %       wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);

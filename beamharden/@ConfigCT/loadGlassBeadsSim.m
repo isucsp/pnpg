@@ -28,7 +28,7 @@ function loadGlassBeadsSim(obj,snr,noiseType)
     
     if(~obj.beamharden)
         switch lower(noiseType)
-            case lower('poissonLogLink')
+            case {lower('poissonLogLink'),lower('poissonLogLink0')}
 
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
