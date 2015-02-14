@@ -839,67 +839,6 @@ if(any(runList==009))
     end
 end
 
-% the last example with glassbeads under the poisson model with log link 
-% function
-% Different from 009, the snr=1e4
-if(any(runList==019))
-    filename = [mfilename '_019.mat'];
-    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-    clear('opt');
-    conf=ConfigCT();
-    conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'gpuPrj';
-    conf.PhiModeGen = 'gpuPrj';
-    conf.dist = 17000;
-    conf.beamharden = false;
-
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    opt.maxItr=2e3; opt.thresh=1e-6; opt.snr=1e4; opt.debugLevel=1;
-    opt.noiseType='poissonLogLink'; %'gaussian'; %
-    for i=1:length(prjFull)-2
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
-        opt=conf.setup(opt);
-        conf.y = conf.y/max(conf.y(:)); % important to normalize
-        initSig = maskFunc(conf.FBP(-log(conf.y)),opt.mask~=0);
-        % initSig = opt.trueAlpha;
-
-        for j=3:3
-            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-
-            % fbp{i,j}.img=conf.FBP(-log(conf.y));
-            % fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
-            % fbp{i,j}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j}.alpha))/sqrNorm(conf.y);
-            % fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-            % fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
-            % save(filename,'fbp','-append');
-
-            % u=10.^[-4 -4 -4 -4 -3 -3];
-            % opt.u = u(i)*10^(j-2);
-            % opt.continuation = false; opt.alphaStep='NPG';
-            % npg{i,j}=solver(conf.Phi,conf.Phit,...
-            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
-            % save(filename,'npg','-append');
-             
-            % u=10.^[-6 -6 -6 -6 -5 -5];
-            % opt.u = u(i)*10^(j-2);
-            % opt.continuation=false; opt.alphaStep='NPGs';
-            % npgs{i,j}=solver(conf.Phi,conf.Phit,...
-            %     conf.Psi,conf.Psit,conf.y,initSig,opt);
-            % save(filename,'npgs','-append');
-
-            u=10.^[-3 -3 -3 -3 -3 -3];
-            opt.u = u(i)*10^(j-2);
-            opt.noiseType='gaussian'; opt.continuation=false;
-            opt.alphaStep='NPG';
-            npgLin{i,j}=solver(conf.Phi,conf.Phit,...
-                conf.Psi,conf.Psit,-log(conf.y),initSig,opt);
-            save(filename,'npgLin','-append');
-            opt.noiseType='poissonLogLink';
-        end
-    end
-end
-
 if(any(runList==902))
     filename = [mfilename '_002.mat'];
     load(filename);
@@ -2066,28 +2005,36 @@ if(any(runList==909))
     [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,5)); [r,idx2]=sort(r);
     [r,c3]=find(  npgsTranRMSE==repmat(min(  npgsTranRMSE,[],2),1,5)); [r,idx3]=sort(r);
     disp([c1(idx1) ,c2(idx2), c3(idx3)]);
+    c1(idx1)=3;
     idx1=(c1(idx1)-1)*6+(1:6)';
     idx2=(c2(idx2)-1)*6+(1:6)';
     idx3=(c3(idx3)-1)*6+(1:6)';
     idx2=idx1;
 
+    for i=1:length(wnpgsFull)
+        wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
+        wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
+        npg0RMSE (i)=min( npg0Full{i}.contRMSE);
+        npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
+    end
+
+
     figure;
     semilogy(prjFull,   npgRMSE(idx1),'r-*'); hold on;
-    plot(prjFull,  npgsRMSE(idx2),'c-p');
-    plot(prjFull,  npgsTranRMSE(idx3),'b.-');
-    plot(prjFull, fbpRMSE(:),'g-s');
-    legend('npg','npgs','npgsTran','fbp');
+    plot(    prjFull,  npgsRMSE(idx2),'r-p');
+    plot(    prjFull,  npgsTranRMSE(idx3),'r.-');
+    plot(    prjFull,   fbpRMSE(:),'g^-');
+    plot(    prjFull,  wnpgRMSE(:),'bh-');
+    plot(    prjFull, wnpgsRMSE(:),'bh');
+    plot(    prjFull,  npg0RMSE(:),'cs-');
+    plot(    prjFull, npgs0RMSE(:),'cs-');
+    legend('npg','npgs','npgsTran','fbp','wnpg','wnpgs','npg0','npgs0');
 
     figure;
     plot(prjFull,   npgTime(idx1),'r-*'); hold on;
     loglog(prjFull,  npgsTime(idx2),'c-p');
     %loglog(prjFull,   fbpTime(:,idx3),'g-s');
     legend('npg','npgs');
-
-    for i=1:length(wnpgsFull)
-        wnpgRMSE(i)=min(wnpgFull{i}.contRMSE);
-        wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
-    end
 
     forSave=[];
     forSave=[forSave,     npgRMSE(idx1)];
