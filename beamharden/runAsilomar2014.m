@@ -608,8 +608,8 @@ if(any(runList==007))
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('opt');
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-    opt.maxItr=1e4; opt.thresh=1e-6;
-    m=[ 200, 300, 400, 500, 600, 700, 800, 900 1024]; % should go from 200
+    opt.maxItr=1e5; opt.thresh=1e-6;
+    m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
     a=[  -2,  -2,  -2,  -2,  -2,  -2,  -2,  -2];
     aa=-4:-0.2:-10;
     opt.noiseType='poissonLogLink'; opt.matrixType='conv';
@@ -623,30 +623,29 @@ if(any(runList==007))
             if(k==2) save(filename); return; end
             % if(any([2 3 4 6]==i)) continue; end
 
+            %% fit by approximated Gaussian model for known I0
+            % u_max=pNorm(Psit(Phit(y.*log(opt.I0./max(y,1)))),inf);
+            %% fit by Poisson model with known I0
+            % u_max=pNorm(Psit(Phit(y-opt.I0)),inf);
             %% fit by the unkown I0 log link Poisson model
             u_max=pNorm(Psit(Phit(y-mean(y))),inf);
 
             keyboard
-            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.maxItr=1e5;
-            % gnet     {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
-            npgFull  {i,k}=Wrapper.NPG  (Phi,Phit,Psi,Psit,y,initSig,opt);
-            npgsFull {i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
+            gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
+            npgFull {i,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgsFull{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
             % continue;
 
-            %% fit by Poisson model with known I0
-            u_max=pNorm(Psit(Phit(y-opt.I0)),inf);
-
             temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='poissonLogLink0';   %opt.debugLevel=1;
-            npgFull_knownI0 {i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgFull_knownI0 {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
             npgsFull_knownI0{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
            
             %% fit by approximated Gaussian model for known I0
             yy=log(opt.I0./max(y,1)); yy=yy.*sqrt(y);
             wPhi=@(xxx) sqrt(y).*Phi(xxx); wPhit=@(xxx) Phit(sqrt(y).*xxx);
-
-            u_max=pNorm(Psit(wPhit(yy)),inf);
 
             temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='gaussian';
             npglwFull {i,k}=Wrapper.NPG(wPhi,wPhit,Psi,Psit,yy,initSig,opt);
@@ -772,19 +771,19 @@ if(any(runList==009))
         conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
         opt=conf.setup(opt);
         fprintf('i=%d, min=%d, max=%d\n',i,min(conf.y), max(conf.y));
-        initSig = maskFunc(conf.FBP(-log(conf.y/max(conf.y))),opt.mask~=0);
+        initSig = maskFunc(conf.FBP(-log(max(conf.y,1)/max(conf.y))),opt.mask~=0);
 
-        fbp{i,j}.img=conf.FBP(-log(conf.y/max(conf.y)));
+        fbp{i,j}.img=conf.FBP(-log(max(conf.y,1)/max(conf.y)));
         fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
         fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
         fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
         fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
-        if(i~=3) continue; end
+        if(i~=2) continue; end
         % the poisson model with log link, where I0 is unknown
         % initSig = opt.trueAlpha;
         % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
-        % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(conf.y/opt.I0))),inf) % for loglink0 approximated by weight
+        % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(max(conf.y,1)/opt.I0))),inf) % for loglink0 approximated by weight
         u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
 
 %       opt.fullcont=true;
@@ -821,7 +820,7 @@ if(any(runList==009))
 %       opt.noiseType='gaussian';
 %       wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
 %       wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
-%       wy=sqrt(conf.y).*(log(opt.I0)-log(conf.y));
+%       wy=sqrt(conf.y).*(log(opt.I0)-log(max(conf.y,1)));
 %       u_max=pNorm(conf.Psit(wPhit(wy)),inf);
 %       opt.fullcont=true;
 %       opt.u=10.^aa*u_max;
@@ -2040,6 +2039,39 @@ if(any(runList==906))
     save('timeVsAPoisson.data','forTime','-ascii');
 
     system(['mv varyMeasurementPoisson.data cost_itr.data ' paperDir]);
+end
+
+if(any(runList==907))
+    filename = [mfilename '_007.mat']; load(filename);
+
+    m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
+    for i=1:length(m)
+        npgRMSE(i) = min(npgFull{i}.contRMSE);
+        npgsRMSE(i) = min(npgsFull{i}.contRMSE);
+
+        gnetRMSE(i)=mean(gnet{i}.RMSE(:));
+
+        npg0RMSE(i) = min(npgFull_knownI0{i}.contRMSE);
+        npgs0RMSE(i) = min(npgsFull_knownI0{i}.contRMSE);
+
+        keyboard
+        temp= npglwFull{i}; if(~isempty(temp))  npglwRMSE(i)=min(temp.contRMSE); else  npglwRMSE(i)=0; end
+        temp=npgslwFull{i}; if(~isempty(temp)) npgslwRMSE(i)=min(temp.contRMSE); else npgslwRMSE(i)=0; end
+        temp=  npglFull{i}; if(~isempty(temp))   npglRMSE(i)=min(temp.contRMSE); else   npglRMSE(i)=0; end
+        temp= npgslFull{i}; if(~isempty(temp))  npgslRMSE(i)=min(temp.contRMSE); else  npgslRMSE(i)=0; end
+    end
+
+    figure;
+    semilogy(m,   npgRMSE,'r-*'); hold on;
+    plot(    m,  npgsRMSE,'b-*');
+    plot(    m,  npg0RMSE,'r.-');
+    plot(    m, npgs0RMSE,'b.-');
+    plot(    m, npglwRMSE,'rs-');
+    plot(    m,npgslwRMSE,'bs-');
+    plot(    m,  npglRMSE,'rp-');
+    plot(    m, npgslRMSE,'bp-');
+    legend('npg','npgs','npg0','npgs0','npglw','npwslw','npgl','npgsl');
+
 end
 
 if(any(runList==909))
