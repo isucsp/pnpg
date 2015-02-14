@@ -610,17 +610,16 @@ if(any(runList==007))
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     opt.maxItr=1e5; opt.thresh=1e-6;
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
-    a=[  -2,  -2,  -2,  -2,  -2,  -2,  -2,  -2];
     aa=-1:-1:-8;
+    aa=-3:-0.2:-6;
     opt.noiseType='poissonLogLink'; opt.matrixType='conv';
     for k=1:5
-        for i=[1,length(m)]
+        for i=1:length(m)
             opt.m=m(i);
             [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
             initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
-            fprintf('min=%d, max=%d\n',min(y), max(y));
+            fprintf('i=%d, k=%d, min=%d, max=%d\n',i,k,min(y), max(y));
             
-            if(k==2) save(filename); return; end
             % if(any([2 3 4 6]==i)) continue; end
 
             %% fit by approximated Gaussian model for known I0
@@ -630,15 +629,16 @@ if(any(runList==007))
             %% fit by the unkown I0 log link Poisson model
             u_max=pNorm(Psit(Phit(y-mean(y))),inf);
 
-            keyboard
-            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
-            gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
-            npgFull {i,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            npgsFull{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='poissonLogLink';
+%           gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
+%           npgFull {i,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%           npgsFull{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            initSig=-Phit(invEAAt*log(max(y,1)/max(y)));
+            npgsFull1{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
             continue;
 
-            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='poissonLogLink0';   %opt.debugLevel=1;
+            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='poissonLogLink0';
             npgFull_knownI0 {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
             npgsFull_knownI0{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
@@ -652,6 +652,7 @@ if(any(runList==007))
             npgslwFull{i,k}=Wrapper.NPGs(wPhi,wPhit,Psi,Psit,yy,initSig,opt);
             opt=temp;
 
+            save(filename);
             continue
 
             yy=log(opt.I0./max(y,1));
@@ -2045,33 +2046,33 @@ if(any(runList==907))
     filename = [mfilename '_007.mat']; load(filename);
 
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
-    for i=1:length(m)
-        npgRMSE(i) = min(npgFull{i}.contRMSE);
-        npgsRMSE(i) = min(npgsFull{i}.contRMSE);
+    for k=1:4
+        for i=1:length(m)
+            npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
+            npgsRMSE(i,k) = min(npgsFull{i,k}.contRMSE);
 
-        gnetRMSE(i)=mean(gnet{i}.RMSE(:));
+            gnetRMSE(i,k)=mean(gnet{i,k}.RMSE(:));
 
-        npg0RMSE(i) = min(npgFull_knownI0{i}.contRMSE);
-        npgs0RMSE(i) = min(npgsFull_knownI0{i}.contRMSE);
+            npg0RMSE(i,k) = min(npgFull_knownI0{i,k}.contRMSE);
+            npgs0RMSE(i,k) = min(npgsFull_knownI0{i,k}.contRMSE);
 
-        keyboard
-        temp= npglwFull{i}; if(~isempty(temp))  npglwRMSE(i)=min(temp.contRMSE); else  npglwRMSE(i)=0; end
-        temp=npgslwFull{i}; if(~isempty(temp)) npgslwRMSE(i)=min(temp.contRMSE); else npgslwRMSE(i)=0; end
-        temp=  npglFull{i}; if(~isempty(temp))   npglRMSE(i)=min(temp.contRMSE); else   npglRMSE(i)=0; end
-        temp= npgslFull{i}; if(~isempty(temp))  npgslRMSE(i)=min(temp.contRMSE); else  npgslRMSE(i)=0; end
+            temp= npglwFull{i,k}; if(~isempty(temp))  npglwRMSE(i,k)=min(temp.contRMSE); else  npglwRMSE(i,k)=0; end
+            temp=npgslwFull{i,k}; if(~isempty(temp)) npgslwRMSE(i,k)=min(temp.contRMSE); else npgslwRMSE(i,k)=0; end
+            % temp=  npglFull{i,k}; if(~isempty(temp))   npglRMSE(i,k)=min(temp.contRMSE); else   npglRMSE(i,k)=0; end
+            % temp= npgslFull{i,k}; if(~isempty(temp))  npgslRMSE(i,k)=min(temp.contRMSE); else  npgslRMSE(i,k)=0; end
+        end
+
+        figure;
+        semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
+        plot(    m,  npgsRMSE(:,k),'b-*');
+        plot(    m,  npg0RMSE(:,k),'r.-');
+        plot(    m, npgs0RMSE(:,k),'b.-');
+        plot(    m, npglwRMSE(:,k),'rs-');
+        plot(    m,npgslwRMSE(:,k),'bs-');
+        % plot(    m,  npglRMSE,'rp-');
+        % plot(    m, npgslRMSE,'bp-');
+        legend('npg','npgs','npg0','npgs0','npglw','npwslw');
     end
-
-    figure;
-    semilogy(m,   npgRMSE,'r-*'); hold on;
-    plot(    m,  npgsRMSE,'b-*');
-    plot(    m,  npg0RMSE,'r.-');
-    plot(    m, npgs0RMSE,'b.-');
-    plot(    m, npglwRMSE,'rs-');
-    plot(    m,npgslwRMSE,'bs-');
-    plot(    m,  npglRMSE,'rp-');
-    plot(    m, npgslRMSE,'bp-');
-    legend('npg','npgs','npg0','npgs0','npglw','npwslw','npgl','npgsl');
-
 end
 
 if(any(runList==909))
