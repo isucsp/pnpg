@@ -611,10 +611,10 @@ if(any(runList==007))
     opt.maxItr=1e5; opt.thresh=1e-6;
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
     a=[  -2,  -2,  -2,  -2,  -2,  -2,  -2,  -2];
-    aa=-4:-0.2:-10;
+    aa=-1:-1:-8;
     opt.noiseType='poissonLogLink'; opt.matrixType='conv';
     for k=1:5
-        for i=length(m)
+        for i=[1,length(m)]
             opt.m=m(i);
             [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
             initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
@@ -636,7 +636,7 @@ if(any(runList==007))
             npgFull {i,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
             npgsFull{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
-            % continue;
+            continue;
 
             temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max; opt.noiseType='poissonLogLink0';   %opt.debugLevel=1;
             npgFull_knownI0 {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
