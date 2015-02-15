@@ -604,14 +604,13 @@ end
 % skyline log link Poisson example
 % vary the number of measurements, with continuation
 if(any(runList==007))
-%   filename = [mfilename '_007.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16;
-    filename = [mfilename '_027.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16/10;
-%   filename = [mfilename '_037.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16/100;
+%   filename = [mfilename '_007.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16; aa=-3:-0.2:-6;
+    filename = [mfilename '_027.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16/10; aa=-1:-0.2:-5;
+%   filename = [mfilename '_037.mat']; if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt'); opt.B=2^16/100; aa=-0.2:-0.2:-4;
     
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     opt.maxItr=1e5; opt.thresh=1e-6;
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
-    aa=-3:-0.2:-6;
     a=-4.4:-0.2:-4.8;
     for k=1:1
         for i=1:length(m)
