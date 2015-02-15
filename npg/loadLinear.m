@@ -139,9 +139,11 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
             % figure; showImg(Phi);
         case lower('poissonLogLink')
             % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
-            y=Phi*x0; a=min(y); b=max(y);
+            y=Phi*x0; a=0; b=max(y);
             scale=(log(opt.B)-log(opt.A))/(b-a);
             opt.I0=exp( (b*log(opt.B) - a*log(opt.A))/(b-a) );
+
+            keyboard
 
             Phi = Phi * scale;
             EAAt = EAAt*scale^2;
