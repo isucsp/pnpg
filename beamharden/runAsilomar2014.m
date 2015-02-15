@@ -766,110 +766,6 @@ if(any(runList==008))     % FPCAS
     end
 end
 
-% the last example with glassbeads under the poisson model with log link 
-% function
-if(any(runList==009))
-    filename = [mfilename '_009.mat'];
-    if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-    clear('opt');
-    conf=ConfigCT();
-    conf.imageName = 'glassBeadsSim';
-    conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-    conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
-    conf.dist = 17000;
-    conf.beamharden = false;
-
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    aa = -1:-1:-10;
-    opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
-    opt.noiseType='poissonLogLink'; %'gaussian'; %
-    for i=[5 6 1 2 3 4]
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
-        conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
-        opt=conf.setup(opt);
-        fprintf('i=%d, min=%d, max=%d\n',i,min(conf.y), max(conf.y));
-        initSig = maskFunc(conf.FBP(-log(max(conf.y,1)/max(conf.y))),opt.mask~=0);
-
-        fbp{i,j}.img=conf.FBP(-log(max(conf.y,1)/max(conf.y)));
-        fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
-        fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-        fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
-        fprintf('fbp after truncation RMSE=%g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
-
-        keyboard
-
-        % the poisson model with log link, where I0 is unknown
-        % initSig = opt.trueAlpha;
-        % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
-        % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(max(conf.y,1)/opt.I0))),inf) % for loglink0 approximated by weight
-        u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
-
-%       opt.fullcont=true;
-%       opt.u=10.^aa*u_max;
-%       npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgFull{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgsFull{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       opt.fullcont=false;
-%       save(filename); continue;
-
-%       a=[-3.5 -3.75 -4 -4.25 -4.5];
-%       for j=1:5;
-%           fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-%           opt.u = 10^a(j)*u_max;
-%           npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-%           npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-%           save(filename);
-%       end
-%       continue
-
-        % fit with the poisson model with log link but known I0
-        temp=opt; opt.I0=conf.I0;
-
-        opt.noiseType='poissonLogLink0';
-%       opt.fullcont=true;
-%       opt.u=10.^aa*u_max;
-%       npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       opt.fullcont=false;
-         
-        a=[-3.5 -3.75 -4 -4.25 -4.5];
-        bb=[ 2 2 3 3 3 4];
-        if((any([1 2 6]==i)))
-            for j=1:5;
-                if(j~=bb(i)) continue; end
-                fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-                opt.u = 10^a(j)*u_max;
-                npg0{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgs0{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename);
-            end
-        end
-        continue
-
-%       opt.noiseType='gaussian';
-%       wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
-%       wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
-%       wy=sqrt(conf.y).*(log(opt.I0)-log(max(conf.y,1)));
-%       u_max=pNorm(conf.Psit(wPhit(wy)),inf);
-%       opt.fullcont=true;
-%       opt.u=10.^aa*u_max;
-%       wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
-%       fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       opt.fullcont=false;
-
-        opt=temp;
-         
-        % fit with the approximated Gaussian model
-
-        save(filename);
-    end
-end
-
 if(any(runList==902))
     filename = [mfilename '_002.mat'];
     load(filename);
@@ -2015,46 +1911,40 @@ end
 if(any(runList==907))
     filename = [mfilename '_007.mat']; load(filename);
 
+    k=1;
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
     aa=-3:-0.2:-6;
-    for k=1:4
-        for i=1:length(m)
-            npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
-            npgsRMSE(i,k) = min(npgsFull{i,k}.contRMSE);
 
-            gnetRMSE(i,k)=min(gnet{i,k}.RMSE(:));
+    for i=1:length(m)
+           npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
+          npgsRMSE(i,k) = min(npgsFull{i,k}.contRMSE);
+          gnetRMSE(i,k) = min(gnet{i,k}.RMSE(:));
+          npg0RMSE(i,k) = min(npgFull_knownI0{i,k}.contRMSE);
+         npgs0RMSE(i,k) = min(npgsFull_knownI0{i,k}.contRMSE);
+         npglwRMSE(i,k) = min(npglwFull{i,k}.contRMSE);
+        npgslwRMSE(i,k) = min(npgslwFull{i,k}.contRMSE);
 
-            npg0RMSE(i,k) = min(npgFull_knownI0{i,k}.contRMSE);
-            npgs0RMSE(i,k) = min(npgsFull_knownI0{i,k}.contRMSE);
-
-            temp= npglwFull{i,k}; if(~isempty(temp))  npglwRMSE(i,k)=min(temp.contRMSE); else  npglwRMSE(i,k)=0; end
-            temp=npgslwFull{i,k}; if(~isempty(temp)) npgslwRMSE(i,k)=min(temp.contRMSE); else npgslwRMSE(i,k)=0; end
-
-            % temp=  npglFull{i,k}; if(~isempty(temp))   npglRMSE(i,k)=min(temp.contRMSE); else   npglRMSE(i,k)=0; end
-            % temp= npgslFull{i,k}; if(~isempty(temp))  npgslRMSE(i,k)=min(temp.contRMSE); else  npgslRMSE(i,k)=0; end
-
-               npgRec(i,k)=         aa(min(find(          npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
-              npgsRec(i,k)=         aa(min(find(         npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
-              npg0Rec(i,k)=         aa(min(find(  npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
-             npgs0Rec(i,k)=         aa(min(find( npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
-             npglwRec(i,k)=         aa(min(find(        npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
-            npgslwRec(i,k)=         aa(min(find(       npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
-            glmnetRec(i,k)=gnet{i,k}.a(min(find(             gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
-        end
-
-        figure;
-        semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
-        plot(    m,  npgsRMSE(:,k),'b-*');
-        plot(    m,  npg0RMSE(:,k),'r.-');
-        plot(    m, npgs0RMSE(:,k),'b.-');
-        plot(    m, npglwRMSE(:,k),'rs-');
-        plot(    m,npgslwRMSE(:,k),'bs-');
-        plot(    m,  gnetRMSE(:,k),'ch-');
-        % plot(    m,  npglRMSE,'rp-');
-        % plot(    m, npgslRMSE,'bp-');
-        legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet');
-
+           npgRec(i,k)=         aa(min(find(          npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
+          npgsRec(i,k)=         aa(min(find(         npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
+          npg0Rec(i,k)=         aa(min(find(  npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
+         npgs0Rec(i,k)=         aa(min(find( npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
+         npglwRec(i,k)=         aa(min(find(        npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
+        npgslwRec(i,k)=         aa(min(find(       npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
+        glmnetRec(i,k)=gnet{i,k}.a(min(find(             gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
     end
+
+    figure;
+    semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
+    plot(    m,  npgsRMSE(:,k),'b-*');
+    plot(    m,  npg0RMSE(:,k),'r.-');
+    plot(    m, npgs0RMSE(:,k),'b.-');
+    plot(    m, npglwRMSE(:,k),'rs-');
+    plot(    m,npgslwRMSE(:,k),'bs-');
+    plot(    m,  gnetRMSE(:,k),'ch-');
+    % plot(    m,  npglRMSE,'rp-');
+    % plot(    m, npgslRMSE,'bp-');
+    legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet');
+
     disp([mean(   npgRec,2), ...
           mean(  npg0Rec,2), ...
           mean( npglwRec,2), ...
@@ -2062,7 +1952,81 @@ if(any(runList==907))
           mean(npgslwRec,2), ...
           mean(  npgsRec,2), ...
           mean(glmnetRec,2)]);
-    keyboard
+
+    filename = [mfilename '_027.mat']; load(filename);
+    for i=1:length(m)
+           npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
+          npgsRMSE(i,k) = min(npgsFull{i,k}.contRMSE);
+          gnetRMSE(i,k) = min(gnet{i,k}.RMSE(:));
+          npg0RMSE(i,k) = min(npgFull_knownI0{i,k}.contRMSE);
+         npgs0RMSE(i,k) = min(npgsFull_knownI0{i,k}.contRMSE);
+         npglwRMSE(i,k) = min(npglwFull{i,k}.contRMSE);
+        npgslwRMSE(i,k) = min(npgslwFull{i,k}.contRMSE);
+
+           npgRec(i,k)=         aa(min(find(          npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
+          npgsRec(i,k)=         aa(min(find(         npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
+          npg0Rec(i,k)=         aa(min(find(  npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
+         npgs0Rec(i,k)=         aa(min(find( npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
+         npglwRec(i,k)=         aa(min(find(        npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
+        npgslwRec(i,k)=         aa(min(find(       npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
+        glmnetRec(i,k)=gnet{i,k}.a(min(find(             gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
+    end
+    figure;
+    semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
+    plot(    m,  npgsRMSE(:,k),'b-*');
+    plot(    m,  npg0RMSE(:,k),'r.-');
+    plot(    m, npgs0RMSE(:,k),'b.-');
+    plot(    m, npglwRMSE(:,k),'rs-');
+    plot(    m,npgslwRMSE(:,k),'bs-');
+    plot(    m,  gnetRMSE(:,k),'ch-');
+    % plot(    m,  npglRMSE,'rp-');
+    % plot(    m, npgslRMSE,'bp-');
+    legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet');
+    disp([mean(   npgRec,2), ...
+          mean(  npg0Rec,2), ...
+          mean( npglwRec,2), ...
+          mean( npgs0Rec,2), ...
+          mean(npgslwRec,2), ...
+          mean(  npgsRec,2), ...
+          mean(glmnetRec,2)]);
+
+    filename = [mfilename '_037.mat']; load(filename);
+    for i=1:length(m)
+           npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
+          npgsRMSE(i,k) = min(npgsFull{i,k}.contRMSE);
+          gnetRMSE(i,k) = min(gnet{i,k}.RMSE(:));
+          npg0RMSE(i,k) = min(npgFull_knownI0{i,k}.contRMSE);
+         npgs0RMSE(i,k) = min(npgsFull_knownI0{i,k}.contRMSE);
+         npglwRMSE(i,k) = min(npglwFull{i,k}.contRMSE);
+        npgslwRMSE(i,k) = min(npgslwFull{i,k}.contRMSE);
+
+           npgRec(i,k)=         aa(min(find(          npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
+          npgsRec(i,k)=         aa(min(find(         npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
+          npg0Rec(i,k)=         aa(min(find(  npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
+         npgs0Rec(i,k)=         aa(min(find( npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
+         npglwRec(i,k)=         aa(min(find(        npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
+        npgslwRec(i,k)=         aa(min(find(       npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
+        glmnetRec(i,k)=gnet{i,k}.a(min(find(             gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
+    end
+    figure;
+    semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
+    plot(    m,  npgsRMSE(:,k),'b-*');
+    plot(    m,  npg0RMSE(:,k),'r.-');
+    plot(    m, npgs0RMSE(:,k),'b.-');
+    plot(    m, npglwRMSE(:,k),'rs-');
+    plot(    m,npgslwRMSE(:,k),'bs-');
+    plot(    m,  gnetRMSE(:,k),'ch-');
+    % plot(    m,  npglRMSE,'rp-');
+    % plot(    m, npgslRMSE,'bp-');
+    legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet');
+    disp([mean(   npgRec,2), ...
+          mean(  npg0Rec,2), ...
+          mean( npglwRec,2), ...
+          mean( npgs0Rec,2), ...
+          mean(npgslwRec,2), ...
+          mean(  npgsRec,2), ...
+          mean(glmnetRec,2)]);
+
 end
 
 if(any(runList==917))
@@ -2092,11 +2056,16 @@ if(any(runList==917))
     end
     gnetRMSE=mean(gnetRMSE,2);
 
-    for i=1:length(npgsRMSE(:,1))
-        for j=1:length(npgsRMSE(1,:))
-            npgsTranRMSE(i,j) = rmseTruncate(npgs{i,j});
-            npgs0TranRMSE(i,j) = rmseTruncate(npgs0{i,j});
-            npgslwTranRMSE(i,j) = rmseTruncate(npgslw{i,j});
+    npgsTranRMSE   = zeros(length(m),3);
+    npgs0TranRMSE  = zeros(length(m),3);
+    npgslwTranRMSE = zeros(length(m),3);
+    for k=1:4;
+        for i=1:length(npgsRMSE(:,1))
+            for j=1:length(npgsRMSE(1,:))
+                npgsTranRMSE(i,j)   = npgsTranRMSE(i,j)   + 1/4*rmseTruncate(  npgs{i,j,k});
+                npgs0TranRMSE(i,j)  = npgs0TranRMSE(i,j)  + 1/4*rmseTruncate( npgs0{i,j,k});
+                npgslwTranRMSE(i,j) = npgslwTranRMSE(i,j) + 1/4*rmseTruncate(npgslw{i,j,k});
+            end
         end
     end
 
@@ -2112,102 +2081,40 @@ if(any(runList==917))
 
     disp([c1(idx1), c2(idx2), c3(idx3), c4(idx4)  c5(idx5), c6(idx6) c7(idx7) c8(idx8) c9(idx9)]);
 
-    keyboard
-
-end
-
-if(any(runList==909))
-    filename = [mfilename '_009.mat']; load(filename);
-
-    prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-    fprintf('Poisson Log link example with glass beads\n');
-
-    npgTime   = Cell.getField(   npg,'time');
-    npgsTime  = Cell.getField(  npgs,'time');
-    npgCost   = Cell.getField(   npg,'cost');
-    npgsCost  = Cell.getField(  npgs,'cost');
-    npgRMSE   = Cell.getField(   npg,'RMSE');
-    npgsRMSE  = Cell.getField(  npgs,'RMSE');
-    fbpRMSE   = Cell.getField(   fbp,'RMSE');
-
-    for i=1:length(npgsRMSE(:,1))
-        for j=1:length(npgsRMSE(1,:))
-            npgsTranRMSE(i,j) = rmseTruncate(npgs{i,j});
-        end
-    end
-
-    [r,c1]=find(   npgRMSE==repmat(min(   npgRMSE,[],2),1,5)); [r,idx1]=sort(r);
-    [r,c2]=find(  npgsRMSE==repmat(min(  npgsRMSE,[],2),1,5)); [r,idx2]=sort(r);
-    [r,c3]=find(  npgsTranRMSE==repmat(min(  npgsTranRMSE,[],2),1,5)); [r,idx3]=sort(r);
-    disp([c1(idx1) ,c2(idx2), c3(idx3)]);
-    c1(idx1)=3;
-    idx1=(c1(idx1)-1)*6+(1:6)';
-    idx2=(c2(idx2)-1)*6+(1:6)';
-    idx3=(c3(idx3)-1)*6+(1:6)';
-    idx2=idx1;
-
-    for i=1:length(wnpgsFull)
-        wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
-        wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
-        npg0RMSE (i)=min( npg0Full{i}.contRMSE);
-        npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
-    end
-
+    figure;
+    semilogy(m,       npgRMSE(:,2),'r-*'); hold on;
+    plot(    m,      npgsRMSE(:,2),'r-p');
+    plot(    m,      npg0RMSE(:,2),'g^-');
+    plot(    m,     npgs0RMSE(:,2),'gh-');
+    plot(    m,     npglwRMSE(:,2),'b<');
+    plot(    m,    npgslwRMSE(:,2),'bs-');
+    plot(    m,  npgsTranRMSE(:,2),'co-');
+    plot(    m, npgs0TranRMSE(:,2),'c.-');
+    plot(    m,npgslwTranRMSE(:,2),'ks-');
+    legend('npg','npgs','npg0','npgs0','npglw','npgslw','npgsTran','npg0Tran','npglwTran');
 
     figure;
-    semilogy(prjFull,   npgRMSE(idx1),'r-*'); hold on;
-    plot(    prjFull,  npgsRMSE(idx2),'r-p');
-    plot(    prjFull,  npgsTranRMSE(idx3),'r.-');
-    plot(    prjFull,   fbpRMSE(:),'g^-');
-    plot(    prjFull,  wnpgRMSE(:),'bh-');
-    plot(    prjFull, wnpgsRMSE(:),'bh');
-    plot(    prjFull,  npg0RMSE(:),'cs-');
-    plot(    prjFull, npgs0RMSE(:),'cs-');
-    legend('npg','npgs','npgsTran','fbp','wnpg','wnpgs','npg0','npgs0');
+    semilogy(m,       npgTime(:,2),'r-*'); hold on;
+    plot(    m,      npgsTime(:,2),'r-p');
+    plot(    m,      npg0Time(:,2),'g^-');
+    plot(    m,     npgs0Time(:,2),'gh-');
+    plot(    m,     npglwTime(:,2),'b<');
+    plot(    m,    npgslwTime(:,2),'bs-');
+    legend('npg','npgs','npg0','npgs0','npglw','npgslw');
 
     figure;
-    plot(prjFull,   npgTime(idx1),'r-*'); hold on;
-    loglog(prjFull,  npgsTime(idx2),'c-p');
-    %loglog(prjFull,   fbpTime(:,idx3),'g-s');
-    legend('npg','npgs');
+    semilogy(m,mean(       npgRMSE,2),'r-*'); hold on;
+    plot(    m,mean(      npgsRMSE,2),'r-p');
+    plot(    m,mean(      npg0RMSE,2),'g^-');
+    plot(    m,mean(     npgs0RMSE,2),'gh-');
+    plot(    m,mean(     npglwRMSE,2),'b<');
+    plot(    m,mean(    npgslwRMSE,2),'bs-');
+    plot(    m,mean(  npgsTranRMSE,2),'co-');
+    plot(    m,mean( npgs0TranRMSE,2),'c.-');
+    plot(    m,mean(npgslwTranRMSE,2),'ks-');
+    legend('npg','npgs','npg0','npgs0','npglw','npgslw','npgsTran','npg0Tran','npglwTran');
+    
 
-    forSave=[];
-    forSave=[forSave,     npgRMSE(idx1)];
-    forSave=[forSave,    npgsRMSE(idx2)];
-    forSave=[forSave,     fbpRMSE(:)];
-    forSave=[forSave,npgsTranRMSE(idx3)];
-
-    forSave=[forSave,     npgTime(idx1)];
-    forSave=[forSave,    npgsTime(idx2)];
-
-    % forSave=[forSave,    npgCost(:,idx1)];
-    % forSave=[forSave,   npgsCost(:,idx2)];
-    % forSave=[forSave,    fbpCost(:,idx3)];
-
-    forSave=[forSave,  prjFull(:)];
-    forSave=[forSave,    wnpgRMSE(:)];
-    forSave=[forSave,   wnpgsRMSE(:)];
-    save('varyPrjGlassBead.data','forSave','-ascii');
-
-    idx=5;
-    img=showImgMask(npg {idx1(idx)}.alpha,npg{idx1(idx)}.opt.mask);
-    maxImg=max(img(:));
-    maxImg=1.2;
-    figure; showImg(img);
-    imwrite(img/maxImg,'NPGgb.png','png');
-    img=showImgMask(npgs{idx2(idx)}.alpha,npg{idx1(idx)}.opt.mask);
-    imwrite(img/maxImg,'NPGSgb.png','png'); figure; showImg(img,0,maxImg);
-    img=showImgMask(fbp {idx}.alpha,npg{idx1(idx)}.opt.mask);
-    imwrite(img/maxImg,'FBPgb.png','png'); figure; showImg(img,0,maxImg);
-    img=showImgMask(opt.trueAlpha,npg{idx1(idx)}.opt.mask);
-    imwrite(img/maxImg,'glassbeads.png','png');
-
-    disp([npg{idx1(idx)}.RMSE(end), npgs{idx2(idx)}.RMSE(end), fbp{idx}.RMSE]);
-    trueAlpha=npg{idx1(idx)}.opt.trueAlpha;
-    disp([rmseTruncate(npg{idx1(idx)},trueAlpha), rmseTruncate(npgs{idx2(idx)},trueAlpha), rmseTruncate(fbp{idx},trueAlpha)]);
-
-    system(['mv varyPrjGlassBead.data NPGgb.png NPGSgb.png FBPgb.png glassbeads.png ' paperDir]);
-    keyboard
 end
 
 end
