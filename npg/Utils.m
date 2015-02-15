@@ -11,11 +11,12 @@ classdef Utils < handle
             mat = zeros(length(func(zeros(ncol,1))),ncol);
             x = zeros(ncol,1);
             str='';
+            fprintf('Function Handle to Matrix Recover: ');
             for j=1:ncol
-                strlen=length(str); str=sprintf('j=%d',j); fprintf([repmat('\b',1,strlen) '%s'],str);
+                strlen=length(str); str=sprintf('%d-th column ...',j); fprintf([repmat('\b',1,strlen) '%s'],str);
                 x(j)=1; mat(:,j)=func(x); x(j)=0;
             end
-            fprintf('\n');
+            fprintf('  done! \n');
         end
         function [f,g,h] = augLag(x,z)
             g=x-z;
