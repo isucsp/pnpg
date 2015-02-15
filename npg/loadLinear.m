@@ -54,7 +54,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
 
     % log link model with the range of expectation of measurements being [A,B]
     if(~isfield(opt,'A')) opt.A=50; end   
-    if(~isfield(opt,'B')) opt.B=2e16; end
+    if(~isfield(opt,'B')) opt.B=2^16; end
 
     x=[x(:); zeros(opt.padZero,1)];
     n = length(x);      % number of features
