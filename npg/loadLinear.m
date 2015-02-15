@@ -143,8 +143,6 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
             scale=(log(opt.B)-log(opt.A))/(b-a);
             opt.I0=exp( (b*log(opt.B) - a*log(opt.A))/(b-a) );
 
-            keyboard
-
             Phi = Phi * scale;
             EAAt = EAAt*scale^2;
             invEAAt = invEAAt/scale^2;
