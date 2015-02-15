@@ -604,7 +604,9 @@ end
 % skyline log link Poisson example
 % vary the number of measurements, with continuation
 if(any(runList==007))
-    filename = [mfilename '_007.mat'];
+%   filename = [mfilename '_007.mat']; opt.B=2e16;
+    filename = [mfilename '_027.mat']; opt.B=2e16/10;
+%   filename = [mfilename '_037.mat']; opt.B=2e16/100;
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('opt');
     RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
@@ -612,7 +614,7 @@ if(any(runList==007))
     m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
     aa=-3:-0.2:-6;
     a=-4.4:-0.2:-4.8;
-    for k=1:5
+    for k=1:1
         for i=1:length(m)
             opt.m=m(i); opt.noiseType='poissonLogLink'; opt.matrixType='conv';
             [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
@@ -631,8 +633,8 @@ if(any(runList==007))
             xx=opt.thresh; opt.thresh=1e-12;
             gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
             opt.thresh=xx; clear('xx');
-%           npgFull {i,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
-%           npgsFull{i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgFull  {i,k}=Wrapper.NPG  (Phi,Phit,Psi,Psit,y,initSig,opt);
+            npgsFull {i,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
             opt=temp;
 
             opt.noiseType='poissonLogLink0';

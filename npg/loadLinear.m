@@ -51,6 +51,11 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
     if(~isfield(opt,'matrixType')) opt.matrixType='gaussian'; end
     if(~isfield(opt,'padZero')) opt.padZero=0; end
+
+    % log link model with the range of expectation of measurements being [A,B]
+    if(~isfield(opt,'A')) opt.A=50; end   
+    if(~isfield(opt,'B')) opt.B=2e16; end
+
     x=[x(:); zeros(opt.padZero,1)];
     n = length(x);      % number of features
 
@@ -134,9 +139,9 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
             % figure; showImg(Phi);
         case lower('poissonLogLink')
             % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
-            y=Phi*x0; a=min(y); b=max(y); A=50; B=2^16;
-            scale=(log(B)-log(A))/(b-a);
-            opt.I0=exp( (b*log(B) - a*log(A))/(b-a) );
+            y=Phi*x0; a=min(y); b=max(y);
+            scale=(log(opt.B)-log(opt.A))/(b-a);
+            opt.I0=exp( (b*log(opt.B) - a*log(opt.A))/(b-a) );
 
             Phi = Phi * scale;
             EAAt = EAAt*scale^2;
