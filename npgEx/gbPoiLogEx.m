@@ -9,6 +9,8 @@ function gbPoiLogEx(op)
 %
 % Example with glassbeads under the poisson model with log link function
 
+if(~isexist('op','var')) opt='plot'; end
+
 switch(lower(op))
     case 'full' % code to generate .mat files
         filename = [mfilename '_full.mat'];
@@ -16,15 +18,15 @@ switch(lower(op))
         clear('opt');
         conf=ConfigCT();
         conf.imageName = 'glassBeadsSim';
-        conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-        conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
+        conf.PhiMode = 'cpuPrj';    % change the option to cpuPrj if no GPU equipped
+        conf.PhiModeGen = 'cpuPrj'; % change the option to cpuPrj if no GPU equipped
         conf.dist = 17000;
         conf.beamharden = false;
 
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
         aa = -1:-1:-10;
         opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
-        for i=1:length(prjFull)
+        for i=3;%length(prjFull)
             opt.noiseType='poissonLogLink'; %'gaussian'; %
             RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
