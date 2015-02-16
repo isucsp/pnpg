@@ -69,8 +69,7 @@ switch(lower(op))
 
             save(filename);
         end
-
-    case 'run'
+    case 'ind' % individual
         a=[-3.5 -3.75 -4 -4.25 -4.5];
         for j=1:5;
             fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
@@ -79,23 +78,19 @@ switch(lower(op))
             npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             save(filename);
         end
-        continue
 
-            a=[-3.5 -3.75 -4 -4.25 -4.5];
-            bb=[ 2 2 3 3 3 4];
-            if((any([1 2 6]==i)))
-                for j=1:5;
-                    if(j~=bb(i)) continue; end
-                    fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-                    opt.u = 10^a(j)*u_max;
-                    npg0{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    npgs0{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    save(filename);
-                end
+        a=[-3.5 -3.75 -4 -4.25 -4.5];
+        bb=[ 2 2 3 3 3 4];
+        if((any([1 2 6]==i)))
+            for j=1:5;
+                if(j~=bb(i)) continue; end
+                fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+                opt.u = 10^a(j)*u_max;
+                npg0{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                npgs0{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                save(filename);
             end
-            continue
-
-
+        end
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 

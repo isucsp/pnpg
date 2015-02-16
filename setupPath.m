@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Mon 16 Feb 2015 12:26:05 AM CST
+% $Revision: 0.3 $ $Date: Mon 16 Feb 2015 12:32:10 AM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -15,6 +15,7 @@ addpath([pathstr '/tomography']);
 addpath([pathstr '/rwt']);
 addpath([pathstr '/npg']);
 addpath([pathstr '/prj']);
+addpath([pathstr '/utils']);
 addpath([pathstr '/irt/nufft']);
 addpath([pathstr '/irt/systems']);
 addpath([pathstr '/irt']);

@@ -2115,13 +2115,5 @@ if(any(runList==917))
     
 
 end
-
-end
-
-function e=gEle(x,i); e=x(i); end
-function rmse=rmseTruncate(x,trueAlpha)
-    if(nargin<2) trueAlpha=x.opt.trueAlpha; end;
-    alpha=x.alpha; alpha(alpha<0)=0;
-    rmse=sqrNorm(alpha-trueAlpha)/sqrNorm(trueAlpha);
 end
 
