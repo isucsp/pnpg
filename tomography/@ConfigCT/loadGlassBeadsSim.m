@@ -29,12 +29,11 @@ function loadGlassBeadsSim(obj,snr,noiseType)
     if(~obj.beamharden)
         switch lower(noiseType)
             case {lower('poissonLogLink'),lower('poissonLogLink0')}
-
                 obj.Ts=1;
                 genOperators(obj, obj.PhiModeGen);
                 % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
                 y = obj.Phi(obj.trueImg(mask~=0));
-                a=min(y); b=max(y); A=10; B=2^12;
+                a=min(y); b=max(y); A=50; B=2^16;
                 scale=(log(B)-log(A))/(b-a);
                 obj.I0=exp( (b*log(B) - a*log(A))/(b-a) );
 

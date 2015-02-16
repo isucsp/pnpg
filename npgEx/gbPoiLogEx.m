@@ -10,8 +10,8 @@ function gbPoiLogEx(op)
 % Example with glassbeads under the poisson model with log link function
 
 switch(lower(op))
-    case 'runFull' % code to generate .mat files
-        filename = [mfilename '_RunFull.mat'];
+    case 'full' % code to generate .mat files
+        filename = [mfilename '_full.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt');
         conf=ConfigCT();
@@ -43,34 +43,43 @@ switch(lower(op))
             % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(max(conf.y,1)/opt.I0))),inf) % for loglink0 approximated by weight
             u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
 
-            temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
+            opt.fullcont=true; opt.u=10.^aa*u_max;
             npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             out=npgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             out=npgsFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            opt=temp;
             save(filename); continue;
 
-            a=[-3.5 -3.75 -4 -4.25 -4.5];
-            for j=1:5;
-                fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-                opt.u = 10^a(j)*u_max;
-                npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename);
-            end
-            continue
-
             % fit with the poisson model with log link but known I0
-            temp=opt; opt.I0=conf.I0;
-
-            opt.noiseType='poissonLogLink0';
-            opt.fullcont=true; opt.u=10.^aa*u_max;
+            opt.noiseType='poissonLogLink0'; opt.I0=conf.I0;
             npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            opt.fullcont=false;
+            
+            % for loglink0 approximated by weight
+            opt.noiseType='gaussian';
+            wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
+            wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
+            wy=sqrt(conf.y).*(log(opt.I0)-log(max(conf.y,1)));
+            wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
+            fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+            wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
+            fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+
+            save(filename);
+        end
+
+    case 'run'
+        a=[-3.5 -3.75 -4 -4.25 -4.5];
+        for j=1:5;
+            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+            opt.u = 10^a(j)*u_max;
+            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            save(filename);
+        end
+        continue
 
             a=[-3.5 -3.75 -4 -4.25 -4.5];
             bb=[ 2 2 3 3 3 4];
@@ -86,27 +95,7 @@ switch(lower(op))
             end
             continue
 
-            opt.noiseType='gaussian';
-            wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
-            wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
-            wy=sqrt(conf.y).*(log(opt.I0)-log(max(conf.y,1)));
-            u_max=pNorm(conf.Psit(wPhit(wy)),inf);
-            opt.fullcont=true;
-            opt.u=10.^aa*u_max;
-            wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
-            fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
-            fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            opt.fullcont=false;
 
-            opt=temp;
-
-            % fit with the approximated Gaussian model
-
-            save(filename);
-        end
-
-    case 'run'
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 
