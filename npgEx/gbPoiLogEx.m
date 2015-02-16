@@ -48,7 +48,7 @@ switch(lower(op))
             out=npgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             out=npgsFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            save(filename); continue;
+            save(filename);
 
             % fit with the poisson model with log link but known I0
             opt.noiseType='poissonLogLink0'; opt.I0=conf.I0;
@@ -56,7 +56,7 @@ switch(lower(op))
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            
+
             % for loglink0 approximated by weight
             opt.noiseType='gaussian';
             wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
