@@ -1941,6 +1941,8 @@ if(any(runList==907))
                     npgslwRMSE(:,k), ...
                       gnetRMSE(:,k)];
     save('rmse_I0N.data','forSave','-ascii');
+    (forSave(:,5)./forSave(:,3) )'
+    (forSave(:,12)./forSave(:,10))'
 
 end
 

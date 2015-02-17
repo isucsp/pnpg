@@ -96,7 +96,7 @@ switch(lower(op))
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 
-        filename = [mfilename '_009.mat']; load(filename);
+        filename = [mfilename '_full.mat']; load(filename);
 
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
         fprintf('Poisson Log link example with glass beads\n');
