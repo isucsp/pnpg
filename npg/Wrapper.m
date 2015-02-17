@@ -197,6 +197,15 @@ classdef Wrapper < handle
                     options.intr = true; % need the interception
                     options.standardize=false;
                     A=-A;
+                case lower('poissonLogLink0')
+                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
+                    [~,g]=L(xInit*0);
+                    u_max=pNorm(Psi'*g,inf);
+                    model='poisson';
+                    options.standardize=false;
+                    A=-A;
+                    options.intr = false; % disable the interception, but need to rescale y
+                    y=y/opt.I0;
                 case 'gaussian'
                     L = @(aaa) Utils.linearModel(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
                     [~,g]=L(xInit*0);

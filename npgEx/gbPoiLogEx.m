@@ -26,7 +26,7 @@ switch(lower(op))
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
         aa = -1:-1:-10;
         opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
-        for i=4;%length(prjFull)
+        for i=6;%length(prjFull)
             opt.noiseType='poissonLogLink'; %'gaussian'; %
             RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
