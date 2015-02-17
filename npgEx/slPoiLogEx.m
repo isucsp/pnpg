@@ -18,11 +18,11 @@ switch lower(op)
             filename = [mfilename '_007.mat'];
             if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end;
             clear('opt'); opt.B=2^16; aa=-3:-0.1:-6;
-        else if(strcmpi(op,'I012'))
+        elseif(strcmpi(op,'I012'))
             filename = [mfilename '_027.mat'];
             if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end;
             clear('opt'); opt.B=2^12; aa=-1:-0.2:-5;
-        else if(strcmpi(op,'I009'))
+        elseif(strcmpi(op,'I009'))
             filename = [mfilename '_037.mat'];
             if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end;
             clear('opt'); opt.B=2^9; aa=-0.2:-0.1:-4;
@@ -78,7 +78,7 @@ switch lower(op)
             end
         end
 
-    case 'ind'
+    case lower('ind')
 
         filename = [mfilename '_017.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
