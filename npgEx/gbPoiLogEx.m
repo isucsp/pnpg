@@ -26,7 +26,7 @@ switch(lower(op))
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
         aa = -1:-1:-10;
         opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
-        for i=6;%length(prjFull)
+        for i=1:length(prjFull)
             opt.noiseType='poissonLogLink'; %'gaussian'; %
             RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
@@ -39,6 +39,8 @@ switch(lower(op))
             fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             fprintf('fbp RMSE: %g,  ',fbp{i,j}.RMSE);
             fprintf('after truncation: %g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
+
+            continue;
 
             % the poisson model with log link, where I0 is unknown
             % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
@@ -71,6 +73,7 @@ switch(lower(op))
 
             save(filename);
         end
+        save(filename);
     case 'ind' % individual
         a=[-3.5 -3.75 -4 -4.25 -4.5];
         for j=1:5;
@@ -93,6 +96,36 @@ switch(lower(op))
                 save(filename);
             end
         end
+    case 'plotfull' % code to plot figures and generate .data files for gnuplot
+        filename = [mfilename '_full.mat']; load(filename);
+
+        prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+        fprintf('Poisson Log link example with glass beads\n');
+
+        fbpRMSE   = Cell.getField(   fbp,'RMSE');
+
+        for i=1:length(npgFull)
+            npgRMSE  (i)=min(  npgFull{i}.contRMSE);
+            npgsRMSE (i)=min( npgsFull{i}.contRMSE);
+            if(i~=3)
+            npg0RMSE (i)=min( npg0Full{i}.contRMSE);
+            npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
+            wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
+            wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
+            end
+        end
+
+        figure;
+        semilogy(prjFull,   npgRMSE(:),'r-*'); hold on;
+        plot(    prjFull,  npgsRMSE(:),'r-p');
+        plot(    prjFull,  npg0RMSE(:),'r.-');
+        plot(    prjFull, npgs0RMSE(:),'g^-');
+        plot(    prjFull,  wnpgRMSE(:),'bh-');
+        plot(    prjFull, wnpgsRMSE(:),'bh');
+        plot(    prjFull,   fbpRMSE(:),'cs-');
+        legend('npg','npgs','npg0','npgs0','wnpg','wnpgs','fbp');
+
+        keyboard
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 
@@ -124,13 +157,6 @@ switch(lower(op))
         idx2=(c2(idx2)-1)*6+(1:6)';
         idx3=(c3(idx3)-1)*6+(1:6)';
         idx2=idx1;
-
-        for i=1:length(wnpgsFull)
-            wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
-            wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
-            npg0RMSE (i)=min( npg0Full{i}.contRMSE);
-            npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
-        end
 
         figure;
         semilogy(prjFull,   npgRMSE(idx1),'r-*'); hold on;
