@@ -25,7 +25,7 @@ switch lower(op)
         elseif(strcmpi(op,'I009'))
             filename = [mfilename '_037.mat'];
             if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end;
-            clear('opt'); opt.B=2^9; aa=-0.2:-0.1:-4;
+            clear('opt'); opt.B=2^9; aa=-0.2:-0.2:-4;
         end
 
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
@@ -46,19 +46,19 @@ switch lower(op)
                 %% fit by the unkown I0 log link Poisson model
                 u_max=pNorm(Psit(Phit(y-mean(y))),inf);
 
-%               opt.noiseType='poissonLogLink';
-%               temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
-%               xx=opt.thresh; opt.thresh=1e-12;
-%               gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
-%               opt.thresh=xx; clear('xx');
-%               npgFull  {i,k}=Wrapper.NPG  (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsFull {i,k}=Wrapper.NPGs (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt=temp;
+                opt.noiseType='poissonLogLink';
+                temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
+                xx=opt.thresh; opt.thresh=1e-12;
+                gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
+                opt.thresh=xx; clear('xx');
+                npgFull {i,k}=Wrapper.NPG  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgsFull{i,k}=Wrapper.NPGs (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=temp;
 
                 opt.noiseType='poissonLogLink0';
                 temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
-%               npgFull_knownI0 {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsFull_knownI0{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgFull_knownI0 {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgsFull_knownI0{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
                 xx=opt.thresh; opt.thresh=1e-12;
                 gnet0   {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
                 opt.thresh=xx; clear('xx');
@@ -127,7 +127,6 @@ switch lower(op)
 
         k=1;
         m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
-        aa=-3:-0.2:-6;
 
         for i=1:length(m)
             npgRMSE(i,k) = min(npgFull{i,k}.contRMSE);
@@ -154,13 +153,11 @@ switch lower(op)
         plot(    m,  npgsRMSE(:,k),'b-*');
         plot(    m,  npg0RMSE(:,k),'r.-');
         plot(    m, npgs0RMSE(:,k),'b.-');
-        plot(    m, npglwRMSE(:,k),'rs-');
-        plot(    m,npgslwRMSE(:,k),'bs-');
         plot(    m,  gnetRMSE(:,k),'ch-');
         plot(    m, gnet0RMSE(:,k),'kh-');
         % plot(    m,  npglRMSE,'rp-');
         % plot(    m, npgslRMSE,'bp-');
-        legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet','glmnet0');
+        legend('npg','npgs','npg0','npgs0','glmnet','glmnet0');
 
         forSave=[ m(:), npgRMSE(:,k), ...
             npgsRMSE(:,k), ...
@@ -203,12 +200,10 @@ switch lower(op)
         plot(    m,  npgsRMSE(:,k),'b-*');
         plot(    m,  npg0RMSE(:,k),'r.-');
         plot(    m, npgs0RMSE(:,k),'b.-');
-        plot(    m, npglwRMSE(:,k),'rs-');
-        plot(    m,npgslwRMSE(:,k),'bs-');
         plot(    m,  gnetRMSE(:,k),'ch-');
         % plot(    m,  npglRMSE,'rp-');
         % plot(    m, npgslRMSE,'bp-');
-        legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet');
+        legend('npg','npgs','npg0','npgs0','glmnet');
         disp([mean(   npgRec,2), ...
             mean(  npg0Rec,2), ...
             mean( npglwRec,2), ...
@@ -242,20 +237,19 @@ switch lower(op)
         plot(    m,  npgsRMSE(:,k),'b-*');
         plot(    m,  npg0RMSE(:,k),'r.-');
         plot(    m, npgs0RMSE(:,k),'b.-');
-        plot(    m, npglwRMSE(:,k),'rs-');
-        plot(    m,npgslwRMSE(:,k),'bs-');
         plot(    m,  gnetRMSE(:,k),'ch-');
         plot(    m, gnet0RMSE(:,k),'kh-');
         % plot(    m,  npglRMSE,'rp-');
         % plot(    m, npgslRMSE,'bp-');
-        legend('npg','npgs','npg0','npgs0','npglw','npwslw','glmnet','glmnet0');
-        disp([mean(   npgRec,2), ...
-            mean(  npg0Rec,2), ...
-            mean( npglwRec,2), ...
-            mean( npgs0Rec,2), ...
-            mean(npgslwRec,2), ...
-            mean(  npgsRec,2), ...
-            mean(glmnetRec,2)]);
+        legend('npg','npgs','npg0','npgs0','glmnet','glmnet0');
+        disp([mean(    npgRec,2), ...
+            mean(   npg0Rec,2), ...
+            mean(  npglwRec,2), ...
+            mean(  npgs0Rec,2), ...
+            mean( npgslwRec,2), ...
+            mean(   npgsRec,2), ...
+            mean( glmnetRec,2), ...
+            mean(glmnet0Rec,2)]);
 
         forSave=[ forSave, npgRMSE(:,k), ...
             npgsRMSE(:,k), ...
@@ -266,8 +260,8 @@ switch lower(op)
             gnetRMSE(:,k),...
             gnet0RMSE(:,k)];
         save('rmse_I0N.data','forSave','-ascii');
-        (forSave(:,5)./forSave(:,3) )'
-        (forSave(:,12)./forSave(:,10))'
+        (1-sort(forSave(:,5)./forSave(:,3) )')*100
+        (1-sort(forSave(:,13)./forSave(:,11))')*100
 
     case 'plot2'
 
