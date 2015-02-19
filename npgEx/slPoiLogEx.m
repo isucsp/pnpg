@@ -338,8 +338,59 @@ switch lower(op)
                     npg0Time((c3(idx3)-1)*nrow+(1:nrow)'), ...
                    npgs0Time((c4(idx4)-1)*nrow+(1:nrow)')];
 
-        save('time_I0N.data','forSave','-ascii');
+        %save('time_I0N.data','forSave','-ascii');
 
+        filename = [mfilename '_09.mat']; load(filename);
+        K=1;
+        m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
+
+        npgRMSE   = mean(Cell.getField(    npg,'RMSE'),3);
+        npgsRMSE  = mean(Cell.getField(   npgs,'RMSE'),3);
+        npg0RMSE  = mean(Cell.getField(   npg0,'RMSE'),3);
+        npgs0RMSE = mean(Cell.getField(  npgs0,'RMSE'),3);
+
+        npgTime   = mean(Cell.getField(    npg,'time'),3);
+        npgsTime  = mean(Cell.getField(   npgs,'time'),3);
+        npg0Time  = mean(Cell.getField(   npg0,'time'),3);
+        npgs0Time = mean(Cell.getField(  npgs0,'time'),3);
+
+        for k=1:K
+            for i=1:length(m)
+                gnetRMSE (i,k)=min( gnet{i,k}.RMSE(:));
+                gnetTime (i,k)=gnet{i,k}.time;
+                gnet0RMSE(i,k)=min(gnet0{i,k}.RMSE(:));
+                gnet0Time(i,k)=gnet0{i,k}.time;
+            end
+        end
+        gnetRMSE =mean( gnetRMSE,2);
+        gnet0RMSE=mean(gnet0RMSE,2);
+
+        npgsTranRMSE   = npgsRMSE*0;
+        npgs0TranRMSE  = npgs0RMSE*0;
+        for k=1:K;
+            for i=1:length(npgsRMSE(:,1))
+                for j=1:length(npgsRMSE(1,:))
+                    npgsTranRMSE(i,j)  = npgsTranRMSE(i,j)   + 1/K*rmseTruncate(  npgs{i,j,k});
+                    npgs0TranRMSE(i,j) = npgs0TranRMSE(i,j)  + 1/K*rmseTruncate( npgs0{i,j,k});
+                end
+            end
+        end
+
+        [r,c1]=find(       npgRMSE== repmat(min(       npgRMSE,[],2),1,size(  npgRMSE,2))); [r,idx1]=sort(r);
+        [r,c2]=find(      npgsRMSE== repmat(min(      npgsRMSE,[],2),1,size( npgsRMSE,2))); [r,idx2]=sort(r);
+        [r,c3]=find(      npg0RMSE== repmat(min(      npg0RMSE,[],2),1,size( npg0RMSE,2))); [r,idx3]=sort(r);
+        [r,c4]=find(     npgs0RMSE== repmat(min(     npgs0RMSE,[],2),1,size(npgs0RMSE,2))); [r,idx4]=sort(r);
+        [r,c7]=find(  npgsTranRMSE== repmat(min(  npgsTranRMSE,[],2),1,size( npgsRMSE,2))); [r,idx7]=sort(r);
+        [r,c8]=find( npgs0TranRMSE== repmat(min( npgs0TranRMSE,[],2),1,size(npgs0RMSE,2))); [r,idx8]=sort(r);
+
+        disp([c1(idx1), c2(idx2), c3(idx3), c4(idx4) c7(idx7) c8(idx8)]);
+
+        forSave=[forSave,  npgTime((c1(idx1)-1)*nrow+(1:nrow)'), ...
+                    npgsTime((c2(idx2)-1)*nrow+(1:nrow)'), ...
+                    npg0Time((c3(idx3)-1)*nrow+(1:nrow)'), ...
+                   npgs0Time((c4(idx4)-1)*nrow+(1:nrow)')];
+        
+        save('time_I0N.data','forSave','-ascii');
 end
 end
 

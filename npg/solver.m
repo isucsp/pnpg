@@ -332,9 +332,18 @@ end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
+fprintf('\nTime used: %d',out.time(end));
 if(isfield(opt,'trueAlpha'))
-    fprintf(', RMSE=%g\n',out.RMSE(end));
+    if(opt.fullcont)
+        idx = min(find(out.contRMSE==min(out.contRMSE)));
+        if(out.contRMSE(idx)<out.RMSE(end))
+            fprintf(', u=%g, RMSE=%g\n',opt.u(idx),out.contRMSE(idx));
+        else
+            fprintf(', cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+        end
+    else
+        fprintf(', cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+    end
 else
     fprintf('\n');
 end
