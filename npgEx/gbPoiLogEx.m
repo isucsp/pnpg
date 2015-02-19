@@ -18,13 +18,14 @@ switch(lower(op))
         clear('opt');
         conf=ConfigCT();
         conf.imageName = 'glassBeadsSim';
-        conf.PhiMode = 'cpuPrj';    % change the option to cpuPrj if no GPU equipped
-        conf.PhiModeGen = 'cpuPrj'; % change the option to cpuPrj if no GPU equipped
+        conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
+        conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
         conf.dist = 17000;
         conf.beamharden = false;
 
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-        aa = -1:-1:-10;
+        % aa = -1:-1:-10;
+        aa = -4.5:-0.5:-5.5;
         opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
         for i=1:length(prjFull)
             opt.noiseType='poissonLogLink'; %'gaussian'; %
@@ -40,8 +41,6 @@ switch(lower(op))
             fprintf('fbp RMSE: %g,  ',fbp{i,j}.RMSE);
             fprintf('after truncation: %g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
-            continue;
-
             % the poisson model with log link, where I0 is unknown
             % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
             % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(max(conf.y,1)/opt.I0))),inf) % for loglink0 approximated by weight
@@ -56,10 +55,12 @@ switch(lower(op))
 
             % fit with the poisson model with log link but known I0
             opt.noiseType='poissonLogLink0'; opt.I0=conf.I0;
-            npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
-            fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+%           npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
+%           fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+
+            save(filename); continue;
 
             % for loglink0 approximated by weight
             opt.noiseType='gaussian';
@@ -73,8 +74,21 @@ switch(lower(op))
 
             save(filename);
         end
-        save(filename);
     case 'ind' % individual
+        filename = [mfilename '_ind.mat'];
+        if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
+        clear('opt');
+        conf=ConfigCT();
+        conf.imageName = 'glassBeadsSim';
+        conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
+        conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
+        conf.dist = 17000;
+        conf.beamharden = false;
+
+        prjFull = [60, 80, 100, 120, 180, 360]; j=1;
+        a=-5;
+        opt.maxItr=4e3; opt.thresh=1e-6; opt.debugLevel=1;
+        %for i=1:length(prjFull)
         a=[-3.5 -3.75 -4 -4.25 -4.5];
         for j=1:5;
             fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
@@ -107,11 +121,15 @@ switch(lower(op))
         for i=1:length(npgFull)
             npgRMSE  (i)=min(  npgFull{i}.contRMSE);
             npgsRMSE (i)=min( npgsFull{i}.contRMSE);
+            npgRec(i)=  aa(min(find(          npgFull{i}.contRMSE==   npgRMSE(i))));
+            npgsRec(i)= aa(min(find(         npgsFull{i}.contRMSE==  npgsRMSE(i))));
             if(i~=3)
             npg0RMSE (i)=min( npg0Full{i}.contRMSE);
             npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
             wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
             wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
+            npg0Rec (i)=aa(min(find(  npg0Full{i}.contRMSE==  npg0RMSE(i))));
+            npgs0Rec(i)=aa(min(find( npgs0Full{i}.contRMSE== npgs0RMSE(i))));
             end
         end
 
@@ -125,7 +143,18 @@ switch(lower(op))
         plot(    prjFull,   fbpRMSE(:),'cs-');
         legend('npg','npgs','npg0','npgs0','wnpg','wnpgs','fbp');
 
+        disp([mean(    npgRec,2), ...
+            mean(   npgsRec,2), ...
+            mean(   npg0Rec,2), ...
+            mean(  npgs0Rec,2)]);
+
+        npgRMSE./npgsRMSE
+
         keyboard
+
+        disp([npg{idx1(idx)}.RMSE(end), npgs{idx2(idx)}.RMSE(end), fbp{idx}.RMSE]);
+        trueAlpha=npg{idx1(idx)}.opt.trueAlpha;
+        disp([rmseTruncate(npg{idx1(idx)},trueAlpha), rmseTruncate(npgs{idx2(idx)},trueAlpha), rmseTruncate(fbp{idx},trueAlpha)]);
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 
