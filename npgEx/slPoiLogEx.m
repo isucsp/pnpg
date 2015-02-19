@@ -32,7 +32,7 @@ switch lower(op)
         opt.maxItr=1e5; opt.thresh=1e-6;
         m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
         a=-4.4:-0.2:-4.8;
-        for k=1:1
+        for k=1:10
             for i=1:length(m)
                 opt.m=m(i); opt.noiseType='poissonLogLink'; opt.matrixType='conv';
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
