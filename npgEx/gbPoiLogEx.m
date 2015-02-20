@@ -123,38 +123,64 @@ switch(lower(op))
             npgsRMSE (i)=min( npgsFull{i}.contRMSE);
             npgRec(i)=  aa(min(find(          npgFull{i}.contRMSE==   npgRMSE(i))));
             npgsRec(i)= aa(min(find(         npgsFull{i}.contRMSE==  npgsRMSE(i))));
-            if(i~=3)
-            npg0RMSE (i)=min( npg0Full{i}.contRMSE);
+%           npg0RMSE (i)=min( npg0Full{i}.contRMSE);
             npgs0RMSE(i)=min(npgs0Full{i}.contRMSE);
-            wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
-            wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
-            npg0Rec (i)=aa(min(find(  npg0Full{i}.contRMSE==  npg0RMSE(i))));
+%           npg0Rec (i)=aa(min(find(  npg0Full{i}.contRMSE==  npg0RMSE(i))));
             npgs0Rec(i)=aa(min(find( npgs0Full{i}.contRMSE== npgs0RMSE(i))));
-            end
+%           wnpgRMSE (i)=min( wnpgFull{i}.contRMSE);
+%           wnpgsRMSE(i)=min(wnpgsFull{i}.contRMSE);
+            npgRMSE  (i)=  npgFull{i}.contRMSE(2);
+            npgsRMSE (i)= npgsFull{i}.contRMSE(2);
+            npgs0RMSE(i)=npgs0Full{i}.contRMSE(2);
         end
 
         figure;
         semilogy(prjFull,   npgRMSE(:),'r-*'); hold on;
         plot(    prjFull,  npgsRMSE(:),'r-p');
-        plot(    prjFull,  npg0RMSE(:),'r.-');
         plot(    prjFull, npgs0RMSE(:),'g^-');
-        plot(    prjFull,  wnpgRMSE(:),'bh-');
-        plot(    prjFull, wnpgsRMSE(:),'bh');
         plot(    prjFull,   fbpRMSE(:),'cs-');
-        legend('npg','npgs','npg0','npgs0','wnpg','wnpgs','fbp');
+%       plot(    prjFull,  npg0RMSE(:),'r.-');
+%       plot(    prjFull,  wnpgRMSE(:),'bh-');
+%       plot(    prjFull, wnpgsRMSE(:),'bh');
+        legend('npg','npgs','npgs0','fbp','npg0','wnpg','wnpgs');
 
         disp([mean(    npgRec,2), ...
             mean(   npgsRec,2), ...
-            mean(   npg0Rec,2), ...
             mean(  npgs0Rec,2)]);
+%           mean(   npg0Rec,2), ...
 
-        npgRMSE./npgsRMSE
+
+        sort(npgRMSE./npgsRMSE)
+        sort(npgsRMSE./fbpRMSE(:)')
 
         keyboard
 
-        disp([npg{idx1(idx)}.RMSE(end), npgs{idx2(idx)}.RMSE(end), fbp{idx}.RMSE]);
-        trueAlpha=npg{idx1(idx)}.opt.trueAlpha;
-        disp([rmseTruncate(npg{idx1(idx)},trueAlpha), rmseTruncate(npgs{idx2(idx)},trueAlpha), rmseTruncate(fbp{idx},trueAlpha)]);
+        idx=4;
+        disp([npgFull{idx}.contRMSE(2), npgsFull{idx}.contRMSE(2), fbp{idx}.RMSE]);
+        trueAlpha=npgFull{idx}.opt.trueAlpha;
+        disp([rmseTruncate(npgFull{idx}.contAlpha{2},trueAlpha), rmseTruncate(npgsFull{idx}.contAlpha{2},trueAlpha), rmseTruncate(fbp{idx},trueAlpha)]);
+
+        forSave=[];
+        forSave=[forSave,     prjFull(:)];
+        forSave=[forSave,     npgRMSE(:)];
+        forSave=[forSave,    npgsRMSE(:)];
+        forSave=[forSave,     fbpRMSE(:)];
+        save('varyPrjGlassBead.data','forSave','-ascii');
+
+        mask=npgFull{idx}.opt.mask;
+        img=showImgMask(npgFull{idx}.contAlpha{2},mask);
+        maxImg=max(img(:));
+        maxImg=1.2;
+        figure; showImg(img,0,maxImg);
+        imwrite(img/maxImg,'NPGgb.png','png');
+        img=showImgMask(npgsFull{idx}.contAlpha{2},mask);
+        imwrite(img/maxImg,'NPGSgb.png','png'); figure; showImg(img,0,maxImg);
+        img=showImgMask(fbp{idx}.alpha,mask);
+        imwrite(img/maxImg,'FBPgb.png','png'); figure; showImg(img,0,maxImg);
+        img=showImgMask(opt.trueAlpha,mask);
+        imwrite(img/maxImg,'glassbeads.png','png');
+
+        keyboard
 
     case 'plot' % code to plot figures and generate .data files for gnuplot
 

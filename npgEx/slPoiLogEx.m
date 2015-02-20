@@ -82,23 +82,21 @@ switch lower(op)
         if(strcmpi(op,'ind16')) filename = [mfilename '_16.mat']; elseif(strcmpi(op,'ind09')) filename = [mfilename '_09.mat']; end
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt');
         if(strcmpi(op,'ind16'))
-            opt.B=2^16; a=-[4 4.5 5]; aa=-3:-0.5:-6;
+            opt.B=2^16; a=-[4 5]; aa=-3:-0.5:-6;
         elseif(strcmpi(op,'ind09'))
-            opt.B=2^9; a=-[1.5 2 2.5 3]; aa=-1:-0.5:-4;
+            opt.B=2^9; a=-[1 2 3]; aa=-1:-0.5:-4;
         end
 
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e5; opt.thresh=1e-6;
         m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
-        for k=1:5
+        for k=1:10
             for i=1:length(m)
                 opt.m=m(i); opt.noiseType='poissonLogLink'; opt.matrixType='conv';
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
                 initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
                 fprintf('i=%d, k=%d, min=%d, max=%d\n',i,k,min(y), max(y));
                 
-                if(k==1) continue; end
-
                 %% fit by approximated Gaussian model for known I0
                 % u_max=pNorm(Psit(Phit(y.*log(opt.I0./max(y,1)))),inf);
                 yy=log(opt.I0./max(y,1)); yy=yy.*sqrt(y);

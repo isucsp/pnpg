@@ -519,7 +519,7 @@ if(any(runList==006))
             [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
             initSig=randn(size(initSig));
             initSig=Phit(invEAAt*y)*0+1;
-            fprintf('min=%d, max=%d\n',min(y), max(y));
+            fprintf('min=%d, max=%d, sum(y)=%d\n',min(y), max(y),sum(y));
             u_max=1;
 
             opt.trueAlpha=zeros(size(opt.trueAlpha)); y=y*0;
