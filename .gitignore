@@ -10,6 +10,7 @@
 *.tar
 *.data
 *.mexmac*
+*.html
 wavelet_FISTA/
 DREAM3D-4.2.4912-RHEL6-x86_64/
 ParaView-4.1.0-Linux-64bit/
