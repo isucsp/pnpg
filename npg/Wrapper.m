@@ -32,6 +32,7 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='NPGs';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        % Synthesis version of NPGs
         function out = NPGs_syn(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPGs';
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));

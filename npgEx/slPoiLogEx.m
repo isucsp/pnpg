@@ -82,9 +82,9 @@ switch lower(op)
         if(strcmpi(op,'ind16')) filename = [mfilename '_16.mat']; elseif(strcmpi(op,'ind09')) filename = [mfilename '_09.mat']; end
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end; clear('opt');
         if(strcmpi(op,'ind16'))
-            opt.B=2^16; a=-[4 5]; aa=-3:-0.5:-6;
+            opt.B=2^16; a=-(4:0.1:5); aa=-3:-0.5:-6;
         elseif(strcmpi(op,'ind09'))
-            opt.B=2^9; a=-[1 2 3]; aa=-1:-0.5:-4;
+            opt.B=2^9; a=-(1:0.2:3); aa=-1:-0.5:-4;
         end
 
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
@@ -96,7 +96,7 @@ switch lower(op)
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
                 initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
                 fprintf('i=%d, k=%d, min=%d, max=%d\n',i,k,min(y), max(y));
-                
+
                 %% fit by approximated Gaussian model for known I0
                 % u_max=pNorm(Psit(Phit(y.*log(opt.I0./max(y,1)))),inf);
                 yy=log(opt.I0./max(y,1)); yy=yy.*sqrt(y);
@@ -106,13 +106,13 @@ switch lower(op)
                 %% fit by the unkown I0 log link Poisson model
                 u_max=pNorm(Psit(Phit(y-mean(y))),inf);
 
-                xx=opt; opt.noiseType='poissonLogLink'; opt.u=10.^aa*u_max; opt.thresh=1e-12;
-                gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
-                opt=xx; clear('xx');
+%               xx=opt; opt.noiseType='poissonLogLink'; opt.u=10.^aa*u_max; opt.thresh=1e-12;
+%               gnet    {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
+%               opt=xx; clear('xx');
 
-                xx=opt; opt.noiseType='poissonLogLink0'; opt.u=10.^aa*u_max; opt.thresh=1e-12;
-                gnet0   {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
-                opt=xx; clear('xx');
+%               xx=opt; opt.noiseType='poissonLogLink0'; opt.u=10.^aa*u_max; opt.thresh=1e-12;
+%               gnet0   {i,k}=Wrapper.glmnet(Utils.getMat(Phi,length(initSig)),Utils.getMat(Psi,length(Psit(initSig))),y,initSig,opt);
+%               opt=xx; clear('xx');
 
                 for j=1:length(a)
                     opt.u=10^a(j)*u_max;
@@ -266,7 +266,7 @@ switch lower(op)
 
         filename = [mfilename '_16.mat']; load(filename);
         %filename = [mfilename '_09.mat']; load(filename);
-        K=1;
+        K=10;
         m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
 
         npgRMSE   = mean(Cell.getField(    npg,'RMSE'),3);
@@ -279,16 +279,16 @@ switch lower(op)
         npg0Time  = mean(Cell.getField(   npg0,'time'),3);
         npgs0Time = mean(Cell.getField(  npgs0,'time'),3);
 
-        for k=1:K
-            for i=1:length(m)
-                gnetRMSE (i,k)=min( gnet{i,k}.RMSE(:));
-                gnetTime (i,k)=gnet{i,k}.time;
-                gnet0RMSE(i,k)=min(gnet0{i,k}.RMSE(:));
-                gnet0Time(i,k)=gnet0{i,k}.time;
-            end
-        end
-        gnetRMSE =mean( gnetRMSE,2);
-        gnet0RMSE=mean(gnet0RMSE,2);
+%       for k=1:K
+%           for i=1:length(m)
+%               gnetRMSE (i,k)=min( gnet{i,k}.RMSE(:));
+%               gnetTime (i,k)=gnet{i,k}.time;
+%               gnet0RMSE(i,k)=min(gnet0{i,k}.RMSE(:));
+%               gnet0Time(i,k)=gnet0{i,k}.time;
+%           end
+%       end
+%       gnetRMSE =mean( gnetRMSE,2);
+%       gnet0RMSE=mean(gnet0RMSE,2);
 
         npgsTranRMSE   = npgsRMSE*0;
         npgs0TranRMSE  = npgs0RMSE*0;
@@ -311,15 +311,15 @@ switch lower(op)
         disp([c1(idx1), c2(idx2), c3(idx3), c4(idx4) c7(idx7) c8(idx8)]);
 
         nrow=length(m);
-        figure;
+        rmse_m=figure;
         semilogy(m,       npgRMSE((c1(idx1)-1)*nrow+(1:nrow)'),'r-*'); hold on;
         plot(    m,      npgsRMSE((c2(idx2)-1)*nrow+(1:nrow)'),'r-p');
         plot(    m,      npg0RMSE((c3(idx3)-1)*nrow+(1:nrow)'),'g^-');
         plot(    m,     npgs0RMSE((c4(idx4)-1)*nrow+(1:nrow)'),'gh-');
-        plot(    m,      gnetRMSE(:  ),'b<');
-        plot(    m,     gnet0RMSE(:  ),'bs-');
-        plot(    m,  npgsTranRMSE((c7(idx7)-1)*nrow+(1:nrow)'),'co-');
-        plot(    m, npgs0TranRMSE((c8(idx8)-1)*nrow+(1:nrow)'),'c.-');
+%       plot(    m,      gnetRMSE(:  ),'b<');
+%       plot(    m,     gnet0RMSE(:  ),'bs-');
+%       plot(    m,  npgsTranRMSE((c7(idx7)-1)*nrow+(1:nrow)'),'co-');
+%       plot(    m, npgs0TranRMSE((c8(idx8)-1)*nrow+(1:nrow)'),'c.-');
         legend('npg','npgs','npg0','npgs0','gnet','gnet0','npgsTran','npg0Tran');
 
         figure;
@@ -327,8 +327,8 @@ switch lower(op)
         plot(    m,      npgsTime((c2(idx2)-1)*nrow+(1:nrow)'),'r-p');
         plot(    m,      npg0Time((c3(idx3)-1)*nrow+(1:nrow)'),'g^-');
         plot(    m,     npgs0Time((c4(idx4)-1)*nrow+(1:nrow)'),'gh-');
-        plot(    m,      gnetTime(:  ),'b<');
-        plot(    m,     gnet0Time(:  ),'bs-');
+%       plot(    m,      gnetTime(:  ),'b<');
+%       plot(    m,     gnet0Time(:  ),'bs-');
         legend('npg','npgs','npg0','npgs0','gnet','gnet0');
 
         forSave=[m(:),  npgTime((c1(idx1)-1)*nrow+(1:nrow)'), ...
@@ -339,7 +339,7 @@ switch lower(op)
         %save('time_I0N.data','forSave','-ascii');
 
         filename = [mfilename '_09.mat']; load(filename);
-        K=1;
+        K=10;
         m=[ 200, 300, 400, 500, 600, 700, 800, 900, 1024]; % should go from 200
 
         npgRMSE   = mean(Cell.getField(    npg,'RMSE'),3);
@@ -352,16 +352,16 @@ switch lower(op)
         npg0Time  = mean(Cell.getField(   npg0,'time'),3);
         npgs0Time = mean(Cell.getField(  npgs0,'time'),3);
 
-        for k=1:K
-            for i=1:length(m)
-                gnetRMSE (i,k)=min( gnet{i,k}.RMSE(:));
-                gnetTime (i,k)=gnet{i,k}.time;
-                gnet0RMSE(i,k)=min(gnet0{i,k}.RMSE(:));
-                gnet0Time(i,k)=gnet0{i,k}.time;
-            end
-        end
-        gnetRMSE =mean( gnetRMSE,2);
-        gnet0RMSE=mean(gnet0RMSE,2);
+%       for k=1:K
+%           for i=1:length(m)
+%               gnetRMSE (i,k)=min( gnet{i,k}.RMSE(:));
+%               gnetTime (i,k)=gnet{i,k}.time;
+%               gnet0RMSE(i,k)=min(gnet0{i,k}.RMSE(:));
+%               gnet0Time(i,k)=gnet0{i,k}.time;
+%           end
+%       end
+%       gnetRMSE =mean( gnetRMSE,2);
+%       gnet0RMSE=mean(gnet0RMSE,2);
 
         npgsTranRMSE   = npgsRMSE*0;
         npgs0TranRMSE  = npgs0RMSE*0;
@@ -389,10 +389,26 @@ switch lower(op)
                    npgs0Time((c4(idx4)-1)*nrow+(1:nrow)')];
         
         save('time_I0N.data','forSave','-ascii');
+
+        figure(rmse_m)
+        semilogy(m,       npgRMSE((c1(idx1)-1)*nrow+(1:nrow)'),'r-*'); hold on;
+        plot(    m,      npgsRMSE((c2(idx2)-1)*nrow+(1:nrow)'),'r-p');
+        plot(    m,      npg0RMSE((c3(idx3)-1)*nrow+(1:nrow)'),'g^-');
+        plot(    m,     npgs0RMSE((c4(idx4)-1)*nrow+(1:nrow)'),'gh-');
+%       plot(    m,      gnetRMSE(:  ),'b<');
+%       plot(    m,     gnet0RMSE(:  ),'bs-');
+%       plot(    m,  npgsTranRMSE((c7(idx7)-1)*nrow+(1:nrow)'),'co-');
+%       plot(    m, npgs0TranRMSE((c8(idx8)-1)*nrow+(1:nrow)'),'c.-');
+%       legend('npg','npgs','npg0','npgs0','gnet','gnet0','npgsTran','npg0Tran');
+
+        figure;
+        semilogy(m,       npgTime((c1(idx1)-1)*nrow+(1:nrow)'),'r-*'); hold on;
+        plot(    m,      npgsTime((c2(idx2)-1)*nrow+(1:nrow)'),'r-p');
+        plot(    m,      npg0Time((c3(idx3)-1)*nrow+(1:nrow)'),'g^-');
+        plot(    m,     npgs0Time((c4(idx4)-1)*nrow+(1:nrow)'),'gh-');
+%       plot(    m,      gnetTime(:  ),'b<');
+%       plot(    m,     gnet0Time(:  ),'bs-');
+        legend('npg','npgs','npg0','npgs0','gnet','gnet0');
 end
 end
-
-
-
-
 

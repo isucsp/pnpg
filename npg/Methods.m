@@ -116,6 +116,7 @@ classdef Methods < handle
                     error('unkown selection for initial step');
             end
             if(isnan(t)) t=ones(size(t)); end
+            if(min(t)==0) t=eps; end;
             if(nargout==0) obj.t=min(t); end
         end
         function reset(obj)
