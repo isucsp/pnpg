@@ -13,7 +13,7 @@ function slPoiLinEx(op)
 % Skyline Poisson example, no background noise
 % Vary the number of measurements, with continuation
 
-if(~exist('op','var')) op='plot'; end
+if(~exist('op','var')) op='run'; end
 
 switch lower(op)
     case 'run'

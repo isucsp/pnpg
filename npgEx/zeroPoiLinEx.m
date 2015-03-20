@@ -25,12 +25,15 @@ for i=1:length(m)
 
     initSig=Phit(invEAAt*y)*0+1;
     initSig=max(randn(size(initSig)),0);
-    opt.u=1e-33;
-    opt.u=pNorm(Psit(Phit(ones(size(y)))),inf)*2;
+
+    % the following is the trigger point of whether NPGs returns correct
+    % solution
+    opt.u=pNorm(Psit(Phit(ones(size(y)))),inf)*(1+1e-5);
 
     Tnpgs  =Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt); norm(Tnpgs.alpha)
     Tnpg   =Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt); norm(Tnpg.alpha)
     %Tspiral=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt); norm(Tspiral.alpha)
+    %ret=gauss_stab_proxite_mod(y,Phi,Phit,opt.u, [], Psi, Psit); norm(ret)
 
 end
 
