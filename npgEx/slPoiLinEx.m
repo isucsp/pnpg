@@ -39,6 +39,10 @@ switch lower(op)
                 for j=1:5;
                     opt.u = a(i)*u_max*10^(j-3);
 
+                    dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    if(j==5) return; end
+                    continue
+
                     fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgc   {i,j,k}=Wrapper.NPGc  (Phi,Phit,Psi,Psit,y,initSig,opt);

@@ -35,6 +35,8 @@ classdef Methods < handle
         p = 0;
         ppp = 0;
 
+        % for debug
+        isInDebugMode=false;
     end
     methods (Access = protected)
         % this method can be redefined in the subclasses for an indicator

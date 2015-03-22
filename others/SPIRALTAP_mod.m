@@ -603,11 +603,11 @@ if savedifalpha
 end
 if savetruecost
     out.trueCost=zeros(maxiter+1,1);
-    out.trueCost(iter)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+    out.trueCost(iter)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
 end
 if savestepsize
     out.stepSize=zeros(maxiter+1,1);
-    out.stepSize(iter)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+    out.stepSize(iter)=1./alpha;
 end
 
 if (verbose > 0)
@@ -664,7 +664,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                         noisetype,logepsilon,penalty,WT);
 
                     if savetruecost
-                        out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+                        out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
                     end
                         
                     if ( objective(iter+1) <= (maxpastobjective ...
@@ -692,7 +692,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                         noisetype,logepsilon,penalty,WT);
                 end
                 if savetruecost
-                    out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,0,1e-100)+tau*sum(abs(WT(x)));
+                    out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
                 end
                     
             end
@@ -857,32 +857,32 @@ end
 % = Objective Computation: =
 % ==========================
 function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
-    penalty,varargin)
-% Perhaps change to varargin 
-% 1) Compute log-likelihood:
-switch lower(noisetype)
-    case 'poisson'
-        precompute = y.*log(Ax + bb + logepsilon);
-        objective = sum(Ax(:)+bb(:)) - sum(precompute(:));
-        objective = objective - (sum(y)-sum(y(y>0).*log(y(y>0))));
-    case 'gaussian'
-        objective = sum( (y(:) - Ax(:)).^2)./2;
-end
-% 2) Compute Penalty:
-switch lower(penalty)
-    case 'canonical'
-        objective = objective + sum(abs(tau(:).*x(:)));
-	case 'onb' 
-    	WT = varargin{1};
-        WTx = WT(x);
-        objective = objective + sum(abs(tau(:).*WTx(:)));
-	case 'rdp'
-        todo
-    case 'rdp-ti'
-        todo
-    case 'tv'
-        objective = objective + tau.*tlv(x,'l1');
-end
+        penalty,varargin)
+    % Perhaps change to varargin 
+    % 1) Compute log-likelihood:
+    switch lower(noisetype)
+        case 'poisson'
+            precompute = y.*log(Ax + bb + logepsilon);
+            objective = sum(Ax(:)+bb(:)) - sum(precompute(:));
+            objective = objective - (sum(y)-sum(y(y>0).*log(y(y>0))));
+        case 'gaussian'
+            objective = sum( (y(:) - Ax(:)).^2)./2;
+    end
+    % 2) Compute Penalty:
+    switch lower(penalty)
+        case 'canonical'
+            objective = objective + sum(abs(tau(:).*x(:)));
+        case 'onb' 
+            WT = varargin{1};
+            WTx = WT(x);
+            objective = objective + sum(abs(tau(:).*WTx(:)));
+        case 'rdp'
+            todo
+        case 'rdp-ti'
+            todo
+        case 'tv'
+            objective = objective + tau.*tlv(x,'l1');
+    end
 end
 
 % =====================================

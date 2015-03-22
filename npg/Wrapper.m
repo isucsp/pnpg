@@ -104,8 +104,8 @@ classdef Wrapper < handle
         end
         function out = gaussStabProxite(Phi,Phit,Psi,Psit,y,xInit,opt)
             tic;
-            out.alpha=gauss_stab_proxite_mod(y,Phi,Phit,opt.u, [], Psi, Psit);
-            out.time=toc;
+            out.alpha=gauss_stab_proxite_mod(y,Phi,Phit,opt.u,0.01,Psi,Psit,10);
+            out.time =toc;
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
             out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/trueAlphaNorm;
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));

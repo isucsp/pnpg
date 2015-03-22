@@ -58,9 +58,9 @@ classdef NPG < Methods
                         incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    newX = y - obj.grad/obj.t;
                     [newX,obj.innerSearch] = obj.adaptiveADMM(obj.Psi,obj.Psit,...
-                        newX,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+                        y-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
+                        obj.isInDebugMode);
                     % newX = constrainedl2l1denoise(newX,obj.Psi,obj.Psit,obj.u./obj.t,0,...
                     %      1,1e2,1,obj.admmTol*obj.difAlpha);
                     obj.newCost=obj.func(newX);
@@ -141,15 +141,19 @@ classdef NPG < Methods
         end
     end
     methods(Static)
-        function [alpha,pppp] = adaptiveADMM(Psi,Psit,newX,u,absTol,maxItr)
+        function [alpha,pppp] = adaptiveADMM(Psi,Psit,newX,u,absTol,maxItr,isInDebugMode)
             % solve 0.5*||α-a||_2 + I(α>=0) + u*||Ψ'*α||_1
             % a is newX;
             % start an ADMM inside the FISTA
-            if(~exist('absTol','var')) absTol=1e-6; end
-            if(~exist('maxItr','var')) maxItr=1e3;  end
+            if((~exist('absTol','var')) || isempty(absTol)) absTol=1e-6; end
+            if((~exist('maxItr','var')) || isempty(maxItr)) maxItr=1e3;  end
+            if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
             % this makes sure the convergence criteria is nontrival
             absTol=min(1e-3,absTol);
-            % if(nargin>5)  figure(123); figure(125);  end
+            if(isInDebugMode)
+                figure(123);
+                costRef=0.5*sqrNorm(max(newX,0)-newX)+u*pNorm(Psit(max(newX,0)),1);
+            end
             alpha=newX; Psi_s=alpha; y1=0; rho=1; cnt=0;
 
             pppp=0;
@@ -171,14 +175,12 @@ classdef NPG < Methods
                 residual = pNorm(Psi_s-alpha);
                 alphaNorm = pNorm(alpha);
 
-                % if(nargin>5)
-                %     set(0,'CurrentFigure',123);
-                %     semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,residual,'b.'); hold on;
-                %     drawnow;
-                %     set(0,'CurrentFigure',125);
-                %     semilogy(pppp,0.5*sqrNorm(alpha-newX)+u*pNorm(Psit(alpha),1),'g.'); hold on;
-                %     drawnow;
-                % end
+                if(isInDebugMode)
+                    set(0,'CurrentFigure',123);
+                    semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,residual,'b.'); hold on;
+                    drawnow;
+                    cost(pppp)=0.5*sqrNorm(alpha-newX)+u*pNorm(Psit(alpha),1);
+                end
 
                 if(pppp>maxItr) break; end
                 if(difAlpha<=absTol*alphaNorm && residual<=absTol*alphaNorm) break; end
@@ -190,6 +192,13 @@ classdef NPG < Methods
                     end
                 end
             end 
+            if(isInDebugMode)
+                figure;
+                semilogy(cost-min(cost),'g.'); hold on;
+                figure;
+                semilogy(cost,'b'); hold on;
+                semilogy(ones(size(cost))*costRef,'r');
+            end
             % end of the ADMM inside the FISTA
         end
         function [alpha,pppp] = innerADMM_v4(Psi,Psit,newX,u,absTol,rho,maxItr)

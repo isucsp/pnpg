@@ -224,14 +224,14 @@ switch lower(op)
             npglwRMSE(i,k) = min(npglwFull{i,k}.contRMSE);
             npgslwRMSE(i,k) = min(npgslwFull{i,k}.contRMSE);
 
-            npgRec(i,k)=         aa(min(find(          npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
-            npgsRec(i,k)=         aa(min(find(         npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
-            npg0Rec(i,k)=         aa(min(find(  npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
-            npgs0Rec(i,k)=         aa(min(find( npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
-            npglwRec(i,k)=         aa(min(find(        npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
-            npgslwRec(i,k)=         aa(min(find(       npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
-            glmnetRec(i,k)=gnet{i,k}.a(min(find(             gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
-            glmnet0Rec(i,k)=gnet0{i,k}.a(min(find(             gnet0{i,k}.RMSE    ==  gnet0RMSE(i,k))));
+            npgRec    (i,k)=          aa(min(find(         npgFull{i,k}.contRMSE==   npgRMSE(i,k))));
+            npgsRec   (i,k)=          aa(min(find(        npgsFull{i,k}.contRMSE==  npgsRMSE(i,k))));
+            npg0Rec   (i,k)=          aa(min(find( npgFull_knownI0{i,k}.contRMSE==  npg0RMSE(i,k))));
+            npgs0Rec  (i,k)=          aa(min(find(npgsFull_knownI0{i,k}.contRMSE== npgs0RMSE(i,k))));
+            npglwRec  (i,k)=          aa(min(find(       npglwFull{i,k}.contRMSE== npglwRMSE(i,k))));
+            npgslwRec (i,k)=          aa(min(find(      npgslwFull{i,k}.contRMSE==npgslwRMSE(i,k))));
+            glmnetRec (i,k)= gnet{i,k}.a(min(find(            gnet{i,k}.RMSE    ==  gnetRMSE(i,k))));
+            glmnet0Rec(i,k)=gnet0{i,k}.a(min(find(           gnet0{i,k}.RMSE    == gnet0RMSE(i,k))));
         end
         figure;
         semilogy(m,   npgRMSE(:,k),'r-*'); hold on;
@@ -244,11 +244,11 @@ switch lower(op)
         % plot(    m, npgslRMSE,'bp-');
         legend('npg','npgs','npg0','npgs0','glmnet','glmnet0');
         disp([mean(    npgRec,2), ...
-            mean(   npgsRec,2), ...
-            mean(   npg0Rec,2), ...
-            mean(  npgs0Rec,2), ...
-            mean( glmnetRec,2), ...
-            mean(glmnet0Rec,2)]);
+              mean(   npgsRec,2), ...
+              mean(   npg0Rec,2), ...
+              mean(  npgs0Rec,2), ...
+              mean( glmnetRec,2), ...
+              mean(glmnet0Rec,2)]);
 
         forSave=[ forSave, npgRMSE(:,k), ...
             npgsRMSE(:,k), ...
