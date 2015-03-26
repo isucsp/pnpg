@@ -19,7 +19,7 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt');
+        clear('opt'); filename = [mfilename '.mat'];
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
         opt.noiseType='poisson'; opt.matrixType='nonneg'; opt.snr=1e7;
@@ -39,6 +39,7 @@ switch lower(op)
                 for j=1:5;
                     opt.u = a(i)*u_max*10^(j-3);
 
+                    % This method by Dupe etc 2009 seems not working at all
                     dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                     if(j==5) return; end
                     continue

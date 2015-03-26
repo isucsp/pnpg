@@ -20,15 +20,15 @@ switch lower(op)
         % PET example
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt');
+        clear('opt'); filename = [mfilename '.mat'];
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
         K=12;
 
-        a  = [0, 0, 0, 0, 0, -1];
-        as = [2, 2, 2, 1, 1,  1];
+        a  = [0, 0, 0, 1, 1, 1];
+        as = [2, 2, 2, 1, 1, 1];
         aa = (3:-0.5:-6);
 
         for k=1:K
@@ -46,26 +46,31 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.alpha,0);
                 %initSig=opt.trueAlpha;
 
-                if(k>2) return; end
-
-%               opt.fullcont=true;
-%               opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-12;
-%               npgFull {i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
+                if(k==2) save(filename); return; end
+                opt.fullcont=true;
+                opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-6;
+%               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
 %               fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
-%               opt.fullcont=false;
+                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgsFull{i,k};
+                fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
+                opt.fullcont=false;
+                continue; 
 
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
                 opt.u = 10^a(i)*u_max;
 
-                if(i<5) continue;  end
+                if(i<5) continue; end
 
                 npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 keyboard
+                npgs_s =Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                keyboard
 %               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                keyboard
                 if(i==5 && k==2)
-                    npgsc_s=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgsc_s  =Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
 
                 opt.u = 10^as(i)*u_max;
@@ -150,39 +155,46 @@ switch lower(op)
             fbpRMSE, count(:)];
         save('varyCntPET.data','forSave','-ascii');
 
-        forSave=[]; t=0; mIdx=5;
-        out=  npgc{mIdx,1,1};
+        forSave=[]; t=0; mIdx=5; k=2;
+        out=  npgc{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=   npg{mIdx,1,1};
+        out=   npg{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=spiral{mIdx,1,1};
+        out=spiral{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgs{mIdx,1,1};
+        out=npgs{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgsc{mIdx,1,1};
+        out=npgsc_s;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
 
         save('cost_itrPET.data','forSave','-ascii');
-        mincost=reshape(forSave(:,[1,4,7]),[],1); 
+        if(mIdx==5 && k==2)
+            mincost=reshape(forSave(:,[1,4,13]),[],1); 
+        else
+            mincost=reshape(forSave(:,[1,4]),[],1); 
+        end
         mincost=min(mincost(mincost~=0));
 
         figure;
         semilogy(forSave(:,3),forSave(:,1)-mincost,'r'); hold on;
         semilogy(forSave(:,6),forSave(:,4)-mincost,'g');
         semilogy(forSave(:,9),forSave(:,7)-mincost,'b');
-        semilogy(forSave(:,12),forSave(:,10)-mincost,'k-.');
-        semilogy(forSave(:,15),forSave(:,13)-mincost,'c:');
-        legend('npgc','npg','spiral','npgs','npgsc');
+        if(mIdx==5 && k==2)
+            semilogy(forSave(:,15),forSave(:,13)-mincost,'c:');
+            legend('npgc','npg','spiral','npgsc');
+        else
+            legend('npgc','npg','spiral');
+        end
         figure; semilogy(forSave(:,3),forSave(:,2),'r'); hold on;
         semilogy(forSave(:,6),forSave(:,5),'g'); semilogy(forSave(:,9),forSave(:,8),'b');
         legend('npgc','npg','spiral');
@@ -229,10 +241,8 @@ switch lower(op)
         img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
 
         keyboard
-        system(['mv varyCntPET.data cost_itrPET.data ' paperDir]);
         close all;
 end
-
 
 
 end

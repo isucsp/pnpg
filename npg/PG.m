@@ -13,7 +13,7 @@ classdef PG < Methods
         cumuTol=4;
         newCost;
         nonInc=0;
-        innerSearch
+        innerSearch=0;
         adaptiveStep=true;
         maxInnerItr=100;
     end
@@ -25,7 +25,7 @@ classdef PG < Methods
             obj.Psi = Psi; obj.Psit = Psit;
             obj.nonInc=0;
         end
-        % solves l(α) + I(α>=0) + u*||Ψ'*α||_1
+        % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside IST for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
@@ -33,9 +33,9 @@ classdef PG < Methods
             pp=0; obj.debug='';
             while(pp<obj.maxItr)
                 pp=pp+1;
-                y=obj.alpha;
+                xbar=obj.alpha;
 
-                [oldCost,obj.grad] = obj.func(y);
+                [oldCost,obj.grad] = obj.func(xbar);
 
                 % start of line Search
                 obj.ppp=0; goodStep=true; temp=0; goodMM=true;
@@ -47,11 +47,10 @@ classdef PG < Methods
                         obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
-                    newX = y - obj.grad/obj.t;
                     [newX,obj.innerSearch] = NPG.adaptiveADMM(obj.Psi,obj.Psit,...
-                        newX,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+                        xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
                     obj.newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
+                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
                     if(obj.newCost<=LMM)
                         if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
                             obj.t=obj.t*obj.stepShrnk; continue;
@@ -75,19 +74,17 @@ classdef PG < Methods
                 if(temp>obj.cost)
                     if(goodMM)
                         if(obj.innerSearch<obj.maxInnerItr)
-                            pp=pp-1;
                             obj.difAlpha=0;
                             obj.debug=[obj.debug 'resetDifAlpha'];
-                            continue;
+                            pp=pp-1; continue;
                         else
                             obj.debug=[obj.debug 'forceConverge'];
                             newX=obj.alpha;
                             temp=obj.cost;
                         end
                     else
-                        pp=pp-1;
                         obj.debug=[obj.debug 'falseMonotone'];
-                        continue;
+                        pp=pp-1; continue;
                     end
                 end
                 obj.cost = temp;

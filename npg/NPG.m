@@ -42,11 +42,11 @@ classdef NPG < Methods
             while(pp<obj.maxItr)
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
-                y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                % if(obj.forcePositive) y(y<0)=0; end
+                xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                % if(obj.forcePositive) xbar(xbar<0)=0; end
                 obj.theta = temp; obj.preAlpha = obj.alpha;
 
-                [oldCost,obj.grad] = obj.func(y);
+                [oldCost,obj.grad] = obj.func(xbar);
 
                 % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
@@ -58,14 +58,15 @@ classdef NPG < Methods
                         incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    [newX,obj.innerSearch] = obj.adaptiveADMM(obj.Psi,obj.Psit,...
-                        y-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
-                        obj.isInDebugMode);
-                    % newX = constrainedl2l1denoise(newX,obj.Psi,obj.Psit,obj.u./obj.t,0,...
-                    %      1,1e2,1,obj.admmTol*obj.difAlpha);
+                    [newX_2,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
+                       xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,  obj.maxInnerItr,...
+                       obj.isInDebugMode);
+                  %  newX_2 = constrainedl2l1denoise(xbar-obj.grad/obj.t,obj.Psi,obj.Psit,obj.u./obj.t,0,...
+                  %       1e0,1e2,1,obj.admmTol*obj.difAlpha);
+                    newX=newX_2;
                     obj.newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
-                    if(obj.newCost<=LMM)
+                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
+                    if((LMM-obj.newCost)>=-abs(LMM)*1e-5*0)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -90,9 +91,9 @@ classdef NPG < Methods
                 temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if(temp>obj.cost)
+                if((temp-obj.cost)>abs(obj.cost)*1e-5*0)
                     if(goodMM)
-                        if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
+                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];
@@ -141,142 +142,61 @@ classdef NPG < Methods
         end
     end
     methods(Static)
-        function [alpha,pppp] = adaptiveADMM(Psi,Psit,newX,u,absTol,maxItr,isInDebugMode)
+        function [alpha,pppp] = ADMM(Psi,Psit,a,u,absTol,maxItr,isInDebugMode)
             % solve 0.5*||α-a||_2 + I(α>=0) + u*||Ψ'*α||_1
-            % a is newX;
-            % start an ADMM inside the FISTA
             if((~exist('absTol','var')) || isempty(absTol)) absTol=1e-6; end
             if((~exist('maxItr','var')) || isempty(maxItr)) maxItr=1e3;  end
             if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
             % this makes sure the convergence criteria is nontrival
             absTol=min(1e-3,absTol);
-            if(isInDebugMode)
-                figure(123);
-                costRef=0.5*sqrNorm(max(newX,0)-newX)+u*pNorm(Psit(max(newX,0)),1);
-            end
-            alpha=newX; Psi_s=alpha; y1=0; rho=1; cnt=0;
+            nu=0; rho=1; cnt=0; preS=Psit(a); s=preS;
 
             pppp=0;
             while(true)
                 pppp=pppp+1;
                 cnt= cnt + 1;
 
-                s = Utils.softThresh(Psit(alpha-y1),u/rho);
-                temp=Psi_s; Psi_s = Psi(s);
-                difPsi_s=pNorm(temp-Psi_s);
+                alpha = max((a+rho*Psi(s+nu)),0)/(1+rho); Psit_alpha=Psit(alpha);
+                s = Utils.softThresh(Psit_alpha-nu,u/rho);
+                nu=nu+s-Psit_alpha;
 
-                temp = alpha;
-                alpha = (newX+rho*(Psi_s+y1))/(1+rho);
-                alpha(alpha<0)=0;
-                difAlpha = pNorm(temp-alpha);
-
-                y1 = y1 + (Psi_s-alpha);
-
-                residual = pNorm(Psi_s-alpha);
-                alphaNorm = pNorm(alpha);
-
-                if(isInDebugMode)
-                    set(0,'CurrentFigure',123);
-                    semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,residual,'b.'); hold on;
-                    drawnow;
-                    cost(pppp)=0.5*sqrNorm(alpha-newX)+u*pNorm(Psit(alpha),1);
-                end
+                difS=pNorm(s-preS); preS=s;
+                residual = pNorm(s-Psit_alpha);
+                sNorm = pNorm(s);
 
                 if(pppp>maxItr) break; end
-                if(difAlpha<=absTol*alphaNorm && residual<=absTol*alphaNorm) break; end
+                if(difS<=absTol*sNorm && residual<=absTol*sNorm) break; end
                 if(cnt>10) % prevent back and forth adjusting
-                    if(difAlpha>10*residual)
-                        rho = rho/2 ; y1=y1*2; cnt=0;
-                    elseif(difAlpha<residual/10)
-                        rho = rho*2 ; y1=y1/2; cnt=0;
+                    if(difS>10*residual)
+                        rho = rho/2 ; nu=nu*2; cnt=0;
+                    elseif(difS<residual/10)
+                        rho = rho*2 ; nu=nu/2; cnt=0;
+                    end
+                end
+
+                if(isInDebugMode)
+                    cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
+                    preAlpha=alpha;
+                    if(ppp>1)
+                        difAlpha = pNorm(preAlpha-alpha);
+                        if(~any(get(0,'children')==123)) figure(123); else set(0,'CurrentFigure',123); end
+                        semilogy(pppp,difAlpha,'r.',pppp,difS,'g.',pppp,residual,'b.'); hold on;
+                        title(sprintf('rho=%d',rho));
+                        drawnow;
                     end
                 end
             end 
+            alpha= max(Psi(s),0);
+
             if(isInDebugMode)
+                costRef=0.5*sqrNorm(max(a,0)-a)+u*pNorm(Psit(max(a,0)),1);
                 figure;
                 semilogy(cost-min(cost),'g.'); hold on;
                 figure;
                 semilogy(cost,'b'); hold on;
                 semilogy(ones(size(cost))*costRef,'r');
             end
-            % end of the ADMM inside the FISTA
-        end
-        function [alpha,pppp] = innerADMM_v4(Psi,Psit,newX,u,absTol,rho,maxItr)
-            % solve 0.5*||α-a||_2 + I(α>=0) + u*||Ψ'*α||_1
-            % a is newX;
-            % start an ADMM inside the FISTA
-            if(~exist('absTol','var')) absTol=1e-12; end
-            % this makes sure the convergence criteria is nontrival
-            absTol=min(1e-3,absTol);
-            alpha=newX; Psi_s=alpha; y1=0;
-
-
-            if(~exist('rho','var')) rho=1; end
-            if(~exist('maxItr','var')) maxItr=1e2; end
-            if(nargin>5) figure(123); figure(125); end
-
-            pppp=0;
-            while(true)
-                pppp=pppp+1;
-
-                s = Utils.softThresh(Psit(alpha+y1),u/rho);
-                temp=Psi_s; Psi_s = Psi(s);
-                difPsi_s=relativeDif(temp,Psi_s);
-
-                temp = alpha;
-                alpha = (newX+rho*(Psi_s-y1))/(1+rho);
-                alpha(alpha<0)=0;
-                difAlpha = relativeDif(temp,alpha);
-
-                y1 = y1 - (Psi_s-alpha);
-
-                if(nargin>5)
-                    set(0,'CurrentFigure',123);
-                    semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,relativeDif(Psi_s,alpha),'b.'); hold on;
-                    drawnow;
-                    set(0,'CurrentFigure',125);
-                    semilogy(pppp,0.5*sqrNorm(alpha-newX)+u*pNorm(Psit(alpha),1),'b.'); hold on;
-                    drawnow;
-                end
-
-                if(pppp>maxItr) break; end
-                if(difAlpha<=absTol && difPsi_s<=absTol) break; end
-            end
-            % end of the ADMM inside the FISTA
-        end
-        function p = innerADMM_v5(Psi,Psit,newX,u,absTol)
-            % solve 0.5*||α-α_0||_2 + u*||Ψ'*α||_1 + I(α>=0) 
-            % α_0 is newX;
-            % start an ADMM inside the FISTA
-            if(~exist('absTol','var')) absTol=1e-12; end
-            alpha=newX; p=alpha; p(p<0)=0; y1=alpha-p;
-            rho=1; pppp=0;
-            %if(debug) absTol=1e-16; end
-            %while(pppp<1)
-            while(true)
-                pppp=pppp+1;
-                temp = alpha;
-                alpha = (newX+rho*(p-y1));
-                alpha = Psi(Utils.softThresh(Psit(alpha),u))/(1+rho);
-                difAlpha = relativeDif(temp,alpha);
-
-                temp=p; p=alpha+y1; p(p<0)=0;
-                difP=relativeDif(temp,p);
-
-                y1 = y1 +alpha-p;
-
-                if(debug)
-                    da(pppp)=difAlpha;
-                    dp(pppp)=difP;
-                    dap(pppp)=pNorm(alpha-p);
-                    ny(pppp) = pNorm(y1);
-                    co(pppp) = 0.5*sqrNorm(newX-p)+u*pNorm(Psit(p),1);
-                end
-
-                if(pppp>1e2) break; end
-                if(difAlpha<=absTol && difP<=absTol) break; end
-            end
-            % end of the ADMM inside the FISTA
+            % end of the ADMM inside the NPG
         end
     end
 end

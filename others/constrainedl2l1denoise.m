@@ -1,5 +1,5 @@
 function x = constrainedl2l1denoise(y,W,WT,tau,mu,miniter,maxiter,...
-    stopcriterion,tolerance,f)
+    stopcriterion,tolerance)
 % For now, the tolerance is the relative duality gap, and is the only
 % convergence criterion implemented
 % Also, in the future it would be good to output the number of nonzeros

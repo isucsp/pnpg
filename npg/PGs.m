@@ -32,10 +32,10 @@ classdef PGs < Methods
             pp=0; obj.debug='';
             while(pp<obj.maxItr)
                 pp=pp+1;
-                y=obj.alpha;
+                xbar=obj.alpha;
 
-                [oldCost,obj.grad] = obj.func(y);
-                si = obj.Psit(y); dsi = obj.Psit(obj.grad);
+                [oldCost,obj.grad] = obj.func(xbar);
+                si = obj.Psit(xbar); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
                 obj.ppp=0; goodStep=true; temp=0; goodMM=true;
@@ -51,7 +51,7 @@ classdef PGs < Methods
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
+                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
                     if(obj.newCost<=LMM)
                         if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
                             obj.t=obj.t*obj.stepShrnk; continue;

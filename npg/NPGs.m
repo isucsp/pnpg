@@ -32,11 +32,11 @@ classdef NPGs < Methods
             while(pp<obj.maxItr)
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
-                y=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
                 obj.theta = temp; obj.preAlpha = obj.alpha;
 
-                [oldCost,obj.grad] = obj.func(y);
-                si = obj.Psit(y); dsi = obj.Psit(obj.grad);
+                [oldCost,obj.grad] = obj.func(xbar);
+                si = obj.Psit(xbar); dsi = obj.Psit(obj.grad);
 
                 % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
@@ -48,19 +48,18 @@ classdef NPGs < Methods
                         incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    wi=si-dsi/obj.t;
-                    newSi=Utils.softThresh(wi,obj.u/obj.t);
+                    newSi=Utils.softThresh(si-dsi/obj.t,obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
-                    if(obj.newCost<=LMM)
-                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep)
+                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
+                    if((LMM-obj.newCost)>=0)
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
                             break;
                         end
                     else
-                        if(obj.ppp<=20)
+                        if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
                                 obj.cumuTol=obj.cumuTol+4;
@@ -78,9 +77,9 @@ classdef NPGs < Methods
                 temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if(temp>obj.cost)
+                if((temp-obj.cost)>0)
                     if(goodMM)
-                        if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
+                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];

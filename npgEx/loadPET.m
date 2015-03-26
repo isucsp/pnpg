@@ -44,7 +44,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
     % noisy measurements
     proj = G * xtrue;
     li = G * mumap;
-    printm('Maximum line integral = %g', max(li(:)))
+    % printm('Maximum line integral = %g', max(li(:)))
     if ~isvar('f.count'), f.count = totalCnt; end
     % detector efficiency variations per CTI 931 PET scanner
     ci = exp(0.3 * randn(size(proj)));

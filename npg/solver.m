@@ -211,6 +211,7 @@ while(true)
         alphaStep.t=min(alphaStep.t,temp);
     end
     
+    %if(p>273) keyboard; end
     alphaStep.main();
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
