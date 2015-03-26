@@ -46,29 +46,29 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.alpha,0);
                 %initSig=opt.trueAlpha;
 
-                if(k==2) save(filename); return; end
-                opt.fullcont=true;
-                opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-6;
+%               if(k==2) save(filename); return; end
+%               opt.fullcont=true;
+%               opt.u=(10.^aa)*u_max; opt.maxItr=1e4; opt.thresh=1e-6;
 %               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
 %               fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
-                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgsFull{i,k};
-                fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
-                opt.fullcont=false;
-                continue; 
+%               npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgsFull{i,k};
+%               fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
+%               opt.fullcont=false;
+%               continue; 
 
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
                 opt.u = 10^a(i)*u_max;
 
-                if(i<5) continue; end
-
                 npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                keyboard
-                npgs_s =Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                keyboard
-%               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                keyboard
+                if(i>3)
+                    spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                end
+                save(filename);
+                continue
+
+                npgs_s =Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 if(i==5 && k==2)
                     npgsc_s  =Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end

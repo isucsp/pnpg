@@ -58,12 +58,13 @@ classdef NPG < Methods
                         incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    [newX_2,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
-                       xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,  obj.maxInnerItr,...
-                       obj.isInDebugMode);
-                  %  newX_2 = constrainedl2l1denoise(xbar-obj.grad/obj.t,obj.Psi,obj.Psit,obj.u./obj.t,0,...
-                  %       1e0,1e2,1,obj.admmTol*obj.difAlpha);
-                    newX=newX_2;
+
+                    [newX,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
+                        xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
+                        obj.isInDebugMode);
+                  % [newX,obj.innerSearch] = constrainedl2l1denoise(xbar-obj.grad/obj.t,...
+                  %     obj.Psi,obj.Psit,obj.u./obj.t,0,...
+                  %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
                     if((LMM-obj.newCost)>=-abs(LMM)*1e-5*0)
@@ -164,6 +165,19 @@ classdef NPG < Methods
                 residual = pNorm(s-Psit_alpha);
                 sNorm = pNorm(s);
 
+                if(isInDebugMode)
+                    cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
+                    cost1(pppp)=0.5*sqrNorm(alpha-a)+u*pNorm(Psit_alpha,1);
+                    if(pppp>1)
+                        difAlpha = pNorm(preAlpha-alpha);
+                        if(~any(get(0,'children')==123)) figure(123); else set(0,'CurrentFigure',123); end
+                        semilogy(pppp,difAlpha/sNorm,'r.',pppp,difS/sNorm,'g.',pppp,residual/sNorm,'b.'); hold on;
+                        title(sprintf('rho=%d',rho));
+                        drawnow;
+                    end
+                    preAlpha=alpha;
+                end
+
                 if(pppp>maxItr) break; end
                 if(difS<=absTol*sNorm && residual<=absTol*sNorm) break; end
                 if(cnt>10) % prevent back and forth adjusting
@@ -173,28 +187,24 @@ classdef NPG < Methods
                         rho = rho*2 ; nu=nu/2; cnt=0;
                     end
                 end
-
-                if(isInDebugMode)
-                    cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
-                    preAlpha=alpha;
-                    if(ppp>1)
-                        difAlpha = pNorm(preAlpha-alpha);
-                        if(~any(get(0,'children')==123)) figure(123); else set(0,'CurrentFigure',123); end
-                        semilogy(pppp,difAlpha,'r.',pppp,difS,'g.',pppp,residual,'b.'); hold on;
-                        title(sprintf('rho=%d',rho));
-                        drawnow;
-                    end
-                end
             end 
             alpha= max(Psi(s),0);
 
             if(isInDebugMode)
                 costRef=0.5*sqrNorm(max(a,0)-a)+u*pNorm(Psit(max(a,0)),1);
                 figure;
-                semilogy(cost-min(cost),'g.'); hold on;
+                semilogy(cost1-min([cost,cost1]),'r-.'); hold on;
+                semilogy(cost -min([cost,cost1]),'g-'); hold on;
+                title('admm centered obj');
+                legend('alpha','s');
                 figure;
-                semilogy(cost,'b'); hold on;
-                semilogy(ones(size(cost))*costRef,'r');
+                semilogy(cost1(10:end),'r'); hold on;
+                semilogy(cost(10:end),'g'); hold on;
+                semilogy(ones(size(cost))*costRef,'k');
+                title('admm obj');
+                legend('alpha','s','ref');
+                if(~any(get(0,'children')==123)) figure(123); else set(0,'CurrentFigure',123); end
+                legend('difAlpha','difS','residual');
             end
             % end of the ADMM inside the NPG
         end

@@ -39,17 +39,16 @@ switch lower(op)
                 for j=1:5;
                     opt.u = a(i)*u_max*10^(j-3);
 
-                    % This method by Dupe etc 2009 seems not working at all
-                    dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
-                    if(j==5) return; end
-                    continue
-
+                  % % This method by Dupe etc 2009 seems not working at all
+                  % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
+                   
                     fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgc   {i,j,k}=Wrapper.NPGc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    continue
+                    spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgs   {i,j,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgsc  {i,j,k}=Wrapper.NPGsc (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.thresh=1e-8;
                     spiral8{i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=temp;

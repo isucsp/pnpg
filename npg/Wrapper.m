@@ -132,7 +132,7 @@ classdef Wrapper < handle
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 pNorm(Psit(out.alpha),1)];
             out.opt=opt;
-            fprintf('SPIRAL cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+            fprintf('SPIRAL cost=%g, RMSE=%g, cpu time=%g\n',out.cost(end),out.RMSE(end),out.time(end));
         end
 
         function out = SpaRSA(Phi,Phit,Psi,Psit,y,xInit,opt)
@@ -163,7 +163,7 @@ classdef Wrapper < handle
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
             if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-            ppsi = @(xxx,uuu,thrsh) NPG.adaptiveADMM(Psi,Psit,xxx,uuu,thrsh,100);
+            ppsi = @(xxx,uuu,thrsh) NPG.ADMM(Psi,Psit,xxx,uuu,thrsh,100);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             xInit(xInit<0)=0;
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...

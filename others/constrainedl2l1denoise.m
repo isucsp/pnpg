@@ -1,5 +1,5 @@
-function x = constrainedl2l1denoise(y,W,WT,tau,mu,miniter,maxiter,...
-    stopcriterion,tolerance)
+function [x,iter] = constrainedl2l1denoise(y,W,WT,tau,mu,miniter,maxiter,...
+    stopcriterion,tolerance,isInDebugMode)
 % For now, the tolerance is the relative duality gap, and is the only
 % convergence criterion implemented
 % Also, in the future it would be good to output the number of nonzeros
@@ -9,6 +9,7 @@ function x = constrainedl2l1denoise(y,W,WT,tau,mu,miniter,maxiter,...
 % outputs and such...
 
 verbose = 0; % For now, do not output any status
+if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
 
 gamma = zeros(size(y));
 lambda = gamma;
@@ -23,7 +24,15 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     lambda      = max( -W(y + gamma) - mu, 0);
     WTlambda    = WT(lambda);
     theta       = y + gamma + WTlambda;
-    
+
+    if(isInDebugMode)
+        temp=abs(W(theta));
+        cost(iter)=0.5*sqrNorm(temp-W(y))+tau*pNorm(WT(temp),1);
+        if(iter>1)
+            difTheta(iter) = pNorm(preTheta-theta)/pNorm(theta);
+        end
+    end
+
     % Check for convergence
     if iter >= miniter % no need to check if miniter not reached
         switch stopcriterion
@@ -43,20 +52,27 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 if (rel_duality_gap <= tolerance) || isinf(rel_duality_gap)
                     converged = 1;
                 end
+            case 2
+                if(iter>1 && pNorm(preTheta-theta)<=tolerance*max(1,pNorm(theta)))
+                    converged = 1;
+                end
+                preTheta=theta;
         end
     end
     iter = iter + 1;
-
-  % set(0,'CurrentFigure',123);
-  % semilogy(pppp,difPsi_s,'r.',pppp,difAlpha,'g.',pppp,residual,'b.'); hold on;
-  % drawnow;
-  % set(0,'CurrentFigure',125);
-  % semilogy(iter,0.5*sqrNorm(abs(W(theta))-W(y))*0+sum(abs(theta)),'r.'); hold on;
-  % semilogy(iter,f(W(theta)),'ro');
-  % norm(W(WT(W(theta)))-W(theta))
-  % drawnow;
-
 end    
 x = abs(W(theta)); %note, sometimes W returns small negative values
+
+if(isInDebugMode)
+    figure;
+    semilogy(cost-min(cost),'g.'); hold on;
+    title('spiral centered cost');
+    figure;
+    semilogy(cost,'b'); hold on;
+    title('spiral cost');
+    figure;
+    semilogy(difTheta,'b'); hold on;
+    title('spiral diftheta');
+end
 end
 

@@ -47,7 +47,7 @@ classdef PG < Methods
                         obj.cumu=0;
                     end
                     obj.ppp = obj.ppp+1;
-                    [newX,obj.innerSearch] = NPG.adaptiveADMM(obj.Psi,obj.Psit,...
+                    [newX,obj.innerSearch] = NPG.ADMM(obj.Psi,obj.Psit,...
                         xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
