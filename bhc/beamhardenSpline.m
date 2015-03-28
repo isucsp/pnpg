@@ -179,6 +179,8 @@ alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 
 B=eye(opt.E); b=zeros(opt.E,1);
+
+% ???
 if(isfield(opt,'CenterB') && opt.CenterB)
     if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
     temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
