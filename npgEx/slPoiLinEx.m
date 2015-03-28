@@ -5,13 +5,9 @@ function slPoiLinEx(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   v_0.2:      Changed to class oriented for easy configuration
 %
-%                    Skyline log link Poisson Example
-%    vary the number of measurements and inital intensity constatn I_0
-
-% Skyline Poisson example, no background noise
-% Vary the number of measurements, with continuation
+%           Skyline Poisson Linear example, no background noise
+%           Vary the number of measurements, with continuation
 
 if(~exist('op','var')) op='run'; end
 
@@ -23,6 +19,7 @@ switch lower(op)
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
         opt.noiseType='poisson'; opt.matrixType='nonneg'; opt.snr=1e7;
+        opt.contShrnk=0.1;
         m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
         a=[1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3];
         aa =10.^(3:-1:-10);
@@ -43,15 +40,17 @@ switch lower(op)
                   % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                    
                     fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
-                    npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npgc   {i,j,k}=Wrapper.NPGc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    continue
+                    if(i==2 && j==4 && k==1) 
                     spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npgs   {i,j,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npgsc  {i,j,k}=Wrapper.NPGsc (Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.thresh=1e-8;
                     spiral8{i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=temp;
+                end
+                    continue
+                    npgc   {i,j,k}=Wrapper.NPGc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgs   {i,j,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgsc  {i,j,k}=Wrapper.NPGsc (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
                 save(filename);
             end
@@ -117,9 +116,9 @@ switch lower(op)
         legend('npg','npgs','spiral','npgc','npgsc','spiral8');
 
         figure;
-        semilogy(m,    npgTime(:,aIdx),'r-*'); hold on;
-        semilogy(m,   npgsTime(:,aIdx),'c-p');
-        semilogy(m, spiralTime(:,aIdx),'k-^');
+        semilogy(m,    npgTime(:,aIdx),'r-*' ); hold on;
+        semilogy(m,   npgsTime(:,aIdx),'c-p' );
+        semilogy(m, spiralTime(:,aIdx),'k-^' );
         semilogy(m,   npgcTime(:,aIdx),'k*-.');
         semilogy(m,  npgscTime(:,aIdx),'bs-.');
         semilogy(m,spiral8Time(:,aIdx),'go-.');
@@ -144,7 +143,6 @@ switch lower(op)
         fprintf('SPIRAL: %g%%\n',        spiral{temp,4,1}.RMSE(end)*100);
         fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{temp,3,1}.RMSE(end)*100,rmseTruncate( npgs{temp,3,1})*100);
         fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{temp,3,1}.RMSE(end)*100,rmseTruncate(npgsc{temp,3,1})*100);
-        system(['mv skylinePoisson.data ' paperDir]);
 
         forSave=[]; t=0; mIdx=2;
         out=  npgc{mIdx,aIdx,1};
@@ -167,7 +165,7 @@ switch lower(op)
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=spiral8{mIdx,aIdx,1};
+        out=spiral8{mIdx,aIdx,1}; keyboard
         q=(1:max(find(spiral8{mIdx,aIdx}.cost(:)>=spiral{mIdx,aIdx}.cost(end))))';
         t=t+1; forSave(1:length(out.cost(q)),t)=out.cost(q);
         t=t+1; forSave(1:length(out.RMSE(q)),t)=out.RMSE(q);
@@ -244,7 +242,8 @@ switch lower(op)
         save('rmseVsAPoisson.data','forSave','-ascii');
         save('timeVsAPoisson.data','forTime','-ascii');
 
-        system(['mv varyMeasurementPoisson.data cost_itr.data ' paperDir]);
+        system(['mv rmseVsAPoisson.data timeVsAPoisson.data varyMeasurementPoisson.data cost_itr.data ' paperDir]);
+        system(['mv skylinePoisson.data ' paperDir]);
 
     case 'test'  % run to get good choice of a
         filename = [mfilename '_test.mat'];

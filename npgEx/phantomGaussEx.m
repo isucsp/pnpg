@@ -58,55 +58,55 @@ switch lower(op)
 
                     if(j~=1 && (i~=3)) continue; end
 
-                    %           temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
-                    %           npgsFull{i,j}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           npgFull{i,j}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           out=npgFull{i,j}; oRSE=[out.contRMSE(:); out.RMSE(end)];
-                    %           fprintf('npg: i=%d, j=%d, good a = 1e%g\n',i,j,max(aa(oRSE==min(oRSE))));
-                    %           out=npgsFull{i,j}; oRSE=[out.contRMSE(:); out.RMSE(end)];
-                    %           fprintf('npgs: i=%d, j=%d, good a = 1e%g\n',i,j,max(aa(oRSE==min(oRSE))));
-                    %           opt=temp;
-                    %           save(filename); continue;
+%                   temp=opt; opt.fullcont=true; opt.u=10.^aa*u_max;
+%                   npgsFull{i,j}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npgFull{i,j}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   out=npgFull{i,j}; oRSE=[out.contRMSE(:); out.RMSE(end)];
+%                   fprintf('npg: i=%d, j=%d, good a = 1e%g\n',i,j,max(aa(oRSE==min(oRSE))));
+%                   out=npgsFull{i,j}; oRSE=[out.contRMSE(:); out.RMSE(end)];
+%                   fprintf('npgs: i=%d, j=%d, good a = 1e%g\n',i,j,max(aa(oRSE==min(oRSE))));
+%                   opt=temp;
+%                   save(filename); continue;
 
-                    %           tic
-                    %           fbp{i,j,k}.img=conf.FBP(conf.y);
-                    %           fbp{i,j,k}.time=toc;
-                    %           fbp{i,j,k}.alpha=fbp{i,j,k}.img(opt.mask~=0);
-                    %           fbp{i,j,k}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j,k}.alpha))/sqrNorm(conf.y);
-                    %           fbp{i,j,k}.RMSE=sqrNorm(fbp{i,j,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-                    %           fprintf('fbp RMSE=%g\n',fbp{i,j,k}.RMSE);
+%                   tic
+%                   fbp{i,j,k}.img=conf.FBP(conf.y);
+%                   fbp{i,j,k}.time=toc;
+%                   fbp{i,j,k}.alpha=fbp{i,j,k}.img(opt.mask~=0);
+%                   fbp{i,j,k}.RSE=sqrNorm(conf.y-conf.Phi(fbp{i,j,k}.alpha))/sqrNorm(conf.y);
+%                   fbp{i,j,k}.RMSE=sqrNorm(fbp{i,j,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+%                   fprintf('fbp RMSE=%g\n',fbp{i,j,k}.RMSE);
 
                     opt.u = 10^a(j,i)*u_max;
-                    %           fpc   {i,j,k}=Wrapper.FPC    (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           fista {i,j,k}=Wrapper.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           fpcas {i,j,k}=Wrapper.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   fpc   {i,j,k}=Wrapper.FPC    (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   fista {i,j,k}=Wrapper.FISTA  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   fpcas {i,j,k}=Wrapper.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
 
-                    %           if(k>5)
-                    %           fpcas {i,j,k}=Wrapper.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           npg   {i,j,k}=Wrapper.NPG    (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           end
+%                   if(k>5)
+%                   fpcas {i,j,k}=Wrapper.FPCas  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npg   {i,j,k}=Wrapper.NPG    (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   end
 
-                    %           npgs  {i,j,k}=Wrapper.NPGs   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           npgsSy{i,j,k}=Wrapper.NPGs_syn(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           npgc  {i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           npgsc {i,j,k}=Wrapper.NPGsc  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           sparsa{i,j,k}=Wrapper.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           sparsn{i,j,k}=Wrapper.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                    %           spiral{i,j,k}=Wrapper.SPIRAL (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npgs  {i,j,k}=Wrapper.NPGs   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npgsSy{i,j,k}=Wrapper.NPGs_syn(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npgc  {i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   npgsc {i,j,k}=Wrapper.NPGsc  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   sparsa{i,j,k}=Wrapper.SpaRSA (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   sparsn{i,j,k}=Wrapper.SpaRSAp(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                   spiral{i,j,k}=Wrapper.SPIRAL (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
 
                     if(k==1 && j==1 && i==3)
                         temp=opt; opt.thresh=1e-12;
 
-                        %               npgc_special1{i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
                         npg12{i,j,k}=Wrapper.NPG   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                        %               spiral12{i,j,k}=Wrapper.SPIRAL   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                        %               sparsn12{i,j,k}=Wrapper.SpaRSAp  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                        %               sparsa12{i,j,k}=Wrapper.SpaRSA   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       npgc_special1{i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       spiral12{i,j,k}=Wrapper.SPIRAL   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       sparsn12{i,j,k}=Wrapper.SpaRSAp  (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       sparsa12{i,j,k}=Wrapper.SpaRSA   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
 
                         opt.u=opt.u*1e-4;
 
-                        %               npgc_special2{i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                        %               spiral_special2{i,j,k}=Wrapper.SPIRAL   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       npgc_special2{i,j,k}=Wrapper.NPGc   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+%                       spiral_special2{i,j,k}=Wrapper.SPIRAL   (conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
 
                         opt=temp;
                     else
@@ -159,14 +159,14 @@ switch lower(op)
         sparsaRMSE= mean(Cell.getField(sparsa(:,:,1:K),'RMSE'),3);
         sparsnRMSE= mean(Cell.getField(sparsn(:,:,1:K),'RMSE'),3);
 
-        %   K=5;
-        %   npgTime   = mean(Cell.getField(   npg(:,:,1:K),'time'),3);
-        %   fpcasTime = mean(Cell.getField( fpcas(:,:,1:K),'time'),3);
-        %   npgCost   = mean(Cell.getField(   npg(:,:,1:K),'cost'),3);
-        %   fpcasCost = mean(Cell.getField( fpcas(:,:,1:K),'f'),3);
-        %   npgRMSE   = mean(Cell.getField(   npg(:,:,1:K),'RMSE'),3);
-        %   fpcasRMSE = mean(Cell.getField( fpcas(:,:,1:K),'RMSE'),3);
-        %   K=2;
+%       K=5;
+%       npgTime   = mean(Cell.getField(   npg(:,:,1:K),'time'),3);
+%       fpcasTime = mean(Cell.getField( fpcas(:,:,1:K),'time'),3);
+%       npgCost   = mean(Cell.getField(   npg(:,:,1:K),'cost'),3);
+%       fpcasCost = mean(Cell.getField( fpcas(:,:,1:K),'f'),3);
+%       npgRMSE   = mean(Cell.getField(   npg(:,:,1:K),'RMSE'),3);
+%       fpcasRMSE = mean(Cell.getField( fpcas(:,:,1:K),'RMSE'),3);
+%       K=2;
 
         figure;
         semilogy(prjFull/2,   npgRMSE(:,1),'r-*'); hold on;

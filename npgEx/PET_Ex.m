@@ -5,13 +5,10 @@ function PET_Ex(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   v_0.2:      Changed to class oriented for easy configuration
 %
-%                    Skyline log link Poisson Example
-%    vary the number of measurements and inital intensity constatn I_0
-
-% PET example, with background noise b
-% Vary the total counts of the measurements, with continuation
+%
+%                  PET example, with background noise b
+%      Vary the total counts of the measurements, with continuation
 
 if(~exist('op','var')) op='run'; end
 
@@ -25,15 +22,16 @@ switch lower(op)
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
-        K=12;
+        K=3;
 
-        a  = [0, 0, 0, 1, 1, 1];
-        as = [2, 2, 2, 1, 1, 1];
+        a  = [-0.5,  0,  0, 0.5, 0.5, 1];
+        as = [   2,  2,  2, 0.5, 0.5, 1];
         aa = (3:-0.5:-6);
 
         for k=1:K
             for i=1:length(count)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
+
                 fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),opt.mask~=0);
                 fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
 
@@ -58,24 +56,16 @@ switch lower(op)
 
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,j,k);
+                opt.contShrnk=0.1;
+
                 opt.u = 10^a(i)*u_max;
-
-                npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                if(i>3)
-                    spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-                end
-                save(filename);
-                continue
-
-                npgs_s =Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                if(i==5 && k==2)
-                    npgsc_s  =Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                end
+                npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt.u = 10^as(i)*u_max;
-%               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               % following are methods for weighted versions
 %               ty=max(sqrt(y),1);
@@ -106,29 +96,27 @@ switch lower(op)
         fprintf('PET Poisson example\n');
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
-        a  = [0 0 0 0 0 -1];
-        as = [2 2 2 1 1  1];
 
-        K = 12;
+        K = 1:3;
 
-        npgTime   = mean(Cell.getField(   npg(:,:,1:K),'time'),3);
-        npgcTime  = mean(Cell.getField(  npgc(:,:,1:K),'time'),3);
-        npgsTime  = mean(Cell.getField(  npgs(:,:,1:K),'time'),3);
-        npgscTime = mean(Cell.getField( npgsc(:,:,1:K),'time'),3);
-        spiralTime= mean(Cell.getField(spiral(:,:,1:K),'time'),3);
+        npgTime   = mean(Cell.getField(   npg(:,1,K),'time'),3);
+        npgcTime  = mean(Cell.getField(  npgc(:,1,K),'time'),3);
+        npgsTime  = mean(Cell.getField(  npgs(:,1,K),'time'),3);
+        npgscTime = mean(Cell.getField( npgsc(:,1,K),'time'),3);
+        spiralTime= mean(Cell.getField(spiral(:,1,K),'time'),3);
 
-        npgCost   = mean(Cell.getField(   npg(:,:,1:K),'cost'),3);
-        npgcCost  = mean(Cell.getField(  npgc(:,:,1:K),'cost'),3);
-        npgsCost  = mean(Cell.getField(  npgs(:,:,1:K),'cost'),3);
-        npgscCost = mean(Cell.getField( npgsc(:,:,1:K),'cost'),3);
-        spiralCost= mean(Cell.getField(spiral(:,:,1:K),'cost'),3);
+        npgCost   = mean(Cell.getField(   npg(:,1,K),'cost'),3);
+        npgcCost  = mean(Cell.getField(  npgc(:,1,K),'cost'),3);
+        npgsCost  = mean(Cell.getField(  npgs(:,1,K),'cost'),3);
+        npgscCost = mean(Cell.getField( npgsc(:,1,K),'cost'),3);
+        spiralCost= mean(Cell.getField(spiral(:,1,K),'cost'),3);
 
-        fbpRMSE   = mean(Cell.getField(   fbp(:,:,1:K),'RMSE'),3);
-        npgRMSE   = mean(Cell.getField(   npg(:,:,1:K),'RMSE'),3);
-        npgcRMSE  = mean(Cell.getField(  npgc(:,:,1:K),'RMSE'),3);
-        npgsRMSE  = mean(Cell.getField(  npgs(:,:,1:K),'RMSE'),3);
-        npgscRMSE = mean(Cell.getField( npgsc(:,:,1:K),'RMSE'),3);
-        spiralRMSE= mean(Cell.getField(spiral(:,:,1:K),'RMSE'),3);
+        fbpRMSE   = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
+        npgRMSE   = mean(Cell.getField(   npg(:,1,K),'RMSE'),3);
+        npgcRMSE  = mean(Cell.getField(  npgc(:,1,K),'RMSE'),3);
+        npgsRMSE  = mean(Cell.getField(  npgs(:,1,K),'RMSE'),3);
+        npgscRMSE = mean(Cell.getField( npgsc(:,1,K),'RMSE'),3);
+        spiralRMSE= mean(Cell.getField(spiral(:,1,K),'RMSE'),3);
 
         keyboard
 
@@ -155,7 +143,7 @@ switch lower(op)
             fbpRMSE, count(:)];
         save('varyCntPET.data','forSave','-ascii');
 
-        forSave=[]; t=0; mIdx=5; k=2;
+        forSave=[]; t=0; mIdx=5; k=1;
         out=  npgc{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
@@ -178,19 +166,15 @@ switch lower(op)
         t=t+1; forSave(1:length(out.time),t)=out.time;
 
         save('cost_itrPET.data','forSave','-ascii');
-        if(mIdx==5 && k==2)
-            mincost=reshape(forSave(:,[1,4,13]),[],1); 
-        else
-            mincost=reshape(forSave(:,[1,4]),[],1); 
-        end
+        mincost=reshape(forSave(:,[1,4,7]),[],1); 
         mincost=min(mincost(mincost~=0));
 
         figure;
         semilogy(forSave(:,3),forSave(:,1)-mincost,'r'); hold on;
         semilogy(forSave(:,6),forSave(:,4)-mincost,'g');
         semilogy(forSave(:,9),forSave(:,7)-mincost,'b');
-        if(mIdx==5 && k==2)
-            semilogy(forSave(:,15),forSave(:,13)-mincost,'c:');
+        if(mIdx==5 && k==1)
+            semilogy(forSave(:,15),forSave(:,13)-min(max(forSave(:,13),0)),'c:');
             legend('npgc','npg','spiral','npgsc');
         else
             legend('npgc','npg','spiral');
@@ -208,7 +192,7 @@ switch lower(op)
         imwrite(xtrue/max(xtrue(:)),'pet.png');
         imwrite(mumap/max(mumap(:)),'mumap.png');
 
-        idx=5+6;
+        idx=5;
         fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
         fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
         fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
@@ -241,8 +225,10 @@ switch lower(op)
         img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
 
         keyboard
+        paperDir='~/research/myPaper/asilomar2014/'
+        system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);
+        system('rm *_pet.eps *_pet2.eps *_pet2.png');
         close all;
 end
-
 
 end

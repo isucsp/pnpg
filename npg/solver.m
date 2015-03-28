@@ -1,17 +1,34 @@
 function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %solver    Solve a linear problem
 %
-%                          0.5*||Φα-y||^2 + u*||Ψ'α||_1
+%                          0.5*||Φx-y||^2 + u*||Ψ'x||_1
 %
-%   where x can be anything, if opt.nu is set to be positive, x is assumed to be nonnegative.
+%   where u is set through opt.u. The methods provided through option
+%   opt.alphaStep includes:
 %
+%   NPG         Solves the above problem with constrainst: x>=0
+%   NPGs        Solves exactly the above problem without nonnegativity
+%               constraints
+%   PG          The same with NPG, but without Nesterov's acceleration, not
+%               recommended to use.
+%
+%   Parameters
+%   ==========
 %   Phi         The projection matrix implementation function handle
 %   Phit        Transpose of Phi
 %   Psi         Inverse wavelet transform matrix from wavelet coefficients
 %               to image.
-%   Psit        Transpose of Psi
-%   y           Log scale of CT measurement y=-log(I^{mea}/I_0),
-%   xInit       Initial value for the algorithm
+%   Psit        Transpose of Psi, need to have ΨΨ'=I
+%   y           The measurements according to different models:
+%               opt.noiseType='gaussian'
+%                   Ey = Φx, with gaussian noise
+%               opt.noiseType='poisson'
+%                   Ey = Φx+b, with poisson noise, where b is known provided by opt.bb
+%               opt.noiseType='poissonLogLink'
+%                   Ey=I_0 exp(-Φx) with poisson noise, where I_0 is unknown
+%               opt.noiseType='poissonLogLink0'
+%                   Ey=I_0 exp(-Φx) with poisson noise, where I_0 is known
+%   xInit       Initial value for estimation of x
 %   opt         Structure for the configuration of this algorithm (refer to
 %               the code for detail)
 %
@@ -254,7 +271,7 @@ while(true)
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
             temp1=(opt.thresh*qThresh^(log(temp)/lnQU));
-            temp1=max(temp1,1e-5);
+            temp1=max(temp1,opt.thresh*10);
         else
             temp1=opt.thresh;
         end

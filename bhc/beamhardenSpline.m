@@ -16,7 +16,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
-%   v_0.2:      add llAlphaDif to output;
+%   v_0.2:      add alphaDif to output;
 %               add t[123] to output;
 %
 %   todo:       record the # of steps for the line search
