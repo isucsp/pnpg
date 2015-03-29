@@ -72,10 +72,16 @@ if(isfield(opt,'trueAlpha'))
     trueAlphaNorm=norm(opt.trueAlpha);
     switch opt.errorType
         case 0
-            trueAlpha = opt.trueAlpha/trueAlphaNorm;
-            computError= @(xxx) 1-(xxx(:)'*trueAlpha/norm(xxx(:)))^2;
+            trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
+            computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
         case 1
-            computError = @(xxx) (norm(xxx(:)-opt.trueAlpha)/trueAlphaNorm)^2;
+            trueAlphaNorm=sqrNorm(opt.trueAlpha);
+            if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+            computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+        case 2
+            trueAlphaNorm=pNorm(opt.trueAlpha);
+            if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+            computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
     end
 end
 

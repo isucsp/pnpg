@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Mon 16 Feb 2015 07:15:55 PM CST
+% $Revision: 0.3 $ $Date: Sat 28 Mar 2015 10:08:33 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -34,9 +34,15 @@ addpath([pathstr '/others/glmnet_matlab/']);
 addpath([pathstr '/others/fpc/solvers']);
 addpath([pathstr '/others/fpc/solvers/utilities']);
 
-% cd '../prj'
-% %!make clean
-% !make mCPUPrj mParPrj solveTriDiag mGPUPrj 
-% cd(pathstr)
+cd 'prj'
+if(isunix)
+    hasgpu=gpuDevice;
+    !make mCPUPrj mParPrj solveTriDiag
+    if(~isempty(hasgpu))
+        !make mGPUPrj 
+    end
+end
+cd(pathstr)
+
 clear a pathstr;
 

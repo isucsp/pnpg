@@ -324,10 +324,11 @@ classdef Utils < handle
             l1norm=sum(abs(coef(:)));
         end
 
-        function mask = getCircularMask(n)
+        function mask = getCircularMask(n,m)
+            if(nargin==1) m=n; end
             mask = zeros(n);
             [x,y]=meshgrid(0:n-1);
-            idx = sqrt((x-n/2).^2+(y-n/2).^2)<(n/2-1);
+            idx = sqrt((x-n/2).^2+(y-n/2).^2)<(m/2-1);
             mask(idx)=1;
         end
     end

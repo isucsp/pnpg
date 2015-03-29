@@ -80,6 +80,7 @@ classdef Wrapper < handle
         function out = FPCas(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+            if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(isfield(opt,'trueAlpha')) option.trueAlpha=Psit(opt.trueAlpha); end
             if(isfield(opt,'minK')) option.minK=opt.minK; end
             if(isfield(opt,'maxK')) option.maxK=opt.maxK; end
@@ -95,7 +96,20 @@ classdef Wrapper < handle
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 pNorm(Psit(out.alpha),1)];
             if(isfield(opt,'trueAlpha') && ~isfield(out,'RMSE'))
-                out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                switch opt.errorType
+                    case 0
+                        trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
+                        computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+                    case 1
+                        trueAlphaNorm=sqrNorm(opt.trueAlpha);
+                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+                        computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                    case 2
+                        trueAlphaNorm=pNorm(opt.trueAlpha);
+                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+                        computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                end
+                out.RMSE=computError(out.alpha);
             end
             if(~isfield(out,'cost')) out.cost=out.f; end
             if(~isfield(out,'time')) out.time=out.cpu; end

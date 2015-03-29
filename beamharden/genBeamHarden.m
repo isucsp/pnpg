@@ -1,17 +1,17 @@
 function [CTdata, args] = genBeamHarden(varargin)
-    %   Simulate and generate measurements for beamhardening effect
-    %   Parameters includs:
-    %   'symbol'
-    %   'trueImg'
-    %   'spark'
-    %   'epsilon'
-    %   'iota'
-    %   'showImg'
-    %   'saveMat'
-    %   'filename'
-    %
-    %   Author: Renliang Gu (renliang@iastate.edu)
-    %   $Revision: 0.1 $ $Date: Wed 05 Feb 2014 03:09:33 PM CST
+%   Simulate and generate measurements for beamhardening effect
+%   Parameters includs:
+%   'symbol'
+%   'trueImg'
+%   'spark'
+%   'epsilon'
+%   'iota'
+%   'showImg'
+%   'saveMat'
+%   'filename'
+%
+%   Author: Renliang Gu (renliang@iastate.edu)
+%   $Revision: 0.1 $ $Date: Sat 28 Mar 2015 11:17:34 PM CDT
 
     args = parseInputs(varargin{:});
 

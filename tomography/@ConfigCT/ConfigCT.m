@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Tue 25 Nov 2014 03:48:42 PM CST
+% $Revision: 0.2 $ $Date: Sat 28 Mar 2015 10:10:58 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
@@ -62,6 +62,14 @@ classdef ConfigCT < handle
                     obj.maskType = mt;
                     if(nargin>2)
                         obj.PhiMode = ot;
+                    else
+                        if(isunix)
+                            if(~isempty(gpuDevice))
+                                obj.PhiMode='gpuPrj';
+                            else
+                                obj.PhiMode='cpuPrj';
+                            end
+                        end
                     end
                 end
             end
@@ -73,11 +81,14 @@ classdef ConfigCT < handle
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 
             fprintf('Loading data...\n');
-            opt.machine=evalc('!uname -a');
+            opt.machine=system_dependent('getos');
+            opt.hostname=evalc('!hostname');
             switch lower(obj.imageName)
                 case 'phantom_1'
                     loadPhantom_1(obj);
                 case 'phantom'
+                    loadPhantom(obj,opt.snr,opt.noiseType);
+                case 'oneTaichi'
                     loadPhantom(obj,opt.snr,opt.noiseType);
                 case lower('castSim')
                     loadCastSim(obj);
