@@ -331,6 +331,20 @@ classdef Utils < handle
             idx = sqrt((x-n/2).^2+(y-n/2).^2)<(m/2-1);
             mask(idx)=1;
         end
+        function [Psi,Psit] = getPsiPsit(daub,dwt_L,mask,maskk)
+            n=size(mask,1);
+            maskIdx = find(mask~=0);
+            wvltIdx = find(maskk~=0);
+
+            wav=daubcqf(daub);
+
+            %Sampling operator
+            W=@(z) midwt(z,wav,dwt_L);
+            Wt=@(z) mdwt(z,wav,dwt_L);
+
+            Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,n)),maskIdx);
+            Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,n)),wvltIdx);
+        end
     end
 end
 

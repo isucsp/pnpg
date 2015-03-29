@@ -62,3 +62,4 @@ end
 %save('RealCTMaskWvlt_03.mat','maskk');
 %imwrite(maskk,'RealCTMaskWvlt_03.bmp','bmp');
 %figure; showImg(maskk);
+

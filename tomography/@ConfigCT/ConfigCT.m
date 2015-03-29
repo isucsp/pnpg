@@ -4,13 +4,12 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sat 28 Mar 2015 10:10:58 PM CDT
+% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 03:42:32 PM CDT
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
     properties
         imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-        maskType = 'CircleMask'; %'cvxHull'; %'TightMask'; %
 
         PhiMode = 'cpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
         PhiModeGen='cpuPrj'; %'parPrj'; %'basic';
@@ -38,8 +37,6 @@ classdef ConfigCT < handle
         CTdata      % the raw data from the measurement in the matrix form
         I0
         y
-        mask
-        maskk
 
         % for generating polychromatic measurements
         beamharden = true;
@@ -55,26 +52,18 @@ classdef ConfigCT < handle
         % parameters for operators
     end 
     methods
-        function obj = ConfigCT(in,mt,ot)
-            if(nargin>0)
-                obj.imageName = in;
-                if(nargin>1)
-                    obj.maskType = mt;
-                    if(nargin>2)
-                        obj.PhiMode = ot;
-                    else
-                        if(isunix)
-                            if(~isempty(gpuDevice))
-                                obj.PhiMode='gpuPrj';
-                            else
-                                obj.PhiMode='cpuPrj';
-                            end
-                        end
-                    end
+        function obj = ConfigCT(ot)
+            if(nargin>0) obj.PhiMode = ot; end
+        end
+        % whenever set the PhiMode to gpu, test the availability of GPU
+        function set.PhiMode(obj,ot)
+            if(strcmpi(ot,'gpuPrj'))
+                if(gpuDeviceCount==0)
+                    warning('There is no GPU equipped, downgrade to use cpuPrj!')
+                    obj.PhiMode='cpuPrj';
                 end
             end
         end
-
         function opt=setup(obj,opt)
             if(nargin==1) opt=[]; end;
             if(~isfield(opt,'snr')) opt.snr=inf; end
@@ -126,7 +115,7 @@ classdef ConfigCT < handle
             fprintf('Configuration Finished!\n');
         end
 
-        function nufftOps(obj)
+        function nufftOps(obj,mask)
             m_2D=[obj.imgSize, obj.imgSize];
             J=[1,1]*3;                       % NUFFT interpolation neighborhood
             K=2.^ceil(log2(m_2D*2));         % oversampling rate
@@ -146,7 +135,7 @@ classdef ConfigCT < handle
             obj.Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
             obj.FBP=@(s) FBPFunc6(s,theta,obj.Ts);
         end
-        function cpuFanParOps(obj)
+        function cpuFanParOps(obj,mask)
             conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
             conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
             conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
@@ -160,7 +149,7 @@ classdef ConfigCT < handle
             obj.Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
             obj.FBP =@(s) cpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function gpuFanParOps(obj)
+        function gpuFanParOps(obj,mask)
             conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
             conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
             conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
@@ -175,20 +164,21 @@ classdef ConfigCT < handle
             %cpuPrj(0,conf,'config');
             obj.FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function genOperators(obj,PhiMode)
-            switch lower(PhiMode)
+        function genOperators(obj,mask)
+            if(~exist(mask,'var')) mask=zeros(obj.imgSize,obj.imgSize); end
+            switch lower(obj.PhiMode)
                 case 'basic'
-                    nufftOps(obj);
+                    nufftOps(obj,mask);
                 case lower('cpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
-                    cpuFanParOps(obj);
+                    cpuFanParOps(obj,mask);
                 case lower('gpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
-                    gpuFanParOps(obj);
+                    gpuFanParOps(obj,mask);
                 case lower('parPrj')
                     conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
                     conf.theta = (0:obj.prjNum-1)*360/obj.prjFull;
-                    maskIdx = find(obj.mask~=0);
+                    maskIdx = find(mask~=0);
                     obj.Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
                     obj.Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
                     obj.FBP = @(s) FBPFunc7(s,obj.prjFull,obj.prjNum,obj.Ts,maskIdx)*obj.Ts;
@@ -219,7 +209,7 @@ classdef ConfigCT < handle
                 case 'lasso'
                     fprintf('lasso done');
                 otherwise
-                    fprintf('Wrong mode for PhiMode: %s\n',PhiMode);
+                    fprintf('Wrong mode for PhiMode: %s\n',obj.PhiMode);
                     return;
             end
         end
