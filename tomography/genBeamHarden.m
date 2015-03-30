@@ -8,12 +8,12 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   'showImg'
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sun 29 Mar 2015 06:30:41 PM CDT
+%   $Revision: 0.1 $ $Date: Sun 29 Mar 2015 09:07:11 PM CDT
 
     args = parseInputs(varargin{:});
     epsilon = args.epsilon(:);
     K=length(symbol);
-
+    
     loadXrayMassCoef
     for k=1:K
         for i=1:length(symbols)

@@ -4,15 +4,14 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 03:42:32 PM CDT
+% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 09:11:50 PM CDT
+% v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
 classdef ConfigCT < handle
     properties
-        imageName = 'castSim'; %'phantom' %'twoMaterials'; %'realct'; %'pellet'; %
-
+        % parameters for operators
         PhiMode = 'cpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
-        PhiModeGen='cpuPrj'; %'parPrj'; %'basic';
         imgSize = 1024;
         prjWidth = 1024;
         prjFull = 360;
@@ -20,36 +19,7 @@ classdef ConfigCT < handle
         dSize = 1;
         effectiveRate = 1;
         dist = 0;       % default to be parallel beam
-
-        Phi
-        Phit
-        Psi
-        Psit
-        FBP
-
-        % for wavelet configuration
-        daub=2;
-        wav = daubcqf(2);
-        dwt_L=6;        %levels of wavelet transform
-
-        rCoeff
-
-        CTdata      % the raw data from the measurement in the matrix form
-        I0
-        y
-
-        % for generating polychromatic measurements
-        beamharden = true;
-        spark = false;
-        trueIota
-        epsilon
-        trueKappa
-
-        % generated data for further usage
-        trueImg
         Ts = 1;
-
-        % parameters for operators
     end 
     methods
         function obj = ConfigCT(ot)
@@ -104,7 +74,6 @@ classdef ConfigCT < handle
             opt.mask=obj.mask;
             maskIdx = find(obj.mask~=0);
             wvltIdx = find(obj.maskk~=0);
-            opt.trueAlpha=obj.trueImg(maskIdx);
             
             %Sampling operator
             W=@(z) midwt(z,obj.wav,obj.dwt_L);
@@ -115,7 +84,7 @@ classdef ConfigCT < handle
             fprintf('Configuration Finished!\n');
         end
 
-        function nufftOps(obj,mask)
+        function [Phi,Phit,FBP]=nufftOps(obj,mask)
             m_2D=[obj.imgSize, obj.imgSize];
             J=[1,1]*3;                       % NUFFT interpolation neighborhood
             K=2.^ceil(log2(m_2D*2));         % oversampling rate
@@ -131,11 +100,11 @@ classdef ConfigCT < handle
 
             maskIdx = find(obj.mask~=0);
             % Zero freq at f_coeff(prjWidth/2+1)
-            obj.Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
-            obj.Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
-            obj.FBP=@(s) FBPFunc6(s,theta,obj.Ts);
+            Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
+            Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
+            FBP=@(s) FBPFunc6(s,theta,obj.Ts);
         end
-        function cpuFanParOps(obj,mask)
+        function [Phi,Phit,FBP]=cpuFanParOps(obj,mask)
             conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
             conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
             conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
@@ -144,12 +113,12 @@ classdef ConfigCT < handle
 
             cpuPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
-            maskIdx = find(obj.mask~=0);
-            obj.Phi =@(s) cpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            obj.Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
-            obj.FBP =@(s) cpuPrj(s,0,'FBP')/obj.Ts;
+            maskIdx = find(mask~=0);
+            Phi =@(s) cpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            FBP =@(s) cpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function gpuFanParOps(obj,mask)
+        function [Phi,Phit,FBP]=gpuFanParOps(obj,mask)
             conf.n=obj.imgSize; conf.prjWidth=obj.prjWidth;
             conf.np=obj.prjNum; conf.prjFull=obj.prjFull;
             conf.dSize=obj.dSize; %(n-1)/(Num_pixel+1);
@@ -158,23 +127,23 @@ classdef ConfigCT < handle
 
             gpuPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
-            maskIdx = find(obj.mask~=0);
-            obj.Phi =@(s) gpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            obj.Phit=@(s) maskFunc(gpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            maskIdx = find(mask~=0);
+            Phi =@(s) gpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
+            Phit=@(s) maskFunc(gpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
             %cpuPrj(0,conf,'config');
-            obj.FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
+            FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function genOperators(obj,mask)
-            if(~exist(mask,'var')) mask=zeros(obj.imgSize,obj.imgSize); end
+        function [Phi,Phit,FBP]=genOperators(obj,mask)
+            if(~exist('mask','var')) mask=zeros(obj.imgSize,obj.imgSize); end
             switch lower(obj.PhiMode)
                 case 'basic'
-                    nufftOps(obj,mask);
+                    [Phi,Phit,FBP]=nufftOps(obj,mask);
                 case lower('cpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
-                    cpuFanParOps(obj,mask);
+                    [Phi,Phit,FBP]=cpuFanParOps(obj,mask);
                 case lower('gpuPrj')
                     % can be cpu or gpu, with both fan or parallel projections
-                    gpuFanParOps(obj,mask);
+                    [Phi,Phit,FBP]=gpuFanParOps(obj,mask);
                 case lower('parPrj')
                     conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
                     conf.theta = (0:obj.prjNum-1)*360/obj.prjFull;
@@ -206,11 +175,8 @@ classdef ConfigCT < handle
                     Phi=@(s) PhiFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
                     Phit=@(s) PhitFunc2(s,f_coeff,stFwd,Num_pixel,Ts,maskIdx);
                     FBP=Phit;
-                case 'lasso'
-                    fprintf('lasso done');
                 otherwise
-                    fprintf('Wrong mode for PhiMode: %s\n',obj.PhiMode);
-                    return;
+                    error(sprintf('Wrong mode for PhiMode: %s\n',obj.PhiMode));
             end
         end
         function fan2parallel()

@@ -27,7 +27,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
     conf.effectiveRate = 1;
     conf.Ts = 1;
 
-    [ops.Phi,ops,Phit,ops.FBP]=conf.genOperators();  % without using mask
+    [ops.Phi,ops.Phit,ops.FBP]=conf.genOperators();  % without using mask
     if(opt.beamharden)
         symbol={'Fe'};
         densityMap{1}=opt.trueImg;

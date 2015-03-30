@@ -1,4 +1,4 @@
-function castSimEx(op)
+function yiyangEx(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Polychromatic Sparse Image Reconstruction and Mass Attenuation Spectrum 
 %            Estimation via B-Spline Basis Function Expansion
@@ -22,21 +22,20 @@ switch lower(op)
         clear('opt'); filename = [mfilename '.mat'];
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
 
-        keyboard
         prjFull = [60, 80, 100, 120, 180, 360];
         for i=6:length(prjFull)
-            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull/2;
             opt.snr=inf;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt);
             opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
             opt.maxIeSteps=1;  % used in qnde2014 paper
 
-            initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
+            initSig = maskFunc(FBP(y),opt.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
-            fbp{i}.img=conf.FBP(-log(conf.y));
+            fbp{i}.img=FBP(-log(y));
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
 
             keyboard
@@ -48,7 +47,7 @@ switch lower(op)
             for j=[3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
-                npgas{i,j}=BH.NPG_AS(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+                npgas{i,j}=BH.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
 
             % known ι(κ), 
@@ -57,16 +56,15 @@ switch lower(op)
             for j=5:7
                 fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
 
-                opt.u=10^aArray(j)*max(abs(At(conf.y)));
+                opt.u=10^aArray(j)*max(abs(At(y)));
                 FPC_AS
             end
         end
 
     case 'plot'
         conf=ConfigCT('castSim','CircleMask','gpuPrj');
-        conf.prjFull = 360; conf.prjNum = conf.prjFull;
-        opt=conf.setup();
-        y = conf.Phi(opt.trueAlpha); % equivalent to linear projection
+        opt.prjFull = 360; opt.prjNum = opt.prjFull;
+        y = Phi(opt.trueAlpha); % equivalent to linear projection
         forSave=[conf.y y];
         polyy=linspace(min(conf.y),max(conf.y),1000);
         [y1,idx]=sort(conf.y); y2=y(idx);
