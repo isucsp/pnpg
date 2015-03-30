@@ -8,7 +8,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   'showImg'
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Sun 29 Mar 2015 09:07:11 PM CDT
+%   $Revision: 0.1 $ $Date: Sun 29 Mar 2015 10:29:49 PM CDT
 
     args = parseInputs(varargin{:});
     epsilon = args.epsilon(:);
@@ -77,7 +77,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
     fprintf('Sampling rate is determined to be %g\n',Ts);
 
     args.Ts = Ts;
-    args.kappa = kappa;
+    args.kappa = kappa{density==max(density)};
     CTdata=Imea;
 
     if(args.showImg)
@@ -97,7 +97,7 @@ function args = parseInputs(varargin)
     args.iota = [];
 
     for i=1:2:length(varargin)
-        if(isfield(args,varargin{i})
+        if(isfield(args,varargin{i}))
             eval(['args.' varargin{i} ' = varargin{i+1};']);
         else
             error(sprintf('unrecognized field for arguments in genBeamHarden: %s', varargin{i}));
@@ -111,6 +111,5 @@ function args = parseInputs(varargin)
             args.iota(22)=args.iota(22)*1000;
         end
     end
-
 end
 

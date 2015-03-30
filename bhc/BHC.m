@@ -1,4 +1,4 @@
-classdef BH < handle
+classdef BHC < handle
     methods(Static)
         function out = NPG_AS(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPG';
@@ -17,10 +17,10 @@ classdef BH < handle
             out=beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
 
-        opt.alphaStep='NPG'; opt.adaptiveStep=100; opt.cumuTol=10;
-        opt.alphaStep='NPG'; opt.CenterB=false; 
-        opt.alphaStep='NPG'; opt.CenterB=true; opt.correctCenterB=false;
-        opt.alphaStep='NPG'; opt.CenterB=true; opt.correctCenterB=true;
+%       opt.alphaStep='NPG'; opt.adaptiveStep=100; opt.cumuTol=10;
+%       opt.alphaStep='NPG'; opt.CenterB=false; 
+%       opt.alphaStep='NPG'; opt.CenterB=true; opt.correctCenterB=false;
+%       opt.alphaStep='NPG'; opt.CenterB=true; opt.correctCenterB=true;
 
     end
 end

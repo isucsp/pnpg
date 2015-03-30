@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sat 28 Mar 2015 10:08:33 PM CDT
+% $Revision: 0.3 $ $Date: Sun 29 Mar 2015 10:24:00 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -14,7 +14,7 @@ addpath([pathstr '/beamharden']);
 addpath([pathstr '/tomography']);
 addpath([pathstr '/rwt']);
 addpath([pathstr '/npg']);
-addpath([pathstr '/npgEx']);
+addpath([pathstr '/bhc']);
 addpath([pathstr '/prj']);
 addpath([pathstr '/utils']);
 addpath([pathstr '/irt/nufft']);
@@ -36,13 +36,13 @@ addpath([pathstr '/others/fpc/solvers/utilities']);
 
 cd 'prj'
 if(isunix)
-    hasgpu=gpuDevice;
     !make mCPUPrj mParPrj solveTriDiag
+    hasgpu=gpuDevice;
     if(~isempty(hasgpu))
         !make mGPUPrj 
     end
 end
 cd(pathstr)
 
-clear a pathstr;
+clear a pathstr hasgpu
 

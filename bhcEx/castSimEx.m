@@ -1,4 +1,4 @@
-function yiyangEx(op)
+function castSimEx(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Polychromatic Sparse Image Reconstruction and Mass Attenuation Spectrum 
 %            Estimation via B-Spline Basis Function Expansion
@@ -21,14 +21,14 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        opt.beamharden=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
         for i=6:length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull/2;
             opt.snr=inf;
 
-            keyboard
-            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt);
+            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastSim(opt);
             opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
             opt.maxIeSteps=1;  % used in qnde2014 paper
 
@@ -38,18 +38,18 @@ switch lower(op)
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(-log(y));
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
-
-            keyboard
-            fbp{i}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
-            fprintf('fbp RMSE=%g\n',fbp{i,j}.RMSE);
+            fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
+            fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
             % unknown ι(κ), NPG-AS
             u  =  10.^[-4  -4   -4   -4   -4   -4];
             for j=[3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
-                npgas{i,j}=BH.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgas{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
+
+            save(filename);
 
             % known ι(κ), 
 

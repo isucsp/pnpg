@@ -32,9 +32,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
         symbol={'Fe'};
         densityMap{1}=opt.trueImg;
 
-        [y,args] = genBeamHarden('showImg',false,...
-            'spark', spark, 'densityMap',densityMap, ...
-            'operators',ops, 'symbol',symbol);
+        [y,args] = genBeamHarden(symbol,densityMap,ops,...
+            'showImg',false,'spark', spark);
         opt.trueIota = args.iota(:);
         opt.epsilon = args.epsilon(:);
         opt.trueKappa = args.kappa(:);

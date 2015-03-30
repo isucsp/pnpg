@@ -205,6 +205,7 @@ end
 
 PsitPhitz=Psit(Phit(y));
 PsitPhit1=Psit(Phit(ones(length(y),1)));
+alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
 if(strcmpi(opt.uMode,'relative'))
     temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
     opt.u=opt.a*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
@@ -231,7 +232,6 @@ if(any(strcmp(properties(alphaStep),'cumuTol'))...
     alphaStep.cumuTol=opt.cumuTol;
 end
 
-alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
 if(strcmpi(opt.initStep,'fixed'))
     alphaStep.stepSizeInit(opt.initStep,opt.L);
 else alphaStep.stepSizeInit(opt.initStep);
@@ -295,8 +295,9 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     end
     % end optimizing over alpha
     
+    % ???? condition on zmf
     %if(out.delta<=1e-4) maxPP=5; end
-    if(~opt.skipIe && ((~opt.skipAlpha && max(IeStep.zmf(:))<1) || (opt.skipAlpha)))
+    if(~opt.skipIe && ((~opt.skipAlpha && max(IeStep.zmf(:))<3) || (opt.skipAlpha)))
         % update the object fuction w.r.t. Ie
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) gaussLI(Imea,A,III);
