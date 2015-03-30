@@ -27,6 +27,7 @@ switch lower(op)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull/2;
             opt.snr=inf;
 
+            keyboard
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt);
             opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
             opt.maxIeSteps=1;  % used in qnde2014 paper

@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 09:11:50 PM CDT
+% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 09:53:01 PM CDT
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
@@ -31,7 +31,11 @@ classdef ConfigCT < handle
                 if(gpuDeviceCount==0)
                     warning('There is no GPU equipped, downgrade to use cpuPrj!')
                     obj.PhiMode='cpuPrj';
+                else
+                    obj.PhiMode='gpuPrj';
                 end
+            else
+                obj.PhiMode=ot;
             end
         end
         function opt=setup(obj,opt)
@@ -46,8 +50,6 @@ classdef ConfigCT < handle
                 case 'phantom_1'
                     loadPhantom_1(obj);
                 case 'phantom'
-                    loadPhantom(obj,opt.snr,opt.noiseType);
-                case 'oneTaichi'
                     loadPhantom(obj,opt.snr,opt.noiseType);
                 case lower('castSim')
                     loadCastSim(obj);
@@ -98,7 +100,7 @@ classdef ConfigCT < handle
             st.Num_pixel=obj.prjWidth;
             st.Num_proj=obj.prjNum;
 
-            maskIdx = find(obj.mask~=0);
+            maskIdx = find(mask~=0);
             % Zero freq at f_coeff(prjWidth/2+1)
             Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
             Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
@@ -134,7 +136,7 @@ classdef ConfigCT < handle
             FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
         function [Phi,Phit,FBP]=genOperators(obj,mask)
-            if(~exist('mask','var')) mask=zeros(obj.imgSize,obj.imgSize); end
+            if(~exist('mask','var')) mask=ones(obj.imgSize,obj.imgSize); end
             switch lower(obj.PhiMode)
                 case 'basic'
                     [Phi,Phit,FBP]=nufftOps(obj,mask);

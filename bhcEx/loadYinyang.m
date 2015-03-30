@@ -56,8 +56,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
 
     if(strcmp(maskType,'CircleMask'))
         % reconstruction mask (which pixels do we estimate?)
-        mask = Utils.getCircularMask(n);
-        wvltName = sprintf('MaskWvlt%dCircleL%dD%d.mat',n,dwt_L,daub);
+        mask = Utils.getCircularMask(conf.imgSize);
+        wvltName = sprintf('MaskWvlt%dCircleL%dD%d.mat',conf.imgSize,dwt_L,daub);
         if(exist(wvltName,'file'))
             load(wvltName);
         else
@@ -65,7 +65,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
         end
     end
     opt.mask = mask;
-    opt.trueAlpha=opt.trueImg(maskIdx);
+    opt.trueAlpha=opt.trueImg(mask~=0);
 
     [Phi,Phit,FBP]=conf.genOperators(mask);
     [Psi,Psit]=Utils.getPsiPsit(daub,dwt_L,mask,maskk);
