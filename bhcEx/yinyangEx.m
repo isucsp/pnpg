@@ -23,14 +23,16 @@ switch lower(op)
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
 
         keyboard
-        conf=ConfigCT('castSim','CircleMask','gpuPrj');
         prjFull = [60, 80, 100, 120, 180, 360];
         for i=6:length(prjFull)
             conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull/2;
+            opt.snr=inf;
+
+            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt);
             opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
-            opt=conf.setup(opt); opt.snr=inf;
-            initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
             opt.maxIeSteps=1;  % used in qnde2014 paper
+
+            initSig = maskFunc(conf.FBP(conf.y),opt.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
