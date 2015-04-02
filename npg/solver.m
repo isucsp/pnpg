@@ -45,7 +45,7 @@ if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
-if(~isfield(opt,'minItr')) opt.minItr=100; end
+if(~isfield(opt,'minItr')) opt.minItr=100; end   % currently not used
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
@@ -321,7 +321,7 @@ while(true)
         end
         drawnow;
     end
-    
+
     if(opt.debugLevel>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         drawnow;
@@ -350,17 +350,17 @@ end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-fprintf('\nTime used: %d',out.time(end));
+fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
 if(isfield(opt,'trueAlpha'))
     if(opt.fullcont)
         idx = min(find(out.contRMSE==min(out.contRMSE)));
         if(out.contRMSE(idx)<out.RMSE(end))
             fprintf(', u=%g, RMSE=%g\n',opt.u(idx),out.contRMSE(idx));
         else
-            fprintf(', cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+            fprintf(', RMSE=%g\n',out.RMSE(end));
         end
     else
-        fprintf(', cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
+        fprintf(', RMSE=%g\n',out.RMSE(end));
     end
 else
     fprintf('\n');

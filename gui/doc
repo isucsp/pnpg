@@ -1,0 +1,10 @@
+
+To respond the java event from MATLAB, use
+    f = javax.swing.JFrame;
+    listen = handle.listener(f.handle, 'FocusGained', {@callback})
+
+    hJavaTree = handle(javaTree, 'CallbackProperties');
+    set(hJavaTree,'MouseClickedCallback',{@treeClicked,fig},'ToolTipText','Tip: 
+    use Alt-Click to edit plotting functions');
+
+

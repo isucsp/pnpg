@@ -10,7 +10,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
 
     if(~isfield(opt,'beamharden')) opt.beamharden=false; end
 
-    trueImg=load('yinyang1.mat'); opt.trueImg=trueImg.trueImg;
+    trueImg=load('yang.mat'); opt.trueImg=trueImg.trueImg;
     conf=ConfigCT();
 
     daub = 2; dwt_L=6;        %levels of wavelet transform

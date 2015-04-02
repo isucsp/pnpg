@@ -5,7 +5,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   Phit        Transpose of Phi
 %   Psi         Inverse wavelet transform matrix from wavelet coefficients
 %               to image.
-%   Psit        Transpose of Psi
+%   Psit        Transpose of Psi, need to have ΨΨ'=I
 %   y           Log scale of Beamhardening measurement y=-log(I^{mea}/I_0)
 %   xInit       Initial value for the algorithm
 %   opt         Structure for the configuration of this algorithm (refer to
@@ -27,49 +27,58 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               optimize the form of Phi[t]Func51.m in subfuction
 %
 
-%opt.a=-6.5;  % aArray=-6.8:0.2:-6.2;
-if(~isfield(opt,'K')) opt.K=2; end
-if(~isfield(opt,'E')) opt.E=17; end
-% default to not use nonnegative constraints.
-if(~isfield(opt,'nu')) opt.nu=0; end
-if(~isfield(opt,'u')) opt.u=1e-3; end
-if(~isfield(opt,'uMode')) opt.uMode='abs'; end
-if(~isfield(opt,'a')) opt.a=1e-6; end
-% the number of non-zeros in the transform domain
-if(~isfield(opt,'rInit')) opt.rInit=5000; end
-if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
-if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
-if(~isfield(opt,'numCall')) opt.numCall=1; end
-if(~isfield(opt,'logspan')) opt.logspan=3; end
-if(~isfield(opt,'skipAlpha')) opt.skipAlpha=false; end
-if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
-if(~isfield(opt,'initStep')) opt.initStep='BB'; end
-if(~isfield(opt,'skipIe')) opt.skipIe=false; end
-% The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
-if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
-if(~isfield(opt,'sampleMode')) opt.sampleMode='logspan'; end
-if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
-if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
-if(~isfield(opt,'showImg')) opt.showImg=false; end
-% the higher, the more information. Set to 0 to turn off.
-if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-if(~isfield(opt,'verbose')) opt.verbose=100; end
+% for alpha step
 % 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPG'; end
-if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
+if(~isfield(opt,'skipAlpha')) opt.skipAlpha=false; end
+if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
+
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.98; end
 if(~isfield(opt,'contCrtrn')) opt.contCrtrn=1e-4; end
-% Threshold for relative difference between two consecutive α
-if(~isfield(opt,'thresh')) opt.thresh=1e-12; end
-if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+if(~isfield(opt,'contEta')) opt.contEta=1e-2; end
+if(~isfield(opt,'contGamma')) opt.contGamma=1e4; end
+
+% default to not use nonnegative constraints.
+if(~isfield(opt,'nu')) opt.nu=0; end
+if(~isfield(opt,'u')) opt.u=1e-3; end
+if(~isfield(opt,'restart')) opt.restart=true; end
+
+??? if(~isfield(opt,'uMode')) opt.uMode='abs'; end
+??? if(~isfield(opt,'a')) opt.a=1e-6; end
+
+% for Ie step
+if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
+if(~isfield(opt,'skipIe')) opt.skipIe=false; end
+if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
+if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
+
+% The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
+if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
+if(~isfield(opt,'sampleMode')) opt.sampleMode='logspan'; end
+if(~isfield(opt,'logspan')) opt.logspan=3; end
+if(~isfield(opt,'K')) opt.K=2; end  % number of materials
+if(~isfield(opt,'E')) opt.E=17; end
+
+% common
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+if(~isfield(opt,'initStep')) opt.initStep='BB'; end
 if(~isfield(opt,'errorType')) opt.errorType=0; end
+% the higher, the more information. Set to 0 to turn off.
+if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
+if(~isfield(opt,'verbose')) opt.verbose=100; end
+% Threshold for relative difference between two consecutive α
+if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
+if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+if(~isfield(opt,'minItr')) opt.minItr=10; end   % currently not used
 if(~isfield(opt,'saveAnimate')) opt.saveAnimate=false; end
+
+% for NCG_PR
+if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
-    trueAlphaNorm=norm(opt.trueAlpha);
     switch opt.errorType
         case 0
             trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
@@ -85,10 +94,10 @@ if(isfield(opt,'trueAlpha'))
     end
 end
 
-if(opt.debugLevel>=2) figCost=1000; figure(figCost); end
-if(opt.debugLevel>=3) figRes=1001; figure(figRes); end
-if(opt.debugLevel>=3 && ~opt.skipIe) figIe=1003; figure(figIe); end
-if(opt.showImg && opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
+if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
+if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
+if(opt.debugLevel>=5 && ~opt.skipIe) figIe=1003; figure(figIe); end
+if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)
     case 'uniform'
@@ -153,15 +162,16 @@ end
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
         alphaStep = NCG_PR(3,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        if(isfield(opt,'muLustig'))
-            fprintf('use lustig approximation for l1 norm\n');
-            alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
-        end
         if(isfield(opt,'muHuber'))
             fprintf('use huber approximation for l1 norm\n');
             alphaStep.fArray{3} = @(aaa) Utils.huber(aaa,opt.muHuber,Psi,Psit);
         end
+        if(isfield(opt,'muLustig'))
+            fprintf('use lustig approximation for l1 norm\n');
+            alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
+        end
     case {lower('SpaRSA')}
+        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
         alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
@@ -219,17 +229,51 @@ else alphaStep.u=opt.u;
 end
 disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 
-if(any(strcmp(properties(alphaStep),'restart')) ...
-        && isfield(opt,'restart') && (~opt.restart))
-    alphaStep.restart=-1;
+???
+if(any(strcmp(properties(alphaStep),'restart')))
+    if(~opt.restart) alphaStep.restart=-1; end
+else
+    opt.restart=false;
 end
 if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
         && isfield(opt,'adaptiveStep'))
     alphaStep.adaptiveStep=opt.adaptiveStep;
 end
+???
+if(any(strcmp(properties(alphaStep),'admmAbsTol'))...
+        && isfield(opt,'admmAbsTol'))
+    alphaStep.admmAbsTol=opt.admmAbsTol;
+end
+???
 if(any(strcmp(properties(alphaStep),'cumuTol'))...
         && isfield(opt,'cumuTol'))
     alphaStep.cumuTol=opt.cumuTol;
+end
+
+???
+if(opt.continuation || opt.fullcont)
+    contIdx=1;
+    inf_psit_grad=opt.u(1);
+    if(length(opt.u)>1)
+        alphaStep.u = opt.u(contIdx);
+    else
+        [~,g]=alphaStep.fArray{1}(alpha);
+        inf_psit_grad=pNorm(Psit(g),inf);
+        alphaStep.u = opt.contEta*inf_psit_grad;
+        alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
+        alphaStep.u = max(alphaStep.u,opt.u);
+        if(alphaStep.u*opt.contShrnk<=opt.u)
+            opt.continuation=false;
+            alphaStep.u=opt.u;
+        end
+        clear('g');
+    end
+    if(opt.continuation)
+        qThresh = opt.contCrtrn/opt.thresh;
+        lnQU = log(alphaStep.u/opt.u(end));
+    end
+else alphaStep.u = opt.u;
+    fprintf('opt.u=%g\n',opt.u);
 end
 
 if(strcmpi(opt.initStep,'fixed'))
@@ -237,7 +281,38 @@ if(strcmpi(opt.initStep,'fixed'))
 else alphaStep.stepSizeInit(opt.initStep);
 end
 
-tic; p=0; str=''; strlen=0; convThresh=0;
+???
+if(any(strcmp(properties(alphaStep),'cumuTol'))...
+        && isfield(opt,'cumuTol'))
+    alphaStep.cumuTol=opt.cumuTol;
+end
+
+if(any(strcmp(properties(alphaStep),'innerSearch')))
+    collectInnerSearch=true;
+else
+    collectInnerSearch=false;
+end
+
+if(any(strcmp(properties(alphaStep),'debug')))
+    collectDebug=true;
+    out.debug={};
+else
+    collectDebug=false;
+end
+
+if(any(strcmp(properties(alphaStep),'preSteps')))
+    alphaStep.preSteps=opt.preSteps;
+end
+
+if(any(strcmp(properties(alphaStep),'nonInc')))
+    collectNonInc=true;
+else
+    collectNonInc=false;
+end
+???
+
+
+tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     if(opt.saveAnimate && (mod(p,10)==0 || p<10))
         img=showImgMask(alpha,opt.mask);
@@ -261,6 +336,16 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
         if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
+    if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
+    if(collectDebug && ~isempty(alphaStep.debug))
+        out.debug{size(out.debug,1)+1,1}=p;
+        out.debug{size(out.debug,1),2}=alphaStep.debug;
+    end;
+    if(opt.debugLevel>1)
+        out.BB(p,1)=alphaStep.stepSizeInit('BB');
+        out.BB(p,2)=alphaStep.stepSizeInit('hessian');
+        % alphaStep.stepSizeInit('hessian',alpha);
+    end
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
@@ -344,11 +429,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end
     end
 
-    if(p>1 && opt.debugLevel>=2)
+    if(p>1 && opt.debugLevel>=3)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
-        title(sprintf('cost(%d)=%g',p,out.cost(p)));
+        if(out.cost(p)>0)
+            semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
+            title(sprintf('cost(%d)=%g',p,out.cost(p)));
+        end
 
         if(isfield(opt,'trueAlpha'))
             subplot(2,1,2);
@@ -357,14 +444,14 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
         drawnow;
     end
-    
-    if(~opt.skipIe && opt.debugLevel>=3)
+
+    if(~opt.skipIe && opt.debugLevel>=5)
         set(0,'CurrentFigure',figIe);
         polymodel.plotSpectrum(Ie);
         title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
         drawnow;
     end
-    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=3)
+    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=4)
         set(0,'CurrentFigure',figRes);
         style={'r','g','b'};
         for i=1:length(out.fVal(p,:))
@@ -373,7 +460,8 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
         drawnow;
     end
-    if(opt.showImg && opt.debugLevel>=6)
+
+    if(opt.debugLevel>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         if(~isempty(IeStep.zmf))
             title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
@@ -391,25 +479,27 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             strlen=0; fprintf('\n');
         else strlen = length(str);
         end
-        str='';
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<opt.thresh && (opt.skipIe || (out.difIe(p)<opt.thresh)) )
+    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || (out.difIe(p)<opt.thresh)) )
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>10)
+    if(p >= opt.maxItr || convThresh>2)
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end
 end
 
-out.Ie=Ie; out.kappa=kappa; out.alpha=alpha; out.cpuTime=toc; out.p=p;
-out.opt = opt;
-out.Phi=Phi; out.Phit=Phit; out.Psi=Psi; out.Psit=Psit; out.y=y; out.xInit=xInit;
+out.Ie=Ie; out.kappa=kappa;
+out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-
-fprintf('\n');
+fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
+if(isfield(opt,'trueAlpha'))
+        fprintf(', RMSE=%g\n',out.RMSE(end));
+else
+    fprintf('\n');
+end
 
 end
 

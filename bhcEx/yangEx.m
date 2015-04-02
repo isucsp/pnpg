@@ -1,4 +1,4 @@
-function yiyangEx(op)
+function yangEx(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Polychromatic Sparse Image Reconstruction and Mass Attenuation Spectrum 
 %            Estimation via B-Spline Basis Function Expansion
@@ -21,14 +21,14 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-        opt.beamharden=true;
+        opt.beamharden=true; opt.errorType=0;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=6:length(prjFull)
-            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull/2;
-            opt.snr=inf;
+        for i=1:length(prjFull)
+            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
+            opt.snr=1e4;
 
-            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt);
+            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
             opt.maxItr=2e3; opt.thresh=1e-6; opt.errorType=0;
             opt.maxIeSteps=1;  % used in qnde2014 paper
 
@@ -43,14 +43,15 @@ switch lower(op)
 
             % unknown ι(κ), NPG-AS
             u  =  10.^[-4  -4   -4   -4   -4   -4];
-            for j=[3]
+            for j=1:5
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
                 npgas{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
 
             save(filename);
-            keyboard
+            continue;
 
             % known ι(κ), 
 
