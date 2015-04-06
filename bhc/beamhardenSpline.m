@@ -133,8 +133,6 @@ polyIout = polymodel.polyIout;
 
 Ie=Ie/polyIout(0,Ie);
 
-keyboard;
-
 temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
 temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];
 temp1 = temp1(2:end)-temp1(1:end-1);
@@ -213,8 +211,8 @@ B=[B; -temp(:)'/norm(temp)]; b=[b; -1/norm(temp)];
 switch lower(opt.IeStep)
     case lower('ActiveSet')
         IeStep = ActiveSet(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
-    case lower('FISTA')
-        IeStep = FISTA_Simplex(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
+    case lower('NPG')
+        IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
 end
 
 PsitPhitz=Psit(Phit(y));
@@ -360,14 +358,6 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         IeStep.func = @(III) gaussLI(Imea,A,III);
         IeStep.main();
 
-    %   test = FISTA_Simplex(Ie,false,polyIout(0,[]),1,opt.maxIeSteps,opt.stepShrnk);
-        test = FISTA_Simplex(Ie,false,[],1,opt.maxIeSteps,opt.stepShrnk);
-        test.func = @(III) gaussLI(Imea,A,III);
-        test.main();
-
-        if(IeStep.cost>test.cost) IeStep.Ie=test.x; out.asGood(p)=false;
-        else out.asGood(p)=true; end
-
         if(isfield(opt,'CenterB') && opt.CenterB && opt.correctCenterB)
             temp=find(IeStep.Q((1:length(Ie)-1)+length(Ie)));
             if(~isempty(temp) && isContinuous(temp) && (any(temp==floor(length(Ie)/2)) || any(temp==floor(length(Ie)/2)+1)))
@@ -398,7 +388,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
                 else
                     str = [str ' uncnvrgd'];
                 end
-            case lower('FISTA')
+            case lower('NPG')
                 out.IeSearch(p) = IeStep.ppp;
                 str=sprintf([str ' IeSearch=%d'],out.IeSearch(p));
         end

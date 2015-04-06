@@ -23,10 +23,11 @@ switch lower(op)
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
-        opt.beamharden=true; opt.errorType=0; opt.spectBasis='b1';
+
+        opt.beamharden=true; opt.spark=true; opt.spectBasis='b1'; opt.errorType=0;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=6:length(prjFull)
+        for i=1:2:length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
             opt.snr=1e4;
 
@@ -45,27 +46,29 @@ switch lower(op)
 
             % unknown ι(κ), NPG-AS
             u  =  10.^[-4  -4   -4   -4   -4   -4];
-            for j=5:5
+            for j=5:-1:1
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
 
-                opt.debugLevel=1;
+                opt.debugLevel=1; opt.IeStep='ActiveSet'; opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=17;
+                npgas17_AS_1s{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=30; opt.maxItr=800; npgas_simAdj_E30IeStep20=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=10; opt.maxItr=800; npgas_simAdj_E10IeStep20=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=10; opt.maxItr=800;  npgas_simAdj_E10IeStep1=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=30; opt.maxItr=800;  npgas_simAdj_E30IeStep1=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=17;
+                npgas17_1s{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-     %          opt.maxIeSteps=20; opt.spectBasis='dis'; opt.E=30; opt.maxItr=800; npgas_E30IeStep20=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-     %          opt.maxIeSteps=20; opt.spectBasis='dis'; opt.E=10; opt.maxItr=800; npgas_E10IeStep20=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-     %          opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=10; opt.maxItr=800; npgas_E10IeStep1=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-     %          opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=30; opt.maxItr=800; npgas_E30IeStep1=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt.CenterB=true; opt.maxItr=800; npgas_centerb=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgas{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=17;
+                npgas17{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=30;
+                npgas30{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=80;
+                npgas80{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
             end
 
-            save(filename);
             continue;
 
             % known ι(κ), 

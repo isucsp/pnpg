@@ -1,17 +1,18 @@
 classdef NPG_ind < handle
     properties
-        alpha;
+        Ie;
         func;
         debug;
         ppp
         t=-1;
         stepSize;
         cost;
-        difAlpha;
+        difIe;
+        warned=false;
         zmf;
 
         stepShrnk = 0.5;
-        preAlpha=0;
+        preIe=0;
         preG=[];
         preY=[];
         thresh=1e-5;
@@ -34,11 +35,11 @@ classdef NPG_ind < handle
         proximal
     end
     methods
-        function obj = NPG_ind(alpha,nonneg,B,b,maxItr,stepShrnk,thresh)
+        function obj = NPG_ind(Ie,nonneg,B,b,maxItr,stepShrnk,thresh)
             B=B(:);
             % subject to B'*x <= b
-            obj.alpha=alpha;
-            obj.preAlpha=alpha;
+            obj.Ie=Ie;
+            obj.preIe=Ie;
             if(nargin>=5) obj.maxItr=maxItr; end
             if(nargin>=6) obj.stepShrnk=stepShrnk; end
             if(nargin>=7) obj.thresh=thresh; end
@@ -62,9 +63,9 @@ classdef NPG_ind < handle
             while(pp<obj.maxItr)
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
-                xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                xbar=obj.Ie+(obj.theta -1)/temp*(obj.Ie-obj.preIe);
                 % if(obj.forcePositive) xbar(xbar<0)=0; end
-                obj.theta = temp; obj.preAlpha = obj.alpha;
+                obj.theta = temp; obj.preIe = obj.Ie;
 
                 if(obj.t==-1)
                     [oldCost,grad,hessian] = obj.func(xbar);
@@ -108,14 +109,14 @@ classdef NPG_ind < handle
                 % restart
                 if((newCost-obj.cost)>0)
                     if(goodMM)
-                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
+                        if(sum(abs(xbar-obj.Ie))~=0) % if has monmentum term, restart
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];
                             pp=pp-1; continue;
                         else
                             obj.debug=[obj.debug 'forceConverge'];
-                            newX=obj.alpha;  newCost=obj.cost;
+                            newX=obj.Ie;  newCost=obj.cost;
                         end
                     else
                         obj.debug=[obj.debug 'falseMonotone'];
@@ -123,8 +124,8 @@ classdef NPG_ind < handle
                     end
                 end
                 obj.cost = newCost;
-                obj.difAlpha = relativeDif(obj.alpha,newX);
-                obj.alpha = newX;
+                obj.difIe = relativeDif(obj.Ie,newX);
+                obj.Ie = newX;
 
                 if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;
@@ -132,15 +133,15 @@ classdef NPG_ind < handle
                     obj.cumu=0;
                 end
 %               figure(1); semilogy(pp,obj.cost,'.c');hold on; 
-%               figure(2); semilogy(pp,obj.difAlpha,'.c');hold on; 
+%               figure(2); semilogy(pp,obj.difIe,'.c');hold on; 
 %               figure(3); semilogy(pp,obj.t,'.c');hold on; 
-%               figure(4); plot(obj.alpha,'*-');
-                if(obj.difAlpha<=obj.thresh) break; end
+%               figure(4); plot(obj.Ie,'*-');
+                if(obj.difIe<=obj.thresh) break; end
             end
-            out = obj.alpha;
+            out = obj.Ie;
         end
         function reset(obj)
-            obj.theta=0; obj.preAlpha=obj.alpha;
+            obj.theta=0; obj.preIe=obj.Ie;
             recoverT=obj.stepSizeInit('hessian');
             obj.t=min([obj.t;max(recoverT)]);
         end
