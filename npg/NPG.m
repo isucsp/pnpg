@@ -35,7 +35,8 @@ classdef NPG < Methods
         % method No.4 with ADMM inside FISTA for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false;
+            obj.p = obj.p+1;
+            obj.warned = false;
             pp=0; obj.debug='';
             if(obj.restart>0) obj.restart=0; end
 
@@ -67,7 +68,7 @@ classdef NPG < Methods
                   %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-obj.newCost)>=-abs(LMM)*1e-5*0)
+                    if((LMM-obj.newCost)>=-0*abs(LMM)*1e-5)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -92,7 +93,7 @@ classdef NPG < Methods
                 temp = obj.newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((temp-obj.cost)>abs(obj.cost)*1e-5*0)
+                if((temp-obj.cost)>0*abs(obj.cost)*1e-5)
                     if(goodMM)
                         if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;

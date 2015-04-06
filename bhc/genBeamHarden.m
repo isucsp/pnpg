@@ -8,7 +8,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   'showImg'
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Tue 31 Mar 2015 01:09:59 AM CDT
+%   $Revision: 0.1 $ $Date: Sat 04 Apr 2015 01:07:13 AM CDT
 
     args = parseInputs(varargin{:});
     epsilon = args.epsilon(:);
@@ -78,6 +78,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 
     args.Ts = Ts;
     args.kappa = kappa{density==max(density)};
+    args.density=max(density);
     CTdata=Imea;
 
     if(args.showImg)

@@ -17,7 +17,7 @@ classdef ActiveSet < handle
         stepNum
         course = [];    % record the change of active set
         deltaNormIe
-        debugLevel = 7;
+        debugLevel = 0;
         warned = false;
     end 
 

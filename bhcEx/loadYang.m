@@ -8,12 +8,13 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
 %   t2=ceil((n-size(inFig,1))/2);
 %   trueImg(t1+1:n-t2,t1+1:n-t2)=inFig;
 
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     if(~isfield(opt,'beamharden')) opt.beamharden=false; end
 
     trueImg=load('yang.mat'); opt.trueImg=trueImg.trueImg;
     conf=ConfigCT();
 
-    daub = 2; dwt_L=6;        %levels of wavelet transform
+    daub = 2; dwt_L=3;        %levels of wavelet transform
     maskType='CircleMask';
     spark=false;
 
@@ -38,6 +39,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
         opt.epsilon = args.epsilon(:);
         opt.trueKappa = args.kappa(:);
 
+        opt.trueImg=opt.trueImg*args.density;
         conf.Ts = args.Ts;
 
         y=-log(y(:)/max(y(:)));

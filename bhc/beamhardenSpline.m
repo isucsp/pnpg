@@ -44,14 +44,15 @@ if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-3; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 
-??? if(~isfield(opt,'uMode')) opt.uMode='abs'; end
-??? if(~isfield(opt,'a')) opt.a=1e-6; end
+if(~isfield(opt,'uMode')) opt.uMode='abs'; end
+if(~isfield(opt,'a')) opt.a=1e-6; end
 
 % for Ie step
 if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
 if(~isfield(opt,'skipIe')) opt.skipIe=false; end
 if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
 if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
+if(~isfield(opt,'CenterB')) opt.CenterB=false; end
 
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
@@ -63,6 +64,7 @@ if(~isfield(opt,'E')) opt.E=17; end
 % common
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'initStep')) opt.initStep='BB'; end
+if(~isfield(opt,'preSteps')) opt.preSteps=2; end
 if(~isfield(opt,'errorType')) opt.errorType=0; end
 % the higher, the more information. Set to 0 to turn off.
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
@@ -131,6 +133,8 @@ polyIout = polymodel.polyIout;
 
 Ie=Ie/polyIout(0,Ie);
 
+keyboard;
+
 temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
 temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];
 temp1 = temp1(2:end)-temp1(1:end-1);
@@ -145,10 +149,11 @@ else
     if(opt.skipIe)  % it is better to use dis or b-1 spline
         Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(:),'spline');
         % there will be some points interplated negative and need to be removed
-        Ie(Ie<0)=0;
+        Ie=max(Ie,0);
     end
 end
 
+% ???
 % find the best intial Ie starts
 % R = polyIout(Phi(alpha),[]);
 % for i=1:size(R,2)
@@ -196,7 +201,6 @@ alphaStep.coef(1:2) = [1; opt.nu;];
 
 B=eye(opt.E); b=zeros(opt.E,1);
 
-% ???
 if(isfield(opt,'CenterB') && opt.CenterB)
     if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
     temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
@@ -225,66 +229,44 @@ if(opt.continuation)
     alphaStep.u=0.1*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
     % This makes sure that the regulator settles after 300 iterations
     alphaStep.u = min(alphaStep.u,opt.u*1000);
+
+    keyboard
+    contIdx=1;
+    [~,g]=alphaStep.fArray{1}(alpha);
+    inf_psit_grad=pNorm(Psit(g),inf);
+    alphaStep.u = opt.contEta*inf_psit_grad;
+    alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
+    alphaStep.u = max(alphaStep.u,opt.u);
+    if(alphaStep.u*opt.contShrnk<=opt.u)
+        opt.continuation=false;
+        alphaStep.u=opt.u;
+    end
+    clear('g');
 else alphaStep.u=opt.u;
+    fprintf('opt.u=%g\n',opt.u);
 end
+
 disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
 
-???
 if(any(strcmp(properties(alphaStep),'restart')))
     if(~opt.restart) alphaStep.restart=-1; end
 else
     opt.restart=false;
 end
+
 if(any(strcmp(properties(alphaStep),'adaptiveStep'))...
         && isfield(opt,'adaptiveStep'))
+    % use the default of alphaStep
     alphaStep.adaptiveStep=opt.adaptiveStep;
 end
-???
-if(any(strcmp(properties(alphaStep),'admmAbsTol'))...
-        && isfield(opt,'admmAbsTol'))
-    alphaStep.admmAbsTol=opt.admmAbsTol;
-end
-???
 if(any(strcmp(properties(alphaStep),'cumuTol'))...
         && isfield(opt,'cumuTol'))
     alphaStep.cumuTol=opt.cumuTol;
-end
-
-???
-if(opt.continuation || opt.fullcont)
-    contIdx=1;
-    inf_psit_grad=opt.u(1);
-    if(length(opt.u)>1)
-        alphaStep.u = opt.u(contIdx);
-    else
-        [~,g]=alphaStep.fArray{1}(alpha);
-        inf_psit_grad=pNorm(Psit(g),inf);
-        alphaStep.u = opt.contEta*inf_psit_grad;
-        alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
-        alphaStep.u = max(alphaStep.u,opt.u);
-        if(alphaStep.u*opt.contShrnk<=opt.u)
-            opt.continuation=false;
-            alphaStep.u=opt.u;
-        end
-        clear('g');
-    end
-    if(opt.continuation)
-        qThresh = opt.contCrtrn/opt.thresh;
-        lnQU = log(alphaStep.u/opt.u(end));
-    end
-else alphaStep.u = opt.u;
-    fprintf('opt.u=%g\n',opt.u);
 end
 
 if(strcmpi(opt.initStep,'fixed'))
     alphaStep.stepSizeInit(opt.initStep,opt.L);
 else alphaStep.stepSizeInit(opt.initStep);
-end
-
-???
-if(any(strcmp(properties(alphaStep),'cumuTol'))...
-        && isfield(opt,'cumuTol'))
-    alphaStep.cumuTol=opt.cumuTol;
 end
 
 if(any(strcmp(properties(alphaStep),'innerSearch')))
@@ -294,8 +276,7 @@ else
 end
 
 if(any(strcmp(properties(alphaStep),'debug')))
-    collectDebug=true;
-    out.debug={};
+    collectDebug=true; out.debug={};
 else
     collectDebug=false;
 end
@@ -303,14 +284,6 @@ end
 if(any(strcmp(properties(alphaStep),'preSteps')))
     alphaStep.preSteps=opt.preSteps;
 end
-
-if(any(strcmp(properties(alphaStep),'nonInc')))
-    collectNonInc=true;
-else
-    collectNonInc=false;
-end
-???
-
 
 tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
@@ -323,8 +296,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         save('IeAnimate.data','IeAnimate','-ascii');
     end
 
-    p=p+1;
-    str=sprintf('p=%-4d',p);
+    p=p+1; str=sprintf('p=%-4d',p);
     
     % start optimize over alpha
     if(~opt.skipAlpha)
@@ -336,16 +308,16 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
         if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
-    if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
-    if(collectDebug && ~isempty(alphaStep.debug))
-        out.debug{size(out.debug,1)+1,1}=p;
-        out.debug{size(out.debug,1),2}=alphaStep.debug;
-    end;
-    if(opt.debugLevel>1)
-        out.BB(p,1)=alphaStep.stepSizeInit('BB');
-        out.BB(p,2)=alphaStep.stepSizeInit('hessian');
-        % alphaStep.stepSizeInit('hessian',alpha);
-    end
+        if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
+        if(collectDebug && ~isempty(alphaStep.debug))
+            out.debug{size(out.debug,1)+1,1}=p;
+            out.debug{size(out.debug,1),2}=alphaStep.debug;
+        end;
+        if(opt.debugLevel>1)
+            out.BB(p,1)=alphaStep.stepSizeInit('BB');
+            out.BB(p,2)=alphaStep.stepSizeInit('hessian');
+            % alphaStep.stepSizeInit('hessian',alpha);
+        end
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
         if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
@@ -374,19 +346,27 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);
         str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
+        out.zmf(p,:)=IeStep.zmf(:)';
         if(p>1)
             str=sprintf([str ' difCost=%g'], out.difCost(p));
         end
     end
     % end optimizing over alpha
     
-    % ???? condition on zmf
     %if(out.delta<=1e-4) maxPP=5; end
     if(~opt.skipIe && ((~opt.skipAlpha && max(IeStep.zmf(:))<3) || (opt.skipAlpha)))
         % update the object fuction w.r.t. Ie
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) gaussLI(Imea,A,III);
         IeStep.main();
+
+    %   test = FISTA_Simplex(Ie,false,polyIout(0,[]),1,opt.maxIeSteps,opt.stepShrnk);
+        test = FISTA_Simplex(Ie,false,[],1,opt.maxIeSteps,opt.stepShrnk);
+        test.func = @(III) gaussLI(Imea,A,III);
+        test.main();
+
+        if(IeStep.cost>test.cost) IeStep.Ie=test.x; out.asGood(p)=false;
+        else out.asGood(p)=true; end
 
         if(isfield(opt,'CenterB') && opt.CenterB && opt.correctCenterB)
             temp=find(IeStep.Q((1:length(Ie)-1)+length(Ie)));
