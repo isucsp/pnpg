@@ -78,6 +78,9 @@ if(~isfield(opt,'saveAnimate')) opt.saveAnimate=false; end
 % for NCG_PR
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
 
+% use GML model to estimate Ie in after getting the estimation of α
+if(~isfield(opt,'estIe')) opt.estIe=true; end
+
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
@@ -126,6 +129,7 @@ switch lower(opt.sampleMode)
 end
 
 kappa=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
+q=kappa(2)/kappa(1);
 temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
 polymodel = Spline(opt.spectBasis,temp);
 polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
@@ -175,7 +179,6 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-        alphaStep = Methods(2,alpha);
         alphaStep.coef(1:2) = [1; 1];
         alphaStep.fArray{2} = nonneg;
         alphaStep.maxStepNum = opt.maxAlphaSteps;
@@ -215,9 +218,15 @@ switch lower(opt.IeStep)
         IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
 end
 
+alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
+
+% while(log(polyIout(Phi(alpha),Ie))-log(Imea)>1)
+%     alpha=alpha*kappa(2)/kappa(1);
+% end
+% alphaStep.setAlpha(alpha);
+
 PsitPhitz=Psit(Phit(y));
 PsitPhit1=Psit(Phit(ones(length(y),1)));
-alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
 if(strcmpi(opt.uMode,'relative'))
     temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
     opt.u=opt.a*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
@@ -297,12 +306,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     p=p+1; str=sprintf('p=%-4d',p);
     
     % start optimize over alpha
-    if(~opt.skipAlpha)
+    if(~opt.skipAlpha) 
         alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
         alphaStep.main();
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
+        if(~opt.skipIe) IeStep.cost=alphaStep.fVal(1); end
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
         if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
@@ -352,32 +362,47 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     % end optimizing over alpha
     
     %if(out.delta<=1e-4) maxPP=5; end
-    if(~opt.skipIe && ((~opt.skipAlpha && max(IeStep.zmf(:))<3) || (opt.skipAlpha)))
+    if(~opt.skipIe)
         % update the object fuction w.r.t. Ie
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) gaussLI(Imea,A,III);
+
+        % if(strcmpi(opt.IeStep,'NPG'))
+        %     if(max(IeStep.zmf(:))>1)  IeStep.maxItr=opt.maxIeSteps;
+        %     else IeStep.maxItr=1; end
+        % end
+
         IeStep.main();
 
-        if(isfield(opt,'CenterB') && opt.CenterB && opt.correctCenterB)
-            temp=find(IeStep.Q((1:length(Ie)-1)+length(Ie)));
-            if(~isempty(temp) && isContinuous(temp) && (any(temp==floor(length(Ie)/2)) || any(temp==floor(length(Ie)/2)+1)))
-                temp=(mean(temp)-floor(length(Ie)/2)-0.5);
-                q=kappa(2)/kappa(1);
-                if temp>1
-                    alphaStep.alpha=alphaStep.alpha*q;
-                    IeStep.Ie=[IeStep.Ie(2:end); 0]*q;
-                elseif  temp<-1
-                    alphaStep.alpha=alphaStep.alpha/q;
-                    IeStep.Ie=[0; IeStep.Ie(1:end-1)]/q;
-                end
-                if(abs(temp)>1)
-                    alphaStep.reset();
-                    IeStep.init();
-                end
+        % here add the procedure making spectrum in the center
+
+        if(IeStep.Ie(1) || IeStep.Ie(end))
+            fprintf('\nExtend the spectrum to the');
+            if(IeStep.Ie(1))
+                kappa=[kappa(1)/q; kappa];
+                IeStep.setIe([0; IeStep.Ie]);
+                Ie=[0; Ie];
+                fprintf(' left');
             end
+            if(IeStep.Ie(end))
+                kappa=[kappa; kappa(end)*q];
+                IeStep.setIe([IeStep.Ie; 0]);
+                Ie=[Ie; 0];
+                fprintf(' right');
+            end
+            temp = [kappa(1)^2/kappa(2); kappa(:); kappa(end)^2/kappa(end-1)];
+            polymodel = Spline(opt.spectBasis,temp);
+            polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+            polyIout = polymodel.polyIout;
+            fprintf(' !\n'); strlen=0;
+        end
+
+        if(~opt.skipAlpha)
+            alphaStep.cost=IeStep.cost+opt.u*alphaStep.fVal(3);
         end
 
         out.llI(p) = IeStep.cost;
+
         switch lower(opt.IeStep)
             case lower('ActiveSet')
                 out.IeSteps(p)= IeStep.stepNum;
@@ -451,7 +476,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || (out.difIe(p)<opt.thresh)) )
+    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || p>length(out.difIe) || (out.difIe(p)<opt.thresh)) )
         convThresh=convThresh+1;
     end
     if(p >= opt.maxItr || convThresh>2)
@@ -471,10 +496,8 @@ else
     fprintf('\n');
 end
 
+if(opt.estIe)
 end
 
-function out=isContinuous(x)
-    y=x(2:end)-x(1:end-1);
-    if(any(y~=1)) out=false; else out=true; end
 end
 

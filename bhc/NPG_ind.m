@@ -22,7 +22,6 @@ classdef NPG_ind < handle
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        newCost;
         nonInc=0;
         innerSearch=0;
 
@@ -53,6 +52,12 @@ classdef NPG_ind < handle
             else
                 obj.proximal=@(xx) NPG_ind.BxLessThanb(xx,B,b);
             end
+        end
+        function setIe(obj,Ie)
+            obj.Ie=Ie;
+            obj.preIe=Ie;
+            obj.cumu=0;
+            obj.theta=0;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
@@ -142,8 +147,6 @@ classdef NPG_ind < handle
         end
         function reset(obj)
             obj.theta=0; obj.preIe=obj.Ie;
-            recoverT=obj.stepSizeInit('hessian');
-            obj.t=min([obj.t;max(recoverT)]);
         end
     end
     methods(Static)

@@ -3,7 +3,7 @@
 #include <math.h>
 #include <netcdf.h>
 
-/* this program writes data in NetCDF */
+/* this is an example program writes data in NetCDF */
 
 #define FILE_NAME "volume.nc"
 #define nx 30

@@ -16,10 +16,11 @@ function [f,g,h] = gaussLI(Imea,A,Ie)
         y = A*x;
         if(opt==1)
             h = A'*(weight.*y);
-        elseif(opt==2) h = weight'*(y.*y);
         else
-            n=length(weight);
-            h=y'*sparse(1:n,1:n,weight,n,n)*y;
+            h=[];
+            for i=1:size(y,2)
+                h(:,i)=y'*(y(:,i).*weight);
+            end
         end
     end
 end

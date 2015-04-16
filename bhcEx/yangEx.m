@@ -14,7 +14,7 @@ function yangEx(op)
 % compare the effect forcing center model of spectrum 
 %
 % A few thing to tune: continuation, centerb, ActiveSet VS FISTA_Simplex
-% maxIeStep
+% maxIeSteps
 
 if(~exist('op','var')) op='run'; end
 
@@ -24,16 +24,16 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spark=true; opt.spectBasis='b1'; opt.errorType=0;
+        opt.beamharden=true; opt.spark=true; opt.spectBasis='b1'; opt.E=30;
+        opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=1:2:length(prjFull)
+        for i=[1,length(prjFull)]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
             opt.snr=1e4;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
-            opt.maxItr=2e3; opt.thresh=1e-6;
-            opt.maxIeSteps=1;  % used in qnde2014 paper
+            opt.maxItr=4e3; opt.thresh=1e-6; opt.maxIeSteps=1;  % used in qnde2014 paper
 
             initSig = maskFunc(FBP(y),opt.mask~=0);
 
@@ -50,20 +50,12 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
 
-                opt.debugLevel=1; opt.IeStep='ActiveSet'; opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=17;
-                npgas17_AS_1s{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                %fail
+                opt.maxIeSteps=100; opt.spectBasis='dis';
+                npg2_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=1; opt.spectBasis='dis'; opt.E=17;
-                npgas17_1s{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=17;
-                npgas17{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=30;
-                npgas30{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.debugLevel=1; opt.IeStep='NPG'; opt.maxIeSteps=100; opt.spectBasis='dis'; opt.E=80;
-                npgas80{i,j}=BHC.NPG_AS(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.maxIeSteps=100; opt.spectBasis='b1';
+                npg2_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

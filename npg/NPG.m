@@ -11,7 +11,6 @@ classdef NPG < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        newCost;
         nonInc=0;
         innerSearch=0;
 
@@ -28,8 +27,15 @@ classdef NPG < Methods
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
-            obj.preAlpha=alpha;
             obj.nonInc=0;
+            obj.alpha=alpha;
+            obj.preAlpha=alpha;
+        end
+        function setAlpha(obj,alpha)
+            obj.alpha=alpha;
+            obj.cumu=0;
+            obj.theta=0;
+            obj.preAlpha=alpha;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
@@ -66,9 +72,9 @@ classdef NPG < Methods
                   % [newX,obj.innerSearch] = constrainedl2l1denoise(xbar-obj.grad/obj.t,...
                   %     obj.Psi,obj.Psit,obj.u./obj.t,0,...
                   %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
-                    obj.newCost=obj.func(newX);
+                    newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-obj.newCost)>=-0*abs(LMM)*1e-5)
+                    if((LMM-newCost)>=-0*abs(LMM)*1e-5)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -90,7 +96,7 @@ classdef NPG < Methods
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = pNorm(obj.Psit(newX),1);
-                temp = obj.newCost+obj.u*obj.fVal(3);
+                temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if((temp-obj.cost)>0*abs(obj.cost)*1e-5)

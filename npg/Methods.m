@@ -50,11 +50,11 @@ classdef Methods < handle
             if(nargin>0)
                 obj.n = n;
             end
+            obj.alpha = alpha;
             obj.fArray = cell(obj.n,1);
             obj.fVal = zeros(obj.n,1);
             obj.hArray = cell(obj.n,1);
             obj.coef = zeros(obj.n,1);
-            obj.alpha = alpha;
             obj.oldCost = zeros(obj.M,1);
         end
 

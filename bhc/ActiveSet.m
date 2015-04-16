@@ -52,18 +52,18 @@ classdef ActiveSet < handle
                 for ppp=2:20
                     zhz=hessian(obj.Z,3);
                     temp=eig(zhz);
-                    maxEig=max(abs(temp)); minEig=min(abs(temp));
-                    if((~isempty(temp)) && (min(temp)<0 || (minEig/maxEig)<obj.epsilon))
+                    maxEig=max((temp)); minEig=min((temp));
+                    if((~isempty(temp)) && (min(temp)<0 || abs(minEig/maxEig)<obj.epsilon))
                         % As this issue is handled gracely, no need to show warning message
                         % if(~obj.warned)
                         %     warning(['\nActiveSet: current Hessian is not',...
                         %         ' positive definite or has bad COND'],0);
                         %     obj.warned = true;
                         % end
-                        while(min(temp)<0 || (minEig/maxEig)<obj.epsilon)
+                        while(min(temp)<0 || abs(minEig/maxEig)<obj.epsilon)
                             zhz = zhz + eye(size(zhz))*(2*obj.epsilon*maxEig-minEig)/(1-2*obj.epsilon);
                             temp=eig(zhz);
-                            maxEig=max(abs(temp)); minEig=min(abs(temp));
+                            maxEig=max((temp)); minEig=min((temp));
                         end
                     end
 
