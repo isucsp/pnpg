@@ -2,13 +2,12 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   Simulate and generate measurements for beamhardening effect
 %   Parameters includs:
 %   'trueImg'
-%   'spark'
-%   'epsilon'
 %   'iota'
 %   'showImg'
+%   'voltage'
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 17 Apr 2015 03:36:59 PM CDT
+%   $Revision: 0.1 $ $Date: Fri 17 Apr 2015 03:52:46 PM CDT
 
     args = parseInputs(varargin{:});
     epsilon = args.epsilon(:);
@@ -92,10 +91,8 @@ end
 function args = parseInputs(varargin)
 
     args.scale = 2^-12*1.1;
-    args.spark = true;
-    args.epsilon = (20:1:150)'; %keV
     args.showImg = true;
-    args.iota = [];
+    args.voltage = 140;
 
     for i=1:2:length(varargin)
         if(isfield(args,varargin{i}))
@@ -105,11 +102,8 @@ function args = parseInputs(varargin)
         end
     end
 
-    if(isempty(args.iota))
-        args.iota=gampdf((args.epsilon-20)*16/100,5,1);
-        if(args.spark)
-            args.iota(45)=args.iota(45)*1000;
-            args.iota(22)=args.iota(22)*1000;
-        end
+    if(~isfield(args,'epsilon') || ~isfield(args,'iota'))
+        [args.epsilon,args.iota]=readSpectrum('tungsten',args.voltage,0.05);
     end
 end
+

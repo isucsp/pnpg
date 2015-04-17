@@ -24,11 +24,11 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spark=true; opt.spectBasis='b1'; opt.E=30;
+        opt.beamharden=true; opt.spectBasis='b1'; opt.E=30;
         opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=[1,length(prjFull)]
+        for i=[length(prjFull),1]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
             opt.snr=1e4;
 
@@ -46,16 +46,16 @@ switch lower(op)
 
             % unknown ι(κ), NPG-AS
             u  =  10.^[-4  -4   -4   -4   -4   -4];
-            for j=5:-1:1
+            for j=[3, 4, 2, 1, 5]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 opt.u=u(i)*10^(j-2);
 
                 %fail
                 opt.maxIeSteps=100; opt.spectBasis='dis';
-                npg2_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npg21_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt.maxIeSteps=100; opt.spectBasis='b1';
-                npg2_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npg21_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

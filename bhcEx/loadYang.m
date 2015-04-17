@@ -17,8 +17,6 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
     daub = 2; dwt_L=6;        %levels of wavelet transform
     maskType='CircleMask';
 
-    spark=opt.spark;
-
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
     conf.dist = 2000;
     conf.imgSize = size(opt.trueImg,1);
@@ -35,7 +33,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
         densityMap{1}=opt.trueImg;
 
         [y,args] = genBeamHarden(symbol,densityMap,ops,...
-            'showImg',false,'spark', spark);
+            'showImg',false);
         opt.trueIota = args.iota(:);
         opt.epsilon = args.epsilon(:);
         opt.trueKappa = args.kappa(:);

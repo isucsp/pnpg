@@ -2,7 +2,7 @@ function testIeStep()
     opt.beamharden=true; opt.errorType=0; opt.spectBasis='dis';
     opt.maxIeSteps=1000; opt.stepShrnk=0.5;
     opt.prjFull = 360; opt.prjNum = 360; opt.snr=1e4;
-    opt.E=17; opt.logspan=3; opt.spark=true;
+    opt.E=17; opt.logspan=3;
     [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
     initSig = maskFunc(FBP(y),opt.mask~=0);
 

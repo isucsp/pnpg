@@ -5,7 +5,7 @@ function [epsilon,iota] = readSpectrum(material,kev,rvr)
     % and 5% relative voltage ripple.
 
     filename=lower(material);
-    filename=[filename '_' num2str(kev) 'kV_' num2str(rvr) '_Gy.data'];
+    filename=[filename '_' num2str(kev) 'kV_' num2str(rvr) '_1Gy.data'];
     delimiter = ' ';
     formatSpec = '%f%f%[^\n\r]';
     fileID = fopen(filename,'r');
