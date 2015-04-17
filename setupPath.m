@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sun 29 Mar 2015 10:24:00 PM CDT
+% $Revision: 0.3 $ $Date: Fri 17 Apr 2015 04:55:04 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -37,8 +37,7 @@ addpath([pathstr '/others/fpc/solvers/utilities']);
 cd 'prj'
 if(isunix)
     !make mCPUPrj mParPrj solveTriDiag
-    hasgpu=gpuDevice;
-    if(~isempty(hasgpu))
+    if(gpuDeviceCount>0)
         !make mGPUPrj 
     end
 end
