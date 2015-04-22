@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 29 Mar 2015 09:53:01 PM CDT
+% $Revision: 0.2 $ $Date: Sun 19 Apr 2015 09:24:29 PM CDT
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
@@ -69,8 +69,8 @@ classdef ConfigCT < handle
             genOperators(obj,obj.PhiMode);
 
             if(obj.beamharden)
-                opt.trueKappa= obj.trueKappa;
-                opt.trueIota= obj.trueIota;
+                opt.kappa= obj.trueKappa;
+                opt.iota= obj.trueIota;
                 opt.epsilon= obj.epsilon;
             end
             opt.mask=obj.mask;

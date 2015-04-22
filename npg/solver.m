@@ -1,12 +1,18 @@
 function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
-%solver    Solve a linear problem
+%solver    Solve a sparse regularized problem
 %
-%                          0.5*||Φx-y||^2 + u*||Ψ'x||_1
+%                           L(x) + u*||Ψ'x||_1                        (1)
+%
+%   where L(x) is the likelihood function based on the measurements y. We
+%   provide a few options through opt.noiseType to configurate the
+%   measurement model. One popular case is when opt.noiseType='gaussian',
+%
+%                      0.5*||Φx-y||^2 + u*||Ψ'x||_1                   (2)
 %
 %   where u is set through opt.u. The methods provided through option
 %   opt.alphaStep includes:
 %
-%   NPG         Solves the above problem with constrainst: x>=0
+%   NPG         Solves the above problem with additional constrainsts: x>=0
 %   NPGs        Solves exactly the above problem without nonnegativity
 %               constraints
 %   PG          The same with NPG, but without Nesterov's acceleration, not
@@ -14,9 +20,9 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Parameters
 %   ==========
-%   Phi         The projection matrix implementation function handle
+%   Phi(Φ)      The projection matrix implementation function handle
 %   Phit        Transpose of Phi
-%   Psi         Inverse wavelet transform matrix from wavelet coefficients
+%   Psi(Ψ)      Inverse wavelet transform matrix from wavelet coefficients
 %               to image.
 %   Psit        Transpose of Psi, need to have ΨΨ'=I
 %   y           The measurements according to different models:

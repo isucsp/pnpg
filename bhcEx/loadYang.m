@@ -27,6 +27,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
     conf.effectiveRate = 1;
     conf.Ts = 1;
 
+    detectorBitWidth=16;
+
     [ops.Phi,ops.Phit,ops.FBP]=conf.genOperators();  % without using mask
     if(opt.beamharden)
         symbol={'Fe'};
@@ -34,25 +36,30 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
 
         [y,args] = genBeamHarden(symbol,densityMap,ops,...
             'showImg',false);
-        opt.trueIota = args.iota(:);
+        opt.iota = args.iota(:);
         opt.epsilon = args.epsilon(:);
-        opt.trueKappa = args.kappa(:);
+        opt.kappa = args.kappa(:);
 
         opt.trueImg=opt.trueImg*args.density;
         conf.Ts = args.Ts;
 
         y=-log(y(:)/max(y(:)));
+
+        %  Poisson measurements
+        Imea = 2^detectorBitWidth * exp(-y);
+        Imea = poissrnd(Imea);
+        y=-log(Imea/max(Imea));
     else
         y = ops.Phi(opt.trueImg);
+
+        % use Gaussian noise
+        v = randn(size(y));
+        v = v*(norm(y)/sqrt(opt.snr*length(y)));
+        y = y + v;
+
+        % remedy for the normalization, use only for log link
+        % if(opt.beamharden) y=y-min(y); end
     end
-
-    y = y(:);
-    v = randn(size(y));
-    v = v*(norm(y)/sqrt(opt.snr*length(y)));
-    y = y + v;
-
-    % remedy for the normalization
-    if(opt.beamharden) y=y-min(y); end
 
     if(strcmp(maskType,'CircleMask'))
         % reconstruction mask (which pixels do we estimate?)

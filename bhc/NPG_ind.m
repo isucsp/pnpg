@@ -4,6 +4,7 @@ classdef NPG_ind < handle
         func;
         debug;
         ppp
+        p=0;
         t=-1;
         stepSize;
         cost;
@@ -12,6 +13,7 @@ classdef NPG_ind < handle
         zmf;
 
         stepShrnk = 0.5;
+        preSteps=10;
         preIe=0;
         preG=[];
         preY=[];
@@ -39,6 +41,7 @@ classdef NPG_ind < handle
             % subject to B'*x <= b
             obj.Ie=Ie;
             obj.preIe=Ie;
+            obj.p=0;
             if(nargin>=5) obj.maxItr=maxItr; end
             if(nargin>=6) obj.stepShrnk=stepShrnk; end
             if(nargin>=7) obj.thresh=thresh; end
@@ -63,8 +66,10 @@ classdef NPG_ind < handle
         % method No.4 with ADMM inside FISTA for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
+            obj.p = obj.p+1;
             pp=0; obj.debug='';
             if(obj.restart>0) obj.restart=0; end
+
             while(pp<obj.maxItr)
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
@@ -80,7 +85,7 @@ classdef NPG_ind < handle
                 end
 
                 % start of line Search
-                obj.ppp=0; incStep=false; goodMM=true;
+                obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 while(true)
                     if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
@@ -94,10 +99,14 @@ classdef NPG_ind < handle
                     newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
                     if((LMM-newCost)>=0)
-                        break;
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
+                            obj.t=obj.t*obj.stepShrnk; continue;
+                        else
+                            break;
+                        end
                     else
                         if(obj.ppp<=20 && obj.t>0)
-                            obj.t=obj.t/obj.stepShrnk;
+                            obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
                                 obj.cumuTol=obj.cumuTol+4;
                                 incStep=false;

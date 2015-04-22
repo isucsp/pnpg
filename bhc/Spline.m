@@ -26,21 +26,17 @@ classdef Spline < handle
                 end
             end
         end
-        function setPlot(obj, trueKappa, trueIota, epsilon)
-            temp1 = [epsilon(1);(epsilon(1:end-1)+epsilon(2:end))/2;epsilon(end)];
-            temp2 = [trueKappa(1);(trueKappa(1:end-1)+trueKappa(2:end))/2;trueKappa(end)];
-            temp1 = temp1(2:end)-temp1(1:end-1);
-            temp2 = temp2(2:end)-temp2(1:end-1);
-            trueUpiota=abs(trueIota.*temp1./temp2);
+        function setPlot(obj, kappa, iota, epsilon)
+            [upkappa,upiota]=getUpiota(epsilon,kappa,iota);
             switch lower(obj.sType)
                 case 'dis'
-                    obj.plotSpectrum = @(III) Spline.plotDisUpiota(trueKappa,trueUpiota,...
+                    obj.plotSpectrum = @(III) Spline.plotDisUpiota(upkappa,upiota,...
                         obj.kappa, III);
                 case 'b0'
-                    obj.plotSpectrum = @(III) Spline.plotB0Upiota(trueKappa,trueUpiota,...
+                    obj.plotSpectrum = @(III) Spline.plotB0Upiota(upkappa,upiota,...
                         obj.kappa, III);
                 case 'b1'
-                    obj.plotSpectrum = @(III) Spline.plotB1Upiota(trueKappa,trueUpiota,...
+                    obj.plotSpectrum = @(III) Spline.plotB1Upiota(upkappa,upiota,...
                         obj.kappa, III);
             end
         end
@@ -305,38 +301,38 @@ classdef Spline < handle
             end
         end
 
-        function [trueMu,trueUpiota,mu,Ie]= plotB1Upiota(trueMu, trueUpiota, mu, Ie)
+        function [upkappa,upiota,mu,Ie]= plotB1Upiota(upkappa, upiota, mu, Ie)
             Ie=[0; Ie; 0];
             if(nargout==0)
-                loglog(trueMu,trueUpiota,'r.-'); hold on;
-                loglog(mu,Ie,'*-'); hold off;
+                semilogx(upkappa,upiota,'r.-'); hold on;
+                semilogx(mu,Ie,'*-'); hold off;
                 %ylim([1e-10 1]);
-                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+                xlim([min(min(upkappa),mu(1)) max(max(upkappa),mu(end))]);
             end
         end
 
-        function [trueMu,trueUpiota,mu,Ie]=plotB0Upiota(trueMu, trueUpiota, mu, Ie)
+        function [upkappa,upiota,mu,Ie]=plotB0Upiota(upkappa, upiota, mu, Ie)
             mu=reshape([mu(:)';mu(:)'],[],1);
             mu(1)=[]; mu(end)=[];
             Ie=reshape([Ie(:)';Ie(:)'],[],1);
             if(nargout==0)
-                loglog(trueMu,trueUpiota,'r.-'); hold on;
-                loglog(mu,Ie,'*-'); hold off;
+                semilogx(upkappa,upiota,'r.-'); hold on;
+                semilogx(mu,Ie,'*-'); hold off;
                 %ylim([1e-10 1]);
-                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+                xlim([min(min(upkappa),mu(1)) max(max(upkappa),mu(end))]);
             end
         end
 
-        function [trueMu,trueUpiota,mu,Ie]=plotDisUpiota(trueMu,trueUpiota,mu,Ie)
+        function [upkappa,upiota,mu,Ie]=plotDisUpiota(upkappa,upiota,mu,Ie)
             mu=(mu(1:end-1)+mu(2:end))/2;
             mu=reshape([mu(:)';mu(:)'],[],1);
             mu(1)=[]; mu(end)=[];
             Ie=reshape([Ie(:)';Ie(:)'],[],1);
             if(nargout==0)
-                loglog(trueMu,trueUpiota,'r.-'); hold on;
-                loglog(mu,Ie,'*-'); hold off;
+                semilogx(upkappa,upiota,'r.-'); hold on;
+                semilogx(mu,Ie,'*-'); hold off;
                 %ylim([1e-10 1]);
-                xlim([min(min(trueMu),mu(1)) max(max(trueMu),mu(end))]);
+                xlim([min(min(upkappa),mu(1)) max(max(upkappa),mu(end))]);
             end
         end
     end

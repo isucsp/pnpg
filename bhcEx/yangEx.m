@@ -45,16 +45,14 @@ switch lower(op)
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
             % unknown ι(κ), NPG-AS
-            u  =  10.^[-4  -4   -4   -4   -4   -4];
-            for j=[3, 4, 2, 1, 5]
+            u  =  10.^[-5  -5   -5   -5   -5   -5];
+            for j=[2:3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                opt.u=u(i)*10^(j-2);
+                opt.u=u(i)*10^(j-3);
 
-                %fail
-                opt.maxIeSteps=100; opt.spectBasis='dis';
-                npg21_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.maxIeSteps=100; opt.spectBasis='b1';
+                opt.debugLevel=1;
+                opt.maxIeSteps=1;
+                opt.spectBasis='b1';
                 npg21_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);

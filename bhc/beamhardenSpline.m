@@ -14,6 +14,8 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
 %
+%   v_0.5:      use the Poisson measurement model as the default;
+%               add GML model for the mass attenuation spectrum estimation
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
 %   v_0.2:      add alphaDif to output;
@@ -29,6 +31,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 
 % for alpha step
 % 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
+if(~isfield(opt,'noiseType')) opt.noiseType='Poisson'; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPG'; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=false; end
 if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
@@ -55,7 +58,6 @@ if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
 if(~isfield(opt,'CenterB')) opt.CenterB=false; end
 
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
-if(~isfield(opt,'muRange')) opt.muRange=[1e-2; 1e4]; end
 if(~isfield(opt,'sampleMode')) opt.sampleMode='logspan'; end
 if(~isfield(opt,'logspan')) opt.logspan=3; end
 if(~isfield(opt,'K')) opt.K=2; end  % number of materials
@@ -79,7 +81,7 @@ if(~isfield(opt,'saveAnimate')) opt.saveAnimate=false; end
 if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
 
 % use GML model to estimate Ie in after getting the estimation of α
-if(~isfield(opt,'estIe')) opt.estIe=true; end
+if(~isfield(opt,'estIe')) opt.estIe=false; end
 
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
@@ -105,13 +107,6 @@ if(opt.debugLevel>=5 && ~opt.skipIe) figIe=1003; figure(figIe); end
 if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
 switch lower(opt.sampleMode)
-    case 'uniform'
-        temp=linspace(opt.muRange(1),opt.muRange(2),opt.E);
-        Ie(floor(opt.E/2)-1:floor(opt.E/2)+1)=1/3;
-    case 'exponential'
-        temp=logspace(log10(opt.muRange(1)),log10(opt.muRange(2)),opt.E);
-        temp1=abs(temp-1);
-        Ie(temp1==min(temp1))=1;
     case 'assigned'
         Ie=zeros(length(opt.kappa),1);
         temp=opt.kappa;
@@ -121,50 +116,29 @@ switch lower(opt.sampleMode)
     case 'logspan'
         temp=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
             floor(opt.E/2-0.5)/(opt.E-1)*opt.logspan,opt.E);
-        % q=(1+sqrt(5))/2; temp1=ceil(opt.logspan/2/log10(q));
-        % temp=q.^(-temp1:temp1);
-        % opt.E=2*temp1+1;
         opt.E=length(temp);
         Ie=zeros(opt.E,1); Ie(floor(opt.E/2)+1)=1;
 end
 
-kappa=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
-q=kappa(2)/kappa(1);
+kappa=temp(:); q=kappa(2)/kappa(1);
 temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
 polymodel = Spline(opt.spectBasis,temp);
-polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
 polyIout = polymodel.polyIout;
 
 Ie=Ie/polyIout(0,Ie);
 
-temp1 = [opt.epsilon(1);(opt.epsilon(1:end-1)+opt.epsilon(2:end))/2;opt.epsilon(end)];
-temp2 = [opt.trueKappa(1);(opt.trueKappa(1:end-1)+opt.trueKappa(2:end))/2;opt.trueKappa(end)];
-temp1 = temp1(2:end)-temp1(1:end-1);
-temp2 = temp2(2:end)-temp2(1:end-1);
-opt.trueUpiota=abs(opt.trueIota.*temp1./temp2);
-opt.trueIota=opt.trueIota/(opt.trueIota'*temp1);
-clear 'temp1' 'temp2'
+[opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
 
 % find the best intial Ie ends
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
 else
     if(opt.skipIe)  % it is better to use dis or b-1 spline
-        Ie=interp1(opt.trueKappa, opt.trueUpiota,kappa(:),'spline');
+        Ie=interp1(log(opt.upkappa), opt.upiota ,log(kappa(:)),'spline');
         % there will be some points interplated negative and need to be removed
         Ie=max(Ie,0);
     end
 end
-
-% ???
-% find the best intial Ie starts
-% R = polyIout(Phi(alpha),[]);
-% for i=1:size(R,2)
-%     temp(i) = var(y+log(R(:,i)),1);
-% end
-% idx = find(temp==min(temp));
-% Ie = Ie*0;
-% Ie(idx) = exp(-mean(y+log(R(:,idx))));
-%max(Imea./(exp(-atten(Phi,alpha)*kappa')*Ie))
 
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
@@ -177,39 +151,21 @@ switch lower(opt.alphaStep)
             fprintf('use lustig approximation for l1 norm\n');
             alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
-    case {lower('SpaRSA')}
-        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-        alphaStep.coef(1:2) = [1; 1];
-        alphaStep.fArray{2} = nonneg;
-        alphaStep.maxStepNum = opt.maxAlphaSteps;
-        alphaStep.stepShrnk = opt.stepShrnk;
-        alphaStep.Psi = Psi;
-        alphaStep.Psit = Psit;
-        alphaStep.M = 5;
     case lower('NPGs')
-        alphaStep=NPGs(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('NPG')
-        alphaStep=NPG(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-    case lower('PG')
-        alphaStep=PG(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-    case {lower('ADMM_NNL1')}
-        alphaStep=ADMM_NNL1(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-    case {lower('ADMM_L1')}
-        alphaStep = ADMM_L1(2,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 
 B=eye(opt.E); b=zeros(opt.E,1);
-
 if(isfield(opt,'CenterB') && opt.CenterB)
     if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
     temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
     temp=temp/sqrt(2);
     B=[B; temp]; b=[b; zeros(opt.E-1,1)];
 end
-temp = polyIout(0,[]);
-B=[B; -temp(:)'/norm(temp)]; b=[b; -1/norm(temp)];
 
 switch lower(opt.IeStep)
     case lower('ActiveSet')
@@ -218,20 +174,25 @@ switch lower(opt.IeStep)
         IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
 end
 
-alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
+switch lower(opt.noiseType)
+    case lower('Gaussian')
+        alphaStepFunc = @(III,aaa,pIout) gaussLAlpha(Imea,III,aaa,Phi,Phit,pIout,IeStep);
+        IeStepFunc = @(A,III) gaussLI(Imea,A,III);
+    case lower('Poisson')
+        alphaStepFunc = @(III,aaa,pIout) poissLAlpha(Imea,III,aaa,Phi,Phit,pIout);
+        IeStepFunc = @(A,III) poissLI(Imea,A,III);
+end
+alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
 
-% while(log(polyIout(Phi(alpha),Ie))-log(Imea)>1)
-%     alpha=alpha*kappa(2)/kappa(1);
-% end
-% alphaStep.setAlpha(alpha);
-
-PsitPhitz=Psit(Phit(y));
-PsitPhit1=Psit(Phit(ones(length(y),1)));
 if(strcmpi(opt.uMode,'relative'))
+    PsitPhitz=Psit(Phit(y));
+    PsitPhit1=Psit(Phit(ones(length(y),1)));
     temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
     opt.u=opt.a*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
 end
 if(opt.continuation)
+    PsitPhitz=Psit(Phit(y));
+    PsitPhit1=Psit(Phit(ones(length(y),1)));
     temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
     alphaStep.u=0.1*max(abs(PsitPhitz+PsitPhit1*log(temp(1))))*temp(2)/temp(1);
     % This makes sure that the regulator settles after 300 iterations
@@ -307,12 +268,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     
     % start optimize over alpha
     if(~opt.skipAlpha) 
-        alphaStep.fArray{1} = @(aaa) gaussLAlpha(Imea,Ie,aaa,Phi,Phit,polyIout,IeStep);
+        alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
         alphaStep.main();
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
         out.cost(p) = alphaStep.cost;
         if(~opt.skipIe) IeStep.cost=alphaStep.fVal(1); end
+
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
         if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
@@ -353,8 +315,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             ' difAlpha=%g aSearch=%d'],...
             out.cost(p),out.RMSE(p), out.difAlpha(p), ...
             alphaStep.ppp);
-        str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
-        out.zmf(p,:)=IeStep.zmf(:)';
+        if(strcmpi(opt.noiseType,'Gaussian'))
+            str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
+            out.zmf(p,:)=IeStep.zmf(:)';
+        end
         if(p>1)
             str=sprintf([str ' difCost=%g'], out.difCost(p));
         end
@@ -364,19 +328,16 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     %if(out.delta<=1e-4) maxPP=5; end
     if(~opt.skipIe)
         % update the object fuction w.r.t. Ie
+        if(strcmpi(opt.noiseType,'Gaussian') && strcmpi(opt.IeStep,'NPG'))
+            if(max(IeStep.zmf(:))>=1 || p<20)  IeStep.maxItr=opt.maxIeSteps*10;
+            else IeStep.maxItr=opt.maxIeSteps; end
+        end
+
         A = polyIout(Phi(alpha),[]);
-        IeStep.func = @(III) gaussLI(Imea,A,III);
-
-        % if(strcmpi(opt.IeStep,'NPG'))
-        %     if(max(IeStep.zmf(:))>1)  IeStep.maxItr=opt.maxIeSteps;
-        %     else IeStep.maxItr=1; end
-        % end
-
+        IeStep.func = @(III) IeStepFunc(A,III);
         IeStep.main();
 
-        % here add the procedure making spectrum in the center
-
-        if(IeStep.Ie(1) || IeStep.Ie(end))
+        if(false && (IeStep.Ie(1) || IeStep.Ie(end)))
             fprintf('\nExtend the spectrum to the');
             if(IeStep.Ie(1))
                 kappa=[kappa(1)/q; kappa];
@@ -392,7 +353,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             end
             temp = [kappa(1)^2/kappa(2); kappa(:); kappa(end)^2/kappa(end-1)];
             polymodel = Spline(opt.spectBasis,temp);
-            polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+            polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
             polyIout = polymodel.polyIout;
             fprintf(' !\n'); strlen=0;
         end

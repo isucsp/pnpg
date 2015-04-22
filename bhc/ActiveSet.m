@@ -9,7 +9,7 @@ classdef ActiveSet < handle
         Z
         Ie
         zmf
-        maxItr = 1e2; % default max # of iterations
+        maxItr = 1e2;   % default max # of iterations
         thresh = 1e-14; % critera for convergence
         converged = false;
         stepShrnk = 0.8;
@@ -19,13 +19,19 @@ classdef ActiveSet < handle
         deltaNormIe
         debugLevel = 0;
         warned = false;
+        adjust;
     end 
 
     methods
-        function obj = ActiveSet(B,b,Ie,maxItr,stepShrnk)
+        function obj = ActiveSet(B,b,Ie,maxItr,stepShrnk,adj)
             % Method help here
             if(nargin>0)
                 obj.B = B; obj.b = b;
+                if(b(end)~=0)
+                    obj.adjust=@(III) ActiveSet.adjustFunc(obj.B,obj.b,III);
+                else
+                    obj.adjust=adj;
+                end
                 if(nargin>=3)
                     if(nargin>=4)
                         obj.maxItr = maxItr;
@@ -139,7 +145,7 @@ classdef ActiveSet < handle
                     newCost=obj.func(newIe);
 
                     if((newCost <= oldCost - stepSz/2*obj.deltaNormIe)...
-                            || (ppp>10 && newCost < oldCost))
+                            || (ppp>10 && newCost <= oldCost))
                         obj.Ie = obj.adjust(newIe);
                         obj.cost = newCost;
                         if(stepSz==maxStep)
@@ -152,10 +158,7 @@ classdef ActiveSet < handle
                     else
                         if(ppp>10)
                             fprintf('\n'); warning('exit iterations for higher convergence criteria: %g\n',obj.deltaNormIe);
-                            if(oldCost>=newCost)
-                                obj.Ie = obj.adjust(newIe);
-                                obj.cost = newCost;
-                            else
+                            if(oldCost<newCost)
                                 fprintf('\n'); warning('ActiveSet: Ie converged\n',0);
                                 obj.cost = oldCost;
                                 obj.converged = true;
@@ -176,23 +179,26 @@ classdef ActiveSet < handle
             end
             obj.stepNum = pp;
         end
+    end
 
-        function Ie=adjust(obj,Ie)
+    methods(Static)
+        function Ie=adjustFunc(B,b,Ie)
             Ie(Ie<0)=0;
-            if(size(obj.B,1)==2*length(Ie))
+            if(size(B,1)==2*length(Ie))
                 Ie(floor(length(Ie)/2)+1)=max(Ie);
             end
-            d=obj.b(end)-obj.B(end,:)*Ie;
+            d=b(end)-B(end,:)*Ie;
             while(d>0)
-                S = Ie>0 & obj.B(end,:)'<0;
-                step = min( min(-Ie(S)./obj.B(end,S)'), ...
-                    d/sqrNorm(obj.B(end,S)));
-                Ie(S) = Ie(S) + step*obj.B(end,S)';
-                if(size(obj.B,1)==2*length(Ie))
+                S = Ie>0 & B(end,:)'<0;
+                step = min( min(-Ie(S)./B(end,S)'), ...
+                    d/sqrNorm(B(end,S)));
+                Ie(S) = Ie(S) + step*B(end,S)';
+                if(size(B,1)==2*length(Ie))
                     Ie(floor(length(Ie)/2)+1)=max(Ie);
                 end
-                d=obj.b(end)-obj.B(end,:)*Ie;
+                d=b(end)-B(end,:)*Ie;
             end
         end
     end
 end
+
