@@ -14,6 +14,9 @@ classdef NPGs < Methods
         nonInc=0;
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
+        % the weight that applied to the l1 norm,
+        % make it a vector with the same size as alpha to enable
+        weight=1;
     end
     methods
         function obj = NPGs(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
@@ -48,7 +51,7 @@ classdef NPGs < Methods
                         incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    newSi=Utils.softThresh(si-dsi/obj.t,obj.u/obj.t);
+                    newSi=Utils.softThresh(si-dsi/obj.t,obj.weight*obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     obj.newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);

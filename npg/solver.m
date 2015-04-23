@@ -14,13 +14,15 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   NPG         Solves the above problem with additional constrainsts: x>=0
 %   NPGs        Solves exactly the above problem without nonnegativity
-%               constraints
+%               constraints;
+%               Note that, NPGs support weighted l1 norm by specifying
+%               option opt.weight
 %   PG          The same with NPG, but without Nesterov's acceleration, not
-%               recommended to use.
+%               recommend to use.
 %
 %   Parameters
 %   ==========
-%   Phi(Φ)      The projection matrix implementation function handle
+%   Phi(Φ)      The projection matrix or its implementation function handle
 %   Phit        Transpose of Phi
 %   Psi(Ψ)      Inverse wavelet transform matrix from wavelet coefficients
 %               to image.
@@ -95,6 +97,16 @@ if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
 if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
 if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
+if(size(Phi,1)==length(y(:)) && size(Phi,2)==length(alpha(:))) matPhi=Phi; Phi=@(xx) matPhi*xx; end
+if(size(Phit,1)==length(alpha(:)) && size(Phit,2)==length(y(:))) matPhit=Phit; Phit=@(xx) matPhit*xx; end
+if(size(Psi,1)==length(alpha(:))) matPsi=Psi; Psi=@(xx) matPsi*xx; end
+if(size(Psit,2)==length(alpha(:))) matPsit=Psit; Psit=@(xx) matPsit*xx; end
+
+temp=randn(size(alpha));
+if(norm(Psi(Psit(temp))-temp)>1e-10) 
+    error('rows of Psi need to be orthogonal, that is ΨΨ''=I');
+end
+
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
         alphaStep = NCG_PR(3,alpha);
@@ -164,6 +176,11 @@ end
 if(any(strcmp(properties(alphaStep),'admmTol'))...
         && isfield(opt,'admmTol'))
     alphaStep.admmTol=opt.admmTol;
+end
+
+if(any(strcmp(properties(alphaStep),'weight'))...
+        && isfield(opt,'weight'))
+    alphaStep.weight=opt.weight(:);
 end
 
 if(opt.continuation || opt.fullcont)

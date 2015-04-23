@@ -137,6 +137,7 @@ classdef NPG_ind < handle
                         pp=pp-1; continue;
                     end
                 end
+                difCost = (newCost-obj.cost)/max(newCost,1e-12);
                 obj.cost = newCost;
                 obj.difIe = relativeDif(obj.Ie,newX);
                 obj.Ie = newX;
@@ -150,7 +151,7 @@ classdef NPG_ind < handle
 %               figure(2); semilogy(pp,obj.difIe,'.c');hold on; 
 %               figure(3); semilogy(pp,obj.t,'.c');hold on; 
 %               figure(4); plot(obj.Ie,'*-');
-                if(obj.difIe<=obj.thresh) break; end
+                if(obj.difCost<=obj.thresh) break; end
             end
             out = obj.Ie;
         end

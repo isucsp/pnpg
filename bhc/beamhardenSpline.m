@@ -378,7 +378,9 @@ while( ~(opt.skipAlpha && opt.skipIe) )
                 out.IeSearch(p) = IeStep.ppp;
                 str=sprintf([str ' IeSearch=%d'],out.IeSearch(p));
         end
+
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
+        
         if(p>1) out.difllI(p)=abs(out.llI(p)-out.llI(p-1))/out.llI(p); end
         Ie = IeStep.Ie;
         str=sprintf([str ' difIe=%g'], out.difIe(p));
@@ -437,7 +439,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || p>length(out.difIe) || (out.difIe(p)<opt.thresh)) )
+    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || p>length(out.difIe) || (out.difllI(p)<opt.thresh)) )
         convThresh=convThresh+1;
     end
     if(p >= opt.maxItr || convThresh>2)

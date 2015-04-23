@@ -1,11 +1,11 @@
 classdef Utils < handle
     methods(Static)
         function y = softThresh(x,thresh)
-            idx = abs(x)<thresh;
-            y = zeros(size(x));
-            y(x>0) = x(x>0)-thresh;
-            y(x<0) = x(x<0)+thresh;
-            y(idx) = 0;
+            y=x-thresh;
+            y(abs(x)<thresh) = 0;
+            idx = x<0;
+            x=x+thresh;
+            y(idx)=x(idx);
         end
         function mat = getMat(func,ncol)
             mat = zeros(length(func(zeros(ncol,1))),ncol);

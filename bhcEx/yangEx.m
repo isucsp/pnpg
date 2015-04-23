@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=[length(prjFull),1]
+        for i=[length(prjFull)]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
             opt.snr=1e4;
 
@@ -51,7 +51,7 @@ switch lower(op)
                 opt.u=u(i)*10^(j-3);
 
                 opt.debugLevel=1;
-                opt.maxIeSteps=1;
+                opt.maxIeSteps=100;
                 opt.spectBasis='b1';
                 npg21_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
