@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=[length(prjFull)]
+        for i=1:length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);

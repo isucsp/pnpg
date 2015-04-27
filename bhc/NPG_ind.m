@@ -135,7 +135,7 @@ classdef NPG_ind < handle
                         pp=pp-1; continue;
                     end
                 end
-                difCost = (newCost-obj.cost)/max(newCost,1e-12);
+                difCost = abs(newCost-obj.cost)/max(newCost,1e-12);
                 obj.cost = newCost;
                 obj.difIe = relativeDif(obj.Ie,newX);
                 obj.Ie = newX;
