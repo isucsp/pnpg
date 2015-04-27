@@ -62,10 +62,8 @@ classdef NPG_ind < handle
             obj.cumu=0;
             obj.theta=0;
         end
-        % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
-        % method No.4 with ADMM inside FISTA for NNL1
-        % the order of 2nd and 3rd terms is determined by the ADMM subroutine
-        function out = main(obj)
+        % solves L(α) + I(α>=0)
+        function [out,pp] = main(obj)
             obj.p = obj.p+1;
             pp=0; obj.debug='';
             if(obj.restart>0) obj.restart=0; end
@@ -151,7 +149,7 @@ classdef NPG_ind < handle
 %               figure(2); semilogy(pp,obj.difIe,'.c');hold on; 
 %               figure(3); semilogy(pp,obj.t,'.c');hold on; 
 %               figure(4); plot(obj.Ie,'*-');
-                if(obj.difCost<=obj.thresh) break; end
+                if(difCost<=obj.thresh) break; end
             end
             out = obj.Ie;
         end

@@ -54,6 +54,7 @@ if(~isfield(opt,'a')) opt.a=1e-6; end
 if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
 if(~isfield(opt,'skipIe')) opt.skipIe=false; end
 if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
+if(~isfield(opt,'etaDifCost')) opt.etaDifCost=1e-1; end
 if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
 if(~isfield(opt,'CenterB')) opt.CenterB=false; end
 
@@ -335,33 +336,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) IeStepFunc(A,III);
-        IeStep.main();
+        if(p>1) IeStep.thresh=opt.etaDifCost*out.difCost(p); end
+        [~,IeStepCnt]=IeStep.main();
 
-        if(false && (IeStep.Ie(1) || IeStep.Ie(end)))
-            fprintf('\nExtend the spectrum to the');
-            if(IeStep.Ie(1))
-                kappa=[kappa(1)/q; kappa];
-                IeStep.setIe([0; IeStep.Ie]);
-                Ie=[0; Ie];
-                fprintf(' left');
-            end
-            if(IeStep.Ie(end))
-                kappa=[kappa; kappa(end)*q];
-                IeStep.setIe([IeStep.Ie; 0]);
-                Ie=[Ie; 0];
-                fprintf(' right');
-            end
-            temp = [kappa(1)^2/kappa(2); kappa(:); kappa(end)^2/kappa(end-1)];
-            polymodel = Spline(opt.spectBasis,temp);
-            polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
-            polyIout = polymodel.polyIout;
-            fprintf(' !\n'); strlen=0;
-        end
-
-        if(~opt.skipAlpha)
-            alphaStep.cost=IeStep.cost+opt.u*alphaStep.fVal(3);
-        end
-
+        alphaStep.cost=IeStep.cost+opt.u*alphaStep.fVal(3);
         out.llI(p) = IeStep.cost;
 
         switch lower(opt.IeStep)
@@ -377,6 +355,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             case lower('NPG')
                 out.IeSearch(p) = IeStep.ppp;
                 str=sprintf([str ' IeSearch=%d'],out.IeSearch(p));
+                str=sprintf([str ' #IeStep=%d'],IeStepCnt);
         end
 
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
@@ -387,44 +366,44 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end
     end
 
-    if(p>1 && opt.debugLevel>=3)
-        set(0,'CurrentFigure',figCost);
-        if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        if(out.cost(p)>0)
-            semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
-            title(sprintf('cost(%d)=%g',p,out.cost(p)));
-        end
+    if(opt.debugLevel>1)
+        if(p>1 && opt.debugLevel>=3)
+            set(0,'CurrentFigure',figCost);
+            if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
+            if(out.cost(p)>0)
+                semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
+                title(sprintf('cost(%d)=%g',p,out.cost(p)));
+            end
 
-        if(isfield(opt,'trueAlpha'))
-            subplot(2,1,2);
-            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
-            title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
+            if(isfield(opt,'trueAlpha'))
+                subplot(2,1,2);
+                semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
+                title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
+            end
+            drawnow;
         end
-        drawnow;
-    end
-
-    if(~opt.skipIe && opt.debugLevel>=5)
-        set(0,'CurrentFigure',figIe);
-        polymodel.plotSpectrum(Ie);
-        title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
-        drawnow;
-    end
-    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=4)
-        set(0,'CurrentFigure',figRes);
-        style={'r','g','b'};
-        for i=1:length(out.fVal(p,:))
-            subplot(3,1,i);
-            semilogy(p-1:p,out.fVal(p-1:p,i),style{i}); hold on;
+        if(~opt.skipIe && opt.debugLevel>=5)
+            set(0,'CurrentFigure',figIe);
+            polymodel.plotSpectrum(Ie);
+            title(sprintf('int upiota d kappa = %g',polyIout(0,Ie)));
+            drawnow;
         end
-        drawnow;
-    end
-
-    if(opt.debugLevel>=6)
-        set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
-        if(~isempty(IeStep.zmf))
-            title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+        if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=4)
+            set(0,'CurrentFigure',figRes);
+            style={'r','g','b'};
+            for i=1:length(out.fVal(p,:))
+                subplot(3,1,i);
+                semilogy(p-1:p,out.fVal(p-1:p,i),style{i}); hold on;
+            end
+            drawnow;
         end
-        drawnow;
+        if(opt.debugLevel>=6)
+            set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
+            if(~isempty(IeStep.zmf))
+                title(sprintf('zmf=(%g,%g)', IeStep.zmf(1), IeStep.zmf(2)))
+            end
+            drawnow;
+        end
     end
     
     if(opt.debugLevel>=1)
@@ -439,10 +418,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
     end
     out.time(p)=toc;
-    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) && (opt.skipIe || p>length(out.difIe) || (out.difllI(p)<opt.thresh)) )
+    if( p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) )
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>2)
+    if( p >= opt.maxItr || convThresh>2 )
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end

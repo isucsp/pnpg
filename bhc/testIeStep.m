@@ -1,7 +1,8 @@
-function testIeStep()
+function [Ie,out] = testIeStep()
     opt.beamharden=true; opt.errorType=0; opt.spectBasis='dis';
-    opt.maxIeSteps=5e2; opt.stepShrnk=0.5; opt.thresh=1e-10;
+    opt.maxIeSteps=1e4; opt.stepShrnk=0.5; opt.thresh=1e-10;
     opt.prjFull = 360; opt.prjNum = 360; opt.snr=1e4;
+    opt.noiseType='Poisson';
     opt.E=50; opt.logspan=3;
 
     [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
@@ -27,33 +28,44 @@ function testIeStep()
     opt.trueIe=max(opt.trueIe,0);
     trueA=polyIout(Phi(opt.trueAlpha),[]);
     norm(y+log(trueA*opt.trueIe))
-    fprintf('cost=%e\n',gaussLI(Imea,trueA,opt.trueIe));
+
+    switch lower(opt.noiseType)
+        case lower('Gaussian')
+            IeStepFunc = @(A,III) gaussLI(Imea,A,III);
+        case lower('Poisson')
+            IeStepFunc = @(A,III) poissLI(Imea,A,III);
+    end
+
+    fprintf('cost=%e\n',IeStepFunc(trueA,opt.trueIe));
 
     B=eye(opt.E); b=zeros(opt.E,1);
 
-    Ie=opt.trueIe;
+    %Ie=opt.trueIe;
     IeStep=NPG_ind(Ie,true,polyIout(0,[]),1,1,opt.stepShrnk,opt.thresh);
     IeStep=NPG_ind(Ie,true,[],1,1,opt.stepShrnk,opt.thresh);
-    IeStep.func = @(III) gaussLI(Imea,trueA,III);
+    IeStep.func=@(III) IeStepFunc(trueA,III);
 
     tic;
     strlen=0;
 
     for i=1:opt.maxIeSteps;
         IeStep.main();
+        out.cost(i)=IeStep.cost;
+        out.difIe(i)=IeStep.difIe;
+        out.stepSize(i)=1/IeStep.t;
+        if(i>1)
+            out.difCost(i)=abs((out.cost(i)-out.cost(i-1)))/out.cost(i);
+        end
+        out.time(i)=toc;
 
-        figure(1); semilogx(kappa,IeStep.Ie,'b.-'); hold on; semilogx(opt.upkappa, opt.upiota, 'g-'); hold off;
-        figure(2); semilogy(i,IeStep.cost,'b.');  hold on; 
-        figure(3); semilogy(i,IeStep.difIe,'b.'); hold on; 
-        figure(4); semilogy(i,1./IeStep.t,'r.');  hold on; 
-
-        str=sprintf('i=%d, time=%g, cost=%e',i,toc,IeStep.cost);
+        str=sprintf('i=%d, time=%g, cost=%e',i,out.time(i),IeStep.cost);
         fprintf([repmat('\b',1,strlen) '%s'],str);
         strlen=length(str);
     end
-
-
-    keyboard;
+    Ie = IeStep.Ie;
+    out.kappa=kappa;
+    out.opt=opt;
+    fprintf('\n');
 end
 
 function [Ie,kappa,polymodel,opt] = setPolyModel(opt)

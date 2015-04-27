@@ -365,7 +365,7 @@ while(true)
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>2)
+    if(p >= opt.maxItr || convThresh>2) && (p>opt.minItr)
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end
