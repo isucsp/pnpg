@@ -1,42 +1,48 @@
-function Ie = estIe(kappa,Ie,)
+function [Ie,out] = estIe(kappa,Imea,PhiAlpha,spectBasis,noiseType)
     currNumIe=length(kappa);
-    for numIe=currNumIe:-1:1
-        temp=logspace(log10(kappa(1)),log10(kappa(end)),numIe);
-        Ie=exp(interp1(log(massAttenCoef(idx1:idx2,1)),...
-            log(massAttenCoef(idx1:idx2,2)), log(epsilon),'spline'));
+    Ie=ones(size(kappa));
+    maxIeSteps=5e3;
+    switch lower(noiseType)
+        case lower('Gaussian')
+            IeStepFunc = @(A,III) gaussLI(Imea,A,III);
+            hessian = @(A,III) getHess(A,(A*III).^2);
+        case lower('Poisson')
+            IeStepFunc = @(A,III) poissLI(Imea,A,III);
+            hessian = @(A,III) getHess(A,(A*III));
+    end
+    out.Ie=[];
+    out.GML=[];
+    IelenRange=currNumIe:-1:2;
+    ii=0;
+    for Ielen=IelenRange
+        ii=ii+1;
+        temp=logspace(log10(kappa(1)),log10(kappa(end)),Ielen);
+        Ie=interp1(log(kappa),Ie,log(temp),'spline');
 
-        kappa=temp(:);  %*mean(X(find(idx(:)==i+1))); %/(1-(opt.K-1)*eps);
-        q=kappa(2)/kappa(1);
+        kappa=temp(:);
         temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
-        polymodel = Spline(opt.spectBasis,temp);
-        polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
+        polymodel = Spline(spectBasis,temp);
         polyIout = polymodel.polyIout;
 
-        Ie=Ie/polyIout(0,Ie);
+        A = polyIout(PhiAlpha,[]);
+        IeStep = NPG_ind(Ie,true,[],[],maxIeSteps);
+        IeStep.func = @(III) IeStepFunc(A,III);
+        Ie=IeStep.main();
 
-        IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
-        A = polyIout(Phi(alpha),[]);
-        IeStep.func = @(III) gaussLI(Imea,A,III);
-        if(IeStep.Ie(1) || IeStep.Ie(end))
-            fprintf('\nExtend the spectrum to the');
-            if(IeStep.Ie(1))
-                kappa=[kappa(1)/q; kappa];
-                IeStep.setIe([0; IeStep.Ie]);
-                Ie=[0; Ie];
-                fprintf(' left');
-            end
-            if(IeStep.Ie(end))
-                kappa=[kappa; kappa(end)*q];
-                IeStep.setIe([IeStep.Ie; 0]);
-                Ie=[Ie; 0];
-                fprintf(' right');
-            end
-            temp = [kappa(1)^2/kappa(2); kappa(:); kappa(end)^2/kappa(end-1)];
-            polymodel = Spline(opt.spectBasis,temp);
-            polymodel.setPlot(opt.trueKappa,opt.trueIota,opt.epsilon);
-            polyIout = polymodel.polyIout;
-            fprintf(' !\n'); strlen=0;
-        end
-
-        IeStep.main();
+        out.Ie{ii}=Ie;
+        out.kappa{ii}=kappa;
+        out.GML(ii)=IeStep.cost+0.5*log(det(hessian(A,Ie)));
+        out.likelihood(ii)=IeStep.cost;
+        out.rankA(ii)=rank(A);
     end
+end
+
+function h = getHess(A,Iout)
+    nc=size(A,2);
+    h=A;
+    for i=1:nc
+        h(:,i)=h(:,i)./Iout;
+    end
+    h=A'*h;
+end
+

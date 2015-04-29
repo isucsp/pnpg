@@ -1,6 +1,6 @@
 function [Ie,out] = testIeStep()
-    opt.beamharden=true; opt.errorType=0; opt.spectBasis='dis';
-    opt.maxIeSteps=1e4; opt.stepShrnk=0.5; opt.thresh=1e-10;
+    opt.beamharden=true; opt.errorType=0; opt.spectBasis='b1';
+    opt.maxIeSteps=1e3; opt.stepShrnk=0.5; opt.thresh=1e-10;
     opt.prjFull = 360; opt.prjNum = 360; opt.snr=1e4;
     opt.noiseType='Poisson';
     opt.E=50; opt.logspan=3;
@@ -26,21 +26,28 @@ function [Ie,out] = testIeStep()
     opt.trueIe=interp1(log10(opt.upkappa),opt.upiota,log10(kappa(:)),'spline');
     % there will be some points interplated negative and need to be removed
     opt.trueIe=max(opt.trueIe,0);
-    trueA=polyIout(Phi(opt.trueAlpha),[]);
-    norm(y+log(trueA*opt.trueIe))
+
+    PhiAlpha=Phi(opt.trueAlpha);
+    PhiFbp=Phi(initSig);
+    trueA=polyIout(PhiAlpha,[]);
+    A=polyIout(PhiFbp,[]);
+    disp([norm(y+log(trueA*opt.trueIe)) norm(y+log(A*opt.trueIe))]);
 
     switch lower(opt.noiseType)
         case lower('Gaussian')
-            IeStepFunc = @(A,III) gaussLI(Imea,A,III);
+            IeStepFunc = @(AA,III) gaussLI(Imea,AA,III);
         case lower('Poisson')
-            IeStepFunc = @(A,III) poissLI(Imea,A,III);
+            IeStepFunc = @(AA,III) poissLI(Imea,AA,III);
     end
 
     fprintf('cost=%e\n',IeStepFunc(trueA,opt.trueIe));
 
+    % [Ie1,out1] = estIe(kappa,Imea,Phi(opt.trueAlpha),opt.spectBasis,opt.noiseType); keyboard
+
     B=eye(opt.E); b=zeros(opt.E,1);
 
-    %Ie=opt.trueIe;
+    Ie=Ie*0+eps;
+    % Ie=opt.trueIe;
     IeStep=NPG_ind(Ie,true,polyIout(0,[]),1,1,opt.stepShrnk,opt.thresh);
     IeStep=NPG_ind(Ie,true,[],1,1,opt.stepShrnk,opt.thresh);
     IeStep.func=@(III) IeStepFunc(trueA,III);
@@ -48,7 +55,18 @@ function [Ie,out] = testIeStep()
     tic;
     strlen=0;
 
+    s=linspace(min(PhiAlpha),max(PhiAlpha),1000);
+
     for i=1:opt.maxIeSteps;
+
+        idx=randi(length(PhiAlpha),1000,1);
+        figure(1); plot(PhiAlpha(idx),-log(Imea(idx)),'.'); hold on;
+        plot(PhiFbp(idx),-log(Imea(idx)),'g.');
+        plot(s,-log(polyIout(s,IeStep.Ie)),'r-'); hold off;
+        figure(2); semilogx(opt.upkappa,opt.upiota,'r'); hold on;
+        plot(kappa,IeStep.Ie,'.-'); hold off;
+        drawnow;
+
         IeStep.main();
         out.cost(i)=IeStep.cost;
         out.difIe(i)=IeStep.difIe;
@@ -58,6 +76,7 @@ function [Ie,out] = testIeStep()
         end
         out.time(i)=toc;
 
+
         str=sprintf('i=%d, time=%g, cost=%e',i,out.time(i),IeStep.cost);
         fprintf([repmat('\b',1,strlen) '%s'],str);
         strlen=length(str);
@@ -66,6 +85,7 @@ function [Ie,out] = testIeStep()
     out.kappa=kappa;
     out.opt=opt;
     fprintf('\n');
+
 end
 
 function [Ie,kappa,polymodel,opt] = setPolyModel(opt)
@@ -82,3 +102,6 @@ function [Ie,kappa,polymodel,opt] = setPolyModel(opt)
     Ie=Ie/polymodel.polyIout(0,Ie);
 end
 
+% Conclusions form this test file:
+% - it is not good to initilize Ie by a pulse with its position centered
+% - better to begin with eps*ones

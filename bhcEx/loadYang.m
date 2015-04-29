@@ -14,7 +14,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
     trueImg=load('yang.mat'); opt.trueImg=trueImg.trueImg;
     conf=ConfigCT();
 
-    daub = 2; dwt_L=6;        %levels of wavelet transform
+    daub = 2; dwt_L=9;        %levels of wavelet transform
     maskType='CircleMask';
 
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %

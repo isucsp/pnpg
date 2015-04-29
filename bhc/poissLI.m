@@ -1,5 +1,5 @@
 function [f,g,h] = poissLI(Imea,A,Ie)
-    Ir=A*Ie; Err=log(Ir./Imea);
+    Ir=A*Ie(:); Err=log(Ir./Imea);
     f=sum(Ir-Imea)-Imea'*Err;
     if(nargout>1) g=A'*(1-Imea./Ir); end
     if(nargout>2)

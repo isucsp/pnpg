@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=1:length(prjFull)
+        for i=length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
@@ -44,10 +44,11 @@ switch lower(op)
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
             % unknown ι(κ), NPG-AS
-            for j=[3]
+            for j=[2:4]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=u(i)*10^(j-3);
+                maxItr=2000;
                 npg2_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);

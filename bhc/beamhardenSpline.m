@@ -15,18 +15,13 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   Author: Renliang Gu (renliang@iastate.edu)
 %
 %   v_0.5:      use the Poisson measurement model as the default;
+%               switch the order of alpha and I step;
+%               use relative cost difference as convergence for I step
 %               add GML model for the mass attenuation spectrum estimation
 %   v_0.4:      use spline as the basis functions, make it more configurable
 %   v_0.3:      add the option for reconstruction with known Ie
 %   v_0.2:      add alphaDif to output;
 %               add t[123] to output;
-%
-%   todo:       record the # of steps for the line search
-%               make sure to add 1/2 to the likelihood
-%               Try by have less number of sampling points.
-%               use annihilating filter to do Ie estimation.
-%               use cpu version of operators
-%               optimize the form of Phi[t]Func51.m in subfuction
 %
 
 % for alpha step
@@ -254,6 +249,9 @@ if(any(strcmp(properties(alphaStep),'preSteps')))
     alphaStep.preSteps=opt.preSteps;
 end
 
+% PhiTrueAlpha=Phi(opt.trueAlpha);
+% s=linspace(min(PhiTrueAlpha),max(PhiTrueAlpha),1000);
+
 tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     if(opt.saveAnimate && (mod(p,10)==0 || p<10))
@@ -266,6 +264,14 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     end
 
     p=p+1; str=sprintf('p=%-4d',p);
+
+    % PhiAlpha=Phi(alphaStep.alpha);
+    % idx=randi(length(PhiTrueAlpha),1000,1);
+    % figure(1); plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.'); hold on;
+    % plot(PhiAlpha(idx),-log(Imea(idx)),'g.');
+    % plot(s,-log(polyIout(s,IeStep.Ie)),'r-'); hold off;
+    % figure(2); semilogx(opt.upkappa,opt.upiota,'r'); hold on;
+    % plot(kappa,IeStep.Ie,'.-'); hold off;
     
     % start optimize over alpha
     if(~opt.skipAlpha) 

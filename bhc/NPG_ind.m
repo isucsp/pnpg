@@ -39,8 +39,8 @@ classdef NPG_ind < handle
         function obj = NPG_ind(Ie,nonneg,B,b,maxItr,stepShrnk,thresh)
             B=B(:);
             % subject to B'*x <= b
-            obj.Ie=Ie;
-            obj.preIe=Ie;
+            obj.Ie=Ie(:);
+            obj.preIe=Ie(:);
             obj.p=0;
             if(nargin>=5) obj.maxItr=maxItr; end
             if(nargin>=6) obj.stepShrnk=stepShrnk; end
@@ -57,8 +57,8 @@ classdef NPG_ind < handle
             end
         end
         function setIe(obj,Ie)
-            obj.Ie=Ie;
-            obj.preIe=Ie;
+            obj.Ie=Ie(:);
+            obj.preIe=Ie(:);
             obj.cumu=0;
             obj.theta=0;
         end

@@ -1,7 +1,7 @@
 
 function [f,g,h] = gaussLI(Imea,A,Ie)
     % Err= z-f(theta)
-    Ir=A*Ie; Err=log(Ir./Imea); f=Err'*Err/2;
+    Ir=A*Ie(:); Err=log(Ir./Imea); f=Err'*Err/2;
     if(nargout>1) g=A'*(Err./Ir); end
     if(nargout>2)
         %Err=Err*0;
