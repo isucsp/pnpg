@@ -23,3 +23,7 @@ make FBP part parallel
 
 There is a little difference between the calculation of cpu and gpu, 
 although they are small
+
+
+add the parameter for the position of the rotation center's projection on
+the detector array.

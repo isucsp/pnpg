@@ -151,6 +151,7 @@ switch lower(opt.alphaStep)
         alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('NPG')
         alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+        alphaStep.mask=opt.mask;
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
@@ -249,8 +250,10 @@ if(any(strcmp(properties(alphaStep),'preSteps')))
     alphaStep.preSteps=opt.preSteps;
 end
 
-% PhiTrueAlpha=Phi(opt.trueAlpha);
-% s=linspace(min(PhiTrueAlpha),max(PhiTrueAlpha),1000);
+%h1=figure; h2=figure;
+if(exist('h1','var'))
+    PhiTrueAlpha=Phi(opt.trueAlpha);
+end
 
 tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
@@ -265,17 +268,22 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
     p=p+1; str=sprintf('p=%-4d',p);
 
-    % PhiAlpha=Phi(alphaStep.alpha);
-    % idx=randi(length(PhiTrueAlpha),1000,1);
-    % figure(1); plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.'); hold on;
-    % plot(PhiAlpha(idx),-log(Imea(idx)),'g.');
-    % plot(s,-log(polyIout(s,IeStep.Ie)),'r-'); hold off;
-    % figure(2); semilogx(opt.upkappa,opt.upiota,'r'); hold on;
-    % plot(kappa,IeStep.Ie,'.-'); hold off;
+    if(exist('h1','var'))
+        PhiAlpha=Phi(alphaStep.alpha);
+        PhiTrueAlpha=PhiTrueAlpha*innerProd(PhiAlpha,PhiTrueAlpha)/sqrNorm(PhiTrueAlpha);
+        s=linspace(min(PhiAlpha),max(PhiAlpha),1000);
+        idx=randi(length(PhiTrueAlpha),1000,1);
+        figure(h1); plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.'); hold on;
+        plot(PhiAlpha(idx),-log(Imea(idx)),'g.');
+        plot(s,-log(polyIout(s,IeStep.Ie)),'r-'); hold off;
+        figure(h2); semilogx(opt.upkappa,opt.upiota,'r'); hold on;
+        plot(kappa,IeStep.Ie,'.-'); hold off;
+    end
     
     % start optimize over alpha
     if(~opt.skipAlpha) 
         alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
+        preCost=alphaStep.cost;
         alphaStep.main();
         
         out.fVal(p,:) = (alphaStep.fVal(:))';
@@ -297,7 +305,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
-        if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
+        out.difCost(p)=abs(out.cost(p)-preCost)/out.cost(p);
         alpha = alphaStep.alpha;
 
         if(opt.continuation || strcmpi(opt.uMode,'relative'))
@@ -326,9 +334,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
             out.zmf(p,:)=IeStep.zmf(:)';
         end
-        if(p>1)
-            str=sprintf([str ' difCost=%g'], out.difCost(p));
-        end
+        str=sprintf([str ' difCost=%g'], out.difCost(p));
     end
     % end optimizing over alpha
     
@@ -342,7 +348,8 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(III) IeStepFunc(A,III);
-        if(p>1) IeStep.thresh=opt.etaDifCost*out.difCost(p); end
+        IeStep.thresh=opt.etaDifCost*out.difCost(p);
+        preCost=IeStep.cost;
         [~,IeStepCnt]=IeStep.main();
 
         alphaStep.cost=IeStep.cost+opt.u*alphaStep.fVal(3);
@@ -365,8 +372,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
 
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
-        
-        if(p>1) out.difllI(p)=abs(out.llI(p)-out.llI(p-1))/out.llI(p); end
+        out.difllI(p)=abs(out.llI(p)-preCost)/out.llI(p);
         Ie = IeStep.Ie;
         str=sprintf([str ' difIe=%g'], out.difIe(p));
         if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end

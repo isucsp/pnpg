@@ -1,4 +1,4 @@
-function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYinyang(opt)
+function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
 %   n=512;
 %   trueImg=zeros(n,n);
 %   inFig=rgb2gray(double(imread('yinyang.png')));
