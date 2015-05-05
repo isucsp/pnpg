@@ -339,7 +339,7 @@ __global__ void pixelDriveFan(ft* img, ft* sino, int FBP){
 
         //qe = d+x*sinT-y*cosT; // positive direction is qo
         qe = qe + sinT/2 +cosT/2;
-        qa = sqrt(2*d*qe-d*d+x*x+y*y);
+        //qa = sqrt(2*d*qe-d*d+x*x+y*y);
 
         __syncthreads();
         for(dt=dtll+threadIdx.x; dt<=dtrr; dt+=blockDim.x){
@@ -380,9 +380,9 @@ __global__ void pixelDriveFan(ft* img, ft* sino, int FBP){
             weight=getWeight(dist,bw,cosR,sinR);
 
             // method provide by the books
-            //if(FBP) weight = weight*d*d/qe/qe;
+            if(FBP) weight = weight*d*d/qe/qe;
             // The one I think should be
-            if(FBP) weight = weight*d/qa;
+            //if(FBP) weight = weight*d/qa;
             //if(FBP) weight = weight*d/qe;
 
             imgt[0] += weight*shared[0][0][dt-dtll];

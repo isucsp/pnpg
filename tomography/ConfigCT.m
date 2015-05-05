@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Sun 19 Apr 2015 09:24:29 PM CDT
+% $Revision: 0.2 $ $Date: Tue 05 May 2015 12:27:52 AM CDT
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
@@ -136,7 +136,7 @@ classdef ConfigCT < handle
             FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
         function [Phi,Phit,FBP]=genOperators(obj,mask)
-            if(~exist('mask','var')) mask=ones(obj.imgSize,obj.imgSize); end
+            if(~exist('mask','var') || isempty(mask)) mask=ones(obj.imgSize,obj.imgSize); end
             switch lower(obj.PhiMode)
                 case 'basic'
                     [Phi,Phit,FBP]=nufftOps(obj,mask);
@@ -150,9 +150,9 @@ classdef ConfigCT < handle
                     conf.bw=1; conf.nc=obj.imgSize; conf.nr=obj.imgSize; conf.prjWidth=obj.prjWidth;
                     conf.theta = (0:obj.prjNum-1)*360/obj.prjFull;
                     maskIdx = find(mask~=0);
-                    obj.Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
-                    obj.Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
-                    obj.FBP = @(s) FBPFunc7(s,obj.prjFull,obj.prjNum,obj.Ts,maskIdx)*obj.Ts;
+                    Phi = @(s) mParPrj(s,maskIdx-1,conf,'forward')*obj.Ts;
+                    Phit= @(s) mParPrj(s,maskIdx-1,conf,'backward')*obj.Ts;
+                    FBP = @(s) FBPFunc7(s,obj.prjFull,obj.prjNum,obj.Ts,maskIdx)*obj.Ts;
                 case 'weighted'
                     % Fessler's weighted methods
                     weight=exp(-y);

@@ -332,18 +332,40 @@ classdef Utils < handle
             mask(idx)=1;
         end
         function [Psi,Psit] = getPsiPsit(daub,dwt_L,mask,maskk)
-            n=size(mask,1);
-            maskIdx = find(mask~=0);
-            wvltIdx = find(maskk~=0);
-
             wav=daubcqf(daub);
 
             %Sampling operator
             W=@(z) midwt(z,wav,dwt_L);
             Wt=@(z) mdwt(z,wav,dwt_L);
 
-            Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,n)),maskIdx);
-            Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,n)),wvltIdx);
+            if(exist('mask','var') && ~isempty(mask))
+                n=size(mask,1);
+                maskIdx = find(mask~=0);
+                wvltIdx = find(maskk~=0);
+
+                Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,n)),maskIdx);
+                Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,n)),wvltIdx);
+            else
+                Psi = W; 
+                Psit= Wt;
+            end
+        end
+        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,mask)
+            pars.print = 0;
+            pars.tv = 'l1';
+            pars.MAXITER = maxInnerItr;
+            pars.epsilon = innerThresh; 
+
+            if(exist('mask','var') && ~isempty(mask))
+                maskIdx=find(mask~=0);
+                n=size(mask,1);
+                [newX,innerSearch]=denoise_bound_mod(maskFunc(x,maskIdx,n),u,0,inf,pars);
+                newX=maskFunc(newX,maskIdx);
+            else
+                n=sqrt(length(x(:)));
+                [newX,innerSearch]=denoise_bound_mod(reshape(x,n,[]),u,0,inf,pars);
+                newX=newX(:);
+            end
         end
     end
 end

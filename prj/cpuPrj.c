@@ -235,7 +235,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
         qe = qe + sinT/2 +cosT/2;
         dtl = MAX((int)round((tl)/conf->dSize),-(conf->prjWidth-1)/2);
         dtr = MIN((int)round((tr)/conf->dSize), (conf->prjWidth-1)/2);
-        qa = sqrt(2*d*qe-d*d+x*x+y*y);
+        //qa = sqrt(2*d*qe-d*d+x*x+y*y);
 
         for(dt=dtl; dt<=dtr; dt++){
             t = dt*conf->dSize;
@@ -248,9 +248,9 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             weight=getWeight(dist,bw,cosR,sinR);
 
             // method provide by the books
-            //if(conf->cmd & FBP_BIT) weight = weight*d*d/qe/qe;
+            if(conf->cmd & FBP_BIT) weight = weight*d*d/qe/qe;
             // The one I think should be
-            if(conf->cmd & FBP_BIT) weight = weight*d/qa;
+            // if(conf->cmd & FBP_BIT) weight = weight*d/qa;
             //if(conf->cmd & FBP_BIT) weight = weight*d/qe;
 
             if(thetaIdx<conf->np)

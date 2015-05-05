@@ -20,18 +20,32 @@ classdef NPG < Methods
         forcePositive=false;
         maxInnerItr=100;
 
-        mask
+        proxmapping
     end
     methods
-        function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
         %   alpha(alpha<0)=0;
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.Psi = Psi; obj.Psit = Psit;
             obj.nonInc=0;
             obj.alpha=alpha;
             obj.preAlpha=alpha;
+            obj.proxmapping=pm;
+%                   [newX,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
+%                       xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
+%                       obj.isInDebugMode);
+
+%                   pars.print = 0;
+%                   pars.tv = 'l1';
+%                   pars.MAXITER = obj.maxInnerItr;
+%                   pars.epsilon = obj.admmTol*obj.difAlpha; %
+%                   [newX,obj.innerSearch]=denoise_bound(maskFunc(xbar-obj.grad/obj.t,find(obj.mask~=0),size(obj.mask,1)),obj.u/obj.t,0,inf,pars);
+%                   newX=maskFunc(newX,find(obj.mask~=0));
+
+                  % [newX,obj.innerSearch] = constrainedl2l1denoise(xbar-obj.grad/obj.t,...
+                  %     obj.Psi,obj.Psit,obj.u./obj.t,0,...
+                  %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
@@ -68,20 +82,9 @@ classdef NPG < Methods
                     end
                     obj.ppp = obj.ppp+1;
 
-%                   [newX,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
-%                       xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
-%                       obj.isInDebugMode);
+                    [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
 
-                    pars.print = 0;
-                    pars.tv = 'l1';
-                    pars.MAXITER = obj.maxInnerItr;
-                    pars.epsilon = obj.admmTol*obj.difAlpha; %
-                    [newX,obj.innerSearch]=denoise_bound(maskFunc(xbar-obj.grad/obj.t,find(obj.mask~=0),size(obj.mask,1)),obj.u/obj.t,0,inf,pars);
-                    newX=maskFunc(newX,find(obj.mask~=0));
-
-                  % [newX,obj.innerSearch] = constrainedl2l1denoise(xbar-obj.grad/obj.t,...
-                  %     obj.Psi,obj.Psit,obj.u./obj.t,0,...
-                  %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
                     newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
                     if((LMM-newCost)>=-0*abs(LMM)*1e-5)
@@ -105,7 +108,7 @@ classdef NPG < Methods
                     end
                 end
                 obj.stepSize = 1/obj.t;
-                obj.fVal(3) = pNorm(obj.Psit(newX),1);
+                obj.fVal(3) = obj.fArray{3}(newX);
                 temp = newCost+obj.u*obj.fVal(3);
 
                 % restart

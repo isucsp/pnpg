@@ -43,12 +43,13 @@ switch lower(op)
             fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
+            keyboard
             % unknown ι(κ), NPG-AS
-            for j=[2 3 4 5]
+            for j=[4]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
+                %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=u(i)*10^(j-3);
-                %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);

@@ -79,6 +79,7 @@ if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
 % use GML model to estimate Ie in after getting the estimation of α
 if(~isfield(opt,'estIe')) opt.estIe=false; end
 
+y=y(:);
 Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
 
 if(isfield(opt,'trueAlpha'))
@@ -119,12 +120,13 @@ end
 kappa=temp(:); q=kappa(2)/kappa(1);
 temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
 polymodel = Spline(opt.spectBasis,temp);
-polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
 polyIout = polymodel.polyIout;
-
 Ie=Ie/polyIout(0,Ie);
 
-[opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
+if(isfield(opt,'kappa'))
+    polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
+    [opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
+end
 
 % find the best intial Ie ends
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
@@ -150,8 +152,17 @@ switch lower(opt.alphaStep)
     case lower('NPGs')
         alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('NPG')
-        alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-        alphaStep.mask=opt.mask;
+        % proxmalProj=@(x,u,innerThresh,maxInnerItr) obj.ADMM(Psi,Psit,x,u,innerThresh,maxInnerItr,false);
+        if(isfield('opt','mask'))
+            proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,innerThresh,maxInnerItr,opt.mask);
+        else
+            proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,innerThresh,maxInnerItr);
+        end
+        % proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
+        %     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
+
+        alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+        alphaStep.fArray{3} = @(xxx) tlv(xxx,'l1');
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
@@ -322,14 +333,16 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             %end
         else alphaStep.u=opt.u;
         end
+
+        str=sprintf([str ' cost=%-6g'],...
+            out.cost(p));
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=computError(alpha);
+            str=sprintf([str ' RSE=%g'], out.RMSE(p));
         end
 
-        str=sprintf([str ' cost=%-6g RSE=%g',...
-            ' difAlpha=%g aSearch=%d'],...
-            out.cost(p),out.RMSE(p), out.difAlpha(p), ...
-            alphaStep.ppp);
+        str=sprintf([str ' difAlpha=%g aSearch=%d'],...
+            out.difAlpha(p), alphaStep.ppp);
         if(strcmpi(opt.noiseType,'Gaussian'))
             str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
             out.zmf(p,:)=IeStep.zmf(:)';

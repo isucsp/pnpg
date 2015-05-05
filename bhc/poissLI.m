@@ -1,9 +1,15 @@
 function [f,g,h] = poissLI(Imea,A,Ie)
-    Ir=A*Ie(:); Err=log(Ir./Imea);
+    Ir=A*Ie(:);
+    if(nargout>1)
+        ImeaOverIr=Imea./Ir;
+        Err=-log(ImeaOverIr);
+        g=A'*(1-ImeaOverIr);
+    else
+        Err=log(Ir./Imea);
+    end
     f=sum(Ir-Imea)-Imea'*Err;
-    if(nargout>1) g=A'*(1-Imea./Ir); end
     if(nargout>2)
-        weight=Imea./(Ir.^2);
+        weight=ImeaOverIr./Ir;
         h = @(x,opt) hessian(x,opt);
     end
     function h = hessian(x,opt)
