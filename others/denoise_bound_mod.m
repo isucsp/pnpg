@@ -50,48 +50,46 @@ function [X_den,iter,fun_all]=fgp_denoise_bound_new(Xobs,lambda,l,u,pars)
 
 
 %Define the Projection onto the box
-if((l==-Inf)&(u==Inf))
+if((l==-Inf)&&(u==Inf))
     project=@(x)x;
-elseif (isfinite(l)&(u==Inf))
+elseif (isfinite(l)&&(u==Inf))
     project=@(x)max(x,l);
-elseif (isfinite(u)&(l==-Inf))
+elseif (isfinite(u)&&(l==-Inf))
     project=@(x)min(x,u);
-elseif ((isfinite(u)&isfinite(l))&(l<u))
+elseif ((isfinite(u)&&isfinite(l))&&(l<u))
     project=@(x) max(min(x,u),l);
 else
     error('lower and upper bound l,u should satisfy l<u');
 end
 
 % Assigning parameres according to pars and/or default values
-flag=exist('pars');
-if (flag&isfield(pars,'MAXITER'))
+flag=exist('pars','var');
+if (flag&&isfield(pars,'MAXITER'))
     MAXITER=pars.MAXITER;
 else
     MAXITER=100;
 end
-if (flag&isfield(pars,'epsilon'))
+if (flag&&isfield(pars,'epsilon'))
     epsilon=pars.epsilon;
 else
     epsilon=1e-4;
 end
-if(flag&isfield(pars,'print'))
+if(flag&&isfield(pars,'print'))
     prnt=pars.print;
 else
     prnt=1;
 end
-if(flag&isfield(pars,'tv'))
+if(flag&&isfield(pars,'tv'))
     tv=pars.tv;
 else
     tv='iso';
 end
 
 [m,n]=size(Xobs);
-clear P
-P{1}=zeros(m-1,n);
-P{2}=zeros(m,n-1);
-clear R
-R{1}=zeros(m-1,n);
-R{2}=zeros(m,n-1);
+P1=zeros(m-1,n);
+P2=zeros(m,n-1);
+R1=zeros(m-1,n);
+R2=zeros(m,n-1);
 tk=1;
 tkp1=1;
 count=0;
@@ -101,13 +99,13 @@ D=zeros(m,n);
 fval=inf;
 fun_all=[];
 if(prnt)
-        fprintf('***********************************\n');
-        fprintf('*Solving with FGP/FISTA**\n');
-        fprintf('***********************************\n');
-        fprintf('#iteration  function-value  relative-difference\n');
-        fprintf('---------------------------------------------------------------------------------------\n');
-    end
-while((i<MAXITER)&(count<5))
+    fprintf('***********************************\n');
+    fprintf('*Solving with FGP/FISTA**\n');
+    fprintf('***********************************\n');
+    fprintf('#iteration  function-value  relative-difference\n');
+    fprintf('---------------------------------------------------------------------------------------\n');
+end
+while((i<MAXITER)&&(count<5))
     fold=fval;
     %%%%%%%%%
     % updating the iteration counter
@@ -117,27 +115,28 @@ while((i<MAXITER)&(count<5))
     Dold=D;
     %%%%%%%%%%
     %Computing the gradient of the objective function
-    Pold=P;
+    Pold1=P1;
+    Pold2=P2;
     tk=tkp1;
-    D=project(Xobs-lambda*Lforward(R));
-    Q=Ltrans(D);
+    D=project(Xobs-lambda*Lforward(R1,R2));
+    [Q1,Q2]=Ltrans(D);
 
     %%%%%%%%%%
     % Taking a step towards minus of the gradient
-    P{1}=R{1}+1/(8*lambda)*Q{1};
-    P{2}=R{2}+1/(8*lambda)*Q{2};
+    P1=R1+1/(8*lambda)*Q1;
+    P2=R2+1/(8*lambda)*Q2;
     
     %%%%%%%%%%
     % Peforming the projection step
     switch tv
         case 'iso'
-            A=[P{1};zeros(1,n)].^2+[P{2},zeros(m,1)].^2;
+            A=[P1;zeros(1,n)].^2+[P2,zeros(m,1)].^2;
             A=sqrt(max(A,1));
-            P{1}=P{1}./A(1:m-1,:);
-            P{2}=P{2}./A(:,1:n-1);
+            P1=P1./A(1:m-1,:);
+            P2=P2./A(:,1:n-1);
         case 'l1'
-            P{1}=P{1}./(max(abs(P{1}),1));
-            P{2}=P{2}./(max(abs(P{2}),1));
+            P1=P1./(max(abs(P1),1));
+            P2=P2./(max(abs(P2),1));
         otherwise
             error('unknown type of total variation. should be iso or l1');
     end
@@ -146,8 +145,8 @@ while((i<MAXITER)&(count<5))
     %Updating R and t
     tkp1=(1+sqrt(1+4*tk^2))/2;
     
-    R{1}=P{1}+(tk-1)/(tkp1)*(P{1}-Pold{1});
-    R{2}=P{2}+(tk-1)/tkp1*(P{2}-Pold{2});
+    R1=P1+(tk-1)/(tkp1)*(P1-Pold1);
+    R2=P2+(tk-1)/tkp1*(P2-Pold2);
     
     re=norm(D-Dold,'fro')/norm(D,'fro');
     if (re<epsilon)
@@ -156,7 +155,7 @@ while((i<MAXITER)&(count<5))
         count=0;
     end
     
-    C=Xobs-lambda*Lforward(P);
+    C=Xobs-lambda*Lforward(P1,P2);
     PC=project(C);
     fval=-norm(C-PC,'fro')^2+norm(C,'fro')^2;
     fun_all=[fun_all;fval];
@@ -171,4 +170,5 @@ while((i<MAXITER)&(count<5))
 end
 X_den=D;
 iter=i;
+end
 
