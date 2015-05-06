@@ -1,10 +1,9 @@
 function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadFuelPellet(opt)
-
     y=load('fuelPellet225.mat');
     y=y.data;
     y=y-min(y(:));
     % y=removeRingArtifact(y);
-    if(mod(size(y,1),2)==1) y=[zeros(1,size(y,2)); y];
+    if(mod(size(y,1),2)==1) y=[zeros(1,size(y,2)); y]; end
 
     M=size(y,2);
     y=y(:,1:M/opt.prjFull:M/opt.prjFull*opt.prjNum);
