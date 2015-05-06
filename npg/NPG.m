@@ -32,20 +32,6 @@ classdef NPG < Methods
             obj.alpha=alpha;
             obj.preAlpha=alpha;
             obj.proxmapping=pm;
-%                   [newX,obj.innerSearch] = obj.ADMM(obj.Psi,obj.Psit,...
-%                       xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr,...
-%                       obj.isInDebugMode);
-
-%                   pars.print = 0;
-%                   pars.tv = 'l1';
-%                   pars.MAXITER = obj.maxInnerItr;
-%                   pars.epsilon = obj.admmTol*obj.difAlpha; %
-%                   [newX,obj.innerSearch]=denoise_bound(maskFunc(xbar-obj.grad/obj.t,find(obj.mask~=0),size(obj.mask,1)),obj.u/obj.t,0,inf,pars);
-%                   newX=maskFunc(newX,find(obj.mask~=0));
-
-                  % [newX,obj.innerSearch] = constrainedl2l1denoise(xbar-obj.grad/obj.t,...
-                  %     obj.Psi,obj.Psit,obj.u./obj.t,0,...
-                  %     1,obj.maxInnerItr,2,obj.admmTol*obj.difAlpha,obj.isInDebugMode);
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
@@ -87,7 +73,7 @@ classdef NPG < Methods
 
                     newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-newCost)>=-0*abs(LMM)*1e-5)
+                    if((LMM-newCost)>=0)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else

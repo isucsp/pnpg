@@ -1,7 +1,6 @@
 classdef Methods < handle
     properties
         % for common purpose
-        mainFunc = @(o) NCG_PR(o);
         alpha
         n = 3;
         fArray

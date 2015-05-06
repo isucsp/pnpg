@@ -350,9 +350,10 @@ classdef Utils < handle
                 Psit= Wt;
             end
         end
-        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,mask)
+        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,mask,tvType)
+            if(~exist('tvType','var')) tvType='l1'; end
             pars.print = 0;
-            pars.tv = 'l1';
+            pars.tv = tvType;
             pars.MAXITER = maxInnerItr;
             pars.epsilon = innerThresh; 
 

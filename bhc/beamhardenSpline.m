@@ -27,6 +27,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 % for alpha step
 % 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
 if(~isfield(opt,'noiseType')) opt.noiseType='Poisson'; end
+if(~isfield(opt,'proximal' )) opt.proximal='wvltADMM'; end
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPG'; end
 if(~isfield(opt,'skipAlpha')) opt.skipAlpha=false; end
 if(~isfield(opt,'maxAlphaSteps')) opt.maxAlphaSteps=1; end
@@ -150,19 +151,33 @@ switch lower(opt.alphaStep)
             alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
     case lower('NPGs')
-        alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
     case lower('NPG')
-        % proxmalProj=@(x,u,innerThresh,maxInnerItr) obj.ADMM(Psi,Psit,x,u,innerThresh,maxInnerItr,false);
-        if(isfield('opt','mask'))
-            proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,innerThresh,maxInnerItr,opt.mask);
-        else
-            proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,innerThresh,maxInnerItr);
+        switch(lower(opt.proximal))
+            case lower('wvltADMM')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,false);
+                penalty = @(x) pNorm(Psit(x),1);
+            case lower('wvltLagrangian')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
+                    x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
+                penalty = @(x) pNorm(Psit(x),1);
+            case lower('tvl1')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'l1');
+                penalty = @(x) tlv(x,'l1');
+            case lower('tviso')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'iso');
+                penalty = @(x) tlv(x,'iso');
         end
-        % proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
-        %     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
 
-        alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
-        alphaStep.fArray{3} = @(xxx) tlv(xxx,'l1');
+        if(strcmpi(opt.alphaStep,'npgs'))
+            alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+            alphaStep.fArray{3} = penalty;
+        elseif(strcmpi(opt.alphaStep,'npg'))
+            alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+            alphaStep.fArray{3} = penalty;
+        end
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];

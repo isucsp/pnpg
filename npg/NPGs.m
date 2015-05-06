@@ -7,25 +7,23 @@ classdef NPGs < Methods
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
-        prePreAlpha=0;
         cumu=0;
         cumuTol=4;
-        newCost;
         nonInc=0;
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
         % the weight that applied to the l1 norm,
         % make it a vector with the same size as alpha to enable
         weight=1;
+        proxmapping
     end
     methods
         function obj = NPGs(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.Psi = Psi; obj.Psit = Psit;
             obj.preAlpha=alpha;
-            obj.prePreAlpha=alpha;
+            obj.Psi=Psi; obj.Psit=Psit;
         end
         % solves L(α) + u*||Ψ'*α||_1
         function out = main(obj)
@@ -53,9 +51,9 @@ classdef NPGs < Methods
                     obj.ppp = obj.ppp+1;
                     newSi=Utils.softThresh(si-dsi/obj.t,obj.weight*obj.u/obj.t);
                     newX = obj.Psi(newSi);
-                    obj.newCost=obj.func(newX);
+                    newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-obj.newCost)>=0)
+                    if((LMM-newCost)>=0)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -77,7 +75,7 @@ classdef NPGs < Methods
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = pNorm(newSi,1);
-                temp = obj.newCost+obj.u*obj.fVal(3);
+                temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
                 if((temp-obj.cost)>0)
