@@ -1,52 +1,41 @@
-function loadRealCT(obj)
-    Ts=0.01*0.8;
+function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt)
+    y=load('casting.2.225.mat');
+    y=y.data;
+    y=y-min(y(:));
+    if(mod(size(y,1),2)==1) y=[zeros(1,size(y,2)); y]; end
 
-    theta_idx=1:180;  %[1,79]; %
-    %theta_idx=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-    %theta_idx=1:160;  % Dogandzic2011Asilomar
+    conf=ConfigCT();
 
-    %Pre-processing data
-    center_loc=691; %692;
-    dist=8597; %8797; %
-    %FAN_BEAM_PARAMETERS 1098.8800	    536.0000
-    %COR_PARAMETERS -28.614487	    0.001389
-    load 'CTdata_220.mat'
-    %1024x1024RealCT
-    rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
-    % In asilomar paper: DORE 2e4 maskDORE 15e3
-    % In Kun's Juarnal: DORE 5000 and 2e4
-    wrap=1;
+    daub = 2; dwt_L=6;        %levels of wavelet transform
+    maskType='CircleMask';
 
-    wav=daubcqf(6);
-    dwt_L=8;        %levels of wavelet transform
+    N=size(y,1);
 
-    load 'RealCT.mat';
+    conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
+    conf.imgSize = 2^floor(log2(N));
+    conf.prjWidth = N;
+    conf.prjFull = opt.prjFull;
+    conf.prjNum = opt.prjNum;
+    conf.dSize = conf.imgSize/conf.prjWidth;
+    conf.effectiveRate = 1;
+    conf.dist = 8696/conf.prjWidth*conf.imgSize;
+    conf.Ts =1e-2;
 
-    fprintf('Loading %s...\n',obj.maskType);
-    if(strcmp(obj.maskType,'/CircleMask'))
-        load('Mask1024Circle.mat');
-        load('MaskWvlt1024CircleL8D6.mat');
-    elseif(strcmp(obj.maskType,'/cvxHull'))
-        load(sprintf('RealCTMask_%02d.mat',2));
-        load(sprintf('RealCTMaskWvlt_%02d.mat',2));
-    else
-        load(sprintf('RealCTMask_%02d.mat',3));
-        load(sprintf('RealCTMaskWvlt_%02d.mat',3));
+    if(strcmpi(maskType,'CircleMask'))
+        % reconstruction mask (which pixels do we estimate?)
+        mask = Utils.getCircularMask(conf.imgSize);
+        wvltName = sprintf('MaskWvlt%dCircleL%dD%d.mat',conf.imgSize,dwt_L,daub);
+        if(exist(wvltName,'file'))
+            load(wvltName);
+        else
+            maskk=wvltMask(mask,dwt_L,daub,wvltName);
+        end
+    elseif(strcmpi(maskType,'none'))
+        mask = []; maskk=[];
     end
+    [Phi,Phit,FBP]=conf.genOperators(mask);
+    [Psi,Psit]=Utils.getPsiPsit(daub,dwt_L,mask,maskk);
+    opt.mask=mask; opt.maskk=maskk;
 
-    CTdata=CTdata_mtrx;
-    CTdata(CTdata==max(CTdata(:)))=max(CTdata(:))*1.0;
-    CTdata=-log(CTdata/max(CTdata(:)));
-    CTdata=CTdata(:,end:-1:1);
-    CTdata=CTdata(:,[wrap:360 1:wrap-1]);
-    CTdata=CTdata(81:2*center_loc-81,:);
-    %CTdata(end-98:end,:)=[];
-    %CTdata(1:98,:)=[];
-
-    ds=1.1924;
-    paraInc=1;
-    %           CTdata=CTdata_mtrx;
-    perpenCenter=(size(CTdata,1)+1)/2;
-    rotationCenter=perpenCenter;
-    %           ds=0.8419;
+    fprintf('Configuration Finished!\n');
 end
