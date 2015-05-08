@@ -27,13 +27,15 @@ switch lower(op)
         opt.beamharden=true; opt.spectBasis='dis'; opt.E=30;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=length(prjFull):-1:1
+        for i=[length(prjFull)]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadBuell(opt);
             opt.maxItr=4e3; opt.thresh=1e-6;
 
             initSig = FBP(y);
+
+            keyboard
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
