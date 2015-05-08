@@ -2,14 +2,19 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt)
     y=load('casting.2.225.mat');
     y=y.data;
     y=y-min(y(:));
-    if(mod(size(y,1),2)==1) y=[zeros(1,size(y,2)); y]; end
+
+    [N,M]=size(y);
+
+    if(~exist('opt','var') || ~isfield(opt,'prjFull')) opt.prjFull=M; end
+    if(~isfield(opt,'prjNum')) opt.prjNum=opt.prjFull; end
+
+    theta = (0:(opt.prjNum-1))*M/opt.prjFull +1;
+    y=y(:,theta);
 
     conf=ConfigCT();
 
     daub = 2; dwt_L=6;        %levels of wavelet transform
     maskType='CircleMask';
-
-    N=size(y,1);
 
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
     conf.imgSize = 2^floor(log2(N));

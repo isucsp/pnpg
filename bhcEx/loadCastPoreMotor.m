@@ -1,5 +1,5 @@
-function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadFuelPellet(opt)
-    y=load('fuelPellet225.mat');
+function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt)
+    y=load('cast_pore_motor75.mat');
     y=y.data;
     y=y-min(y(:));
 
@@ -23,7 +23,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadFuelPellet(opt)
     conf.prjNum = opt.prjNum;
     conf.dSize = conf.imgSize/conf.prjWidth;
     conf.effectiveRate = 1;
-    conf.dist = 9823/conf.prjWidth*conf.imgSize;
+    conf.dist = 3492/conf.prjWidth*conf.imgSize;
     conf.Ts =1e-2;
 
     if(strcmpi(maskType,'CircleMask'))

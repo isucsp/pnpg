@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Tue 05 May 2015 12:27:52 AM CDT
+% $Revision: 0.2 $ $Date: Thu 07 May 2015 11:14:56 AM CDT
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
@@ -100,10 +100,9 @@ classdef ConfigCT < handle
             st.Num_pixel=obj.prjWidth;
             st.Num_proj=obj.prjNum;
 
-            maskIdx = find(mask~=0);
             % Zero freq at f_coeff(prjWidth/2+1)
-            Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
-            Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,maskIdx);
+            Phi=@(s) PhiFunc51(s,0,st,obj.imgSize,obj.Ts,mask);
+            Phit=@(s) PhitFunc51(s,0,st,obj.imgSize,obj.Ts,mask);
             FBP=@(s) FBPFunc6(s,theta,obj.Ts);
         end
         function [Phi,Phit,FBP]=cpuFanParOps(obj,mask)
@@ -115,9 +114,8 @@ classdef ConfigCT < handle
 
             cpuPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
-            maskIdx = find(mask~=0);
-            Phi =@(s) cpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            Phit=@(s) maskFunc(cpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            Phi =@(s) cpuPrj(mask.b(s),0,'forward')*obj.Ts;
+            Phit=@(s) mask.a(cpuPrj(s,0,'backward'))*obj.Ts;
             FBP =@(s) cpuPrj(s,0,'FBP')/obj.Ts;
         end
         function [Phi,Phit,FBP]=gpuFanParOps(obj,mask)
@@ -129,14 +127,21 @@ classdef ConfigCT < handle
 
             gpuPrj(0,conf,'config');
             %mPrj(0,0,'showConf');
-            maskIdx = find(mask~=0);
-            Phi =@(s) gpuPrj(maskFunc(s,maskIdx,conf.n),0,'forward')*obj.Ts;
-            Phit=@(s) maskFunc(gpuPrj(s,0,'backward'),maskIdx)*obj.Ts;
+            Phi =@(s) gpuPrj(mask.b(s),0,'forward')*obj.Ts;
+            Phit=@(s) mask.a(gpuPrj(s,0,'backward'))*obj.Ts;
             %cpuPrj(0,conf,'config');
             FBP =@(s) gpuPrj(s,0,'FBP')/obj.Ts;
         end
-        function [Phi,Phit,FBP]=genOperators(obj,mask)
-            if(~exist('mask','var') || isempty(mask)) mask=ones(obj.imgSize,obj.imgSize); end
+        function [Phi,Phit,FBP]=genOperators(obj,maskmt)
+            if(~exist('maskmt','var') || isempty(maskmt))
+                mask.a=@(xx) xx;
+                mask.b=@(xx) xx;
+            else
+                maskIdx=find(maskmt~=0);
+                n=size(maskmt);
+                mask.a=@(xx) maskFunc(xx,maskIdx);
+                mask.b=@(xx) maskFunc(xx,maskIdx,n);
+            end
             switch lower(obj.PhiMode)
                 case 'basic'
                     [Phi,Phit,FBP]=nufftOps(obj,mask);
@@ -160,9 +165,9 @@ classdef ConfigCT < handle
                     weight=sqrt(weight/max(weight(:)));
                     y=y.*weight;
 
-                    Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,maskIdx).*weight(:);
+                    Phi=@(s) PhiFunc51(s,f_coeff,st,mx,Ts,mask).*weight(:);
                     Phit=@(s) PhitFunc51(s.*weight(:),f_coeff,st,mx,...
-                        Ts,maskIdx);
+                        Ts,mask);
                     FBP=@(s) FBPFunc6(s./weight,theta_idx,Ts);
                 case 'filtered'
                     % Sqrt filtered methods
