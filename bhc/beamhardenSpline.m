@@ -47,10 +47,10 @@ if(~isfield(opt,'uMode')) opt.uMode='abs'; end
 if(~isfield(opt,'a')) opt.a=1e-6; end
 
 % for Ie step
-if(~isfield(opt,'IeStep')) opt.IeStep='ActiveSet'; end
+if(~isfield(opt,'IeStep')) opt.IeStep='LBFGSB'; end
 if(~isfield(opt,'skipIe')) opt.skipIe=false; end
 if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
-if(~isfield(opt,'etaDifCost')) opt.etaDifCost=1e-1; end
+if(~isfield(opt,'etaDifCost')) opt.etaDifCost=1e-2; end
 if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
 if(~isfield(opt,'CenterB')) opt.CenterB=false; end
 
@@ -81,28 +81,36 @@ if(~isfield(opt,'muLustig')) opt.muLustig=1e-13; end
 if(~isfield(opt,'estIe')) opt.estIe=false; end
 
 y=y(:);
-Imea=exp(-y); alpha=xInit(:); Ie=zeros(opt.E,1);
+Imea=exp(-y); alpha=xInit(:);
 
 if(isfield(opt,'trueAlpha'))
     switch opt.errorType
         case 0
             trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
             computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+            clear 'trueAlpha'
         case 1
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
             if(trueAlphaNorm==0) trueAlphaNorm=eps; end
             computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+            clear 'trueAlphaNorm'
         case 2
             trueAlphaNorm=pNorm(opt.trueAlpha);
             if(trueAlphaNorm==0) trueAlphaNorm=eps; end
             computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+            clear 'trueAlphaNorm'
     end
 end
 
-if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
-if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
-if(opt.debugLevel>=5 && ~opt.skipIe) figIe=1003; figure(figIe); end
-if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
+if(opt.debugLevel>=2)
+    figLin=figure;
+    if(isfield(opt,'trueAlpha')) PhiTrueAlpha=Phi(opt.trueAlpha); end
+end
+if(opt.debugLevel>=3) figCost=figure; end
+if(opt.debugLevel>=4) figRes=figure; end
+if(opt.debugLevel>=5 && ~opt.skipIe) figIe=figure; end
+if(opt.debugLevel>=6 && ~opt.skipAlpha) figAlpha=figure; end
+
 
 switch lower(opt.sampleMode)
     case 'assigned'
@@ -112,24 +120,39 @@ switch lower(opt.sampleMode)
         temp2=find(temp1==min(temp1));
         Ie(temp2-1:temp2+1)=1/3;
     case 'logspan'
-        temp=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
+        kappa=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
             floor(opt.E/2-0.5)/(opt.E-1)*opt.logspan,opt.E);
-        opt.E=length(temp);
+        opt.E=length(kappa);
         Ie=zeros(opt.E,1); Ie(floor(opt.E/2)+1)=1;
 end
 
-kappa=temp(:); q=kappa(2)/kappa(1);
-temp = [temp(1)^2/temp(2); temp(:); temp(end)^2/temp(end-1)];
-polymodel = Spline(opt.spectBasis,temp);
+switch lower(opt.IeStep)
+    case lower('ActiveSet')
+        IeStep = ActiveSet(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
+    case lower('NPG')
+        IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
+    case lower('LBFGSB')
+        IeStep=LBFGSB(Ie,opt.maxIeSteps);
+end
+
+switch lower(opt.noiseType)
+    case lower('Gaussian')
+        alphaStepFunc = @(III,aaa,pIout) gaussLAlpha(Imea,III,aaa,Phi,Phit,pIout,IeStep);
+        IeStepFunc = @(A,III) gaussLI(Imea,A,III);
+    case lower('Poisson')
+        alphaStepFunc = @(III,aaa,pIout) poissLAlpha(Imea,III,aaa,Phi,Phit,pIout);
+        IeStepFunc = @(A,III) poissLI(Imea,A,III);
+end
+
+q=kappa(2)/kappa(1);
+polymodel=Spline(opt.spectBasis,[kappa(1)/q; kappa(:); kappa(end)*q]);
 polyIout = polymodel.polyIout;
-Ie=Ie/polyIout(0,Ie);
 
 if(isfield(opt,'kappa'))
     polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
     [opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
 end
 
-% find the best intial Ie ends
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
 else
     if(opt.skipIe)  % it is better to use dis or b-1 spline
@@ -150,25 +173,28 @@ switch lower(opt.alphaStep)
             fprintf('use lustig approximation for l1 norm\n');
             alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
-    case lower('NPGs')
-    case lower('NPG')
+    case {lower('NPGs'), lower('NPG')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
                     innerThresh,maxInnerItr,false);
                 penalty = @(x) pNorm(Psit(x),1);
+                fprintf('Use l1 norm of wavelet coeff, ADMM\n');
             case lower('wvltLagrangian')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
+                fprintf('Use l1 norm of wavelet coeff, SPIRAL\n');
             case lower('tvl1')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(x,'l1');
+                fprintf('Use l1 TV\n');
             case lower('tviso')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(x,'iso');
+                fprintf('Use ISO TV\n');
         end
 
         if(strcmpi(opt.alphaStep,'npgs'))
@@ -179,6 +205,7 @@ switch lower(opt.alphaStep)
             alphaStep.fArray{3} = penalty;
         end
 end
+alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 
@@ -189,23 +216,6 @@ if(isfield(opt,'CenterB') && opt.CenterB)
     temp=temp/sqrt(2);
     B=[B; temp]; b=[b; zeros(opt.E-1,1)];
 end
-
-switch lower(opt.IeStep)
-    case lower('ActiveSet')
-        IeStep = ActiveSet(B,b,Ie,opt.maxIeSteps,opt.stepShrnk);
-    case lower('NPG')
-        IeStep = NPG_ind(Ie,true,[],[],opt.maxIeSteps,opt.stepShrnk,opt.thresh);
-end
-
-switch lower(opt.noiseType)
-    case lower('Gaussian')
-        alphaStepFunc = @(III,aaa,pIout) gaussLAlpha(Imea,III,aaa,Phi,Phit,pIout,IeStep);
-        IeStepFunc = @(A,III) gaussLI(Imea,A,III);
-    case lower('Poisson')
-        alphaStepFunc = @(III,aaa,pIout) poissLAlpha(Imea,III,aaa,Phi,Phit,pIout);
-        IeStepFunc = @(A,III) poissLI(Imea,A,III);
-end
-alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
 
 if(strcmpi(opt.uMode,'relative'))
     PsitPhitz=Psit(Phit(y));
@@ -237,7 +247,7 @@ else alphaStep.u=opt.u;
     fprintf('opt.u=%g\n',opt.u);
 end
 
-disp(['use initial sparsity regulator u:' num2str(alphaStep.u)]);
+disp(['Use initial sparsity regulator u: ' num2str(alphaStep.u)]);
 
 if(any(strcmp(properties(alphaStep),'restart')))
     if(~opt.restart) alphaStep.restart=-1; end
@@ -276,9 +286,32 @@ if(any(strcmp(properties(alphaStep),'preSteps')))
     alphaStep.preSteps=opt.preSteps;
 end
 
-%h1=figure; h2=figure;
-if(exist('h1','var'))
-    PhiTrueAlpha=Phi(opt.trueAlpha);
+if(opt.debugLevel>=1)
+    fprintf('%s\n', repmat( '=', 1, 80 ) );
+    str=sprintf('Beam Hardening Correction %s_%s',opt.alphaStep,opt.IeStep);
+    fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
+    fprintf('%s\n', repmat('=',1,80));
+    str=sprintf( ' %5s','itr');
+    if(~opt.skipAlpha) 
+        str=sprintf([str ' %12s'],'Obj');
+        if(opt.continuation || strcmpi(opt.uMode,'relative'))
+            str=sprintf([str ' %6s'],'u');
+        end
+        if(isfield(opt,'trueAlpha'))
+            str=sprintf([str ' %12g'], 'error');
+        end
+        str=sprintf([str ' %12s %4s'], 'difα', 'αSrh');
+        str=sprintf([str ' %12s'], 'difOjbα');
+        if(strcmpi(opt.noiseType,'Gaussian'))
+            str=sprintf([str ' %23s'], 'zmf(min,max)');
+        end
+    end
+    if(~opt.skipIe)
+        str=sprintf([str ' %4s'],'Istp');
+        str=sprintf([str ' %12s'],'difI');
+        str=sprintf([str ' %12s'],'difObjI');
+    end
+    fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
 tic; p=0; strlen=0; convThresh=0;
@@ -292,19 +325,8 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         save('IeAnimate.data','IeAnimate','-ascii');
     end
 
-    p=p+1; str=sprintf('p=%-4d',p);
-
-    if(exist('h1','var'))
-        PhiAlpha=Phi(alphaStep.alpha);
-        PhiTrueAlpha=PhiTrueAlpha*innerProd(PhiAlpha,PhiTrueAlpha)/sqrNorm(PhiTrueAlpha);
-        s=linspace(min(PhiAlpha),max(PhiAlpha),1000);
-        idx=randi(length(PhiTrueAlpha),1000,1);
-        figure(h1); plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.'); hold on;
-        plot(PhiAlpha(idx),-log(Imea(idx)),'g.');
-        plot(s,-log(polyIout(s,IeStep.Ie)),'r-'); hold off;
-        figure(h2); semilogx(opt.upkappa,opt.upiota,'r'); hold on;
-        plot(kappa,IeStep.Ie,'.-'); hold off;
-    end
+    p=p+1;
+    str=sprintf(' %5d',p);
     
     % start optimize over alpha
     if(~opt.skipAlpha) 
@@ -334,9 +356,10 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         out.difCost(p)=abs(out.cost(p)-preCost)/out.cost(p);
         alpha = alphaStep.alpha;
 
+        str=sprintf([str ' %12g'],out.cost(p));
         if(opt.continuation || strcmpi(opt.uMode,'relative'))
             out.uRecord(p,:)=[opt.u,alphaStep.u];
-            str=sprintf([str ' u=%-6g'],alphaStep.u);
+            str=sprintf([str ' %6g'],alphaStep.u);
         end
         if(strcmpi(opt.uMode,'relative') && ~opt.skipIe)
             temp=[]; [temp(1),temp(2)]=polyIout(0,Ie);
@@ -349,24 +372,21 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         else alphaStep.u=opt.u;
         end
 
-        str=sprintf([str ' cost=%-6g'],...
-            out.cost(p));
         if(isfield(opt,'trueAlpha'))
             out.RMSE(p)=computError(alpha);
-            str=sprintf([str ' RSE=%g'], out.RMSE(p));
+            str=sprintf([str ' %12g'], out.RMSE(p));
         end
 
-        str=sprintf([str ' difAlpha=%g aSearch=%d'],...
-            out.difAlpha(p), alphaStep.ppp);
+        str=sprintf([str ' %12g %4d'], out.difAlpha(p), alphaStep.ppp);
+        str=sprintf([str ' %12g'], out.difCost(p));
         if(strcmpi(opt.noiseType,'Gaussian'))
-            str=sprintf([str ' zmf=(%g,%g)'], IeStep.zmf(1), IeStep.zmf(2));
+            str=sprintf([str ' (%10g,%10g)'], IeStep.zmf(1), IeStep.zmf(2));
             out.zmf(p,:)=IeStep.zmf(:)';
         end
-        str=sprintf([str ' difCost=%g'], out.difCost(p));
     end
     % end optimizing over alpha
-    
-    %if(out.delta<=1e-4) maxPP=5; end
+     
+    % start optimizing over Ie
     if(~opt.skipIe)
         % update the object fuction w.r.t. Ie
         if(strcmpi(opt.noiseType,'Gaussian') && strcmpi(opt.IeStep,'NPG'))
@@ -375,7 +395,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
 
         A = polyIout(Phi(alpha),[]);
-        IeStep.func = @(III) IeStepFunc(A,III);
+        IeStep.func = @(Ie) IeStepFunc(A,Ie);
         IeStep.thresh=opt.etaDifCost*out.difCost(p);
         preCost=IeStep.cost;
         [~,IeStepCnt]=IeStep.main();
@@ -387,26 +407,40 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             case lower('ActiveSet')
                 out.IeSteps(p)= IeStep.stepNum;
                 out.course{p} = IeStep.course;
-                str=sprintf([str ' #steps=%d'],out.IeSteps(p));
-                if(IeStep.converged)
-                    str = [str ' cnvrgd'];
-                else
-                    str = [str ' uncnvrgd'];
-                end
             case lower('NPG')
                 out.IeSearch(p) = IeStep.ppp;
-                str=sprintf([str ' IeSearch=%d'],out.IeSearch(p));
-                str=sprintf([str ' #IeStep=%d'],IeStepCnt);
+                out.IeSteps(p) = IeStepCnt;
+            case lower('LBFGSB')
+                out.IeSteps(p) = IeStepCnt;
         end
+        str=sprintf([str ' %4d'],out.IeSteps(p));
 
         out.difIe(p)=norm(IeStep.Ie(:)-Ie(:))/norm(Ie);
         out.difllI(p)=abs(out.llI(p)-preCost)/out.llI(p);
         Ie = IeStep.Ie;
-        str=sprintf([str ' difIe=%g'], out.difIe(p));
-        if(p>1) str=sprintf([str ' difllI=%g'],out.difllI(p)); end
+        str=sprintf([str ' %12g'], out.difIe(p));
+        if(p>1)
+            str=sprintf([str ' %12g'],out.difllI(p));
+        else
+            str=sprintf([str ' %12s'],' ');
+        end
     end
-
+    % end optimizing over Ie
+    
     if(opt.debugLevel>1)
+        if(opt.debugLevel>=2)
+            set(0,'CurrentFigure',figLin);
+            idx = randi(length(A),1000,1);
+            s = linspace(min(A),max(A),1000);
+            plot(A(idx),-log(Imea(idx)),'g.');
+            hold on;
+            if(isfield(opt,'trueAlpha'))
+                PhiTrueAlpha=PhiTrueAlpha*innerProd(A,PhiTrueAlpha)/sqrNorm(PhiTrueAlpha);
+                plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.');
+            end
+            plot(s,-log(polyIout(s,IeStep.Ie)),'r-');
+            hold off;
+        end
         if(p>1 && opt.debugLevel>=3)
             set(0,'CurrentFigure',figCost);
             if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
@@ -472,11 +506,8 @@ out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
 fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
-if(isfield(opt,'trueAlpha'))
-        fprintf(', RMSE=%g\n',out.RMSE(end));
-else
-    fprintf('\n');
-end
+if(isfield(opt,'trueAlpha')) fprintf(', RMSE=%g',out.RMSE(end)); end
+fprintf('\n');
 
 if(opt.estIe)
 end

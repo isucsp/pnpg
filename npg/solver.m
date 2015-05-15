@@ -36,6 +36,8 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %                   Ey=I_0 exp(-Φx) with poisson noise, where I_0 is unknown
 %               opt.noiseType='poissonLogLink0'
 %                   Ey=I_0 exp(-Φx) with poisson noise, where I_0 is known
+%               opt.noiseType='logistic'
+%                   Ey=exp(Φx+b)./(1+exp(Φx+b)) with Bernoulli noise, where b is optional
 %   xInit       Initial value for estimation of x
 %   opt         Structure for the configuration of this algorithm (refer to
 %               the code for detail)
@@ -45,6 +47,7 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
+if(~isfield(opt,'proximal' )) opt.proximal='wvltADMM'; end
 if(~isfield(opt,'preSteps')) opt.preSteps=2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
@@ -120,19 +123,42 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case lower('NPGs')
-        alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+    case {lower('NPGs'), lower('NPG')}
+        switch(lower(opt.proximal))
+            case lower('wvltADMM')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,false);
+                penalty = @(x) pNorm(Psit(x),1);
+            case lower('wvltLagrangian')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
+                    x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
+                penalty = @(x) pNorm(Psit(x),1);
+            case lower('tvl1')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'l1');
+                penalty = @(x) tlv(x,'l1');
+            case lower('tviso')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'iso');
+                penalty = @(x) tlv(x,'iso');
+        end
+
+        if(strcmpi(opt.alphaStep,'npgs'))
+            alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+            alphaStep.fArray{3} = penalty;
+        elseif(strcmpi(opt.alphaStep,'npg'))
+            alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
+            alphaStep.fArray{3} = penalty;
+            if(strcmpi(opt.noiseType,'poisson'))
+                alphaStep.forcePositive=true;
+                % opt.alphaStep='PG';
+                % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
+            end
+        end
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
-    case lower('NPG')
-        alphaStep=NPG(1,alpha,1,opt.stepShrnk,Psi,Psit);
-        if(strcmpi(opt.noiseType,'poisson'))
-            alphaStep.forcePositive=true;
-            % opt.alphaStep='PG';
-            % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
-        end
     case lower('PG')
         alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
@@ -157,6 +183,8 @@ switch lower(opt.noiseType)
         trueCost = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp,1e-100);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+    case 'logistic'
+        alphaStep.fArray{1} = @(alpha) Utils.logisticModel(alpha,Phi,Phit,y);
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
@@ -241,11 +269,29 @@ else
     collectNonInc=false;
 end
 
+if(opt.debugLevel>=1)
+    fprintf('%s\n', repmat( '=', 1, 80 ) );
+    str=sprintf('Nestrov''s Proximal Gradient Method %s_%s',opt.alphaStep,opt.noiseType);
+    fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
+    fprintf('%s\n', repmat('=',1,80));
+    str=sprintf( ' %5s','itr');
+    str=sprintf([str ' %12s'],'Obj');
+    if(isfield(opt,'trueAlpha'))
+        str=sprintf([str ' %12s'], 'error');
+    end
+    if(opt.continuation || opt.fullcont)
+        str=sprintf([str ' %6s'],'u');
+    end
+    str=sprintf([str ' %12s %4s'], 'difα', 'αSrh');
+    str=sprintf([str ' %12s'], 'difOjbα');
+    fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
+end
+
 tic; p=0; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf('p=%-4d',p);
+    str=sprintf(' %5d',p);
     if(p<=opt.preSteps && ~strcmpi(opt.initStep,'fixed'))
         temp=alphaStep.stepSizeInit(opt.initStep);
         alphaStep.t=min(alphaStep.t,temp);
@@ -280,17 +326,16 @@ while(true)
             out.trueCost(p)=trueCost(alpha)+alphaStep.u*pNorm(Psit(alpha),1);
     end
 
-    str=sprintf([str ' cost=%-6g'],out.cost(p));
+    str=sprintf([str ' %12g'],out.cost(p));
 
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=computError(alpha);
-        str=sprintf([str ' RSE=%g'],out.RMSE(p));
+        str=sprintf([str ' %12g'],out.RMSE(p));
     end
-
 
     if(opt.continuation || opt.fullcont)
         out.uRecord(p,:)=[opt.u(end),alphaStep.u,inf_psit_grad];
-        str=sprintf([str ' u=%-6g'],alphaStep.u);
+        str=sprintf([str ' %6g'],alphaStep.u);
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
             temp1=(opt.thresh*qThresh^(log(temp)/lnQU));
@@ -314,9 +359,11 @@ while(true)
         end
     end
 
-    str=sprintf([str ' difAlpha=%g aSearch=%d'],out.difAlpha(p),alphaStep.ppp);
+    str=sprintf([str ' %12g %4d'],out.difAlpha(p),alphaStep.ppp);
     if(p>1)
-        str=sprintf([str ' difCost=%g'], out.difCost(p));
+        str=sprintf([str ' %12g'], out.difCost(p));
+    else
+        str=sprintf([str ' %12s'], ' ');
     end
     
     if(p>1 && opt.debugLevel>=3)

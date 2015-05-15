@@ -27,8 +27,8 @@ switch lower(op)
         opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
         opt.estIe=true;
 
-        prjFull = [60, 80, 100, 120, 180, 360];
-        for i=1:2 %length(prjFull)
+        prjFull = [60, 40, 72, 120, 180, 360];
+        for i=2:3 %length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastPoreMotor(opt);

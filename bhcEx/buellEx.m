@@ -26,7 +26,7 @@ switch lower(op)
 
         opt.beamharden=true; opt.spectBasis='dis'; opt.E=30;
 
-        prjFull = [60, 80, 100, 120, 180, 360];
+        prjFull = [60, 40, 72, 120, 180, 360];
         for i=length(prjFull):-1:1
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
@@ -47,6 +47,7 @@ switch lower(op)
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
                 opt.u=u(i)*10^(j-3);
                 npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgTV_b12{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

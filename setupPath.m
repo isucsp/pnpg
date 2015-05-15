@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Fri 17 Apr 2015 04:55:04 PM CDT
+% $Revision: 0.3 $ $Date: Wed 13 May 2015 03:05:09 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -33,6 +33,7 @@ addpath([pathstr '/others/FPC_AS/prob_gen/classes']);
 addpath([pathstr '/others/glmnet_matlab/']);
 addpath([pathstr '/others/fpc/solvers']);
 addpath([pathstr '/others/fpc/solvers/utilities']);
+addpath([pathstr '/others/L-BFGS-B-C/Matlab']);
 
 cd 'prj'
 if(isunix)

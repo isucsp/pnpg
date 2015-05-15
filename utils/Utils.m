@@ -259,6 +259,30 @@ classdef Utils < handle
             end
         end
 
+        % logistic model where b is known
+        function [f,g,h] = logisticModel(x,Phi,Phit,y,b)
+            if(nargin<5) b=zeros(size(y)); end
+            PhiX=Phi(x)+b;
+            expPhiX=exp(PhiX);
+            f=mean(-y.*PhiX+log(1+expPhiX));
+            if(nargout>=2)
+                t=-y+expPhiX./(1+expPhiX);
+                g=Phit( t )/length(y);
+                if(nargout>=3)
+                    weight = expPhiX./((1+expPhiX).^2)/length(y);
+                    h=@(x,opt) hessian(weight,x,opt);
+                end
+            end
+            function hh=hessian(weight,x,opt)
+                z = Phi(x);
+                if(opt==1)
+                    hh = Phit(weight.*z);
+                else
+                    hh = innerProd(z,weight.*z);
+                end
+            end
+        end
+
         function [dif,l1norm]=testSparsity(x)
             k=0;
             minRSE=inf; maxRSE=0;

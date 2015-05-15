@@ -26,8 +26,8 @@ switch lower(op)
 
         opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
 
-        prjFull = [60, 80, 100, 120, 180, 360];
-        for i=length(prjFull):-1:1
+        prjFull = [60, 40, 72, 120, 180, 360];
+        for i=length(prjFull):-10:1
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCutPlate(opt);
@@ -41,7 +41,7 @@ switch lower(op)
             fbp{i}.alpha=fbp{i}.img;
 
             % unknown ι(κ), NPG-AS
-            for j=[5 4 3 ]
+            for j=[5 6 7]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 % npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
@@ -50,7 +50,14 @@ switch lower(op)
 
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                opt.noiseType='gaussian';
+%               npgWV_disGaussian{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.proximal='tviso';
+                npgTV_disGaussian{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

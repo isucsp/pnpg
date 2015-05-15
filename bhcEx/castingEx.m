@@ -27,8 +27,8 @@ switch lower(op)
         opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
         opt.estIe=true;
 
-        prjFull = [60, 80, 100, 120, 180, 360];
-        for i=length(prjFull)
+        prjFull = [60, 40, 72, 120, 180, 360];
+        for i=2:5
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt);
@@ -41,18 +41,18 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
 
-            keyboard
             % unknown ι(κ), NPG-AS
-            for j=[5 4 3]
+            for j=[2 4 3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
-%               npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                % npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

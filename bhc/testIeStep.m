@@ -6,10 +6,10 @@ function [Ie,out] = testIeStep()
     clear a pathstr
 
     opt.beamharden=true; opt.errorType=0; opt.spectBasis='b1';
-    opt.maxIeSteps=1e5; opt.stepShrnk=0.5; opt.thresh=1e-19;
+    opt.maxIeSteps=1e4; opt.stepShrnk=0.5; opt.thresh=1e-19;
     opt.prjFull = 360; opt.prjNum = 360; opt.snr=1e4;
     opt.noiseType='Poisson';
-    opt.E=50; opt.logspan=2.5;
+    opt.E=15; opt.logspan=2.5;
 
     [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
     initSig = maskFunc(FBP(y),opt.mask~=0);
@@ -33,13 +33,13 @@ function [Ie,out] = testIeStep()
     % there will be some points interplated negative and need to be removed
     opt.trueIe=max(opt.trueIe,0);
 
+    keyboard
+
     PhiAlpha=Phi(opt.trueAlpha);
     PhiFbp=Phi(initSig);
     trueA=polyIout(PhiAlpha,[]);
     A=polyIout(PhiFbp,[]);
     disp([norm(y+log(trueA*opt.trueIe)) norm(y+log(A*opt.trueIe))]);
-
-    keyboard
 
     switch lower(opt.noiseType)
         case lower('Gaussian')
@@ -53,17 +53,27 @@ function [Ie,out] = testIeStep()
     B=eye(opt.E); b=zeros(opt.E,1);
 
     Ie=Ie*0+1; Ie=Ie/polyIout(0,Ie);
-    %Ie=opt.trueIe;
+    Ie=opt.trueIe;
     IeStep=NPG_ind(Ie,true,polyIout(0,[]),1,1,opt.stepShrnk,opt.thresh);
     IeStep=NPG_ind(Ie,true,[],1,1,opt.stepShrnk,opt.thresh);
     IeStep.func=@(III) IeStepFunc(trueA,III);
+
+    tic
+    opts.x0=Ie;
+    opts.maxIts=1e3;
+    opts.maxTotalIts=5e5;
+    opts.factr=1e1;
+    opts.printEvery=10;
+    opts.errFcn=@(III) sqrNorm(III-opt.trueIe)/sqrNorm(opt.trueIe);
+    [x,f,info]=lbfgsb(IeStep.func,zeros(size(Ie)),inf*ones(size(Ie)),opts);
+    toc
 
     tic;
     strlen=0;
 
     s=linspace(min(PhiAlpha),max(PhiAlpha),1000);
 
-    h1=figure; h2=figure;
+    % h1=figure; h2=figure;
 
     for i=1:opt.maxIeSteps;
 
@@ -86,17 +96,21 @@ function [Ie,out] = testIeStep()
         end
         out.time(i)=toc;
 
-        str=sprintf('i=%d, time=%.2g, cost=%.10g, difIe=%g, stepSize=%g',i,out.time(i),IeStep.cost,IeStep.difIe,out.stepSize(i));
-        if(i>1)
-            str=sprintf('%s, difCost=%g',str,out.difCost(i));
+        if(mod(i,10)==0)
+            str=sprintf('i=%d, time=%.2g, cost=%.10g, difIe=%g, stepSize=%g',i,out.time(i),IeStep.cost,IeStep.difIe,out.stepSize(i));
+            if(i>1)
+                str=sprintf('%s, difCost=%g',str,out.difCost(i));
+            end
+            fprintf([repmat('\b',1,strlen) '%s'],str);
+            strlen=length(str);
         end
-        fprintf([repmat('\b',1,strlen) '%s'],str);
-        strlen=length(str);
     end
     Ie = IeStep.Ie;
     out.kappa=kappa;
     out.opt=opt;
     fprintf('\n');
+
+    keyboard
 
 end
 

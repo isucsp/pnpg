@@ -7,7 +7,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   'voltage'
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
-%   $Revision: 0.1 $ $Date: Fri 17 Apr 2015 03:52:46 PM CDT
+%   $Revision: 0.1 $ $Date: Thu 14 May 2015 08:23:37 PM CDT
 
     args = parseInputs(varargin{:});
     epsilon = args.epsilon(:);
@@ -45,6 +45,11 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
         end
     end
 
+    args.kappa = kappa{density==max(density)};
+    args.density=max(density);
+
+    CTdata=[]; if(isempty(densityMap)) return; end
+
     temp = [epsilon(1);(epsilon(1:end-1)+epsilon(2:end))/2;epsilon(end)];
     deltaEpsilon = temp(2:end)-temp(1:end-1);
 
@@ -76,8 +81,6 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
     fprintf('Sampling rate is determined to be %g\n',Ts);
 
     args.Ts = Ts;
-    args.kappa = kappa{density==max(density)};
-    args.density=max(density);
     CTdata=Imea;
 
     if(args.showImg)

@@ -64,11 +64,11 @@ classdef NPG_ind < handle
         end
         % solves L(α) + I(α>=0)
         function [out,pp] = main(obj)
-            obj.p = obj.p+1;
             pp=0; obj.debug='';
             if(obj.restart>0) obj.restart=0; end
 
             while(pp<obj.maxItr)
+                obj.p = obj.p+1;
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.Ie+(obj.theta -1)/temp*(obj.Ie-obj.preIe);
@@ -135,7 +135,7 @@ classdef NPG_ind < handle
                         pp=pp-1; continue;
                     end
                 end
-                difCost = abs(newCost-obj.cost)/max(newCost,1e-12);
+                difCost = abs(newCost-obj.cost)/max([newCost,obj.cost,eps]);
                 obj.cost = newCost;
                 obj.difIe = relativeDif(obj.Ie,newX);
                 obj.Ie = newX;
