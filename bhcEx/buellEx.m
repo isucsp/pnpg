@@ -35,6 +35,8 @@ switch lower(op)
 
             initSig = FBP(y);
 
+            keyboard
+
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);

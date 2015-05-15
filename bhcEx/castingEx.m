@@ -45,12 +45,12 @@ switch lower(op)
             for j=[2 4 3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                u  =  10.^[-5  -5   -5   -5   -5   -4.5];
                 opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 % npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                u  =  10.^[-5  -5   -5   -5   -5   -4.5];
                 opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
                 npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 

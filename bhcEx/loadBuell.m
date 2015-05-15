@@ -1,5 +1,4 @@
 function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadBuell(opt)
-
     y=load('buell_1a225.mat');
     y=y.data;
     y=y-min(y(:));
@@ -22,7 +21,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadBuell(opt)
     conf=ConfigCT();
 
     daub = 2; dwt_L=9;        %levels of wavelet transform
-    maskType='none';
+    maskType='CircleMask';
 
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
     conf.imgSize = 2^floor(log2(N));
