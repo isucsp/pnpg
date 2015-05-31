@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
-        for i=2:5
+        for i=6
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt);
@@ -42,17 +42,19 @@ switch lower(op)
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
 
             % unknown ι(κ), NPG-AS
-            for j=[2 4 3]
+            for j=[ 3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
                 opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 % npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
                 opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.alphaStep='NPGs';
+                npgsWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

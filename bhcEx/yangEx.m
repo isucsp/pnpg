@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
-        for i=1:100:length(prjFull)
+        for i=[1,length(prjFull)]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
@@ -42,103 +42,81 @@ switch lower(op)
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
             fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
+             
+            % known ι(κ), NPG
+            for j=1:5
+                fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
+                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                opt.u=10^(j-3)*u(i);
+                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.skipIe=false;
+%               opt.alphaStep='NPG'; opt.proximal='wvltADMM'; opt.skipIe=true;
+%               npgWValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               opt.skipIe=false;
+            end
 
-            keyboard
-            % unknown ι(κ), NPG-AS
+            save(filename);
+            continue
+
+            % known ι(κ), linearization
+            kappa=logspace(-floor(opt.E/2)/(opt.E-1)*3,...
+                floor(opt.E/2-0.5)/(opt.E-1)*3,opt.E);
+            q=kappa(2)/kappa(1);
+            polymodel=Spline(opt.spectBasis,[kappa(1)/q; kappa(:); kappa(end)*q]);
+            polyIout = polymodel.polyIout; clear('q');
+            [opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
+            trueIe=interp1(log(opt.upkappa), opt.upiota ,log(kappa(:)),'spline');
+            trueIe=max(0,trueIe);
+            s=linspace(min(y(:))/10,max(y(:))*10,10000);
+            yy=interp1(-log(polyIout(s,trueIe)),s,y,'spline');
+
+            fprintf('%s, i=%d,\n','Linearized Filtered Backprojection',i);
+            linFbp{i}.img=FBP(yy);
+            linFbp{i}.alpha=linFbp{i}.img(opt.mask~=0);
+            linFbp{i}.RMSE=1-(innerProd(linFbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(linFbp{i}.alpha);
+            fprintf('linFbp RMSE=%g\n',linFbp{i}.RMSE);
+            initSig = maskFunc(FBP(yy),opt.mask~=0);
+
+            for j=4
+                u = 10.^[-5  -5   -5   -5   -5   -5];
+                opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy)))); opt.proximal='tviso';
+                linNpgTV{i,j}=Wrapper.NPGc(Phi,Phit,Psi,Psit,yy,initSig,opt);
+            end
+             
+            % unknown ι(κ), NPG-LBFGSB
             for j=[4]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=u(i)*10^(j-3);
-                npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.u=10^(j-3)*u(i);
+                npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.alphaStep='NPG'; opt.proximal='tvl1';
+                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.alphaStep='NPG'; opt.proximal='wvltADMM';
+                npgWV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.alphaStep='NPGs'; opt.proximal='tvl1';
+                npgsTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.alphaStep='NPGs'; opt.proximal='wvltADMM';
+                npgsWV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-%               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
             end
 
-            continue;
-
-            % known ι(κ), 
-
-            aArray=[-10:-2];
-            for j=5:7
-                fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-
-                opt.u=10^aArray(j)*max(abs(At(y)));
-                FPC_AS
+            % linear sparse model
+            for j=1:5
+                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy))));
+                opt.proximal='tvl1';
+                npgTV{i,j}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.proximal='wvltADMM';
+                npgWV{i,j}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
         end
 
     case 'plot'
-        conf=ConfigCT('castSim','CircleMask','gpuPrj');
-        opt.prjFull = 360; opt.prjNum = opt.prjFull;
-        y = Phi(opt.trueAlpha); % equivalent to linear projection
-        forSave=[conf.y y];
-        polyy=linspace(min(conf.y),max(conf.y),1000);
-        [y1,idx]=sort(conf.y); y2=y(idx);
-        [y1,ia,ic]=unique(y1); y2=y2(ia);
-        lineary=interp1(y1,y2,polyy,'spline');
-        forsave=[polyy(:); lineary(:)];
-        save('linearization.data','forSave','-ascii');
+        load([mfilename '.mat']);
 
-        return;
 
-        load([mfilename '_021.mat']);
-        fprintf('for non skiped Ie\n');
-        t=1; noSkiped(:,t)=1:2000;
-        for i=[1,3]
-            t=t+1; noSkiped(1:length(out{1,i}.cost),t)=out{1,i}.cost;
-            t=t+1; noSkiped(1:length(out{1,i}.RMSE),t)=out{1,i}.RMSE;
-            t=t+1; noSkiped(1:length(out{1,i}.time),t)=out{1,i}.time;
-        end
-        mincost=reshape(noSkiped(:,[2,5]),[],1); mincost=min(mincost(mincost>0));
-        noSkiped(:,[2,5])=noSkiped(:,[2,5])-mincost;
-        save('costRmseTime.data','noSkiped','-ascii');
-        return;
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.RMSE,'b');
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.time, out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.time, out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.time, out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.time, out{1,3}.RMSE,'b');
-
-        return;
-        t=1; skipped(:,t)=1:2000;
-        for i=1:3
-            out=out021{2,i};
-            t=t+1; skipped(1:length(out.cost),t)=out.cost;
-            t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
-            t=t+1; skipped(1:length(out.time),t)=out.time;
-        end
-        mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-        skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
-        save('costRmseTime_fixedI.data','skipped','-ascii');
-
-        polymodel = Spline(out1.opt.spectBasis,out1.kappa);
-        polymodel.setPlot(out1.opt.trueKappa,out1.opt.trueIota,out1.opt.epsilon);
-        [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out1.Ie);
-        idx=find(tU==max(tU));
-        q=tK(idx)/1; q=1/1.15
-        tK=tK/q; tU=tU*q;
-        i=1; forSave=[tK, tU];
-
-        i=i+2; forSave(1:length(out1.kappa),i:i+1)=[out1.kappa,out1.Ie];
-        figure; semilogx(tK,tU,'r'); hold on; loglog(out1.kappa,out1.Ie,'g-*');
-
-        i=i+2; forSave(1:length(out2.kappa),i:i+1)=[out2.kappa,out2.Ie];
-        loglog(out2.kappa,out2.Ie,'b-<');
-
-        i=i+2; forSave(1:length(out3.kappa),i:i+1)=[out3.kappa,out3.Ie];
-        loglog(out3.kappa,out3.Ie,'c-s');
-        save('effectiveCenterB.data','forSave','-ascii');
         
         paperDir = './';
         %system(['mv effectiveCenterB.data ' paperDir]);

@@ -14,7 +14,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
     trueImg=load('yang.mat'); opt.trueImg=trueImg.trueImg;
     conf=ConfigCT();
 
-    daub = 2; dwt_L=9;        %levels of wavelet transform
+    daub = 2; dwt_L=6;        %levels of wavelet transform
     maskType='CircleMask';
 
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
@@ -56,9 +56,6 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
         v = randn(size(y));
         v = v*(norm(y)/sqrt(opt.snr*length(y)));
         y = y + v;
-
-        % remedy for the normalization, use only for log link
-        % if(opt.beamharden) y=y-min(y); end
     end
 
     if(strcmp(maskType,'CircleMask'))

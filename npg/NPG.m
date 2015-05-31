@@ -113,6 +113,7 @@ classdef NPG < Methods
                                 pp=pp-1; continue;
                             else
                                 obj.debug=[obj.debug 'forceConverge'];
+                                obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
                                 newX=obj.alpha;  temp=obj.cost;
                             end
                         end

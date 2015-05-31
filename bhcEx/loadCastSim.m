@@ -3,15 +3,14 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastSim(opt)
     %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
     %theta=1:160;  % Dogandzic2011Asilomar
 
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
     if(~isfield(opt,'beamharden')) opt.beamharden=false; end
 
     opt.trueImg=double(imread('binaryCasting.bmp'));
     conf=ConfigCT();
 
     daub = 2; dwt_L=6;        %levels of wavelet transform
-    opt.rCoeff=[3000 5000 7000 8000 10000 15e3 20000 35000 50000 1e5 5e5]; 
     maskType='CircleMask';
-    spark=false;
 
     conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
     conf.dist = 5000;
@@ -23,31 +22,36 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastSim(opt)
     conf.effectiveRate = 1;
     conf.Ts = 1;
 
+    detectorBitWidth=16;
+    
     [ops.Phi,ops.Phit,ops.FBP]=conf.genOperators();  % without using mask
     if(opt.beamharden)
         symbol={'Fe'};
         densityMap{1}=opt.trueImg;
 
         [y,args] = genBeamHarden(symbol,densityMap,ops,...
-            'showImg',false,'spark', spark);
-        opt.trueIota = args.iota(:);
+            'showImg',false);
+        opt.iota = args.iota(:);
         opt.epsilon = args.epsilon(:);
-        opt.trueKappa = args.kappa(:);
+        opt.kappa = args.kappa(:);
 
+        opt.trueImg=opt.trueImg*args.density;
         conf.Ts = args.Ts;
 
         y=-log(y(:)/max(y(:)));
+
+        %  Poisson measurements
+        Imea = 2^detectorBitWidth * exp(-y);
+        Imea = poissrnd(Imea);
+        y=-log(Imea/max(Imea));
     else
         y = ops.Phi(opt.trueImg);
+
+        % use Gaussian noise
+        v = randn(size(y));
+        v = v*(norm(y)/sqrt(opt.snr*length(y)));
+        y = y + v;
     end
-
-    y = y(:);
-    v = randn(size(y));
-    v = v*(norm(y)/sqrt(opt.snr*length(y)));
-    y = y + v;
-
-    % remedy for the normalization
-    if(opt.beamharden) y=y-min(y); end
 
     if(strcmp(maskType,'CircleMask'))
         % reconstruction mask (which pixels do we estimate?)

@@ -66,6 +66,7 @@ forSave=[s(:), -log(polyIout(s,opt.trueIe))];
 save('test3.data','forSave','-ascii');
 
 !for i in `seq 1 3`; do echo "" >> test$i.data; done
+!for i in `seq 1 3`; do echo "" >> test$i.data; done
 !cat test[1-3].data > linearization.data
 !rm test[1-3].data
 

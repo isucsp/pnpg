@@ -56,7 +56,7 @@ if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
-if(~isfield(opt,'minItr')) opt.minItr=100; end   % currently not used
+if(~isfield(opt,'minItr')) opt.minItr=10; end   % currently not used
 % default to not use nonnegative constraints.
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
@@ -147,6 +147,7 @@ switch lower(opt.alphaStep)
             alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
             alphaStep.fArray{3} = penalty;
         elseif(strcmpi(opt.alphaStep,'npg'))
+            alpha=max(alpha,0);
             alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
             alphaStep.fArray{3} = penalty;
             if(strcmpi(opt.noiseType,'poisson'))
@@ -271,7 +272,7 @@ end
 
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
-    str=sprintf('Nestrov''s Proximal Gradient Method %s_%s',opt.alphaStep,opt.noiseType);
+    str=sprintf('Nestrov''s Proximal Gradient Method (%s) %s_%s',opt.proximal,opt.alphaStep,opt.noiseType);
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
     str=sprintf( ' %5s','itr');
@@ -280,7 +281,7 @@ if(opt.debugLevel>=1)
         str=sprintf([str ' %12s'], 'error');
     end
     if(opt.continuation || opt.fullcont)
-        str=sprintf([str ' %6s'],'u');
+        str=sprintf([str ' %12s'],'u');
     end
     str=sprintf([str ' %12s %4s'], 'difα', 'αSrh');
     str=sprintf([str ' %12s'], 'difOjbα');
@@ -335,7 +336,7 @@ while(true)
 
     if(opt.continuation || opt.fullcont)
         out.uRecord(p,:)=[opt.u(end),alphaStep.u,inf_psit_grad];
-        str=sprintf([str ' %6g'],alphaStep.u);
+        str=sprintf([str ' %12g'],alphaStep.u);
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
             temp1=(opt.thresh*qThresh^(log(temp)/lnQU));
