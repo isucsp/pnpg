@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Wed 13 May 2015 03:05:09 PM CDT
+% $Revision: 0.3 $ $Date: Sun 31 May 2015 08:59:12 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -17,6 +17,7 @@ addpath([pathstr '/npg']);
 addpath([pathstr '/bhc']);
 addpath([pathstr '/prj']);
 addpath([pathstr '/utils']);
+addpath([pathstr '/utils/L-BFGS-B-C/Matlab']);
 addpath([pathstr '/irt/nufft']);
 addpath([pathstr '/irt/systems']);
 addpath([pathstr '/irt']);
@@ -33,7 +34,6 @@ addpath([pathstr '/others/FPC_AS/prob_gen/classes']);
 addpath([pathstr '/others/glmnet_matlab/']);
 addpath([pathstr '/others/fpc/solvers']);
 addpath([pathstr '/others/fpc/solvers/utilities']);
-addpath([pathstr '/others/L-BFGS-B-C/Matlab']);
 
 cd 'prj'
 if(isunix)
@@ -42,6 +42,10 @@ if(isunix)
         !make mGPUPrj 
     end
 end
+cd(pathstr)
+
+cd 'utils/L-BFGS-B-C/Matlab/'
+make
 cd(pathstr)
 
 clear a pathstr hasgpu
