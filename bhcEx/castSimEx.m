@@ -40,6 +40,16 @@ switch lower(op)
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
             fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
+             
+            % known ι(κ), NPG
+            for j=3
+                fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
+                u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+                opt.u=10^(j-3)*u(i);
+                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.skipIe=false;
+            end
 
             % unknown ι(κ), NPG-AS
             u  =  10.^[-4  -4   -4   -4   -4   -4];

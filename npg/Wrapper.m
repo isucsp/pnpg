@@ -12,6 +12,10 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=true;
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out = ADMM(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='ADMM_NNL1'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out = NPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=true; opt.alphaStep='NPG';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);

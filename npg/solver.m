@@ -164,6 +164,7 @@ switch lower(opt.alphaStep)
         alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep.fArray{3} = @(x) pNorm(Psit(x),1);
     case {lower('ADMM_L1')}
         alphaStep = ADMM_L1(2,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NN')}

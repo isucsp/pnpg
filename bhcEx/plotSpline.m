@@ -21,10 +21,12 @@ trueIe=interp1(log10(upkappa),upiota,log10(trueKappa(:)),'spline');
 % there will be some points interplated negative and need to be removed
 trueIe=max(trueIe,0);
 
+forSave=[epsilon(:), iota(:)];
+save('iotaEps.data','forSave','-ascii');
 forSave=[trueKappa(:), trueIe(:)];
-save('trueI.data','forSave','-ascii');
+save('trueUpiota.data','forSave','-ascii');
 forSave=[upkappa(:), upiota(:)];
-save('continuousI.data','forSave','-ascii');
+save('continousUpiota.data','forSave','-ascii');
 
 figure;
 semilogx(upkappa,upiota,'b-'); hold on;
