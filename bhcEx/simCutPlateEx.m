@@ -39,18 +39,22 @@ switch lower(op)
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=maskFunc(fbp{i}.img,opt.mask~=0);
+            Opt=opt;
 
             % unknown ι(κ), NPG-AS
             for j=[5 4 3 ]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 % npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                opt=Opt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
 %               npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Opt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+%               npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Opt; opt.saturated=true; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                npgWV_dis_saturated{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);

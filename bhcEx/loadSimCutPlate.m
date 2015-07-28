@@ -42,6 +42,12 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadSimCutPlate(opt)
         %  Poisson measurements
         Imea = 2^detectorBitWidth * exp(-y);
         Imea = poissrnd(Imea);
+
+        %%%  make the data to be saturated.
+        if(isfield(opt,'saturated') && opt.saturated)
+            Imea=min(Imea,max(Imea(:))*0.8);
+        end
+
         y=-log(Imea/max(Imea));
     else
         y = ops.Phi(opt.trueImg);
