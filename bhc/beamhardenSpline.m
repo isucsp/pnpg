@@ -151,6 +151,8 @@ polyIout = polymodel.polyIout;
 if(isfield(opt,'kappa'))
     polymodel.setPlot(opt.kappa,opt.iota,opt.epsilon);
     [opt.upkappa,opt.upiota]=getUpiota(opt.epsilon,opt.kappa,opt.iota);
+else
+    polymodel.setPlot(0,0,0);
 end
 
 if(isfield(opt,'Ie')) Ie=opt.Ie(:);
@@ -159,6 +161,8 @@ else
         Ie=interp1(log(opt.upkappa), opt.upiota ,log(kappa(:)),'spline');
         % there will be some points interplated negative and need to be removed
         Ie=max(Ie,0);
+    else
+        Ie=Ie/polyIout(0,Ie);
     end
 end
 
@@ -173,7 +177,7 @@ switch lower(opt.alphaStep)
             fprintf('use lustig approximation for l1 norm\n');
             alphaStep.fArray{3} = @(aaa) Utils.lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
-    case {lower('NPGs'), lower('NPG')}
+    case {lower('NPGs'), lower('NPG'), lower('PG')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
@@ -197,13 +201,18 @@ switch lower(opt.alphaStep)
                 fprintf('Use ISO TV\n');
         end
 
-        if(strcmpi(opt.alphaStep,'npgs'))
-            alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
-            alphaStep.fArray{3} = penalty;
-        elseif(strcmpi(opt.alphaStep,'npg'))
-            alpha=max(alpha,0);
-            alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
-            alphaStep.fArray{3} = penalty;
+        switch(lower(opt.alphaStep))
+            case 'npgs'
+                alphaStep=NPGs(1,alpha,opt.maxAlphaSteps,opt.stepShrnk,Psi,Psit);
+                alphaStep.fArray{3} = penalty;
+            case 'npg'
+                alpha=max(alpha,0);
+                alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
+            case 'pg'
+                alpha=max(alpha,0);
+                alphaStep=PG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
         end
 end
 alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
@@ -287,6 +296,12 @@ if(any(strcmp(properties(alphaStep),'preSteps')))
     alphaStep.preSteps=opt.preSteps;
 end
 
+if(any(strcmp(properties(alphaStep),'restart')))
+    hasRestart=true;
+else
+    hasRestart=false;
+end
+
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Beam Hardening Correction (%s)',opt.noiseType);
@@ -319,13 +334,26 @@ end
 
 tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
-    if(opt.saveAnimate && (mod(p,10)==0 || p<10))
+    if(opt.saveAnimate && (p<10 || (p>=10 && p<100 && mod(p,10)==0) || (p>=100 && mod(p,100)==0)))
         img=showImgMask(alpha,opt.mask);
-        imwrite(img/max(img(:)),sprintf('animate_%03d.png',p),'png');
+        imwrite(img/max(img(:)),sprintf('animate_%04d.png',p),'png');
         [~,~,kkkkk,temp]=polymodel.plotSpectrum(Ie);
         if(p==0) IeAnimate=kkkkk(:); end
         IeAnimate=[IeAnimate, temp(:)];
         save('IeAnimate.data','IeAnimate','-ascii');
+
+        if(p==0)
+            PhiFbp=Phi(xInit);
+            idx=randi(length(y),1000,1);
+            linAnimate=[y(idx), PhiFbp(idx)];
+            iotaAnim = [];
+        end
+        PhiAlpha=Phi(alpha);
+        s=linspace(min(PhiAlpha),max(PhiAlpha),100);
+        linAnimate=[linAnimate, PhiAlpha(idx)];
+        iotaAnim=[iotaAnim s(:) -log(polyIout(s,Ie))];
+        save('linAnimate.data','linAnimate','-ascii');
+        save('iotaAnim.data','iotaAnim','-ascii');
     end
 
     p=p+1;
@@ -343,7 +371,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
-        if(alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
+        if(hasRestart && alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
         if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
         if(collectDebug && ~isempty(alphaStep.debug))
             out.debug{size(out.debug,1)+1,1}=p;

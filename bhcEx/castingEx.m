@@ -24,11 +24,11 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
+        opt.beamharden=true; opt.spectBasis='b1'; opt.E=20;
         opt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
-        for i=6
+        for i=4
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt);
@@ -41,112 +41,142 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
 
+            Oopt=opt;
+
             % unknown ι(κ), NPG-AS
-            for j=[ 3]
+            for j=[4]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
-                opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
-                % npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                u  =  10.^[-5  -5   -5   -5   -5   -4.5];
-                opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-%               npgWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.alphaStep='NPGs';
-                npgsWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Oopt; opt.u=u(i)*10^0.25; opt.proximal='tvl1';
+                npgTV_b1_25=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(0.75); opt.proximal='wvltADMM';
+                npgWV_b1_75=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+                continue;
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                npgWV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                 
+                save(filename);
+                continue;
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
+                npgTV_b1_anim=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+
+%               opt.alphaStep='NPGs';
+%               npgsWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
             end
-
-            continue;
-
-            % known ι(κ), 
-
-            aArray=[-10:-2];
-            for j=5:7
-                fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-
-                opt.u=10^aArray(j)*max(abs(At(y)));
-                FPC_AS
-            end
         end
 
     case 'plot'
-        conf=ConfigCT('castSim','CircleMask','gpuPrj');
-        opt.prjFull = 360; opt.prjNum = opt.prjFull;
-        y = Phi(opt.trueAlpha); % equivalent to linear projection
-        forSave=[conf.y y];
-        polyy=linspace(min(conf.y),max(conf.y),1000);
-        [y1,idx]=sort(conf.y); y2=y(idx);
-        [y1,ia,ic]=unique(y1); y2=y2(ia);
-        lineary=interp1(y1,y2,polyy,'spline');
-        forsave=[polyy(:); lineary(:)];
-        save('linearization.data','forSave','-ascii');
+        load([mfilename '.mat']);
+        prjFull = [60, 40, 72, 120, 180, 360];
 
-        return;
+        prjIdx=4; col=307; h=figure; forSave=[];
+        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting_120.eps','psc2'); imwrite(img/maxImg,  'fbp_casting_120.png');
+        figure(h); plot(3*img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
 
-        load([mfilename '_021.mat']);
-        fprintf('for non skiped Ie\n');
-        t=1; noSkiped(:,t)=1:2000;
-        for i=[1,3]
-            t=t+1; noSkiped(1:length(out{1,i}.cost),t)=out{1,i}.cost;
-            t=t+1; noSkiped(1:length(out{1,i}.RMSE),t)=out{1,i}.RMSE;
-            t=t+1; noSkiped(1:length(out{1,i}.time),t)=out{1,i}.time;
-        end
-        mincost=reshape(noSkiped(:,[2,5]),[],1); mincost=min(mincost(mincost>0));
-        noSkiped(:,[2,5])=noSkiped(:,[2,5])-mincost;
-        save('costRmseTime.data','noSkiped','-ascii');
-        return;
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.RMSE,'b');
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.time, out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.time, out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.time, out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.time, out{1,3}.RMSE,'b');
+        img=showImgMask(npgTV_b1_25.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting_120.eps','psc2'); imwrite(img/maxImg,'npgTV_casting_120.png');
+        fprintf('u for NPGTV is %e\n',npgTV_b1_25.opt.u);
+        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
+        legend('FBP', 'NPG\_TV');
+        save('profile_casting_120.data','forSave','-ascii');
 
-        return;
-        t=1; skipped(:,t)=1:2000;
-        for i=1:3
-            out=out021{2,i};
-            t=t+1; skipped(1:length(out.cost),t)=out.cost;
-            t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
-            t=t+1; skipped(1:length(out.time),t)=out.time;
-        end
-        mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-        skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
-        save('costRmseTime_fixedI.data','skipped','-ascii');
 
-        polymodel = Spline(out1.opt.spectBasis,out1.kappa);
-        polymodel.setPlot(out1.opt.trueKappa,out1.opt.trueIota,out1.opt.epsilon);
-        [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out1.Ie);
-        idx=find(tU==max(tU));
-        q=tK(idx)/1; q=1/1.15
-        tK=tK/q; tU=tU*q;
-        i=1; forSave=[tK, tU];
+        prjIdx=6; col=307; h=figure; forSave=[];
+        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting.eps','psc2'); imwrite(img/maxImg,  'fbp_casting.png');
+        figure(h); plot(3*img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
 
-        i=i+2; forSave(1:length(out1.kappa),i:i+1)=[out1.kappa,out1.Ie];
-        figure; semilogx(tK,tU,'r'); hold on; loglog(out1.kappa,out1.Ie,'g-*');
+        aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
+        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
+        fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx));
+        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
 
-        i=i+2; forSave(1:length(out2.kappa),i:i+1)=[out2.kappa,out2.Ie];
-        loglog(out2.kappa,out2.Ie,'b-<');
+        legend('FBP', 'NPG\_TV');
+        save('profile_casting.data','forSave','-ascii');
+        
+        clear('opt');
+        a1=npgTV_b1{prjIdx,aIdx};
+        a2=pgTV_b1{prjIdx,aIdx};
 
-        i=i+2; forSave(1:length(out3.kappa),i:i+1)=[out3.kappa,out3.Ie];
-        loglog(out3.kappa,out3.Ie,'c-s');
-        save('effectiveCenterB.data','forSave','-ascii');
+        forSave=[]; t=0;
+        t=t+1; temp=a1.stepSize(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:);     forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.time(:);     forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a2.stepSize(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a2.cost(:);     forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a2.time(:);     forSave(1:length(temp),t)=temp;
+        save('castingTrace.data','forSave','-ascii');
+
+        [y,Phi,Phit,Psi,Psit,~,FBP]=loadCasting(a1.opt);
+
+        q=a1.kappa(2)/a1.kappa(1);
+        polymodel=Spline(a1.opt.spectBasis,[a1.kappa(1)/q; a1.kappa(:); a1.kappa(end)*q]);
+        polyIout = polymodel.polyIout;
+
+        PhiAlpha=Phi(a1.alpha);
+        PhiFbp=Phi(fbp{prjIdx}.alpha);
+
+        s=linspace(min(PhiAlpha),max(PhiAlpha),100);
+        idx=randi(length(PhiAlpha),1000,1);
+
+        figure;
+        plot(PhiAlpha(idx),y(idx),'.'); hold on;
+        plot(PhiFbp(idx),y(idx),'g.');
+        plot(s,-log(polyIout(s,a1.Ie)),'r-');
+        legend('NPG-BFGS reconstruction', 'FBP reconstruction', 'fitted curve by NPG-BFGS');
+        xlabel('\Phi\alpha');
+        ylabel('I^{out}=-ln[ \int \iota(\kappa) exp( -\kappa\Phi\alpha ) d\kappa  ]');
+
+        forSave=[PhiAlpha(idx),y(idx)];
+        save('test1.data','forSave','-ascii');
+        forSave=[PhiFbp(idx),y(idx)];
+        save('test2.data','forSave','-ascii');
+        forSave=[s(:), -log(polyIout(s,a1.Ie))];
+        save('test3.data','forSave','-ascii');
+
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !cat test[1-3].data > linearization_casting.data
+        !rm test[1-3].data
+
+        Imea = exp(-y(:));
+        Iout = polyIout(PhiAlpha,a1.Ie);
+
+        residual = (Imea-Iout)./sqrt(Iout);
+        [npgHist,npgRes] = hist(residual,500);
+
+        Iout = exp(-PhiFbp);
+        residual = (Imea-Iout)./sqrt(max(Iout,eps));
+        [fbpHist,fbpRes] = hist(residual,500);
+
+        forSave=[npgRes,npgHist,fbpRes,fbpHist];
+        save('castingRes.data','forSave','-ascii');
+
+        figure; plot(npgRes,npgHist); hold on; plot(fbpRes,fbpHist,'r');
+        legend('npg','fbp');
+
+        keyboard
         
         paperDir = './';
         %system(['mv effectiveCenterB.data ' paperDir]);
 end
 end
 
-
+function [] = selectRegPar()
+    npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+end

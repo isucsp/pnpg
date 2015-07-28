@@ -23,7 +23,7 @@ switch lower(op)
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
         for k=1:5
-            for i=1:length(m)
+            for i=length(m)
                 opt.m=m(i); opt.snr=inf;
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
                 initSig = Phit(invEAAt*y);
@@ -31,9 +31,23 @@ switch lower(op)
                 opt.u = u(i)*10.^(-2:2);
                 %gnet{i,k}=Wrapper.glmnet(Phi,wvltMat(length(opt.trueAlpha),dwt_L,daub),y,initSig,opt);
 
-                for j=1:5
+                for j=3
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     opt.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
+
+                    ga_gfb = 1.8;
+                    la_gfb = 1;
+                    nIter = 100; % number of iterations per experiments
+                    nIterInf = 1000; % number of iterations to reach minimum energy
+                    tic
+                    F = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+                    G = @(x) opt.u*pNorm(Psit(x),1);
+                    gradF = @(x) Utils.getNthOutPut(F,x,2);
+                    proxGi{1} = @(x,ga) Psi(Utils.softThresh( Psit(x), ga*opt.u));
+                    proxGi{2} = @(x,ga) max(x,0);
+                    report = @(x)F(x)+G(x);
+                    [xGFB, eGFB] = GeneralizedForwardBackward( gradF, proxGi, zeros( [length(initSig) 2] ), opt.maxItr, ga_gfb, la_gfb, true, report );
+                    keyboard
 
                     npg      {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgc     {i,j,k}=Wrapper.NPGc     (Phi,Phit,Psi,Psit,y,initSig,opt);

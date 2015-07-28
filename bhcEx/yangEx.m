@@ -7,15 +7,9 @@ function yangEx(op)
 %   Author: Renliang Gu (renliang@iastate.edu)
 %   v_0.2:  Changed to class oriented for easy configuration
 
-% dis discretized, polychromatic model
-% dis, compare the NPG and NCG_PR for both continuation and 
-% non-continuation
-%
-% compare the effect forcing center model of spectrum 
-%
-% A few thing to tune: continuation, centerb, ActiveSet VS FISTA_Simplex
-% maxIeSteps
-
+% "Yang" fish simulated example
+% for this example, tviso > tvl1 > wavelet
+ 
 if(~exist('op','var')) op='run'; end
 
 switch lower(op)
@@ -27,8 +21,8 @@ switch lower(op)
         opt.beamharden=true; opt.spectBasis='b1'; opt.E=30;
         opt.estIe=true;
 
-        prjFull = [60, 80, 100, 120, 180, 360];
-        for i=[1,length(prjFull)]
+        prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
+        for i=[1:length(prjFull)]
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
@@ -43,17 +37,13 @@ switch lower(op)
             fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
              
-            % known ι(κ), NPG
-            for j=1:5
+            % unknown ι(κ), NPG-LBFGSB
+            for j=[2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
+                u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
                 opt.u=10^(j-3)*u(i);
-                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
-                npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.skipIe=false;
-%               opt.alphaStep='NPG'; opt.proximal='wvltADMM'; opt.skipIe=true;
-%               npgWValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               opt.skipIe=false;
+                opt.alphaStep='NPG'; opt.proximal='tviso';
+                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
 
             save(filename);
@@ -79,27 +69,20 @@ switch lower(op)
             initSig = maskFunc(FBP(yy),opt.mask~=0);
 
             for j=4
-                u = 10.^[-5  -5   -5   -5   -5   -5];
+                u = 10.^[-5  -5   -5   -5   -5   -5 -5 -5];
                 opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy)))); opt.proximal='tviso';
                 linNpgTV{i,j}=Wrapper.NPGc(Phi,Phit,Psi,Psit,yy,initSig,opt);
             end
-             
-            % unknown ι(κ), NPG-LBFGSB
-            for j=[4]
-                fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=10^(j-3)*u(i);
-                npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.alphaStep='NPG'; opt.proximal='tvl1';
-                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.alphaStep='NPG'; opt.proximal='wvltADMM';
-                npgWV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.alphaStep='NPGs'; opt.proximal='tvl1';
-                npgsTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.alphaStep='NPGs'; opt.proximal='wvltADMM';
-                npgsWV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                save(filename);
+             
+            % known ι(κ), NPG
+            for j=3
+                fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
+                u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+                opt.u=10^(j-3)*u(i);
+                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.skipIe=false;
             end
 
             % linear sparse model
@@ -116,11 +99,117 @@ switch lower(op)
     case 'plot'
         load([mfilename '.mat']);
 
+        prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
 
-        
+        linFbpRMSE    = Cell.getField(       linFbp,'RMSE');
+        fbpRMSE       = Cell.getField(          fbp,'RMSE');
+        npgTVb1RMSE   = Cell.getField(     npgTV_b1,'RMSE');
+        linNpgRMSE    = Cell.getField(     linNpgTV,'RMSE');
+        npgTValphaRMSE= Cell.getField(npgTValpha_b1,'RMSE');
+%       npgTVRMSE     = Cell.getField(        npgTV,'RMSE');
+%       npgWVRMSE     = Cell.getField(        npgWV,'RMSE');
+         
+        figure;
+        semilogy(prjFull,              linFbpRMSE*100,'r-*'); hold on;
+        semilogy(prjFull,                 fbpRMSE*100,'b-o');
+        semilogy(prjFull,min(   npgTVb1RMSE,[],2)*100,'g-.');
+        semilogy(prjFull,min(    linNpgRMSE,[],2)*100,'c-<');
+        semilogy(prjFull,min(npgTValphaRMSE,[],2)*100,'k-s');
+        xlabel('# fan-beam projections from 0-359^\circ'); ylabel('RMSE/%');
+        legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)');
+
+        forSave=[prjFull(:)';
+        100*           linFbpRMSE(:)';
+        100*              fbpRMSE(:)';
+        100*min(   npgTVb1RMSE,[],2)';
+        100*min(    linNpgRMSE,[],2)';
+        100*min(npgTValphaRMSE,[],2)']';
+        save('rmse_prj_yang.data','forSave','-ascii');
+
+        prjIdx=3; col=250; h=figure; forSave=[];
+
+        img=showImgMask(       linFbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'linFBP_yang.eps','psc2'); imwrite(img/maxImg,    'linFBP_yang.png');
+        fprintf('linFBP RMSE=%e\n',linFbpRMSE(prjIdx));
+        figure(h); plot(img(:,col),'r-'); hold on; forSave=[forSave, img(:,col)];
+
+        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,       'fbp_yang.eps','psc2'); imwrite(img/maxImg,       'fbp_yang.png');
+        fprintf('FBP RMSE=%e\n',fbpRMSE(prjIdx));
+        figure(h); plot(img(:,col),'b-'); forSave=[forSave, img(:,col)];
+
+        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+        img=showImgMask(     npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'npgTV_yang.eps','psc2'); imwrite(img/maxImg,     'npgTV_yang.png');
+        fprintf('u for NPGTV is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
+
+        rmse=linNpgRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u = 10.^[-5  -5   -5   -5   -5   -5 -5 -5];
+        img=showImgMask(     linNpgTV{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'linNPGTV_yang.eps','psc2'); imwrite(img/maxImg,  'linNPGTV_yang.png');
+        fprintf('a for linNPGTV is %e and u=%g, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),linNpgTV{prjIdx,aIdx}.opt.u,rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'c:'); forSave=[forSave, img(:,col)];
+
+        rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+        img=showImgMask(npgTValpha_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTValpha_yang.eps','psc2'); imwrite(img/maxImg,'npgTValpha_yang.png');
+        fprintf('u for npgTValpha_b1 is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'k--'); forSave=[forSave, img(:,col)];
+
+        legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)');
+        save('profile_yang.data','forSave','-ascii');
+
+        prjIdx=3; col=250; h=figure; forSave=[]; clear('opt');
+        rmse=npgTVb1RMSE;    aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a1=npgTV_b1{prjIdx,aIdx};
+        rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a2=npgTValpha_b1{prjIdx,aIdx};
+
+        [y,Phi,Phit,Psi,Psit,~,FBP]=loadYang(a1.opt);
+
+        q=a1.kappa(2)/a1.kappa(1);
+        polymodel=Spline(a1.opt.spectBasis,[a1.kappa(1)/q; a1.kappa(:); a1.kappa(end)*q]);
+        polyIout = polymodel.polyIout;
+
+        PhiAlpha=Phi(a1.alpha);
+        PhiFbp=Phi(fbp{prjIdx}.alpha);
+
+        s=linspace(min(PhiAlpha),max(PhiAlpha),100);
+        idx=randi(length(PhiAlpha),1000,1);
+
+        figure;
+        plot(PhiAlpha(idx),y(idx),'.'); hold on;
+        plot(PhiFbp(idx),y(idx),'g.');
+        plot(s,-log(polyIout(s,a1.Ie)),'r-');
+        legend('NPG-BFGS reconstruction', 'FBP reconstruction', 'fitted curve by NPG-BFGS');
+        xlabel('\Phi\alpha');
+        ylabel('I^{out}=-ln[ \int \iota(\kappa) exp( -\kappa\Phi\alpha ) d\kappa  ]');
+
+        forSave=[PhiAlpha(idx),y(idx)];
+        save('test1.data','forSave','-ascii');
+        forSave=[PhiFbp(idx),y(idx)];
+        save('test2.data','forSave','-ascii');
+        forSave=[s(:), -log(polyIout(s,a1.Ie))];
+        save('test3.data','forSave','-ascii');
+
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !cat test[1-3].data > linearization_yang.data
+        !rm test[1-3].data
+
+        idx= find((PhiAlpha>2.9) & (PhiAlpha<3.1));
+        figure; hist(exp(-y(idx)),100);
+
+        switch lower(a1.opt.noiseType)
+            case lower('Gaussian')
+                IeStepFunc = @(AA,III) gaussLI(exp(-y),polyIout(Phi(AA),[]),III);
+            case lower('Poisson')
+                IeStepFunc = @(AA,III) poissLI(exp(-y),polyIout(Phi(AA),[]),III);
+        end
+
+        [IeStepFunc(a1.alpha,a1.Ie), IeStepFunc(a1.alpha*(a1.alpha'*a2.alpha)/sqrNorm(a1.alpha),a2.Ie);
+        IeStepFunc(a2.alpha*innerProd(a1.alpha,a2.alpha)/sqrNorm(a2.alpha),a1.Ie), IeStepFunc(a2.alpha,a2.Ie)]
+
+        IeStepFunc(a1.opt.trueAlpha*innerProd(a1.opt.trueAlpha,a1.alpha)/sqrNorm(a1.opt.trueAlpha),a1.Ie)
+        IeStepFunc(a1.opt.trueAlpha*innerProd(a1.opt.trueAlpha,a2.alpha)/sqrNorm(a1.opt.trueAlpha),a2.Ie)
+
+        keyboard
         paperDir = './';
         %system(['mv effectiveCenterB.data ' paperDir]);
-end
+    end
 end
 
 

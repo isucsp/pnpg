@@ -1,5 +1,15 @@
 classdef Utils < handle
     methods(Static)
+        function out = getNthOutPut(f,x,n)
+            switch(n)
+                case 2
+                    [a,out]=f(x);
+                case 3
+                    [a,b,out]=f(x);
+                case 4
+                    [a,b,c,out]=f(x);
+            end
+        end
         function y = softThresh(x,thresh)
             y=x-thresh;
             y(abs(x)<thresh) = 0;

@@ -47,21 +47,24 @@ function [uk,ui] = upiota(epsilon, kappa, iota)
         end
         return;
     end
-    uk=logspace(log10(min(kappa)),log10(max(kappa)),length(kappa))';
-    temp=kappa(2:end)-kappa(1:end-1);
-    jump = find(temp>0);
-    head=[1; jump(:)+1]; tail=[jump(:); length(kappa)];
-    ui=0*uk;
-    for i=1:length(head)
-        h=head(i); t=tail(i);
-        temp1 = [epsilon(h); (epsilon(h:t-1)+epsilon(h+1:t))/2; epsilon(t)];
-        temp2 = [  kappa(h); (  kappa(h:t-1)+  kappa(h+1:t))/2;   kappa(t)];
-        temp1 = temp1(2:end)-temp1(1:end-1);
-        temp2 = temp2(2:end)-temp2(1:end-1);
-        idx=(uk>=kappa(t) & uk<=kappa(h));
+    uk=[]; ui=[];
+    if(length(kappa)>1)
+        uk=logspace(log10(min(kappa)),log10(max(kappa)),length(kappa))';
+        temp=kappa(2:end)-kappa(1:end-1);
+        jump = find(temp>0);
+        head=[1; jump(:)+1]; tail=[jump(:); length(kappa)];
+        ui=0*uk;
+        for i=1:length(head)
+            h=head(i); t=tail(i);
+            temp1 = [epsilon(h); (epsilon(h:t-1)+epsilon(h+1:t))/2; epsilon(t)];
+            temp2 = [  kappa(h); (  kappa(h:t-1)+  kappa(h+1:t))/2;   kappa(t)];
+            temp1 = temp1(2:end)-temp1(1:end-1);
+            temp2 = temp2(2:end)-temp2(1:end-1);
+            idx=(uk>=kappa(t) & uk<=kappa(h));
 
-        temp=abs(iota(h:t).*temp1./temp2);
-        ui(idx)=ui(idx)+interp1(log(kappa(h:t)),temp,log(uk(idx)),'spline');
+            temp=abs(iota(h:t).*temp1./temp2);
+            ui(idx)=ui(idx)+interp1(log(kappa(h:t)),temp,log(uk(idx)),'spline');
+        end
     end
 end
 

@@ -24,11 +24,11 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
+        opt.beamharden=true; opt.spectBasis='b1'; opt.E=20;
         opt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
-        for i=2:3 %length(prjFull)
+        for i=length(prjFull):-1:1
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastPoreMotor(opt);
@@ -41,106 +41,83 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
 
+            Oopt=opt;
+
             % unknown ι(κ), NPG-AS
             for j=[3 4 2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
-                npgTV_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
-                opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='pg';
+%               pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                npgWV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
             end
-
-            continue;
-
-            % known ι(κ), 
-
-            aArray=[-10:-2];
-            for j=5:7
-                fprintf('%s, i=%d, j=%d\n','FPCAS',i,j);
-
-                opt.u=10^aArray(j)*max(abs(At(y)));
-                FPC_AS
-            end
         end
 
     case 'plot'
-        conf=ConfigCT('castSim','CircleMask','gpuPrj');
-        opt.prjFull = 360; opt.prjNum = opt.prjFull;
-        y = Phi(opt.trueAlpha); % equivalent to linear projection
-        forSave=[conf.y y];
-        polyy=linspace(min(conf.y),max(conf.y),1000);
-        [y1,idx]=sort(conf.y); y2=y(idx);
-        [y1,ia,ic]=unique(y1); y2=y2(ia);
-        lineary=interp1(y1,y2,polyy,'spline');
-        forsave=[polyy(:); lineary(:)];
-        save('linearization.data','forSave','-ascii');
+        load([mfilename '.mat']);
+        prjFull = [60, 40, 72, 120, 180, 360];
 
-        return;
+        prjIdx=6; col=307; h=figure; forSave=[];
 
-        load([mfilename '_021.mat']);
-        fprintf('for non skiped Ie\n');
-        t=1; noSkiped(:,t)=1:2000;
-        for i=[1,3]
-            t=t+1; noSkiped(1:length(out{1,i}.cost),t)=out{1,i}.cost;
-            t=t+1; noSkiped(1:length(out{1,i}.RMSE),t)=out{1,i}.RMSE;
-            t=t+1; noSkiped(1:length(out{1,i}.time),t)=out{1,i}.time;
-        end
-        mincost=reshape(noSkiped(:,[2,5]),[],1); mincost=min(mincost(mincost>0));
-        noSkiped(:,[2,5])=noSkiped(:,[2,5])-mincost;
-        save('costRmseTime.data','noSkiped','-ascii');
-        return;
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.RMSE,'b');
-        figure; subplot(2,1,1);
-        semilogy(out{1,1}.time, out{1,1}.cost-mincost,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.cost-mincost,'g');
-        semilogy(out{1,3}.time, out{1,3}.cost-mincost,'b'); subplot(2,1,2);
-        semilogy(out{1,1}.time, out{1,1}.RMSE,'r'); hold on;
-        semilogy(out{1,2}.time, out{1,2}.RMSE,'g');
-        semilogy(out{1,3}.time, out{1,3}.RMSE,'b');
+        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_cpm.eps','psc2'); imwrite(img/maxImg,  'fbp_cpm.png');
+        figure(h); plot(3*img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
 
-        return;
-        t=1; skipped(:,t)=1:2000;
-        for i=1:3
-            out=out021{2,i};
-            t=t+1; skipped(1:length(out.cost),t)=out.cost;
-            t=t+1; skipped(1:length(out.RMSE),t)=out.RMSE;
-            t=t+1; skipped(1:length(out.time),t)=out.time;
-        end
-        mincost=reshape(skipped(:,[2,5,8]),[],1); mincost=min(mincost(mincost>0));
-        skipped(:,[2,5,8])=skipped(:,[2,5,8])-mincost;
-        save('costRmseTime_fixedI.data','skipped','-ascii');
+        aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
+        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=min(4,max(img(:))); figure; showImg(img,0); saveas(gcf,'npgTV_cpm.eps','psc2'); imwrite(img/maxImg,'npgTV_cpm.png');
+        fprintf('u for NPGTV is %e\n',npgTV_b1{prjIdx,aIdx}.opt.u);
+        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
 
-        polymodel = Spline(out1.opt.spectBasis,out1.kappa);
-        polymodel.setPlot(out1.opt.trueKappa,out1.opt.trueIota,out1.opt.epsilon);
-        [tK,tU,kappa,Ie]=polymodel.plotSpectrum(out1.Ie);
-        idx=find(tU==max(tU));
-        q=tK(idx)/1; q=1/1.15
-        tK=tK/q; tU=tU*q;
-        i=1; forSave=[tK, tU];
+        legend('FBP', 'NPG\_TV');
+        save('profile_cpm.data','forSave','-ascii');
 
-        i=i+2; forSave(1:length(out1.kappa),i:i+1)=[out1.kappa,out1.Ie];
-        figure; semilogx(tK,tU,'r'); hold on; loglog(out1.kappa,out1.Ie,'g-*');
+        clear('opt');
+        a1=npgTV_b1{prjIdx,aIdx};
+        [y,Phi,Phit,Psi,Psit,~,FBP]=loadCastPoreMotor(a1.opt);
 
-        i=i+2; forSave(1:length(out2.kappa),i:i+1)=[out2.kappa,out2.Ie];
-        loglog(out2.kappa,out2.Ie,'b-<');
+        q=a1.kappa(2)/a1.kappa(1);
+        polymodel=Spline(a1.opt.spectBasis,[a1.kappa(1)/q; a1.kappa(:); a1.kappa(end)*q]);
+        polyIout = polymodel.polyIout;
 
-        i=i+2; forSave(1:length(out3.kappa),i:i+1)=[out3.kappa,out3.Ie];
-        loglog(out3.kappa,out3.Ie,'c-s');
-        save('effectiveCenterB.data','forSave','-ascii');
-        
+        PhiAlpha=Phi(a1.alpha);
+        PhiFbp=Phi(fbp{prjIdx}.alpha);
+
+        s=linspace(min(PhiAlpha),max(PhiAlpha),100);
+        idx=randi(length(PhiAlpha),1000,1);
+
+        figure;
+        plot(PhiAlpha(idx),y(idx),'.'); hold on;
+        plot(PhiFbp(idx),y(idx),'g.');
+        plot(s,-log(polyIout(s,a1.Ie)),'r-');
+        legend('NPG-BFGS reconstruction', 'FBP reconstruction', 'fitted curve by NPG-BFGS');
+        xlabel('\Phi\alpha');
+        ylabel('I^{out}=-ln[ \int \iota(\kappa) exp( -\kappa\Phi\alpha ) d\kappa  ]');
+
+        forSave=[PhiAlpha(idx),y(idx)];
+        save('test1.data','forSave','-ascii');
+        forSave=[PhiFbp(idx),y(idx)];
+        save('test2.data','forSave','-ascii');
+        forSave=[s(:), -log(polyIout(s,a1.Ie))];
+        save('test3.data','forSave','-ascii');
+
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !for i in `seq 1 3`; do echo "" >> test$i.data; done
+        !cat test[1-3].data > linearization_castPoreMotor.data
+        !rm test[1-3].data
+
+        idx= find((PhiAlpha>3.8) & (PhiAlpha<4.2));
+        figure; hist(exp(-y(idx)),100);
+
+        keyboard
+
         paperDir = './';
         %system(['mv effectiveCenterB.data ' paperDir]);
 end
