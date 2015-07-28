@@ -1,6 +1,6 @@
 
 clear;
-opt.E=25; opt.spectBasis='b1'; opt.logspan=3;
+opt.E=50; opt.spectBasis='b1'; opt.logspan=3;
 [y,args] = genBeamHarden({'Fe'},[],[],'showImg',false);
 iota = args.iota(:);
 epsilon = args.epsilon(:);
