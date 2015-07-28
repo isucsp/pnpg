@@ -15,8 +15,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt)
         error(sprintf('prjFull=%d, doesn''t divide M=%d\n',opt.prjFull,M));
     end
 
-    theta = (0:(opt.prjNum-1))*M/opt.prjFull +1;
-    y=y(:,theta);
+    theta = (0:(opt.prjNum-1))*M/opt.prjFull;
+    y=y(:,theta+1);
 
     conf=ConfigCT();
 

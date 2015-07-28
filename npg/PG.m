@@ -11,56 +11,70 @@ classdef PG < Methods
         admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        newCost;
         nonInc=0;
         innerSearch=0;
         adaptiveStep=true;
+
         maxInnerItr=100;
+
+        proxmapping
     end
     methods
-        function obj = PG(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit)
+        function obj = PG(n,alpha,maxAlphaSteps,stepShrnk,pm)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.Psi = Psi; obj.Psit = Psit;
             obj.nonInc=0;
+            obj.proxmapping=pm;
+        end
+        function setAlpha(obj,alpha)
+            obj.alpha=alpha;
+            obj.cumu=0;
+            obj.theta=0;
+            obj.preAlpha=alpha;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside IST for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false;
+            obj.warned = false;
             pp=0; obj.debug='';
             while(pp<obj.maxItr)
+                obj.p = obj.p+1;
                 pp=pp+1;
                 xbar=obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(xbar);
 
                 % start of line Search
-                obj.ppp=0; goodStep=true; temp=0; goodMM=true;
+                obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 while(true)
-                    if(goodStep && temp<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
                         % adaptively increase the step size
-                        temp=temp+1;
                         obj.t=obj.t*obj.stepShrnk;
                         obj.cumu=0;
+                        incStep=true;
                     end
                     obj.ppp = obj.ppp+1;
-                    [newX,obj.innerSearch] = NPG.ADMM(obj.Psi,obj.Psit,...
-                        xbar-obj.grad/obj.t,obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
-                    obj.newCost=obj.func(newX);
+
+                    [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+
+                    newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if(obj.newCost<=LMM)
-                        if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
+                    if(newCost<=LMM)
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
                             break;
                         end
                     else
-                        if(obj.ppp<=20)
+                        if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
-                            if(temp==1) obj.cumuTol=obj.cumuTol+4; end
+                            if(incStep)
+                                obj.cumuTol=obj.cumuTol+4;
+                                incStep=false;
+                            end
                         else
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
@@ -69,9 +83,10 @@ classdef PG < Methods
                     end
                 end
                 obj.stepSize = 1/obj.t;
-                obj.fVal(3) = pNorm(obj.Psit(newX),1);
-                temp = obj.newCost+obj.u*obj.fVal(3);
-                if(temp>obj.cost)
+                obj.fVal(3) = obj.fArray{3}(newX);
+                temp = newCost+obj.u*obj.fVal(3);
+                
+                if((temp-obj.cost)>0)
                     if(goodMM)
                         if(obj.innerSearch<obj.maxInnerItr)
                             obj.difAlpha=0;
@@ -79,8 +94,8 @@ classdef PG < Methods
                             pp=pp-1; continue;
                         else
                             obj.debug=[obj.debug 'forceConverge'];
-                            newX=obj.alpha;
-                            temp=obj.cost;
+                            obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
+                            newX=obj.alpha; temp=obj.cost;
                         end
                     else
                         obj.debug=[obj.debug 'falseMonotone'];
@@ -99,6 +114,10 @@ classdef PG < Methods
                 if(obj.difAlpha<=obj.thresh) break; end
             end
             out = obj.alpha;
+        end
+        function reset(obj)
+            recoverT=obj.stepSizeInit('hessian');
+            obj.t=min([obj.t;max(recoverT)]);
         end
     end
 end

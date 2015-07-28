@@ -8,7 +8,7 @@ classdef NPG < Methods
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-3;   % abs value should be 1e-8
+        admmTol=1e-3;
         cumu=0;
         cumuTol=4;
         nonInc=0;
@@ -17,7 +17,6 @@ classdef NPG < Methods
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
 
-        forcePositive=false;
         maxInnerItr=100;
 
         proxmapping
@@ -29,7 +28,6 @@ classdef NPG < Methods
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.nonInc=0;
-            obj.alpha=alpha;
             obj.preAlpha=alpha;
             obj.proxmapping=pm;
         end
@@ -73,7 +71,7 @@ classdef NPG < Methods
 
                     newCost=obj.func(newX);
                     LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-newCost)>=0)
+                    if(newCost<=LMM)
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
