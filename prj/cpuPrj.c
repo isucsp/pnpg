@@ -14,11 +14,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
+#include "./common/thread.h"
 #include "./common/kiss_fft.h"
 
 #ifdef __cplusplus
@@ -677,21 +677,16 @@ int cpuPrj(ft* img, ft* sino, char cmd){
     start = clock();
 #endif
 
-    int res;
-    pthread_t *a_thread;
+    CUTThread *a_thread;
     void *thread_result;
 
-    a_thread=(pthread_t*)calloc(nthread,sizeof(pthread_t));
+    a_thread=(CUTThread*)calloc(nthread,sizeof(CUTThread));
     if(cmd & FWD_BIT){
 #if DEBUG
         printf("Forward projecting ...\n");
 #endif
         for(size_t i=0; i<nthread; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
-            }
+            pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
         }
         /*printf("Waiting for thread to finish...\n");*/
 

@@ -40,6 +40,10 @@ void wait_for_threads( const CUTThread *threads, int num );
         return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
     }
 
+    void start_thread(CUTThread* thread, CUT_THREADROUTINE func, void *data){
+        &thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
+    }
+
     //Wait for thread to finish
     void end_thread(CUTThread thread){
         WaitForSingleObject(thread, INFINITE);
@@ -65,7 +69,19 @@ void wait_for_threads( const CUTThread *threads, int num );
     CUTThread start_thread(CUT_THREADROUTINE func, void * data){
         pthread_t thread;
         pthread_create(&thread, NULL, func, data);
+        if (res != 0) {
+            perror("Thread creation failed");
+            exit(EXIT_FAILURE);
+        }
         return thread;
+    }
+
+    void start_thread(CUTThread* thread, CUT_THREADROUTINE func, void * data){
+        pthread_create(thread, NULL, func, data);
+        if (res != 0) {
+            perror("Thread creation failed");
+            exit(EXIT_FAILURE);
+        }
     }
 
     //Wait for thread to finish
