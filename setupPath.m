@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Tue, Aug 25, 2015  4:12:28 PM
+% $Revision: 0.3 $ $Date: Wed 26 Aug 2015 12:30:23 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -42,7 +42,13 @@ if(isunix)
         !make mGPUPrj 
     end
 elseif(ispc)
-
+    mex solveTridiag.c
+    mex mParPrj.c parPrj.c
+    mex cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    if(gpuDeviceCount>0)
+        mex gpuPrj.o common/kiss_fft.c mPrj.c \
+	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+    end
 end
 cd(pathstr)
 
@@ -50,9 +56,11 @@ cd 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab'
 if(isunix)
     !make
 elseif(ispc)
-
+    mex -largeArrayDims -lm -O -g -UDEBUG -I../src \
+    lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c \
+    ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
 end
 cd(pathstr)
 
-clear a pathstr hasgpu
+clear a pathstr
 
