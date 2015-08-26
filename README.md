@@ -1,6 +1,6 @@
 ## Image Reconstruction Source Code
 
-### What does this package contains
+### What does this package contain
 
 1. Accelerated Proximal-Gradient Algorithms (NPG and NPGs)
 
