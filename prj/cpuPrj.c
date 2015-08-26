@@ -190,7 +190,8 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     // for each point (x,y) on the ray is
     // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
     // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
-    ft qe, oc, qa;
+    ft qe, oc;
+    //ft qa;
     ft bq;
     ft cosB, sinB; //, tanB=t/d;
     ft cosR, sinR;
@@ -678,16 +679,15 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #endif
 
     CUTThread *a_thread;
-    void *thread_result;
 
     a_thread=(CUTThread*)calloc(nthread,sizeof(CUTThread));
     if(cmd & FWD_BIT){
 #if DEBUG
         printf("Forward projecting ...\n");
 #endif
-        for(size_t i=0; i<nthread; i++){
-            pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
-        }
+        for(size_t i=0; i<nthread; i++)
+            a_thread[i]=start_thread(parPrjFor, (void *)i);
+
         /*printf("Waiting for thread to finish...\n");*/
 
         if(pConf->prjWidth%2==0)
@@ -697,14 +697,9 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 #if DEBUG
         printf("Backward projecting ...\n");
 #endif
-        for(size_t i=0; i<nthread; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
+        for(size_t i=0; i<nthread; i++)
+            a_thread[i]=start_thread(parPrjBack, (void *)i);
 
-            }
-        }
         if(pConf->n%2==0){
             for(int i=0,idx=0; i<pConf->n; i++,idx+=pConf->n){
                 pImg[i]=0; pImg[idx]=0;
@@ -767,13 +762,9 @@ int cpuPrj(ft* img, ft* sino, char cmd){
         fclose(f);
 #endif
         
-        for(size_t i=0; i<nthread; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
-            }
-        }
+        for(size_t i=0; i<nthread; i++)
+            a_thread[i]=start_thread(parPrjBack, (void *)i);
+
         if(pConf->n%2==0){
             for(int i=0,idx=0; i<pConf->n; i++,idx+=pConf->n){
                 pImg[i]=0; pImg[idx]=0;
@@ -782,16 +773,8 @@ int cpuPrj(ft* img, ft* sino, char cmd){
 
     }
     /*printf("Waiting for thread to finish...\n");*/
-    for(size_t i=0; i<nthread; i++){
-        res = pthread_join(a_thread[i], &thread_result);
-        if (res != 0) {
-            perror("Thread join failed.");
-            exit(EXIT_FAILURE);
-        }
-#if DEBUG
-        printf("Thread joined, it returned %s\n", (char *)thread_result);
-#endif
-    }
+    wait_for_threads(a_thread,nthread);
+
     pConf->cmd = 0;
     if(pSino!=sino) free(pSino);
     free(a_thread);
@@ -865,8 +848,10 @@ int backwardTest( void ) {
     fclose(f);
 #endif
 
+#if SHOWIMG
     ft tempI;
     tempI=rand()%config.np;
+#endif
     for(int i=0; i < config.np; i++){
         for(int j=0; j < config.prjWidth; j++){
 #if SHOWIMG

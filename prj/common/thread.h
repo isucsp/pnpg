@@ -37,11 +37,14 @@ void wait_for_threads( const CUTThread *threads, int num );
 #if _WIN32
     //Create thread
     CUTThread start_thread(CUT_THREADROUTINE func, void *data){
-        return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
-    }
-
-    void start_thread(CUTThread* thread, CUT_THREADROUTINE func, void *data){
-        &thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
+        DWORD  dwThreadId;
+        HANDLE thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, &dwThreadId);
+        printf("thread=%ld,  id= %ld\n", thread, dwThreadId);
+        if(thread==NULL){
+            ErrorHandler(TEXT("CreateThread"));
+            ExitProcess(3);
+        }
+        return thread;
     }
 
     //Wait for thread to finish
@@ -68,7 +71,7 @@ void wait_for_threads( const CUTThread *threads, int num );
     //Create thread
     CUTThread start_thread(CUT_THREADROUTINE func, void * data){
         pthread_t thread;
-        pthread_create(&thread, NULL, func, data);
+        int res=pthread_create(&thread, NULL, func, data);
         if (res != 0) {
             perror("Thread creation failed");
             exit(EXIT_FAILURE);
@@ -76,17 +79,21 @@ void wait_for_threads( const CUTThread *threads, int num );
         return thread;
     }
 
-    void start_thread(CUTThread* thread, CUT_THREADROUTINE func, void * data){
-        pthread_create(thread, NULL, func, data);
-        if (res != 0) {
-            perror("Thread creation failed");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     //Wait for thread to finish
     void end_thread(CUTThread thread){
-        pthread_join(thread, NULL);
+#if DEBUG
+        void *thread_result;
+        int res=pthread_join(thread, &thread_result);
+#else
+        int res=pthread_join(thread, NULL);
+#endif
+        if (res != 0) {
+            perror("Thread join failed.");
+            exit(EXIT_FAILURE);
+        }
+#if DEBUG
+        printf("Thread joined, it returned %s\n", (char *)thread_result);
+#endif
     }
 
     //Destroy thread
