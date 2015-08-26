@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sun 31 May 2015 08:59:41 AM CDT
+% $Revision: 0.3 $ $Date: Wed 26 Aug 2015 12:30:23 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -9,31 +9,31 @@
 [a,~]=dbstack('-completenames');
 a=a(1);
 [pathstr,~,~]=fileparts(a.file);
-addpath([pathstr '/beamharden/subfunctions']);
-addpath([pathstr '/beamharden']);
-addpath([pathstr '/tomography']);
-addpath([pathstr '/rwt']);
-addpath([pathstr '/npg']);
-addpath([pathstr '/bhc']);
-addpath([pathstr '/prj']);
-addpath([pathstr '/utils']);
-addpath([pathstr '/utils/L-BFGS-B-C/Matlab']);
-addpath([pathstr '/irt/nufft']);
-addpath([pathstr '/irt/systems']);
-addpath([pathstr '/irt']);
-addpath([pathstr '/irt/emission']);
-addpath([pathstr '/irt/transmission']);
-addpath([pathstr '/irt/fbp']);
-addpath([pathstr '/irt/data']);
-addpath([pathstr '/irt/utilities']);
-addpath([pathstr '/others/']);
-addpath([pathstr '/others/FPC_AS']);
-addpath([pathstr '/others/FPC_AS/src']);
-addpath([pathstr '/others/FPC_AS/prob_gen']);
-addpath([pathstr '/others/FPC_AS/prob_gen/classes']);
-addpath([pathstr '/others/glmnet_matlab/']);
-addpath([pathstr '/others/fpc/solvers']);
-addpath([pathstr '/others/fpc/solvers/utilities']);
+addpath([pathstr filesep 'beamharden' filesep 'subfunctions']);
+addpath([pathstr filesep 'beamharden']);
+addpath([pathstr filesep 'tomography']);
+addpath([pathstr filesep 'rwt']);
+addpath([pathstr filesep 'npg']);
+addpath([pathstr filesep 'bhc']);
+addpath([pathstr filesep 'prj']);
+addpath([pathstr filesep 'utils']);
+addpath([pathstr filesep 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab']);
+addpath([pathstr filesep 'irt' filesep 'nufft']);
+addpath([pathstr filesep 'irt' filesep 'systems']);
+addpath([pathstr filesep 'irt']);
+addpath([pathstr filesep 'irt' filesep 'emission']);
+addpath([pathstr filesep 'irt' filesep 'transmission']);
+addpath([pathstr filesep 'irt' filesep 'fbp']);
+addpath([pathstr filesep 'irt' filesep 'data']);
+addpath([pathstr filesep 'irt' filesep 'utilities']);
+addpath([pathstr filesep 'others']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'src']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen' filesep 'classes']);
+addpath([pathstr filesep 'others' filesep 'glmnet_matlab']);
+addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers']);
+addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utilities']);
 
 cd 'prj'
 if(isunix)
@@ -41,12 +41,26 @@ if(isunix)
     if(gpuDeviceCount>0)
         !make mGPUPrj 
     end
+elseif(ispc)
+    mex solveTridiag.c
+    mex mParPrj.c parPrj.c
+    mex cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    if(gpuDeviceCount>0)
+        mex gpuPrj.o common/kiss_fft.c mPrj.c \
+	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+    end
 end
 cd(pathstr)
 
-cd 'utils/L-BFGS-B-C/Matlab/'
-!make
+cd 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab'
+if(isunix)
+    !make
+elseif(ispc)
+    mex -largeArrayDims -lm -O -g -UDEBUG -I../src \
+    lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c \
+    ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
+end
 cd(pathstr)
 
-clear a pathstr hasgpu
+clear a pathstr
 
