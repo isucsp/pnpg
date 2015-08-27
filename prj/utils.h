@@ -6,6 +6,12 @@
 #include <float.h>
 #include "prj.h"
 
+#if _WIN32
+ft fabs(ft x){
+    return fabsf(x);
+}
+#endif
+
 #if __NVCC__
 __device__
 #endif

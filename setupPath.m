@@ -44,9 +44,9 @@ if(isunix)
 elseif(ispc)
     mex solveTridiag.c
     mex mParPrj.c parPrj.c
-    mex cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    mex -v CFLAGS="-std=c99" cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     if(gpuDeviceCount>0)
-        mex gpuPrj.o common/kiss_fft.c mPrj.c \
+        mex gpuPrj.o common/kiss_fft.c mPrj.c ...
 	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
     end
 end
@@ -56,8 +56,8 @@ cd 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab'
 if(isunix)
     !make
 elseif(ispc)
-    mex -largeArrayDims -lm -O -g -UDEBUG -I../src \
-    lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c \
+    mex -largeArrayDims -lm -O -g -UDEBUG -I../src ...
+    lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
     ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
 end
 cd(pathstr)
