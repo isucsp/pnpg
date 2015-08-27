@@ -29,7 +29,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadSimCutPlate(opt)
         densityMap{1}=opt.trueImg;
 
         [y,args] = genBeamHarden(symbol,densityMap,ops,...
-            'showImg',false);
+            'showImg',false,'scale',2^(-9));
         opt.iota = args.iota(:);
         opt.epsilon = args.epsilon(:);
         opt.kappa = args.kappa(:);
@@ -45,7 +45,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadSimCutPlate(opt)
 
         %%%  make the data to be saturated.
         if(isfield(opt,'saturated') && opt.saturated)
-            Imea=min(Imea,max(Imea(:))*0.8);
+            Imea=min(Imea,max(Imea(:))*0.7);
         end
 
         y=-log(Imea/max(Imea));

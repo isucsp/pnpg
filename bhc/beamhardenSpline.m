@@ -165,6 +165,7 @@ else
         Ie=Ie/polyIout(0,Ie);
     end
 end
+IeStep.Ie=Ie;
 
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
@@ -385,6 +386,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
         out.difCost(p)=abs(out.cost(p)-preCost)/out.cost(p);
+        difL = abs(out.cost(p)-preCost)/max(1,out.fVal(p,1));
         alpha = alphaStep.alpha;
 
         str=sprintf([str ' %12g'],out.cost(p));
@@ -427,7 +429,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         A = polyIout(Phi(alpha),[]);
         IeStep.func = @(Ie) IeStepFunc(A,Ie);
-        IeStep.thresh=opt.etaDifCost*out.difCost(p);
+        IeStep.thresh=opt.etaDifCost*difL;
         preCost=IeStep.cost;
         [~,IeStepCnt]=IeStep.main();
 

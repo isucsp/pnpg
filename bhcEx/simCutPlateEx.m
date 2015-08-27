@@ -30,6 +30,7 @@ switch lower(op)
         for i=length(prjFull)
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
+            opt.saturated=true;
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadSimCutPlate(opt);
             opt.maxItr=4e3; opt.thresh=1e-6;
 
@@ -41,8 +42,10 @@ switch lower(op)
             fbp{i}.alpha=maskFunc(fbp{i}.img,opt.mask~=0);
             Opt=opt;
 
+            figure; showImg(fbp{i}.img,0);
+
             % unknown ι(κ), NPG-AS
-            for j=[5 4 3 ]
+            for j=[3]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 % npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -5];

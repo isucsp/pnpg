@@ -23,7 +23,7 @@ all: mParPrj solveTriDiag mCPUPrj cpuPrj mGPUPrj
 
 mGPUPrj: mPrj.c gpuPrj.o common/kiss_fft.c
 	$(MEX) CFLAGS="$(CFLAGS)" gpuPrj.o common/kiss_fft.c mPrj.c \
-	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcudart -lglut -lGL
 
 mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c prj.h
 	$(MEX) CFLAGS="$(CFLAGS)" cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1 # -lglut -lGL

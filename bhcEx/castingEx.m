@@ -28,7 +28,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
-        for i=4
+        for i=6:-1:4
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt);
@@ -44,31 +44,42 @@ switch lower(op)
             Oopt=opt;
 
             % unknown ι(κ), NPG-AS
-            for j=[4]
+            for j=[5:-1:1]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
 
-                opt=Oopt; opt.u=u(i)*10^0.25; opt.proximal='tvl1';
-                npgTV_b1_25=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt=Oopt; opt.u=u(i)*10^(0.75); opt.proximal='wvltADMM';
-                npgWV_b1_75=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                save(filename);
-                continue;
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                if(j<5)
+                    opt.Ie=npgTV_b1_continuation{i,j+1}.Ie;
+                    npgTV_b1_continuation{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,npgTV_b1_continuation{i,j+1}.alpha,opt);
+                else
+                    npgTV_b1_continuation{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                end
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-                npgWV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                 
                 save(filename);
                 continue;
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
                 npgTV_b1_anim=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3+0.25); opt.proximal='tvl1';
+                npgTV_b1_25{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3+0.5); opt.proximal='tvl1';
+                npgTV_b1_50{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3+0.75); opt.proximal='tvl1';
+                npgTV_b1_75{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                npgWV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3+0.75); opt.proximal='wvltADMM';
+                npgWV_b1_75{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                 pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -86,28 +97,38 @@ switch lower(op)
         load([mfilename '.mat']);
         prjFull = [60, 40, 72, 120, 180, 360];
 
-        prjIdx=4; col=307; h=figure; forSave=[];
+        prjIdx=4; aIdx=4; row1=337; row2=531;
+        h1=figure; forSave=[]; h2=figure;
         img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting_120.eps','psc2'); imwrite(img/maxImg,  'fbp_casting_120.png');
-        figure(h); plot(3*img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
+        figure(h1); plot(img(row1,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row2,:),[],1)];
 
-        img=showImgMask(npgTV_b1_25.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting_120.eps','psc2'); imwrite(img/maxImg,'npgTV_casting_120.png');
-        fprintf('u for NPGTV is %e\n',npgTV_b1_25.opt.u);
-        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
+        img=showImgMask(npgTV_b1_25{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting_120.eps','psc2'); imwrite(img/maxImg,'npgTV_casting_120.png');
+        fprintf('u for NPGTV is %e\n',npgTV_b1_25{prjIdx,aIdx}.opt.u);
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
         legend('FBP', 'NPG\_TV');
         save('profile_casting_120.data','forSave','-ascii');
 
 
-        prjIdx=6; col=307; h=figure; forSave=[];
+        prjIdx=6; h1=figure; forSave=[]; h2=figure;
         img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting.eps','psc2'); imwrite(img/maxImg,  'fbp_casting.png');
-        figure(h); plot(3*img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
+        figure(h1); plot(img(row1,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row2,:),[],1)];
 
         aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
         img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
         fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx));
-        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=max(img(:));
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
 
         legend('FBP', 'NPG\_TV');
         save('profile_casting.data','forSave','-ascii');
+
+        keyboard
         
         clear('opt');
         a1=npgTV_b1{prjIdx,aIdx};
