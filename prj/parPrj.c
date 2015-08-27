@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
-#include <pthread.h>
+#include "common/thread.h"
 #include "parPrj.h"
 
 const double pi=3.14159265;
@@ -44,7 +44,7 @@ int parPrjConf(double *t_img, double *t_prj, double *t_maskIdx, parConf *t_opt,\
 int parPrjThread(){
     int ncpu=32;
     int res;
-    pthread_t *a_thread;
+    CUTThread *a_thread;
     void *thread_result;
     size_t i=0; 
 
@@ -52,34 +52,18 @@ int parPrjThread(){
     if(opt->fwd){
         angleSz=(opt->np+ncpu-1)/(ncpu);
         /*printf("angleSz=%d given ncpu=%d\n",angleSz,ncpu);*/
-        for(i=0; i<ncpu; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjFor, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
-            }
-        }
+        for(i=0; i<ncpu; i++)
+            a_thread[i]=start_thread(parPrjFor, (void *)i);
         /*printf("Waiting for thread to finish...\n");*/
     }else{
         blockSz=(totPixels+ncpu-1)/(ncpu);
         /*printf("blockSz=%d given ncpu=%d\n",blockSz,ncpu);*/
         for(i=0; i<ncpu; i++){
-            res = pthread_create(&a_thread[i], NULL, parPrjBack, (void *)i);
-            if (res != 0) {
-                perror("Thread creation failed");
-                exit(EXIT_FAILURE);
-            }
+            a_thread[i]=start_thread(parPrjBack, (void *)i);
         }
     }
     /*printf("Waiting for thread to finish...\n");*/
-    for(i=0; i<ncpu; i++){
-        res = pthread_join(a_thread[i], &thread_result);
-        if (res != 0) {
-            perror("Thread join failed");
-            exit(EXIT_FAILURE);
-        }
-        /*printf("Thread joined, it returned %s\n", (char *)thread_result);*/
-    }
+    wait_for_threads(a_thread,ncpu);
     free(a_thread);
     if(opt->fwd)
         for(i=0; i<opt->np*opt->prjWidth; i++)
@@ -96,22 +80,22 @@ int parPrjRun(){
     return 0;
 }
 
-void *parPrjFor(void *arg){
+CUT_THREADPROC parPrjFor(void *arg){
     int i=0; 
     int istart=((size_t)arg)*angleSz;
     int iend=istart+angleSz;
     if(iend>opt->np) iend=opt->np;
     for(i=istart; i<iend; i++) parPrj(0,totPixels,i);
-    return 0;
+    CUT_THREADEND;
 }
 
-void *parPrjBack(void *arg){
+CUT_THREADPROC parPrjBack(void *arg){
     int i=0; 
     int istart=((size_t)arg)*blockSz;
     int iend=istart+blockSz;
     if(iend>totPixels) iend=totPixels;
     for(i=0; i<opt->np; i++) parPrj(istart,iend,i);
-    return 0;
+    CUT_THREADEND;
 }
 
 void *parPrj(int istart, int iend, int itheta){
