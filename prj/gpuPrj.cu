@@ -1120,7 +1120,7 @@ void FBP(char* filename, int idx){
     int len = 100,N,np;
     float widthDetector,angle,maxVal,dist;
     ft *sino,*img;
-    char str[len];
+    char* str=(char*)malloc(len*sizeof(char));
     if(f!=NULL){
         fseek(f,-400,SEEK_END);
         while(!strstr(fgets(str,len,f),"FAN_BEAM_PARAMETERS"));
