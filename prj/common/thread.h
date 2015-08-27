@@ -9,7 +9,8 @@
 
 
     typedef HANDLE CUTThread;
-    typedef unsigned (WINAPI *CUT_THREADROUTINE)(void *);
+    typedef DWORD handleRet;
+    typedef handleRet (WINAPI *CUT_THREADROUTINE)(void *);
 
     #define CUT_THREADPROC unsigned WINAPI
     #define CUT_THREADEND return 0
@@ -21,7 +22,8 @@
     #include <stdio.h>
 
     typedef pthread_t CUTThread;
-    typedef void *(*CUT_THREADROUTINE)(void *);
+    typedef void* handleRet;
+    typedef handleRet (*CUT_THREADROUTINE)(void *);
 
     #define CUT_THREADPROC void
     #define CUT_THREADEND

@@ -6,12 +6,6 @@
 #include <float.h>
 #include "prj.h"
 
-#if _WIN32
-ft fabs(ft x){
-    return fabsf(x);
-}
-#endif
-
 #if __NVCC__
 __device__
 #endif
@@ -27,9 +21,10 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
 
     ft height=1/cosR;
     ft bias2=(cosR+sinR)/2;    //bias2 should be larger.
-    ft bias1=fabs(cosR-sinR)/2;
+    ft bias1=(cosR-sinR)/2;
+	bias1 = bias1 < 0 ? -bias1 : bias1;
 
-    ft areaT=0.5*height*(bias2-bias1);
+    ft areaT=0.5f*height*(bias2-bias1);
     ft areaR=height*bias1*2;
     ft area=height*(bias1+bias2);
     ft weight=0;
@@ -46,14 +41,14 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
         if (hbeamW<=lfoot) weight=0;
         else if(hbeamW<=lshoulder){
             temp = (hbeamW-(lfoot));
-            weight = 0.5*temp*temp*height/(bias2-bias1);
+            weight = 0.5f*temp*temp*height/(bias2-bias1);
         }else if(hbeamW<=rshoulder){
             weight=areaT+height*(hbeamW-lshoulder);
             //printf("areaT=%f, height=%f, weight=%f\n",areaT, height, weight);
         }else if(hbeamW<=rfoot){
             temp = rfoot-hbeamW;
             weight=areaT+areaR+areaT
-                   -0.5*temp*temp*height/(bias2-bias1);
+                   -0.5f*temp*temp*height/(bias2-bias1);
         }else weight=area;
     }else if(-hbeamW<=lshoulder){
         if(hbeamW<=lshoulder)
@@ -61,17 +56,17 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
         else if(hbeamW<=rshoulder){
             temp = -hbeamW-lfoot;
             weight=areaT +height*(hbeamW-(lshoulder))
-                - 0.5*temp*height*temp/(bias2-bias1);
+                - 0.5f*temp*height*temp/(bias2-bias1);
         }else if(hbeamW<=rfoot){
             temp = -hbeamW-lfoot;
             weight=areaT + areaR
-                - 0.5*temp*height*temp/(bias2-bias1);
+                - 0.5f*temp*height*temp/(bias2-bias1);
             temp = rfoot - hbeamW;
             weight = weight + areaT
-                - 0.5*temp*height*temp/(bias2-bias1);
+                - 0.5f*temp*height*temp/(bias2-bias1);
         }else{
             temp = -hbeamW-lfoot;
-            weight=areaT - 0.5*temp*height*temp/(bias2-bias1)
+            weight=areaT - 0.5f*temp*height*temp/(bias2-bias1)
                 +areaR+areaT;
         }
     }else if(-hbeamW<=rshoulder){
@@ -80,7 +75,7 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
         else if(hbeamW<=rfoot){
             temp=rfoot-hbeamW;
             weight=height*(rshoulder+hbeamW)+ areaT
-                - 0.5*temp*height*temp/(bias2-bias1);
+                - 0.5f*temp*height*temp/(bias2-bias1);
         }else
             weight=height*(rshoulder+hbeamW)+areaT;
     }else{
@@ -89,7 +84,7 @@ ft getWeight(ft dist, ft beamWidth, ft cosR, ft sinR){
                 weight=(height)*(rfoot)*beamWidth/(bias2-bias1);
             else{
                 temp=rfoot+hbeamW;
-                weight=0.5*height*temp*temp/(bias2-bias1);
+                weight=0.5f*height*temp*temp/(bias2-bias1);
             }
         }
     }
@@ -100,9 +95,9 @@ void rampFilter(ft *signal, int size, ft Ts){
     int N = 2*size;
     kiss_fft_cfg cfgFFT = kiss_fft_alloc(N,0,0,0);
     kiss_fft_cfg cfgIFFT = kiss_fft_alloc(N,1,0,0);
-    kiss_fft_cpx ramp[N];
-    kiss_fft_cpx hann[N];
-    kiss_fft_cpx proj[N];
+    kiss_fft_cpx *ramp=(kiss_fft_cpx*)malloc(N*sizeof(kiss_fft_cpx));
+    kiss_fft_cpx *hann=(kiss_fft_cpx*)malloc(N*sizeof(kiss_fft_cpx));
+    kiss_fft_cpx *proj=(kiss_fft_cpx*)malloc(N*sizeof(kiss_fft_cpx));
     int i;
     for(i=0; i<N; i++){
         //hamming=0.54+0.46*cos(2*pi*n'/N);
@@ -115,7 +110,7 @@ void rampFilter(ft *signal, int size, ft Ts){
             ramp[i].r = (ft)(N-i)/N;
             proj[i].r = 0;
         }
-        hann[i].r = 0.5+0.5*cos(2*PI*i/N);
+        hann[i].r = 0.5f+0.5f*cos(2*PI*i/N);
         ramp[i].i = 0;
         proj[i].i = 0;
         hann[i].i = 0;
@@ -126,9 +121,9 @@ void rampFilter(ft *signal, int size, ft Ts){
             ramp[i].r=0;
         else{
             if(i<N/2)
-                ramp[i].r = -1.0/PI/PI/i/i;
+                ramp[i].r = -1.0f/PI/PI/i/i;
             else
-                ramp[i].r = -1.0/PI/PI/(N-i)/(N-i);
+                ramp[i].r = -1.0f/PI/PI/(N-i)/(N-i);
         }
         //if(i>=N/4 && i<N*3/4) ramp[i].r=0;
     }
