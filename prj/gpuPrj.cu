@@ -15,7 +15,6 @@
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
-#include <pthread.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stddef.h>
