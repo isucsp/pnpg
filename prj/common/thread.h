@@ -12,17 +12,19 @@
     typedef unsigned (WINAPI *CUT_THREADROUTINE)(void *);
 
     #define CUT_THREADPROC unsigned WINAPI
-    #define  CUT_THREADEND return 0
+    #define CUT_THREADEND return 0
 
 #else
     //POSIX threads.
     #include <pthread.h>
+    #include <stdlib.h>
+    #include <stdio.h>
 
     typedef pthread_t CUTThread;
     typedef void *(*CUT_THREADROUTINE)(void *);
 
     #define CUT_THREADPROC void
-    #define  CUT_THREADEND
+    #define CUT_THREADEND
 #endif
 
 //Create thread.
