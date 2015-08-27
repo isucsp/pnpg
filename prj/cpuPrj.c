@@ -652,18 +652,18 @@ void showSetup(){
     printf("config.d=%g\n",config.d);
 }
 
-handleRet WINAPI parPrjFor(void *arg){
+CUT_THREADPROC parPrjFor(void *arg){
     for(int i=(size_t)arg; i<fSize; i+=nthread){
         rayDrive(pImg,pSino,i);
     }
-    return 0;
+    CUT_THREADEND;
 }
 
-handleRet WINAPI parPrjBack(void *arg){
+CUT_THREADPROC parPrjBack(void *arg){
     for(int i=(size_t)arg; i<bSize; i+=nthread){
         pixelDrive(pImg,pSino,i);
     }
-    return 0;
+    CUT_THREADEND;
 }
 
 int cpuPrj(ft* img, ft* sino, char cmd){
