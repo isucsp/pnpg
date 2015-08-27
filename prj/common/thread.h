@@ -75,9 +75,7 @@ void wait_for_threads( const CUTThread *threads, int num );
 
     //Create thread
     CUTThread start_thread(CUT_THREADROUTINE func, void *data){
-        DWORD  dwThreadId;
-        HANDLE thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, &dwThreadId);
-        printf("thread=%ld,  id= %ld\n", thread, dwThreadId);
+        HANDLE thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
         if(thread==NULL){
             ErrorHandler(TEXT("CreateThread"));
             ExitProcess(3);
