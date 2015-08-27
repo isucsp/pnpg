@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Wed 26 Aug 2015 12:30:23 AM CDT
+% $Revision: 0.3 $ $Date: Thu 27 Aug 2015 01:49:19 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -52,7 +52,7 @@ elseif(ispc)
 end
 cd(pathstr)
 
-cd 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab'
+cd ['utils' filesep 'L-BFGS-B-C' filesep 'Matlab']
 if(isunix)
     !make
 elseif(ispc)

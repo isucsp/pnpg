@@ -22,7 +22,7 @@ switch lower(op)
         opt.estIe=true;
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
-        for i=[length(prjFull):-1:1]
+        for i=length(prjFull):-1:1
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
@@ -40,9 +40,21 @@ switch lower(op)
             Opt=opt;
 
             % unknown ι(κ), NPG-LBFGSB
-            for j=[5:-1:3]
+            for j=[5:-1:2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
+
+                opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt.E=100;
+                if(j==5)
+                    npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                else
+                    opt.Ie=npgTV_b1_E100_cont{i,j+1}.Ie;
+                    npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
+                        npgTV_b1_E100_cont{i,j+1}.alpha,opt);
+                end
+
+                continue;
 
                 opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 if(j==5)
@@ -52,8 +64,6 @@ switch lower(op)
                     npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
                         npgTV_b1_cont{i,j+1}.alpha,opt);
                 end
-
-                continue;
 
                 opt=Opt; opt.u=10^(j-3)*u(i);
                 opt.alphaStep='NPG'; opt.proximal='tviso';
@@ -139,6 +149,7 @@ switch lower(op)
         linFbpRMSE    = Cell.getField(       linFbp,'RMSE');
         fbpRMSE       = Cell.getField(          fbp,'RMSE');
         npgTVb1RMSE   = Cell.getField(     npgTV_b1,'RMSE');
+        npgTVb1contRMSE   = Cell.getField(     npgTV_b1_cont,'RMSE');
         linNpgRMSE    = Cell.getField(     linNpgTV,'RMSE');
         npgTValphaRMSE= Cell.getField(npgTValpha_b1,'RMSE');
         npgTValphaE100RMSE= Cell.getField(npgTValpha_b1_E100_cont,'RMSE');
@@ -152,9 +163,10 @@ switch lower(op)
         semilogy(prjFull,min(    linNpgRMSE,[],2)*100,'c-<');
         semilogy(prjFull,min(npgTValphaRMSE,[],2)*100,'k-s');
         semilogy(prjFull,min(npgTValphaE100RMSE,[],2)*100,'r->');
+        semilogy(prjFull,min(npgTVb1contRMSE,[],2)*100,'c-h');
         xlabel('# fan-beam projections from 0-359^\circ'); ylabel('RMSE/%');
         legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)',...
-            'NPG (known \iota 100)');
+            'NPG (known \iota 100)','NPG-BFGS-cont');
 
         keyboard
 
