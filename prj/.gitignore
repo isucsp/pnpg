@@ -4,3 +4,11 @@ gpuPrj
 *.mexa64
 *.data
 *.out
+*.exp
+*.exe
+*.obj
+*.lib
+*.mexw32
+*.mexa64
+*.mexw64
+*.mexmaci64

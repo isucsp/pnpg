@@ -86,8 +86,6 @@
     <ClInclude Include="common\kiss_fft.h" />
     <ClInclude Include="common\thread.h" />
     <ClInclude Include="common\_kiss_fft_guts.h" />
-    <ClInclude Include="gpuPrj.h" />
-    <ClInclude Include="parPrj.h" />
     <ClInclude Include="prj.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>

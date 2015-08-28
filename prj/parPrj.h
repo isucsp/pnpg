@@ -20,8 +20,6 @@ int parPrjConf(double *t_img, double *t_prj, double *t_maskIdx, parConf *t_opt,\
         size_t t_totPixels);
 int parPrjThread();
 int parPrjRun();
-void *parPrjFor(void *arg);
-void *parPrjBack(void *arg);
 void *parPrj(int istart, int iend, int itheta);
 
 #endif
