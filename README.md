@@ -25,7 +25,7 @@ To install this package, first download the repository by running
 
 after downloading, from MATLAB change your current folder to `imgRecSrc/`.
 Each time before running the methods from this package, first execute
-`setupPath.m` to add the paths to the environment.
+`setupPath.m` to compile and add the paths to the environment.
 
 For X-ray CT examples, the projection and back projection operator
 subroutines may be called from MATLAB. To prepare MATLAB recognizable `MEX`

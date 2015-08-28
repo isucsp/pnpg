@@ -58,8 +58,8 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
     }else{
-        ft img[pConf->imgSize];
-        ft sino[pConf->sinoSize];
+        ft* img=(ft*)malloc(pConf->imgSize*sizeof(ft));
+        ft* sino=(ft*)malloc(pConf->sinoSize*sizeof(ft));
         if(!strcmp(cmd,"forward")){      /* forward projection */
             plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
             imgt = mxGetPr(prhs[0]);

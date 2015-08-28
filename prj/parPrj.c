@@ -23,6 +23,9 @@
 #include "common/thread.h"
 #include "parPrj.h"
 
+CUT_THREADPROC parPrjFor(void *arg);
+CUT_THREADPROC parPrjBack(void *arg);
+
 const double pi=3.14159265;
 int nr=1024, nc=1024; /* The origin is top-left corner*/
 int xC, yC, pC, totPixels;
@@ -39,6 +42,7 @@ int parPrjConf(double *t_img, double *t_prj, double *t_maskIdx, parConf *t_opt,\
     nr=opt->nr; nc=opt->nc;
     hbeamW=beamWidth/2;
     xC=nc/2; yC=nr/2; pC=xC>yC? xC : yC;
+    return 0;
 }
 
 int parPrjThread(){
@@ -48,7 +52,7 @@ int parPrjThread(){
     void *thread_result;
     size_t i=0; 
 
-    a_thread=calloc(ncpu,sizeof(pthread_t));
+    a_thread=calloc(ncpu,sizeof(CUTThread));
     if(opt->fwd){
         angleSz=(opt->np+ncpu-1)/(ncpu);
         /*printf("angleSz=%d given ncpu=%d\n",angleSz,ncpu);*/
