@@ -21,13 +21,7 @@
 #include <string.h>
 #include "./common/kiss_fft.h"
 
-#ifdef __cplusplus
-extern "C"{
-#endif
 #include "prj.h"
-#ifdef __cplusplus
-}
-#endif
 #include "utils.h"
 
 #if EXE_PROF
@@ -790,9 +784,6 @@ __global__ void rayDriveFan(ft* img, ft* sino){
     }
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft 
         effectiveRate, ft d){
     config.n=n; config.prjWidth=prjWidth;
@@ -860,9 +851,6 @@ void showSetup(){
     printf("config.d=%g\n",config.d);
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void cleanUp(){
 #if EXE_TIME
     HANDLE_ERROR( cudaEventDestroy( start ) );
@@ -873,9 +861,6 @@ void cleanUp(){
     cudaDeviceReset();
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
 int gpuPrj(ft* img, ft* sino, char cmd){
 #if EXE_PROF
     cudaProfilerStart();
