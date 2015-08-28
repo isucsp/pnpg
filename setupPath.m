@@ -44,10 +44,9 @@ if(isunix)
 elseif(ispc)
     mex solveTridiag.c
     mex mParPrj.c parPrj.c
-    mex -v CFLAGS="-std=c99" cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    mex cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     if(gpuDeviceCount>0)
-        mex gpuPrj.o common/kiss_fft.c mPrj.c ...
-	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcuda -lcudart -lglut -lGL
+        mex COMPFLAGS="/TP" gpuPrj.obj mPrj.c  common/kiss_fft.c "-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64" -lcudart -DGPU=1
     end
 end
 cd(pathstr)
