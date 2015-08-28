@@ -53,8 +53,11 @@ switch lower(op)
                     npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
                         npgTV_b1_E100_cont{i,j+1}.alpha,opt);
                 end
-
                 continue;
+
+                opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt.E=100;
+                npgTV_b1_E100{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 if(j==5)
