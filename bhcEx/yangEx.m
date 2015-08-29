@@ -153,6 +153,8 @@ switch lower(op)
         fbpRMSE       = Cell.getField(          fbp,'RMSE');
         npgTVb1RMSE   = Cell.getField(     npgTV_b1,'RMSE');
         npgTVb1contRMSE   = Cell.getField(     npgTV_b1_cont,'RMSE');
+        npgTVb1E100RMSE   = Cell.getField(     npgTV_b1_E100,'RMSE');
+
         linNpgRMSE    = Cell.getField(     linNpgTV,'RMSE');
         npgTValphaRMSE= Cell.getField(npgTValpha_b1,'RMSE');
         npgTValphaE100RMSE= Cell.getField(npgTValpha_b1_E100_cont,'RMSE');
@@ -167,19 +169,22 @@ switch lower(op)
         semilogy(prjFull,min(npgTValphaRMSE,[],2)*100,'k-s');
         semilogy(prjFull,min(npgTValphaE100RMSE,[],2)*100,'r->');
         semilogy(prjFull,min(npgTVb1contRMSE,[],2)*100,'c-h');
+        semilogy(prjFull,min(npgTVb1E100RMSE,[],2)*100,'c-h');
         xlabel('# fan-beam projections from 0-359^\circ'); ylabel('RMSE/%');
         legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)',...
-            'NPG (known \iota 100)','NPG-BFGS-cont');
-
-        keyboard
+            'NPG (known \iota 100)','NPG-BFGS-cont','NPG-BFGS-100');
 
         forSave=[prjFull(:)';
         100*           linFbpRMSE(:)';
         100*              fbpRMSE(:)';
         100*min(   npgTVb1RMSE,[],2)';
         100*min(    linNpgRMSE,[],2)';
-        100*min(npgTValphaRMSE,[],2)']';
+        100*min(npgTValphaRMSE,[],2)';
+        100*min(npgTVb1contRMSE,[],2)';
+        100*min(npgTValphaE100RMSE,[],2)'; ]';
         save('rmse_prj_yang.data','forSave','-ascii');
+
+        keyboard
 
         prjIdx=3; col=250; h=figure; forSave=[];
 

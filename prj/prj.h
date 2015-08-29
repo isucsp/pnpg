@@ -56,12 +56,18 @@ struct prjConf {
     unsigned int sinoSize;
 };
 
+#ifdef __cplusplus
+extern "C"{
+#endif
 void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft effectiveRate, ft d);
 void showSetup(void);
 #if GPU
 int gpuPrj(ft* img, ft* sino, char cmd);
 #endif
 int cpuPrj(ft* img, ft* sino, char cmd);
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

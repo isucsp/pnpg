@@ -1,11 +1,9 @@
 
 CUDA  := /usr/local/cuda
 NVCC  := $(CUDA)/bin/nvcc
-MATLAB = $(shell matlab -e | sed -n 's/MATLAB=//p')
-
-MEX = $(MATLAB)/bin/mex
-CXX = g++
-AR = ar
+MATLAB := $(shell matlab -e | sed -n 's/MATLAB=//p')
+MEX := $(MATLAB)/bin/mex
+EXT := $(shell $(MATLAB)/bin/mexext)
  
 INC_CU = -I$(CUDA)/include -I$(CUDA)/samples/common/inc
 INC_MATLAB = -I$(MATLAB)/extern/include
@@ -21,18 +19,11 @@ CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-poin
  
 all: mParPrj solveTriDiag mCPUPrj cpuPrj mGPUPrj
 
-mGPUPrj: mPrj.c gpuPrj.o common/kiss_fft.c
-	$(MEX) CFLAGS="$(CFLAGS)" gpuPrj.o common/kiss_fft.c mPrj.c \
+mGPUPrj: $(addsuffix .$(EXT),gpuPrj)
+
+$(addsuffix .$(EXT),gpuPrj) : %.$(EXT) : mPrj.c gpuPrj.o common/kiss_fft.c
+	$(MEX) CFLAGS="$(CFLAGS)" -output $* $^ \
 	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcudart -lglut -lGL
-
-mCPUPrj: mPrj.c cpuPrj.c common/kiss_fft.c prj.h
-	$(MEX) CFLAGS="$(CFLAGS)" cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1 # -lglut -lGL
-
-mParPrj: mParPrj.c parPrj.c parPrj.h
-	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
-
-cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h
-	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h
 	$(NVCC) -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu common/kiss_fft.c
@@ -40,6 +31,17 @@ gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h
 gpuPrj: gpuPrj.o
 	$(NVCC) -lglut -lGL gpuPrj.o common/kiss_fft.c -o gpuPrj
 	#$(NVCC) -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu common/kiss_fft.c -o gpuPrj
+
+mCPUPrj: $(addsuffix .$(EXT),cpuPrj)
+
+$(addsuffix .$(EXT),cpuPrj) : %.$(EXT) : mPrj.c cpuPrj.c common/kiss_fft.c prj.h
+	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^) -DCPU=1 # -lglut -lGL
+
+mParPrj: mParPrj.c parPrj.c parPrj.h
+	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
+
+cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h
+	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
 
 solveTriDiag:
 	$(MEX) solveTridiag.c
