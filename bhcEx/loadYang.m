@@ -45,10 +45,12 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
 
         y=-log(y(:)/max(y(:)));
 
-        %  Poisson measurements
-        Imea = 2^detectorBitWidth * exp(-y);
-        Imea = poissrnd(Imea);
-        y=-log(Imea/max(Imea));
+        if strcmpi(opt.noiseType,'poisson')
+            %  Poisson measurements
+            Imea = 2^detectorBitWidth * exp(-y);
+            Imea = poissrnd(Imea);
+            y=-log(Imea/max(Imea));
+        end
     else
         y = ops.Phi(opt.trueImg);
 

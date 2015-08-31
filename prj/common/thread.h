@@ -24,7 +24,7 @@
     typedef void* (*CUT_THREADROUTINE)(void *);
 
     #define CUT_THREADPROC void*
-    #define CUT_THREADEND
+    #define CUT_THREADEND return 0
 #endif
 
 //Create thread.

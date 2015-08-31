@@ -43,9 +43,9 @@ function [Ie,out] = testIeStep()
 
     switch lower(opt.noiseType)
         case lower('Gaussian')
-            IeStepFunc = @(AA,III) gaussLI(Imea,AA,III);
+            IeStepFunc = @(A,III) gaussLI(Imea,A,III);
         case lower('Poisson')
-            IeStepFunc = @(AA,III) poissLI(Imea,AA,III);
+            IeStepFunc = @(A,III) poissLI(Imea,A,III);
     end
 
     fprintf('cost=%e\n',IeStepFunc(trueA,opt.trueIe));

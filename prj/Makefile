@@ -17,7 +17,10 @@ CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-poin
 #LFLAGS = -Wall
 #COPTIMFLAGS = -O3 -funroll-loops -msse2
  
-all: mParPrj solveTriDiag mCPUPrj cpuPrj mGPUPrj
+all: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT) mGPUPrj 
+
+
+# compiling gpuPrj
 
 mGPUPrj: $(addsuffix .$(EXT),gpuPrj)
 
@@ -25,27 +28,33 @@ $(addsuffix .$(EXT),gpuPrj) : %.$(EXT) : mPrj.c gpuPrj.o common/kiss_fft.c
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $^ \
 	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcudart -lglut -lGL
 
-gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h
-	$(NVCC) -Xcompiler -fPIC -c -arch=sm_21 gpuPrj.cu common/kiss_fft.c
+gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h common/thread.h
+	$(NVCC) -Xcompiler -fPIC -c -arch=sm_21 $(filter-out %.h,$^)
 
 gpuPrj: gpuPrj.o
-	$(NVCC) -lglut -lGL gpuPrj.o common/kiss_fft.c -o gpuPrj
-	#$(NVCC) -Xcompiler -fPIC -lglut -lGL -arch=sm_21 gpuPrj.cu common/kiss_fft.c -o gpuPrj
+	$(NVCC) -lglut -lGL $< common/kiss_fft.c -o $@
+	
+# compiling cpuPrj 
 
 mCPUPrj: $(addsuffix .$(EXT),cpuPrj)
 
-$(addsuffix .$(EXT),cpuPrj) : %.$(EXT) : mPrj.c cpuPrj.c common/kiss_fft.c prj.h
+$(addsuffix .$(EXT),cpuPrj) : %.$(EXT) : mPrj.c cpuPrj.c common/kiss_fft.c prj.h utils.h common/thread.h
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^) -DCPU=1 # -lglut -lGL
 
-mParPrj: mParPrj.c parPrj.c parPrj.h
-	$(MEX) CFLAGS="$(CFLAGS)" mParPrj.c parPrj.c
+cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h common/thread.h
+	g++ -Wall -fPIC $(filter-out %.h,$^) -o $@ -pthread -lglut -lGL
 
-cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h
-	g++ -Wall -fPIC cpuPrj.c common/kiss_fft.c -o cpuPrj -pthread -lglut -lGL
+# compiling parallel projection operator 
 
-solveTriDiag:
-	$(MEX) solveTridiag.c
+$(addsuffix .$(EXT),parPrj) : %.$(EXT) : mParPrj.c parPrj.c parPrj.h common/thread.h
+	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^)
 
+solveTriDiag: $(solveTriDiag .$(EXT),solveTriDiag)
+
+$(solveTriDiag .$(EXT),solveTriDiag) : solveTriDiag.c
+	$(MEX) $^
+
+.PHONY : clean
 clean:
 	-rm -vrf *.o *.mex* *~ *.data *.out profiler cpuPrj gpuPrj
 

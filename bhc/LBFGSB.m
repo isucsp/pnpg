@@ -13,7 +13,8 @@ classdef LBFGSB < handle
     methods
         function obj = LBFGSB(Ie,maxItr)
             obj.Ie=Ie;
-            obj.opts.maxIts=maxItr;
+            obj.maxItr=maxItr;
+            obj.opts.maxIts=obj.maxItr;
             obj.opts.maxTotalIts=5e5;
             obj.opts.printEvery=inf;
         end
