@@ -22,6 +22,9 @@
 #include <string.h>
 #include "prj.h"
 
+#ifdef __cplusplus
+extern "C" 
+#endif
 extern struct prjConf* pConf;
 
 /*  The gateway function */

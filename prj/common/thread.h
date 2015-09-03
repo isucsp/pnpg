@@ -39,45 +39,15 @@ void destroy_thread( CUTThread thread );
 //Wait for multiple threads.
 void wait_for_threads( const CUTThread *threads, int num );
 
+// kill the calling thread
+void exit_thread();
+
 #if _WIN32
-    void ErrorHandler(LPTSTR lpszFunction){ 
-    // Retrieve the system error message for the last-error code.
-
-        LPVOID lpMsgBuf;
-        LPVOID lpDisplayBuf;
-        DWORD dw = GetLastError(); 
-
-        FormatMessage(
-                FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-                FORMAT_MESSAGE_FROM_SYSTEM |
-                FORMAT_MESSAGE_IGNORE_INSERTS,
-                NULL,
-                dw,
-                MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                (LPTSTR) &lpMsgBuf,
-                0, NULL );
-
-        // Display the error message.
-
-        lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-                (lstrlen((LPCTSTR) lpMsgBuf) + lstrlen((LPCTSTR) lpszFunction) + 40) * sizeof(TCHAR)); 
-        StringCchPrintf((LPTSTR)lpDisplayBuf, 
-                LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-                TEXT("%s failed with error %d: %s"), 
-                lpszFunction, dw, lpMsgBuf); 
-        MessageBox(NULL, (LPCTSTR) lpDisplayBuf, TEXT("Error"), MB_OK); 
-
-        // Free error-handling buffer allocations.
-
-        LocalFree(lpMsgBuf);
-        LocalFree(lpDisplayBuf);
-    }
-
     //Create thread
     CUTThread start_thread(CUT_THREADROUTINE func, void *data){
         HANDLE thread=CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)func, data, 0, NULL);
         if(thread==NULL){
-            ErrorHandler(TEXT("CreateThread"));
+            printf(TEXT("CreateThread"));
             ExitProcess(3);
         }
         return thread;
@@ -101,6 +71,10 @@ void wait_for_threads( const CUTThread *threads, int num );
 
         for(int i = 0; i < num; i++)
             CloseHandle(threads[i]);
+    }
+
+    void exit_thread(){
+        ExitThread(0);
     }
 
 #else
@@ -141,6 +115,11 @@ void wait_for_threads( const CUTThread *threads, int num );
     void wait_for_threads(const CUTThread * threads, int num){
         for(int i = 0; i < num; i++)
             end_thread( threads[i] );
+    }
+
+    void exit_thread(){
+        int a;
+        pthread_exit(&a);
     }
 
 #endif

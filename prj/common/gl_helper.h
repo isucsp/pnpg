@@ -25,9 +25,11 @@
    we chose this so that compilation is identical between 32- and 64-bit Windows.
 */
 #ifdef _WIN64
-#define GLUT_NO_LIB_PRAGMA
-#pragma comment (lib, "opengl32.lib")  /* link with Microsoft OpenGL lib */
-#pragma comment (lib, "glut64.lib")    /* link with Win64 GLUT lib */
+//#define GLUT_NO_LIB_PRAGMA
+//#pragma comment (lib, "opengl32.lib")  /* link with Microsoft OpenGL lib */
+//#pragma comment (lib, "glut64.lib")    /* link with Win64 GLUT lib */
+#include "GL/glut.h"
+#include "GL/glext.h"
 #endif //_WIN64
 
 
