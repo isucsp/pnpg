@@ -18,6 +18,7 @@
 #define __CPU_BITMAP_H__
 
 #include "gl_helper.h"
+#include "thread.h"
 
 struct CPUBitmap {
     unsigned char *pixels;
@@ -81,8 +82,7 @@ struct CPUBitmap {
                     bitmap->bitmapExit( bitmap->dataBlock );
                 }
                 glutDestroyWindow(bitmap->windows[0]);
-                int a;
-                pthread_exit(&a);
+                exit_thread();
                 //exit(0);
         }
          //   pthread_cancel
@@ -112,7 +112,7 @@ struct CPUBitmap {
     }
 };
 
-void* show_img_core(void* bitmap){
+CUT_THREADPROC show_img_core(void* bitmap){
     CPUBitmap* img = ((CPUBitmap*)bitmap);
     *(img->get_bitmap_ptr())=img;
     glutInitWindowSize( img->x, img->y );
@@ -122,7 +122,7 @@ void* show_img_core(void* bitmap){
     glutDisplayFunc(img->Draw);
     glutMainLoop();
     printf("after main loop\n");
-    return NULL;
+    CUT_THREADEND;
 }
 
 void show_img(ft* img, int w, int h, ft min, ft max){
@@ -145,20 +145,11 @@ void show_img(ft* img, int w, int h, ft min, ft max){
         ptr[(offset<<2)+2] = value;
         ptr[(offset<<2)+3] = 0xff;
     }
-    pthread_t thread;
+    CUTThread thread;
     void *thread_result;
-    int res;
 
-    res = pthread_create(&thread, NULL, show_img_core, &image);
-    if (res != 0) {
-        perror("Thread creation failed");
-        exit(EXIT_FAILURE);
-    }
-    res = pthread_join(thread, &thread_result);
-    if (res != 0) {
-        perror("Thread join failed.");
-        exit(EXIT_FAILURE);
-    }
+    thread=start_thread(show_img_core, &image);
+    end_thread(thread);
 }
 
 void show_img(ft* img, int w, int h, ft min){

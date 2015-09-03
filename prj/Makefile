@@ -17,7 +17,11 @@ CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-poin
 #LFLAGS = -Wall
 #COPTIMFLAGS = -O3 -funroll-loops -msse2
  
-all: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT) mGPUPrj 
+all: cpu gpu
+
+cpu: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT)
+
+gpu: mGPUPrj gpuPrj
 
 
 # compiling gpuPrj

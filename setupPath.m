@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 03 Sep 2015 09:35:30 AM CDT
+% $Revision: 0.3 $ $Date: Thu 03 Sep 2015 06:48:25 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -37,16 +37,17 @@ addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utili
 
 cd 'prj'
 if(isunix)
-    !make mCPUPrj mParPrj solveTriDiag
+    !make cpu
     if(gpuDeviceCount>0)
-        !make mGPUPrj 
+        !make gpu 
     end
 elseif(ispc)
     mex solveTridiag.c
-    mex mParPrj.c parPrj.c
-    mex cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    mex -output parPrj mParPrj.c parPrj.c
+    mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     if(gpuDeviceCount>0)
-        mex COMPFLAGS="/TP" gpuPrj.obj mPrj.c  common/kiss_fft.c "-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64" -lcudart -DGPU=1
+        link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"';
+        mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
     end
 end
 cd(pathstr)

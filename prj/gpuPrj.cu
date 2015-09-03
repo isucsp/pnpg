@@ -35,6 +35,9 @@
 #endif
 
 struct prjConf config;
+#ifdef __cplusplus
+extern "C" 
+#endif
 struct prjConf* pConf = &config;
 
 #if GPU
