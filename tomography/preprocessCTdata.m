@@ -2,8 +2,26 @@ function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
 % this subroutine is used to find the center of the projection and the
 % distance from the rotation center to X-ray source.
 % Here, "data" is after taking the logarithm
+%
+% thresh is provided to specify the how stric the boundary of the sinogram
+% will be used for estimation of the rotation center and X-ray source to
+% rotation center distance.
+%
+% thresh is used in for the sinogram after taking the logarithm with value
+% in (0,1), where 0 and 1 correspond to the minimum and maximum of the
+% sinogram.
+%
     
-    if(~exist('thresh','var')) thresh=0.5; end;
+if(~exist('thresh','var'))
+    thresh=0.2;
+    fprintf('No input for thresh, use %g as default\n',thresh);
+end;
+
+figs=[];
+
+while(true)
+
+    thresh=thresh*max(data(:));
 
     mask=data>thresh;
     [N,M]=size(mask);
@@ -12,8 +30,8 @@ function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
         g2(i,1) = find(mask(:,i),1,'last');
     end
     center=(mean(g1)+mean(g2))/2;
-    figure; showImg(data);
-    figure; showImg(data); hold on; plot(g1,'r'); plot(g2,'r');
+    figs=[figs; figure];
+    showImg(data); hold on; plot(g1,'r'); plot(g2,'r');
     drawnow;
 
     gl=g2-center; g2=g1-center; g1=gl; clear 'gl';
@@ -31,14 +49,11 @@ function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
     [dist,~,status]=fminsearch(objfunc,median(dd));
     if(status~=1) keyboard; end
 
-    ddRange=round(dist)-100:round(dist)+100;
-    cost=inf*ones(length(ddRange),1);
-    for i=1:length(ddRange)
-        cost(i)=norm(g1+gg2(ddRange(i)));
-    end
-    figure; plot(ddRange,cost); hold on; plot(dist,objfunc(dist),'r*');
+    figs=[figs; figure];
+    fplot(objfunc,dist+[-100,100]); hold on; plot(dist,objfunc(dist),'r*');
 
-    figure; subplot(2,1,1); plot(theta,g1,'r'); hold on;
+    figs=[figs; figure];
+    subplot(2,1,1); plot(theta,g1,'r'); hold on;
     plot(theta,-gg2(dist),'b');
     subplot(2,1,2); plot(theta,g1+gg2(dist));
 
@@ -51,7 +66,24 @@ function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
         'FanCoverage','cycle','FanRotationIncrement',1,...
         'FanSensorGeometry','line','FanSensorSpacing',1,...
         'OutputSize',length(newdata(:,1)));
-    figure; showImg(img,0);
+    figs=[figs; figure];
+    showImg(img,0);
+
+    while(true)
+        str=sprintf('enter 0 to accept the current thresh=%g,\nenter 1 to change value of thresh\nenter 2 to enter debug mode:',thresh);
+        decide=input(str);
+        switch(decide)
+            case 0
+                return;
+            case 1
+                thresh=input('enter new desired value for thresh:');
+                break;
+            case 2
+                fprintf('enter ''dbcont'' or press ''F5'' to continue\n');
+                keyboard
+        end
+    end
+end
 
 end
 

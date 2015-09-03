@@ -40,6 +40,9 @@ struct prjConf* pConf = &config;
 #if GPU
 cudaEvent_t     start, stop;
 
+/* the best device to use for cudaSetDevice*/
+int max_device = 0;
+
 ft *dev_img;
 ft *dev_sino;
 
@@ -823,6 +826,22 @@ void setup(int n, int prjWidth, int np, int prjFull, ft dSize, ft
         bThread = dim3(TILE_SZ*TILE_SZ, ANG_BLK);
     }
 
+    int num_devices, device;
+    cudaGetDeviceCount(&num_devices);
+    if (num_devices > 1) {
+        int max_multiprocessors = 0;
+        max_device = 0;
+        for (device = 0; device < num_devices; device++) {
+            cudaDeviceProp properties;
+            cudaGetDeviceProperties(&properties, device);
+            if (max_multiprocessors < properties.multiProcessorCount) {
+                max_multiprocessors = properties.multiProcessorCount;
+                max_device = device;
+            }
+        }
+        cudaSetDevice(max_device);
+    }
+
     cudaDeviceReset();
     HANDLE_ERROR(cudaMalloc((void**)&dev_img,pConf->imgSize*sizeof(ft)));
     HANDLE_ERROR(cudaMalloc((void**)&dev_sino,pConf->prjFull*pConf->prjWidth*sizeof(ft)));
@@ -862,6 +881,7 @@ void cleanUp(){
 }
 
 int gpuPrj(ft* img, ft* sino, char cmd){
+    cudaSetDevice(max_device);
 #if EXE_PROF
     cudaProfilerStart();
 #endif
@@ -880,8 +900,8 @@ int gpuPrj(ft* img, ft* sino, char cmd){
                     cudaMemcpyHostToDevice ) );
         if(pConf->d>0){
 #if DEBUG
-        printf("Image copied to device ...\n");
-        printf("calling rayDriveFan ...\n");
+            printf("Image copied to device ...\n");
+            printf("calling rayDriveFan ...\n");
 #endif
             rayDriveFan<<<fGrid,fThread>>>(dev_img, dev_sino);
         }else
@@ -892,7 +912,7 @@ int gpuPrj(ft* img, ft* sino, char cmd){
         if(pConf->prjWidth%2==0)
             for(int i=0,idx=0; i<pConf->np; i++,idx+=pConf->prjWidth)
                 sino[idx]=0;
-        
+
     }else if(cmd & BWD_BIT){
 #if DEBUG
         printf("Backward projecting ...\n");
