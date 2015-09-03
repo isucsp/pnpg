@@ -37,9 +37,9 @@ addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utili
 
 cd 'prj'
 if(isunix)
-    !make mCPUPrj mParPrj solveTriDiag
+    !make cpu
     if(gpuDeviceCount>0)
-        !make mGPUPrj 
+        !make gpu 
     end
 elseif(ispc)
     mex solveTridiag.c
