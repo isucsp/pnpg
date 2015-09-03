@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 27 Aug 2015 01:50:30 AM CDT
+% $Revision: 0.3 $ $Date: Thu, Sep 03, 2015  6:31:02 PM
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -46,7 +46,8 @@ elseif(ispc)
     mex -output parPrj mParPrj.c parPrj.c
     mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     if(gpuDeviceCount>0)
-        mex -output gpuPrj COMPFLAGS="/TC" gpuPrj.obj mPrj.c  common/kiss_fft.c "-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64" -lcudart -DGPU=1
+        link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"';
+        mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
     end
 end
 cd(pathstr)
