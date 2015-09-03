@@ -46,6 +46,9 @@ cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h common/thre
 
 # compiling parallel projection operator 
 
+mParPrj: $(addsuffix .$(EXT),parPrj)
+	@echo ""
+
 $(addsuffix .$(EXT),parPrj) : %.$(EXT) : mParPrj.c parPrj.c parPrj.h common/thread.h
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^)
 
