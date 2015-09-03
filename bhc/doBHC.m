@@ -56,8 +56,8 @@ function doBHC(y,distance,filename)
 
     fprintf('Configuration Finished!\n');
 
-    opt.beamharden=true; opt.spectBasis='dis'; opt.E=20;
-    opt.maxItr=2; opt.thresh=1e-6;
+    opt.beamharden=true; opt.spectBasis='dis'; opt.E=30;
+    opt.maxItr=2e3; opt.thresh=1e-6;
 
     initSig = maskFunc(FBP(y),opt.mask~=0);
 
@@ -73,16 +73,15 @@ function doBHC(y,distance,filename)
         fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
         u  =  10^(-5);
         opt=Oopt; opt.u=u*10^(j-3); opt.proximal='tvl1';
-        if(j==5)
-            npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-        else
-            opt.Ie=npgTV{i,j+1}.Ie;
-            npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
-                npgTV{i,j+1}.alpha,opt);
-        end
+        % if(j==5)
+        %     npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+        % else
+        %     opt.Ie=npgTV{i,j+1}.Ie;
+        %     npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
+        %         npgTV{i,j+1}.alpha,opt);
+        % end
 
         opt=Oopt; opt.u=u*10^(j-3); opt.proximal='wvltADMM';
-        npgWV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
         if(j==5)
             npgWV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
         else
