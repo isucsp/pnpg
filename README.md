@@ -25,25 +25,32 @@ To install this package, first download the repository by running
 
 after downloading, from MATLAB change your current folder to `imgRecSrc/`.
 Each time before running the methods from this package, first execute
-`setupPath.m` to compile and add the paths to the environment.
+`setupPath.m` to add necessary paths to the environment.
 
 For X-ray CT examples, the projection and back projection operator
-subroutines may be called from MATLAB. To prepare MATLAB recognizable `MEX`
-file, go to `imgRecSrc/prj` and execute `make mCPUPrj` for CPU
-implementation and (if you have GPU equipped) `make mGPUPrj` for GPU
-implementation of the X-ray CT projection operators.
+subroutines may be called from MATLAB.  Since they are written in `c`
+language, to prepare MATLAB recognizable `MEX`
+files, go to `imgRecSrc/prj` and compile the necessary files.  Instructions
+on compiling the code are provided for both `UNIX` and `Windows`:
 
-#### Install to `Linux`
+#### For `UNIX`
+
+require: gcc, cuda toolkit (optional) and GPU (optional)
+
+Execute `make cpu` to compile all cpu implementations.  If you have GPU
+equipped, run `make gpu` to compile GPU implementation of the X-ray CT
+projection operators.  The matlab code will automatically choose to run on
+GPU if equipped.
 
 If errors are reported while compiling the `*.c`/`*.cu` files under
 `imgRecSrc/prj`, please edit the first few lines in
 `imgRecSrc/prj/Makefile` to make sure the path for your `CUDA` installation
 is correct.
 
-#### Install in Windows
+#### For `Windows`
 
-See the corresponding `*.sln` and `*.vcxproj` files, which are prepared under `Visual
-Studio 2013`.
+
+
 
 
 ### References
