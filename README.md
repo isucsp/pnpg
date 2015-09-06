@@ -14,7 +14,8 @@ functions under `utils` folder.
 2. Beam Hardening Correction Algorithms
 
 All examples and data for our blind beam hardening correction method are
-under folder `bhcEx` with algorithm implementations under `bhc`.
+under folder `bhcEx` with algorithm implementations under `bhc`.  The
+figures in our paper can be reproduced by first run 
 
 
 ### How to Install
