@@ -73,9 +73,17 @@ is correct.
 
 require: Visual Studio, cuda toolkit (optional) and GPU (optional)
 
+Execute `imgRecSrc/setupPath.m` can automatically compile all needed files
+and add paths.
 
+If there is a GPU equipped in your PC, follow the following steps:
 
+* Open the `VS Native Tools Command Prompt` via `Start -> Microsoft Visual
+Studio -> Visual Studio Tools`;
 
+* Use `cd` command to change current directory to your `imgRecSrc/prj`;
 
+* Run `nvcc -c gpuPrj.cu` to generate the `obj` file;
 
+* Execute `imgRecSrc/setupPath.m`.
 

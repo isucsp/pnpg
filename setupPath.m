@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Thu 03 Sep 2015 06:48:25 PM CDT
+% $Revision: 0.3 $ $Date: Sun, Sep 06, 2015  1:53:58 PM
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -42,10 +42,16 @@ if(isunix)
         !make gpu 
     end
 elseif(ispc)
-    mex solveTridiag.c
-    mex -output parPrj mParPrj.c parPrj.c
-    mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
-    if(gpuDeviceCount>0)
+    if (~exist(['solveTridiag.' mexext],'file'))
+        mex solveTridiag.c
+    end
+    if ~exist(['parPrj.' mexext],'file')
+        mex -output parPrj mParPrj.c parPrj.c
+    end
+    if ~exist(['cpuPrj.' mexext],'file')
+        mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
+    end
+    if(gpuDeviceCount>0  && ~exist(['gpuPrj.' mexext],'file'))
         link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"';
         mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
     end
@@ -56,9 +62,11 @@ cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
 if(isunix)
     !make
 elseif(ispc)
-    mex -largeArrayDims -O -g -UDEBUG -I../src ...
-    lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
-    ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
+    if(~exist(['lbfgsb_wrapper.' mexext],'file'))
+        mex -largeArrayDims -O -g -UDEBUG -I../src ...
+            lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
+            ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
+    end
 end
 cd(pathstr)
 
