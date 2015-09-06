@@ -2,14 +2,14 @@
 
 ### What does this package contain
 
-1. Accelerated Proximal-Gradient Algorithms (NPG and NPGs)
+#### 1. Accelerated Proximal-Gradient Algorithms (NPG and NPGs)
 
 The examples about this methods are under `npgEx` folder, where the code
 can reproduce the figures appear in our paper.  The algorithm
 implementations are under folder `npg`, which use the some utility
 functions under `utils` folder.
 
-#### References
+##### References
 
 1. R. Gu and A. Dogandžić. (Feb. 2015). Reconstruction of nonnegative
    sparse signals using accelerated proximal-gradient algorithms. *arXiv*:
@@ -20,14 +20,14 @@ R. Gu and A. Dogandžić, “Nesterov’s Proximal-Gradient Algorithms for Recon
 --->
 
 
-2. Beam Hardening Correction Algorithms
+####2. Beam Hardening Correction Algorithms
 
 All examples and data for our blind beam hardening correction method are
 under folder `bhcEx` with algorithm implementations under `bhc`.  The
 figures in our paper can be reproduced by first run `*Ex`, e.g., `yangEx`,
 followed by `*Ex('plot')`, e.g., `yangEx('plot')`.
 
-#### References
+##### References
 
 1. R. Gu and A. Dogandžić, Beam hardening correction via mass attenuation
    discretization, in *Proc. IEEE Int. Conf. Acoust., Speech, Signal
