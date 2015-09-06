@@ -33,6 +33,18 @@ file, go to `imgRecSrc/prj` and execute `make mCPUPrj` for CPU
 implementation and (if you have GPU equipped) `make mGPUPrj` for GPU
 implementation of the X-ray CT projection operators.
 
+#### Install to `Linux`
+
+If errors are reported while compiling the `*.c`/`*.cu` files under
+`imgRecSrc/prj`, please edit the first few lines in
+`imgRecSrc/prj/Makefile` to make sure the path for your `CUDA` installation
+is correct.
+
+#### Install in Windows
+
+See the corresponding `*.sln` and `*.vcxproj` files, which are prepared under `Visual
+Studio 2013`.
+
 
 ### References
 

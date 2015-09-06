@@ -1,21 +1,15 @@
 
-CUDA  := /usr/local/cuda
+#CUDA  := /usr/local/cuda
+CUDA  := /opt/cuda
 NVCC  := $(CUDA)/bin/nvcc
+LIBS := $(CUDA)/lib64
+
 MATLAB := $(shell matlab -e | sed -n 's/MATLAB=//p')
 MEX := $(MATLAB)/bin/mex
 EXT := $(shell $(MATLAB)/bin/mexext)
- 
-INC_CU = -I$(CUDA)/include -I$(CUDA)/samples/common/inc
-INC_MATLAB = -I$(MATLAB)/extern/include
-LIBS = -L$(CUDA)/lib64 -L$(CUDA)/lib -Wl,-rpath,$(CUDA)/lib64
-LIBS_CU = -lcudart -lcusparse -lcublas -lcufft -lcurand
-LIBS_GL = -lglut -lGL
- 
-# Regular C++ part
-#CFLAGS = -Wall -c -O2 -fPIC $(INC)
-CFLAGS = -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-pointer
-#LFLAGS = -Wall
-#COPTIMFLAGS = -O3 -funroll-loops -msse2
+
+#CFLAGS := -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-pointer
+CFLAGS := -fPIC
  
 all: cpu gpu
 
@@ -23,14 +17,13 @@ cpu: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT)
 
 gpu: mGPUPrj gpuPrj
 
-
 # compiling gpuPrj
 
 mGPUPrj: $(addsuffix .$(EXT),gpuPrj)
 
 $(addsuffix .$(EXT),gpuPrj) : %.$(EXT) : mPrj.c gpuPrj.o common/kiss_fft.c
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $^ \
-	    -DGPU=1 -L. -L./common -L/usr/local/cuda/lib64 -lcudart -lglut -lGL
+	    -DGPU=1 -L. -L./common -L$(LIBS) -lcudart -lglut -lGL
 
 gpuPrj.o: gpuPrj.cu prj.h utils.h common/kiss_fft.c common/cpu_bitmap.h common/thread.h
 	$(NVCC) -Xcompiler -fPIC -c -arch=sm_21 $(filter-out %.h,$^)
