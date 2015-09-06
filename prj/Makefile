@@ -1,6 +1,6 @@
 
-#CUDA  := /usr/local/cuda
-CUDA  := /opt/cuda
+CUDA  := /usr/local/cuda
+#CUDA  := /opt/cuda
 NVCC  := $(CUDA)/bin/nvcc
 LIBS := $(CUDA)/lib64
 
@@ -9,7 +9,7 @@ MEX := $(MATLAB)/bin/mex
 EXT := $(shell $(MATLAB)/bin/mexext)
 
 #CFLAGS := -std=c99 -fPIC -D_GNU_SOURCE -pthread -fexceptions -fno-omit-frame-pointer
-CFLAGS := -fPIC
+CFLAGS := -std=c99 -fPIC
  
 all: cpu gpu
 

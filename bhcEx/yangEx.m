@@ -188,33 +188,44 @@ switch lower(op)
 
         prjIdx=3; col=250; h=figure; forSave=[];
 
+        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,       'fbp_yang.eps','psc2'); imwrite(img/maxImg,       'fbp_yang.png');
+        fprintf('FBP RMSE=%e\n',fbpRMSE(prjIdx));
+        figure(h); plot(img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
+
         img=showImgMask(       linFbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'linFBP_yang.eps','psc2'); imwrite(img/maxImg,    'linFBP_yang.png');
         fprintf('linFBP RMSE=%e\n',linFbpRMSE(prjIdx));
         figure(h); plot(img(:,col),'r-'); hold on; forSave=[forSave, img(:,col)];
 
-        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,       'fbp_yang.eps','psc2'); imwrite(img/maxImg,       'fbp_yang.png');
-        fprintf('FBP RMSE=%e\n',fbpRMSE(prjIdx));
-        figure(h); plot(img(:,col),'b-'); forSave=[forSave, img(:,col)];
-
-        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
-        img=showImgMask(     npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'npgTV_yang.eps','psc2'); imwrite(img/maxImg,     'npgTV_yang.png');
-        fprintf('u for NPGTV is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
-        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
-
         rmse=linNpgRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u = 10.^[-5  -5   -5   -5   -5   -5 -5 -5];
         img=showImgMask(     linNpgTV{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'linNPGTV_yang.eps','psc2'); imwrite(img/maxImg,  'linNPGTV_yang.png');
         fprintf('a for linNPGTV is %e and u=%g, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),linNpgTV{prjIdx,aIdx}.opt.u,rmse(prjIdx,aIdx));
-        figure(h); plot(img(:,col),'c:'); forSave=[forSave, img(:,col)];
+        figure(h); plot(img(:,col),'c-'); forSave=[forSave, img(:,col)];
 
         rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
         img=showImgMask(npgTValpha_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTValpha_yang.eps','psc2'); imwrite(img/maxImg,'npgTValpha_yang.png');
         fprintf('u for npgTValpha_b1 is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'k--'); forSave=[forSave, img(:,col)];
 
-        legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)');
+        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+        img=showImgMask(     npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'npgTV_yang.eps','psc2'); imwrite(img/maxImg,     'npgTV_yang.png');
+        fprintf('u for NPGTV is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
+
+        rmse=npgTValphaE100RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+        img=showImgMask(     npgTValpha_b1_E100_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0);  imwrite(img/maxImg,     'npgTValpha100_yang.png');
+        fprintf('u for NPGTValpha100 is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'k-.'); forSave=[forSave, img(:,col)];
+
+        rmse=npgTVb1contRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
+        img=showImgMask(     npgTV_b1_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0);  imwrite(img/maxImg,     'npgTVcont_yang.png');
+        fprintf('u for NPGTVcont is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
+        figure(h); plot(img(:,col),'c--'); forSave=[forSave, img(:,col)];
+
+
+        legend('FBP', 'linearized FBP', 'linearized NPG', 'NPG\_TV (known \iota)', 'NPG\_TV','NPG 100 cont', 'NPG-BFGS cont');
         save('profile_yang.data','forSave','-ascii');
 
-        prjIdx=3; col=250; h=figure; forSave=[]; clear('opt');
+        prjIdx=3; col=250; forSave=[]; clear('opt');
         rmse=npgTVb1RMSE;    aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a1=npgTV_b1{prjIdx,aIdx};
         rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a2=npgTValpha_b1{prjIdx,aIdx};
 
