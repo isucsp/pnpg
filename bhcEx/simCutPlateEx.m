@@ -54,7 +54,7 @@ switch lower(op)
 
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt=Opt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
-%               npgWV_dis{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgWV_dis{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=Opt; opt.saturated=true; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
                 npgWV_dis_saturated{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);

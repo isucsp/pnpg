@@ -147,6 +147,7 @@ void rampFilter(ft *signal, int size, ft Ts){
     //}
 
     free(cfgFFT); free(cfgIFFT);
+    free(ramp); free(hann); free(proj);
 }
 
 #endif

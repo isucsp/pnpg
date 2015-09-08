@@ -57,7 +57,8 @@ while(true)
     plot(theta,-gg2(dist),'b');
     subplot(2,1,2); plot(theta,g1+gg2(dist));
 
-    band=min(min(center-2,N-1-center),max(g1)*1.2);
+    band=floor(min(min(center-2,N-1-center),max(g1)*1.2));
+    newdata=[];
     for i=1:M
         newdata(:,i) = interp1((1:N), data(:,i), (center-band):(center+band+1),'linear');
     end
@@ -70,7 +71,8 @@ while(true)
     showImg(img,0);
 
     while(true)
-        str=sprintf('enter 0 to accept the current thresh=%g,\nenter 1 to change value of thresh\nenter 2 to enter debug mode:',thresh);
+        fprintf('Estimated distance from X-ray source to rotation center is %g times pixel size\n', dist);
+        str=sprintf('enter 0 to accept the current thresh=%g,\nenter 1 to change value of thresh\nenter 2 to enter debug mode:',thresh/max(data(:)));
         decide=input(str);
         switch(decide)
             case 0

@@ -69,17 +69,17 @@ function doBHC(y,distance,filename)
     Oopt=opt;
 
     % unknown ι(κ), NPG-AS
-    for j=5:-1:2
+    for j=5:-1:1
         fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
         u  =  10^(-5);
-        opt=Oopt; opt.u=u*10^(j-3); opt.proximal='tvl1';
-        % if(j==5)
-        %     npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-        % else
-        %     opt.Ie=npgTV{i,j+1}.Ie;
-        %     npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
-        %         npgTV{i,j+1}.alpha,opt);
-        % end
+        opt=Oopt; opt.u=u*10^(j-3); opt.proximal='tviso';
+        if(j==5)
+            npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+        else
+            opt.Ie=npgTV{i,j+1}.Ie;
+            npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
+                npgTV{i,j+1}.alpha,opt);
+        end
 
         opt=Oopt; opt.u=u*10^(j-3); opt.proximal='wvltADMM';
         if(j==5)

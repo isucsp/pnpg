@@ -81,7 +81,7 @@ If there is a GPU equipped in your PC, follow the following steps:
 * Open the `VS Native Tools Command Prompt` via `Start -> Microsoft Visual
 Studio -> Visual Studio Tools`;
 
-* Use `cd` command to change current directory to your `imgRecSrc/prj`;
+* Use `cd` command to change directory to your `imgRecSrc/prj`;
 
 * Run `nvcc -c gpuPrj.cu` to generate the `obj` file;
 

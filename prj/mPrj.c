@@ -27,6 +27,9 @@ extern "C"
 #endif
 extern struct prjConf* pConf;
 
+ft* img;
+ft* sino;
+
 /*  The gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -58,17 +61,20 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexPrintf("config.effectiveRate=%g\n",config.effectiveRate);
         mexPrintf("config.d=%g\n",config.d);
 #endif
-
         setup(config.n, config.prjWidth, config.np, config.prjFull, config.dSize, config.effectiveRate, config.d);
+
+        if(img!=NULL) free(img);
+        if(sino!=NULL) free(sino);
+        img=(ft*)malloc(pConf->imgSize*sizeof(ft));
+        sino=(ft*)malloc(pConf->sinoSize*sizeof(ft));
     }else{
-        ft* img=(ft*)malloc(pConf->imgSize*sizeof(ft));
-        ft* sino=(ft*)malloc(pConf->sinoSize*sizeof(ft));
         if(!strcmp(cmd,"forward")){      /* forward projection */
             plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
             imgt = mxGetPr(prhs[0]);
             sinot = mxGetPr(plhs[0]);
-            for(int i=0; i<pConf->n; i++)
-                for(int j=0; j<pConf->n; j++)
+            /* matrix transpose */
+            for(int j=0; j<pConf->n; j++)
+                for(int i=0; i<pConf->n; i++)
                     img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
 #if GPU
             gpuPrj(img, sino, FWD_BIT);
@@ -84,12 +90,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for(int i=0; i<pConf->sinoSize; i++)
                 sino[i]=(ft)sinot[i];
 #if GPU
-                gpuPrj(img, sino, BWD_BIT );
+            gpuPrj(img, sino, BWD_BIT );
 #else
-                cpuPrj(img, sino, BWD_BIT );
+            cpuPrj(img, sino, BWD_BIT );
 #endif
-            for(int i=0; i<pConf->n; i++)
-                for(int j=0; j<pConf->n; j++)
+            for(int j=0; j<pConf->n; j++)
+                for(int i=0; i<pConf->n; i++)
                     imgt[i*pConf->n+j]=img[i+j*pConf->n];
         }else if(!strcmp(cmd,"FBP")){
             plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
@@ -98,12 +104,12 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for(int i=0; i<pConf->sinoSize; i++)
                 sino[i]=(ft)sinot[i];
 #if GPU
-                gpuPrj(img, sino, FBP_BIT );
+            gpuPrj(img, sino, FBP_BIT );
 #else
-                cpuPrj(img, sino, FBP_BIT );
+            cpuPrj(img, sino, FBP_BIT );
 #endif
-            for(int i=0; i<pConf->n; i++)
-                for(int j=0; j<pConf->n; j++)
+            for(int j=0; j<pConf->n; j++)
+                for(int i=0; i<pConf->n; i++)
                     imgt[i*pConf->n+j]=img[i+j*pConf->n];
         }else{
             showSetup();

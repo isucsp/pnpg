@@ -1,6 +1,6 @@
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sun, Sep 06, 2015  1:53:58 PM
+% $Revision: 0.3 $ $Date: Mon 07 Sep 2015 01:54:03 AM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -59,10 +59,10 @@ end
 cd(pathstr)
 
 cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
-if(isunix)
-    !make
-elseif(ispc)
-    if(~exist(['lbfgsb_wrapper.' mexext],'file'))
+if(~exist(['lbfgsb_wrapper.' mexext],'file'))
+    if(isunix)
+        !make
+    elseif(ispc)
         mex -largeArrayDims -O -g -UDEBUG -I../src ...
             lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
             ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c

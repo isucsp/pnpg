@@ -10,19 +10,26 @@ file=[];
 
 [a,b]=regexpi(filename,'\.raw$');
 if(~isempty(a)) % read raw data
+    prjWidth=3072;  % here we suppose the width of detector is 3072
     str='';
     for i=0:359
         file=fopen(sprintf(filename,i),'r');
-        temp = reshape(fread(file,inf,'uint16'),3072,[]);
-        if(~isempty(temp))
-            Imea(:,i+1)=temp(:,slide);
-            temp=length(str);
-            str=sprintf('reading the %d-th projection',i);
-            fprintf([repmat('\b',1,temp) '%s'],str);
-            % figure(1); showImg(-log(temp)); title(sprintf('%03d',i)); drawnow;
-        end;
+        if(0==fseek(file,prjWidth*(slide-1)*2,'bof'))
+            temp=fread(file,prjWidth,'uint16');
+            if(~isempty(temp))
+                Imea(:,i+1)=temp(:);
+                temp=length(str);
+                str=sprintf('reading the %d-th projection',i);
+                fprintf([repmat('\b',1,temp) '%s'],str);
+                % figure(1); showImg(-log(temp)); title(sprintf('%03d',i)); drawnow;
+            else
+                fprintf('error while reading %s\n',sprintf(filename,i));
+                return;
+            end;
+        end
         fclose(file);
     end
+    fprintf('\n');
 end
 
 [a,b]=regexpi(filename,'\.sin$');

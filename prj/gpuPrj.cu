@@ -1216,6 +1216,7 @@ void FBP(char* filename, int idx){
         free(sino); free(img);
     }
     fclose(f);
+    free(str);
 }
 
 int main(int argc, char *argv[]){

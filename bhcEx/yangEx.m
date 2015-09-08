@@ -19,7 +19,7 @@ switch lower(op)
         clear('opt'); filename = [mfilename '.mat'];
 
         opt.beamharden=true; opt.spectBasis='b1'; opt.E=30;
-        opt.estIe=true;
+        opt.estIe=true; opt.noiseType='poisson';
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
         for i=length(prjFull):-1:1
@@ -27,6 +27,8 @@ switch lower(op)
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
             opt.maxItr=4e3; opt.thresh=1e-6;
+
+            keyboard
 
             initSig = maskFunc(FBP(y),opt.mask~=0);
 

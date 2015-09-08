@@ -146,7 +146,6 @@ void show_img(ft* img, int w, int h, ft min, ft max){
         ptr[(offset<<2)+3] = 0xff;
     }
     CUTThread thread;
-    void *thread_result;
 
     thread=start_thread(show_img_core, &image);
     end_thread(thread);

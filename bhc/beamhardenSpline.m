@@ -1,6 +1,8 @@
 function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %beamharden    beamharden effect correct method
-%   out = beamharden(***)
+%Syntax:
+%   out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
+%
 %   Phi         The projection matrix implementation function handle
 %   Phit        Transpose of Phi
 %   Psi         Inverse wavelet transform matrix from wavelet coefficients
@@ -23,6 +25,10 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %   v_0.2:      add alphaDif to output;
 %               add t[123] to output;
 %
+
+if(nargin==0)
+    help beamhardenSpline
+end
 
 % for alpha step
 % 'NPG'; %'SpaRSA'; %'NCG_PR'; %'ADMM_L1'; %
@@ -123,7 +129,9 @@ switch lower(opt.sampleMode)
         kappa=logspace(-floor(opt.E/2)/(opt.E-1)*opt.logspan,...
             floor(opt.E/2-0.5)/(opt.E-1)*opt.logspan,opt.E);
         opt.E=length(kappa);
-        Ie=zeros(opt.E,1); Ie(floor(opt.E/2)+1)=1;
+        Ie=zeros(opt.E,1);
+        Ie(floor(opt.E/2)+1)=1;
+        %Ie(floor(opt.E/2)+0)=1; Ie(floor(opt.E/2)+2)=1; Ie=ones(opt.E,1);
 end
 
 switch lower(opt.IeStep)
@@ -356,6 +364,20 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         save('linAnimate.data','linAnimate','-ascii');
         save('iotaAnim.data','iotaAnim','-ascii');
     end
+
+    % if(p==0)
+    %     PhiFbp=Phi(xInit);
+    %     idx=randi(length(y),1000,1);
+    %     linAnimate=[y(idx), PhiFbp(idx)];
+    %     iotaAnim = [];
+    % end
+    % figure(1); plot(PhiFbp(idx),y(idx),'r.'); hold on;
+    % PhiAlpha=Phi(alpha);
+    % s=linspace(min(PhiAlpha),max(PhiAlpha),100);
+    % plot(PhiAlpha(idx),y(idx),'b.');
+    % plot(s(:), -log(polyIout(s,Ie)));
+    % hold off;
+    % drawnow;
 
     p=p+1;
     str=sprintf(' %5d',p);
