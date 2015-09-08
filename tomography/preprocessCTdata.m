@@ -1,4 +1,7 @@
 function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
+% Syntax:
+%     [newdata,dist,img,center]=preprocessCTdata(data,thresh)
+%
 % this subroutine is used to find the center of the projection and the
 % distance from the rotation center to X-ray source.
 % Here, "data" is after taking the logarithm
@@ -11,7 +14,20 @@ function [newdata,dist,img,center]=preprocessCTdata(data,thresh)
 % in (0,1), where 0 and 1 correspond to the minimum and maximum of the
 % sinogram.
 %
-    
+% Outputs:
+% dist:        estimated distance from the X-ray source to the rotation center
+% img:         one fan-beam FBP reconstruction
+% center:      the estimated position of the projection of rotation center on the detector array.
+%              (this is not very useful here, since newdata is already
+%              adjusted and centerized accordingly.)
+%
+% author: Renliang Gu (gurenliang@gmail.com)
+%
+
+if(nargin==0)
+    help preprocessCTdata
+end
+
 if(~exist('thresh','var'))
     thresh=0.2;
     fprintf('No input for thresh, use %g as default\n',thresh);

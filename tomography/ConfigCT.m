@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Thu 07 May 2015 11:14:56 AM CDT
+% $Revision: 0.2 $ $Date: Tue 08 Sep 2015 01:03:10 PM CDT
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 

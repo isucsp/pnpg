@@ -33,7 +33,8 @@ ft* sino;
 /*  The gateway function */
 void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    double *imgt, *sinot;
+    double *img_double, *sino_double;
+    float *img_float, *sino_float;
     //double *maskIdx;
     char* cmd;
     if(nrhs!=3){
@@ -70,25 +71,48 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }else{
         if(!strcmp(cmd,"forward")){      /* forward projection */
             plhs[0] = mxCreateNumericMatrix(pConf->prjWidth*pConf->np,1,mxDOUBLE_CLASS,mxREAL);
-            imgt = mxGetPr(prhs[0]);
-            sinot = mxGetPr(plhs[0]);
-            /* matrix transpose */
-            for(int j=0; j<pConf->n; j++)
-                for(int i=0; i<pConf->n; i++)
-                    img[i*pConf->n+j]=(ft)imgt[i+j*pConf->n];
+            sino_double = mxGetPr(plhs[0]);
+
+            if(mxIsDouble(prhs[0])){
+                img_double = mxGetPr(prhs[0]);
+                /* matrix transpose */
+                for(int j=0; j<pConf->n; j++)
+                    for(int i=0; i<pConf->n; i++)
+                        img[i*pConf->n+j]=(ft)img_double[i+j*pConf->n];
+            }else if(mxIsSingle(prhs[0])){
+                img_float = (float*)mxGetData(prhs[0]);
+                /* matrix transpose */
+                for(int j=0; j<pConf->n; j++)
+                    for(int i=0; i<pConf->n; i++)
+                        img[i*pConf->n+j]=(ft)img_float[i+j*pConf->n];
+            }else{
+                mexPrintf("unknown input parameter type in mPrj forward\n");
+                return;
+            }
 #if GPU
             gpuPrj(img, sino, FWD_BIT);
 #else
             cpuPrj(img, sino, FWD_BIT);
 #endif
             for(int i=0; i<pConf->sinoSize; i++)
-                sinot[i]=sino[i];
+                sino_double[i]=sino[i];
         }else if(!strcmp(cmd,"backward")){
             plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
-            imgt = mxGetPr(plhs[0]);
-            sinot = mxGetPr(prhs[0]);
-            for(int i=0; i<pConf->sinoSize; i++)
-                sino[i]=(ft)sinot[i];
+            img_double = mxGetPr(plhs[0]);
+
+            if(mxIsDouble(prhs[0])){
+                sino_double = mxGetPr(prhs[0]);
+                for(int i=0; i<pConf->sinoSize; i++)
+                    sino[i]=(ft)sino_double[i];
+            }else if(mxIsSingle(prhs[0])){
+                sino_float = (float*)mxGetData(prhs[0]);
+                for(int i=0; i<pConf->sinoSize; i++)
+                    sino[i]=(ft)sino_float[i];
+            }else{
+                mexPrintf("unknown input parameter type in mPrj backward\n");
+                return;
+            }
+
 #if GPU
             gpuPrj(img, sino, BWD_BIT );
 #else
@@ -96,13 +120,22 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif
             for(int j=0; j<pConf->n; j++)
                 for(int i=0; i<pConf->n; i++)
-                    imgt[i*pConf->n+j]=img[i+j*pConf->n];
+                    img_double[i*pConf->n+j]=img[i+j*pConf->n];
         }else if(!strcmp(cmd,"FBP")){
             plhs[0] = mxCreateNumericMatrix(pConf->n*pConf->n,1,mxDOUBLE_CLASS,mxREAL);
-            imgt = mxGetPr(plhs[0]);
-            sinot = mxGetPr(prhs[0]);
-            for(int i=0; i<pConf->sinoSize; i++)
-                sino[i]=(ft)sinot[i];
+            img_double = mxGetPr(plhs[0]);
+            if(mxIsDouble(prhs[0])){
+                sino_double = mxGetPr(prhs[0]);
+                for(int i=0; i<pConf->sinoSize; i++)
+                    sino[i]=(ft)sino_double[i];
+            }else if(mxIsSingle(prhs[0])){
+                sino_float = (float*)mxGetData(prhs[0]);
+                for(int i=0; i<pConf->sinoSize; i++)
+                    sino[i]=(ft)sino_float[i];
+            }else{
+                mexPrintf("unknown input parameter type in mPrj backward\n");
+                return;
+            }
 #if GPU
             gpuPrj(img, sino, FBP_BIT );
 #else
@@ -110,7 +143,7 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 #endif
             for(int j=0; j<pConf->n; j++)
                 for(int i=0; i<pConf->n; i++)
-                    imgt[i*pConf->n+j]=img[i+j*pConf->n];
+                    img_double[i*pConf->n+j]=img[i+j*pConf->n];
         }else{
             showSetup();
             mexPrintf("\nPrinting the current configuration ...\n");

@@ -1,10 +1,25 @@
 function [sino,dist,img]=readRawData(filename,slide)
+% Syntax:
+%
+% [sino,dist,img]=readRawData(filename,slide)
+%
 % read the "slide"-th slide from the raw data *.sin and *.raw
 %
 % One example to call is 
 %     
 %     readRawData('../../cnde/blade_a/blade%03d.sin',220);
 % or  readRawData('../../cnde/blade_a/blade%03d.raw',220);
+%
+% It returns the sinogram data after the logarithm (sino), the distance from the
+% X-ray source to the rotation center (dist), and one FBP reconstrction of
+% the "slide"-th slide of the data.
+%
+% Author: Renliang Gu (gurenliang@gmail.com)
+%
+
+if(nargin==0)
+    help readRawData
+end
 
 file=[];
 
