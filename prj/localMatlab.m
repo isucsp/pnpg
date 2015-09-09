@@ -1,10 +1,9 @@
 function img = localMatlab(fn,col)
         f=fopen(fn,'r');
-        img=[];
-        while(~feof(f))
-            img=[img; fread(f,1000,'float')];
+        img=fread(f,inf,'float');
+        if(exist('col','var'))
+            img=reshape(img,[],col);
         end
-        img=reshape(img,[],col);
         figure; showImg(img);
 end
 

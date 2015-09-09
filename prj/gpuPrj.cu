@@ -898,6 +898,11 @@ int gpuPrj(ft* img, ft* sino, char cmd){
     if(cmd & FWD_BIT){
 #if DEBUG
         printf("Forward projecting ...\n");
+        {
+            FILE* f = fopen("img.data","wb");
+            fwrite(img, sizeof(ft), config.imgSize, f);
+            fclose(f);
+        }
 #endif
         HANDLE_ERROR(cudaMemcpy(dev_img, img, pConf->imgSize*sizeof(ft), 
                     cudaMemcpyHostToDevice ) );
@@ -911,6 +916,14 @@ int gpuPrj(ft* img, ft* sino, char cmd){
             rayDrivePar<<<fGrid,fThread>>>(dev_img, dev_sino);
         HANDLE_ERROR( cudaMemcpy( sino, dev_sino, pConf->sinoSize*sizeof(ft),
                     cudaMemcpyDeviceToHost ) );
+
+#if DEBUG
+        {
+            FILE* f = fopen("sino.data","wb");
+            fwrite(sino, sizeof(ft), config.sinoSize, f);
+            fclose(f);
+        }
+#endif
 
         if(pConf->prjWidth%2==0)
             for(int i=0,idx=0; i<pConf->np; i++,idx+=pConf->prjWidth)

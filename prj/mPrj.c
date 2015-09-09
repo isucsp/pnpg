@@ -79,6 +79,16 @@ void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 for(int j=0; j<pConf->n; j++)
                     for(int i=0; i<pConf->n; i++)
                         img[i*pConf->n+j]=(ft)img_double[i+j*pConf->n];
+#if DEBUG
+                {
+                    FILE* f = fopen("img_mPrj_1.data","wb");
+                    fwrite(img, sizeof(ft), pConf->imgSize, f);
+                    fclose(f);
+                    f=fopen("img_mPrj_2.data","wb");
+                    fwrite(img_double, sizeof(double), pConf->imgSize, f);
+                    fclose(f);
+                }
+#endif
             }else if(mxIsSingle(prhs[0])){
                 img_float = (float*)mxGetData(prhs[0]);
                 /* matrix transpose */
