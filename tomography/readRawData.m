@@ -23,6 +23,13 @@ end
 
 file=[];
 
+[a,b]=regexpi(filename,'-raw$');
+if(~isempty(a)) % read raw data
+    Imea = imread(filename,'tiff')';
+    Imea = double(Imea);
+    file='readed';
+end
+
 [a,b]=regexpi(filename,'\.raw$');
 if(~isempty(a)) % read raw data
     prjWidth=3072;  % here we suppose the width of detector is 3072

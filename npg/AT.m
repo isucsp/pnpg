@@ -65,7 +65,7 @@ classdef AT < Methods
                     end
                     obj.ppp = obj.ppp+1;
 
-                    [newZbar,obj.innerSearch]=obj.proxmapping(zbar-obj.grad/obj.t*obj.theta,...
+                    [newZbar,obj.innerSearch]=obj.proxmapping(obj.zbar-obj.grad/obj.t*obj.theta,...
                         obj.theta*obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
                     newX=(1-1/obj.theta)*obj.alpha+newZbar/obj.theta;
 
@@ -98,7 +98,8 @@ classdef AT < Methods
                 % restart
                 if((temp-obj.cost)>0)
                     if(goodMM)
-                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
+                        if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
+                            obj.zbar=obj.alpha;
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];

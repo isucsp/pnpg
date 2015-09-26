@@ -23,10 +23,11 @@ switch lower(op)
         m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
         a=[1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3];
         aa =10.^(3:-1:-10);
+        Opt=opt;
 
-        for k=1:5
-            for i=1:length(m)
-                opt.m=m(i);
+        for k=1:1
+            for i=2; %length(m)
+                opt=Opt; opt.m=m(i);
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
                 initSig=randn(size(initSig));
                 initSig=Phit(invEAAt*y)*0+1;
@@ -40,7 +41,10 @@ switch lower(op)
                   % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                    
                     fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
-                    if(i==2 && j==4 && k==1) 
+                if(i==2 && j==4 && k==1) 
+                    npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    at     {i,j,k}=Wrapper.AT    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    continue
                     spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.thresh=1e-8;
                     spiral8{i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);

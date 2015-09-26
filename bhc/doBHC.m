@@ -1,4 +1,4 @@
-function doBHC(y,distance,filename)
+function doBHC(y,distance,filename,opt)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Polychromatic Sparse Image Reconstruction and Mass Attenuation Spectrum 
 %            Estimation via B-Spline Basis Function Expansion
@@ -61,9 +61,10 @@ opt.mask=mask; opt.maskk=maskk;
 
 fprintf('Configuration Finished!\n');
 
-if(~isfield(opt,'E')) opt.E=50; end
-opt.beamharden=true; opt.spectBasis='dis';
-opt.maxItr=2e3; opt.thresh=1e-6;
+if(~isfield(opt,'E')) opt.E=100; end
+if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
+
+opt.beamharden=true; opt.maxItr=2e3; opt.thresh=1e-6;
 
 initSig = maskFunc(FBP(y),opt.mask~=0);
 

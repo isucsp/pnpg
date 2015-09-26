@@ -123,7 +123,7 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case {lower('NPGs'), lower('NPG')}
+    case {lower('NPGs'), lower('NPG'),lower('AT'),lower('ATs')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
@@ -143,10 +143,10 @@ switch lower(opt.alphaStep)
                 penalty = @(x) tlv(x,'iso');
         end
 
-        if(strcmpi(opt.alphaStep,'npgs'))
+        if(strcmpi(opt.alphaStep,'NPGs'))
             alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
             alphaStep.fArray{3} = penalty;
-        elseif(strcmpi(opt.alphaStep,'npg'))
+        elseif(strcmpi(opt.alphaStep,'NPG'))
             alpha=max(alpha,0);
             alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
             alphaStep.fArray{3} = penalty;
@@ -155,6 +155,13 @@ switch lower(opt.alphaStep)
                 % opt.alphaStep='PG';
                 % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
             end
+        elseif(strcmpi(opt.alphaStep,'ATs'))
+            alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+            alphaStep.fArray{3} = penalty;
+        elseif(strcmpi(opt.alphaStep,'AT'))
+            alpha=max(alpha,0);
+            alphaStep=AT(1,alpha,1,opt.stepShrnk,proxmalProj);
+            alphaStep.fArray{3} = penalty;
         end
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);

@@ -14,6 +14,8 @@ classdef NPG < Methods
         nonInc=0;
         innerSearch=0;
 
+        forcePositive=false;
+
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
 
@@ -50,7 +52,7 @@ classdef NPG < Methods
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                % if(obj.forcePositive) xbar(xbar<0)=0; end
+                if(obj.forcePositive) xbar(xbar<0)=0; end
                 obj.theta = temp; obj.preAlpha = obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(xbar);
