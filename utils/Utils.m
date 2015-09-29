@@ -410,6 +410,17 @@ classdef Utils < handle
             [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,0,inf,pars);
             newX=mask.a(newX);
         end
+        function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
+            % This function tests whether
+            %      f(x) ≤ f(y)+(x-y)'*∇f(y)+ 0.5*L*||x-y||^2
+            % holds.
+
+            if(exist('dfx','var') && ~isempty(dfx) && abs(fx-fy)/max(max(fx,fy),1) < 1e-10)
+                test=(innerProd(x_minus_y,dfx-dfy) <= 0.5*L*sqrNorm(x_minus_y));
+            else
+                test=(fx<=fy+innerProd(x_minus_y,dfy)+0.5*L*sqrNorm(x_minus_y));
+            end
+        end
     end
 end
 

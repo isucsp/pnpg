@@ -34,11 +34,9 @@ paper can be reproduced by first run `*Ex`, e.g., `yangEx`, followed by
    discretization, in *Proc. IEEE Int. Conf. Acoust., Speech, Signal
    Process.*, Vancouver, Canada, May 2013, pp. 1085–1089.
 
-1. R. Gu and A. Dogandžić, Polychromatic sparse image reconstruction and
-   mass attenuation spectrum estimation via B-spline basis function
-   expansion, in *Rev. Prog. Quant. Nondestr. Eval. Vol. 34 1650*, edited
-   by D. E. Chimenti and L. J. Bond, AIP Conf. Proc. (2015), pp. 1707–1716.
-
+1. R. Gu and A. Dogandžić. (Sep. 2015). Polychromatic X-ray CT Image
+   Reconstruction and Mass-Attenuation Spectrum Estimation. *arXiv*:
+   [1509.02193](http://arxiv.org/abs/1509.02193).
 
 ### How to Install
 

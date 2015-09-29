@@ -42,6 +42,7 @@ switch lower(op)
                    
                     fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
                 if(i==2 && j==4 && k==1) 
+                    opt.proximal='wvltLagrangian';
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     at     {i,j,k}=Wrapper.AT    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     continue

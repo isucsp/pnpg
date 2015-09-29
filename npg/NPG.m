@@ -52,7 +52,7 @@ classdef NPG < Methods
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                if(obj.forcePositive) xbar(xbar<0)=0; end
+                %if(obj.forcePositive) xbar(xbar<0)=0; end
                 obj.theta = temp; obj.preAlpha = obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(xbar);
@@ -72,8 +72,7 @@ classdef NPG < Methods
                         obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
 
                     newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if(newCost<=LMM)
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else

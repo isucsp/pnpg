@@ -22,9 +22,10 @@ switch lower(op)
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
-        for k=1:5
+        Opt=opt;
+        for k=1
             for i=length(m)
-                opt.m=m(i); opt.snr=inf;
+                opt=Opt; opt.m=m(i); opt.snr=inf;
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
                 initSig = Phit(invEAAt*y);
 
@@ -34,6 +35,12 @@ switch lower(op)
                 for j=3
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     opt.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
+
+                    npg      {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    at       {i,j,k}=Wrapper.AT      (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgc     {i,j,k}=Wrapper.NPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    keyboard
+                    continue;
 
                     ga_gfb = 1.8;
                     la_gfb = 1;
@@ -48,11 +55,6 @@ switch lower(op)
                     report = @(x)F(x)+G(x);
                     [xGFB, eGFB] = GeneralizedForwardBackward( gradF, proxGi, zeros( [length(initSig) 2] ), opt.maxItr, ga_gfb, la_gfb, true, report );
                     keyboard
-
-                    npg      {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npgc     {i,j,k}=Wrapper.NPGc     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    keyboard
-                    continue;
 
                     temp=opt; opt.thresh=1e-12; opt.maxItr=5e4;
                     % pgc12{i,j,k}=Wrapper.PGc(Phi,Phit,Psi,Psit,y,initSig,opt);

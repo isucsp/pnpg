@@ -96,7 +96,7 @@ classdef AT < Methods
                 temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((temp-obj.cost)>0)
+                if((temp-obj.cost)>0 || mod(obj.p,600)==0)
                     if(goodMM)
                         if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
                             obj.zbar=obj.alpha;
