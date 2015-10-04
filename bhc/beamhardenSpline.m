@@ -341,6 +341,7 @@ if(opt.debugLevel>=1)
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
+global strlen
 tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     if(opt.saveAnimate && (p<10 || (p>=10 && p<100 && mod(p,10)==0) || (p>=100 && mod(p,100)==0)))

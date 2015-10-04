@@ -3,6 +3,8 @@ function slPoiLinEx(op)
 %     Reconstruction of Nonnegative Sparse Signals Using Accelerated
 %                      Proximal-Gradient Algorithms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%         Skyline Poisson Measurements With Linear Model Example
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (renliang@iastate.edu)
 %
@@ -35,16 +37,18 @@ switch lower(op)
                 u_max=1;
 
                 for j=1:5;
+                    fprintf('%s, i=%d, j=%d, k=%d\n','Skyline Poisson Linear Example',i,j,k);
                     opt.u = a(i)*u_max*10^(j-3);
 
                   % % This method by Dupe etc 2009 seems not working at all
                   % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                    
-                    fprintf('%s, i=%d, j=%d, k=%d\n','Example_006',i,j,k);
                 if(i==2 && j==4 && k==1) 
+                    opt.admmTol=1e-3;
                     opt.proximal='wvltLagrangian';
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    at     {i,j,k}=Wrapper.AT    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.proximal='wvltADMM';
+                    npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     continue
                     spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.thresh=1e-8;

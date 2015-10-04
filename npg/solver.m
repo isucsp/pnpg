@@ -151,7 +151,8 @@ switch lower(opt.alphaStep)
             alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
             alphaStep.fArray{3} = penalty;
             if(strcmpi(opt.noiseType,'poisson'))
-                alphaStep.forcePositive=true;
+                if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
+                alphaStep.forcePositive=opt.forcePositive;
                 % opt.alphaStep='PG';
                 % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
             end
@@ -296,6 +297,7 @@ if(opt.debugLevel>=1)
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
+global strlen
 tic; p=0; strlen=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
@@ -357,6 +359,7 @@ while(true)
             out.contAlpha{contIdx}=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
             inf_psit_grad=pNorm(Psit(alphaStep.grad),inf);
+            strlen=0; fprintf('\ninf_Psit_grad=%g, u=%g\n',inf_psit_grad, alphaStep.u);
             contIdx=contIdx+1;
             if(length(opt.u)>1)
                 alphaStep.u = opt.u(contIdx);

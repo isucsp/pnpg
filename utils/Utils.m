@@ -1,7 +1,4 @@
 classdef Utils < handle
-    properties
-        strlen = 0;
-    end
     methods(Static)
         function out = getNthOutPut(f,x,n)
             switch(n)
@@ -423,14 +420,6 @@ classdef Utils < handle
             else
                 test=(fx<=fy+innerProd(x_minus_y,dfy)+0.5*L*sqrNorm(x_minus_y));
             end
-        end
-        function printInPlace(str)
-            fprintf([repmat('\b',1,obj.strlen) '%s'],str);
-            obj.strlen=length(str);
-        end
-        function print(str)
-            fprintf('\n%s',str);
-            obj.strlen=length(str);
         end
     end
 end
