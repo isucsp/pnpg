@@ -11,11 +11,12 @@ classdef Utils < handle
             end
         end
         function y = softThresh(x,thresh)
-            y=x-thresh;
-            y(abs(x)<thresh) = 0;
-            idx = x<0;
-            x=x+thresh;
-            y(idx)=x(idx);
+            thresh=abs(thresh);
+            y=zeros(size(x));
+            idx=(x>thresh);
+            y(idx)=x(idx)-thresh;
+            idx=(x<-thresh);
+            y(idx)=x(idx)+thresh;
         end
         function mat = getMat(func,ncol)
             mat = zeros(length(func(zeros(ncol,1))),ncol);
