@@ -44,11 +44,13 @@ switch lower(op)
                   % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                    
                 if(i==2 && j==4 && k==1) 
-                    opt.admmTol=1e-3;
+                    opt.admmTol=1e-2;
                     opt.proximal='wvltLagrangian';
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    figure; plot(npg{i,j,k}.innerSearch,'r'); hold on;
                     opt.proximal='wvltADMM';
                     npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    plot(npg{i,j,k}.innerSearch,'g');
                     continue
                     spiral {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.thresh=1e-8;
