@@ -163,8 +163,12 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
 
     % caution: don't use the wavelet tools from matlab, it is slow
     daub_H = daubcqf(daub);
-    Psi = @(xx) midwt(xx,daub_H,dwt_L);
-    Psit= @(xx)  mdwt(xx,daub_H,dwt_L);
+    Psi  = @(xx) midwt(xx,daub_H,dwt_L);
+    Psit = @(xx)  mdwt(xx,daub_H,dwt_L);
+
+    % The following can be used to test very fat sparsifying matrix
+    % Psi = @(xx) midwt(xx(1:end/2),daub_H,dwt_L)/sqrt(2)+midwt(xx(end/2+1:end),daubcqf(6),4)/sqrt(2);
+    % Psit= @(xx) [mdwt(xx,daub_H,dwt_L)/sqrt(2); mdwt(xx,daubcqf(6),4)/sqrt(2)];
 
     opt.trueAlpha=x0;
     opt.L = max(svd(Phi))^2;
