@@ -257,7 +257,7 @@ switch lower(op)
         system(['mv skylinePoisson.data ' paperDir]);
 
     case 'test'  % run to get good choice of a
-        filename = [mfilename '_test.mat'];
+        filename = [mfilename '_1.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('opt');
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
@@ -265,24 +265,34 @@ switch lower(op)
         opt.noiseType='poisson'; opt.matrixType='nonneg'; opt.snr=1e7;
         m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
         a=[1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3];
-        aa =10.^(3:-1:-10);
 
-        for k=1:5
+        for k=1:1
             for i=1:length(m)
                 opt.m=m(i);
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
-                initSig=randn(size(initSig));
+                %initSig=randn(size(initSig));
                 initSig=Phit(invEAAt*y)*0+1;
                 fprintf('min=%d, max=%d, sum(y)=%d\n',min(y), max(y),sum(y));
-                u_max=1;
 
                 opt.fullcont=true;
-                opt.u=aa*u_max;
+
+                % for isotv
+                [~,g]=Utils.poissonModelConstEst(Phi,Phit,y);
+                u_max = max(g./reshape(Utils.isotropicBound(sqrt(length(g))),[],1));
+                clear('g')
+                aa =10.^(0:-1:-10);
+                opt.u=aa*u_max; opt.proximal='tviso';
+                npgTVFull {i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
+                fprintf('i=%d, good a = 1e%g\n',i,max(log10(aa(out.contRMSE==min(out.contRMSE)))));
+
+                % for l1 norm
+                u_max=1;
+                aa =10.^(3:-1:-10);
+                opt.u=aa*u_max; opt.proximal='wvltADMM';
                 npgFull {i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgFull{i,k};
                 fprintf('i=%d, good a = 1e%g\n',i,max(log10(aa(out.contRMSE==min(out.contRMSE)))));
                 npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgsFull{i,k};
                 fprintf('i=%d, good a = 1e%g\n',i,max(log10(aa(out.contRMSE==min(out.contRMSE)))));
-                opt.fullcont=false;
                 save(filename);
             end
         end

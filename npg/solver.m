@@ -74,6 +74,8 @@ if(~isfield(opt,'contGamma')) opt.contGamma=1e4; end
 % find rse vs a, this option if true will disable "continuation"
 if(~isfield(opt,'fullcont')) opt.fullcont=false; end
 
+if(~isfield(opt,'mask')) opt.mask=[]; end
+
 if(opt.fullcont)
     opt.continuation=false;
 end
@@ -183,13 +185,14 @@ switch lower(opt.noiseType)
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
     case lower('poissonLogLink0')
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink0(aaa,Phi,Phit,y,opt.I0);
-    case {'poisson', 'poisson2'} % poisson2 is for test
+    case 'poisson'
         if(isfield(opt,'bb'))
             temp=reshape(opt.bb,size(y));
         else
             temp=0;
         end
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
+        contEta=@Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
         trueCost = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp,1e-100);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
@@ -223,13 +226,22 @@ end
 
 if(opt.continuation || opt.fullcont)
     contIdx=1;
-    inf_psit_grad=opt.u(1);
+    u_max=opt.u(1);
     if(length(opt.u)>1)
         alphaStep.u = opt.u(contIdx);
     else
-        [~,g]=alphaStep.fArray{1}(alpha);
-        inf_psit_grad=pNorm(Psit(g),inf);
-        alphaStep.u = opt.contEta*inf_psit_grad;
+        switch(lower(opt.proximal))
+            case lower('tvl1')
+                [~,g]=constEst();
+                u_max=Utils.tvParUpBound(g,opt.mask);
+            case lower('tviso')
+                [~,g]=constEst();
+                u_max=sqrt(2)*Utils.tvParUpBound(g,opt.mask);
+            otherwise
+                [~,g]=alphaStep.fArray{1}(alpha);
+                u_max=pNorm(Psit(g),inf);
+        end
+        alphaStep.u = opt.contEta*u_max;
         alphaStep.u = min(alphaStep.u,opt.u*opt.contGamma);
         alphaStep.u = max(alphaStep.u,opt.u);
         if(alphaStep.u*opt.contShrnk<=opt.u)
@@ -345,7 +357,7 @@ while(true)
     end
 
     if(opt.continuation || opt.fullcont)
-        out.uRecord(p,:)=[opt.u(end),alphaStep.u,inf_psit_grad];
+        out.uRecord(p,:)=[opt.u(end),alphaStep.u];
         str=sprintf([str ' %12g'],alphaStep.u);
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
@@ -358,14 +370,12 @@ while(true)
         if(temp>1 && out.difAlpha(p) < temp1 )
             out.contAlpha{contIdx}=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
-            inf_psit_grad=pNorm(Psit(alphaStep.grad),inf);
-            strlen=0; fprintf('\ninf_Psit_grad=%g, u=%g\n',inf_psit_grad, alphaStep.u);
+            strlen=0; fprintf('\nu=%g\n',alphaStep.u);
             contIdx=contIdx+1;
             if(length(opt.u)>1)
                 alphaStep.u = opt.u(contIdx);
             else
-                alphaStep.u = min(alphaStep.u*opt.contShrnk,inf_psit_grad*opt.contEta);
-                alphaStep.u = max(alphaStep.u,opt.u);
+                alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             end
             alphaStep.reset();
         end

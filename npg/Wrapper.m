@@ -137,8 +137,17 @@ classdef Wrapper < handle
             if(~isfield(opt,'verbose')) opt.verbose=100; end
             if(~isfield(opt,'bb')) opt.bb=zeros(size(y)); end
             if(~isfield(opt,'saveTrueCost')) opt.saveTrueCost=false; end
+            if(~isfield(opt,'proximal')) opt.proximal='wvltLagrangian'; end
+            switch(lower(opt.proximal))
+                case {lower('wvltADMM'), lower('wvltLagrangian')}
+                    penalty = @(x) pNorm(Psit(x),1);
+                case lower('tvl1')
+                    penalty = @(x) tlv(x,'l1');
+                case lower('tviso')
+                    penalty = @(x) tlv(x,'iso');
+            end
             [alpha,p,cost,reconerror,time,out] = ...
-                SPIRALTAP_mod(y,Phi,opt.u,'penalty','ONB',...
+                SPIRALTAP_mod(y,Phi,opt.u,'penalty',opt.proximal,...
                 'AT',Phit,'W',Psi,'WT',Psit,'noisetype',opt.noiseType,...
                 'initialization',xInit,'maxiter',opt.maxItr,...
                 'miniter',0,'stopcriterion',3,...
@@ -152,7 +161,7 @@ classdef Wrapper < handle
             out.time=time;
             out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
                 sqrNorm(out.alpha.*(out.alpha<0));...
-                pNorm(Psit(out.alpha),1)];
+                penalty(out.alpha)];
             out.opt=opt;
             fprintf('SPIRAL cost=%g, RMSE=%g, cpu time=%g\n',out.cost(end),out.RMSE(end),out.time(end));
         end

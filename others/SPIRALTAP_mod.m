@@ -107,6 +107,7 @@
 
 % modified by Renliang Gu to add support for the background radiation
 % poisson(Ax+bb)
+% added support for both tvl1 and tviso penalties.
 
 function [x, varargout] = SPIRALTAP(y, A, tau, varargin)
 % ==== Set default/initial parameter values ====
@@ -240,11 +241,11 @@ if sum( strcmpi(noisetype,{'poisson','gaussian'})) == 0
         'The parameter ''NOISETYPE'' may only be ''Gaussian'' or ''Poisson''.'])
 end
 % PENALTY:  The implemented penalty options are 'Canonical, 'ONB', 'RDP', 
-% 'RDP-TI','TV'.
-if sum( strcmpi(penalty,{'canonical','onb','rdp','rdp-ti','tv'})) == 0
+% 'RDP-TI','TV','tvl1','tviso'.
+if sum(strcmpi(penalty,{'canonical','onb','wvltLagrangian','wvltADMM','rdp','rdp-ti','tv','tvl1','tviso'})) == 0
     error(['Invalid setting ''PENALTY'' = ''',num2str(penalty),'''.  ',...
-        'The parameter ''PENALTY'' may only be ''Canonical'', ''ONB'', ',...
-        '''RDP'', ''RDP-TI'', or ''TV''.']);
+        'The parameter ''PENALTY'' may only be ''Canonical'', ''ONB(wvltLagrangian)'', ''wvltADMM'', ',...
+        '''RDP'', ''RDP-TI'', ''TV(tvl1)'', or ''tviso''.']);
 end
 % VERBOSE:  Needs to be a nonnegative integer.
 if (round(verbose) ~= verbose) || (verbose < 0)
@@ -408,7 +409,7 @@ end
 switch lower(penalty)
     case 'canonical'
         
-    case 'onb' 
+    case {'onb' ,lower('wvltLagrangian'), lower('wvltADMM')}
         % Already checked for valid subminiter, submaxiter, and subtolerance
         % Check for valid substopcriterion 
         % Need to check for the presense of W and WT
@@ -494,7 +495,7 @@ switch lower(penalty)
                 '''PENALTY'' = ''',penalty,'''.']);
         end
         
-    case 'tv'
+    case {'tv','tvl1','tviso'}
         % Cannot have a vectorized tau (yet)
         if (numel(tau) ~= 1)
             error(['A vector regularization parameter ''TAU'' cannot be ',...
@@ -872,7 +873,7 @@ function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
     switch lower(penalty)
         case 'canonical'
             objective = objective + sum(abs(tau(:).*x(:)));
-        case 'onb' 
+        case {'onb',lower('wvltADMM'),lower('wvltLagrangian')}
             WT = varargin{1};
             WTx = WT(x);
             objective = objective + sum(abs(tau(:).*WTx(:)));
@@ -880,8 +881,10 @@ function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
             todo
         case 'rdp-ti'
             todo
-        case 'tv'
+        case {'tv', 'tvl1'}
             objective = objective + tau.*tlv(x,'l1');
+        case 'tviso'
+            objective = objective + tau.*tlv(x,'iso');
     end
 end
 
@@ -892,7 +895,17 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
     switch lower(penalty)
         case 'canonical'
             subsolution = max(step - tau./alpha + mu, 0.0);
-        case 'onb'
+        case {lower('wvltADMM')}
+            % if onb is selected, varargin must be such that
+            W                   = varargin{1};
+            WT                  = varargin{2};
+            subminiter          = varargin{3};
+            submaxiter          = varargin{4};
+            substopcriterion    = varargin{5};
+            subtolerance        = varargin{6};
+                                   
+            subsolution = NPG.ADMM(W,WT,step,tau./alpha,subtolerance,submaxiter);
+        case {'onb',lower('wvltLagrangian')}
             % if onb is selected, varargin must be such that
             W                   = varargin{1};
             WT                  = varargin{2};
@@ -903,18 +916,29 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
                                    
             subsolution = constrainedl2l1denoise(step,W,WT,tau./alpha,mu,...
                 subminiter,submaxiter,substopcriterion,subtolerance);
-            % subsolution = NPG.ADMM(W,WT,...
-            %             step,tau./alpha,subtolerance,submaxiter);
         case 'rdp'
             subsolution = haarTVApprox2DNN_recentered(step,tau./alpha,-mu);
         case 'rdp-ti'
             subsolution = haarTIApprox2DNN_recentered(step,tau./alpha,-mu);
-        case 'tv'
+        case {'tv', 'tvl1'}
             subtolerance        = varargin{6};
             submaxiter          = varargin{4};
             % From Becca's Code:
             pars.print = 0;
             pars.tv = 'l1';
+            pars.MAXITER = submaxiter;
+            pars.epsilon = subtolerance; % Becca used 1e-5;
+            if tau>0
+                subsolution = denoise_bound(step,tau./alpha,-mu,Inf,pars);
+            else
+                subsolution = step.*(step>0);
+            end
+        case 'tviso'
+            subtolerance        = varargin{6};
+            submaxiter          = varargin{4};
+            % From Becca's Code:
+            pars.print = 0;
+            pars.tv = 'iso';
             pars.MAXITER = submaxiter;
             pars.epsilon = subtolerance; % Becca used 1e-5;
             if tau>0

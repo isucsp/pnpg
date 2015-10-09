@@ -155,10 +155,8 @@ classdef Utils < handle
 
         % The Poisson Generalized Linear Model with identity log link: Ey=Φα
         function [f,g,h] = poissonModelAppr(alpha,Phi,Phit,y,b,EPS)
-            if(nargin<5)
-                b=0;
-            end
-            if(nargin==6) eps=EPS; else eps=1e-10; end
+            if(~exist('b','var')) b=0; end
+            if(exist('EPS','var')) eps=EPS; else eps=1e-10; end
 
             PhiAlpha=Phi(alpha)+b;
             nzpx=(PhiAlpha>eps);
@@ -192,13 +190,18 @@ classdef Utils < handle
         end
 
         function [f,g,h] = poissonModel(alpha,Phi,Phit,y,b,EPS)
-            if(nargin<5) b=zeros(size(y)); end
-            if(nargin==6) eps=EPS; else eps=0; end
+            % modeling the Poisson measurement with linear model
+            %     y ~ Poisson ( Φα + b )
+            %  f(α)=1'*(Φα+b) - y'*ln(Φα+b)
+            %  g(α)=Φ'*[ 1-y./(Φα+b) ]
+            if(exist('EPS','var')) eps=EPS; else eps=0; end
+            if(~exist('b','var')) b=0; end
 
             PhiAlpha=Phi(alpha)+b;
+            PhiAlpha=PhiAlpha(:);
             nzy=(y~=0);
             nzpx=(PhiAlpha~=0);
-            f=sum(PhiAlpha(:))-innerProd(y(nzy),log(PhiAlpha(nzy)+eps));
+            f=sum(PhiAlpha-y)-innerProd(y(nzy),log(PhiAlpha(nzy)./y(nzy)));
 
             if(isnan(f)) keyboard; end
             if(any(isnan(alpha))) keyboard; end
@@ -223,6 +226,44 @@ classdef Utils < handle
                     hh = innerProd(z,weight.*z);
                 end
             end
+        end
+
+        function [a,b] = poissonModelConstEst(Phi,Phit,y,b)
+            % Estimate the MLE given the signal is a constant
+            if(~exist('b','var') || isempty(b)) b=0; end
+            b=b(:);
+            one = ones(size(Phit(y)));
+            PhiOne=Phi(one);
+            OnePhiOne=sum(PhiOne);
+            yPhiOne=y.*PhiOne;
+            g=@(x) OnePhiOne-sum(yPhiOne./(PhiOne*x+b));
+            high=1;
+            if(g(high)>0)
+                low=high/10;
+                while(g(low)>0)
+                    high=low;
+                    low=low/10;
+                end
+            elseif(g(high)<0)
+                while(g(high)<0)
+                    low=high;
+                    high=high*10;
+                end
+            else
+                low=high;
+            end
+            while(high-low>1e-15)
+                mid=(high+low)/2;
+                if(g(mid)>0)
+                    high=mid;
+                elseif(g(mid)<0)
+                    low=mid;
+                else
+                    high=mid; low=mid;
+                end
+            end
+            a=high;
+            [~,b]=Utils.poissonModel(one*a,Phi,Phit,y,b);
         end
 
         % The following model assumes the y=I_0 * exp(-Φα), where I_0 is known
@@ -410,6 +451,33 @@ classdef Utils < handle
 
             [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,0,inf,pars);
             newX=mask.a(newX);
+        end
+        function b = tvParUpBound(g,mask)
+            if(~exist('mask','var') || isempty(mask))
+                global strlen
+                strlen=0;
+                fprintf('\nempty mask in Utils.tvParUpBound\n');
+                G=g;
+            else
+                maskIdx=find(mask~=0);
+                n=size(mask);
+                G=maskFunc(g,maskIdx,n);
+            end
+            [m,n]=size(G);
+            u_max=+inf;
+            temp=0;
+            t2=0;
+            for i=1:m;
+                t2=t2+G(i,:);
+                temp=max(temp,abs(t2(:)));
+            end
+            u_max=min(temp,u_max);
+            t2=0; temp=0;
+            for i=1:n;
+                t2=t2+G(:,i);
+                temp=max(temp,abs(t2(:)));
+            end
+            u_max=min(temp,u_max);
         end
         function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
             % This function tests whether
