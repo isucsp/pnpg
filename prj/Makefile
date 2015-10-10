@@ -39,7 +39,7 @@ $(addsuffix .$(EXT),cpuPrj) : %.$(EXT) : mPrj.c cpuPrj.c common/kiss_fft.c prj.h
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^) -DCPU=1 # -lglut -lGL
 
 cpuPrj: cpuPrj.c common/kiss_fft.c prj.h utils.h common/cpu_bitmap.h common/thread.h
-	g++ -Wall -fPIC $(filter-out %.h,$^) -o $@ -pthread -lglut -lGL
+	g++ -Wall -fPIC $(filter-out %.h,$^) -o $@ -pthread #-lglut -lGL
 
 # compiling parallel projection operator 
 
