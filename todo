@@ -1,3 +1,6 @@
+1. remove LInk in the setupPath file
+2. handle the find nothing problem in preprocess
+3. handle projection size larger than 28888
 
 be care for the mask of the wavelate, as the PsiM and PsiMt are not square.
 
@@ -28,5 +31,24 @@ Construct an example for a steel tube with carburn film inside.
 
 
 reduce unnecessary output
-make better structur for class Method and its subclasses
+make better structure for class Method and its subclasses
+
+
+todo for denoise_bound_mod
+     use more agressive step size
+     use restart
+     use C implementation
+     use a better mask implementation
+
+
+
+
+
+
+
+
+
+
+
+
 

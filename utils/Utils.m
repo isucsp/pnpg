@@ -432,8 +432,10 @@ classdef Utils < handle
             Psi =@(z) mask.a(midwt(maskk.b(z),wav,dwt_L));
             Psit=@(z) maskk.a(mdwt(mask.b(z),wav,dwt_L));
         end
-        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,maskmt,tvType)
+        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub)
             if(~exist('tvType','var')) tvType='l1'; end
+            if(~exist('lb','var')) lb=0; end
+            if(~exist('ub','var')) ub=inf; end
             pars.print = 0;
             pars.tv = tvType;
             pars.MAXITER = maxInnerItr;
@@ -449,7 +451,7 @@ classdef Utils < handle
                 mask.b=@(xx) maskFunc(xx,maskIdx,n);
             end
 
-            [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,0,inf,pars);
+            [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,lb,ub,pars);
             newX=mask.a(newX);
         end
         function b = tvParUpBound(g,mask)

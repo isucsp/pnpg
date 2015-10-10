@@ -34,7 +34,7 @@ daub = 2; dwt_L=6;        %levels of wavelet transform
 maskType='CircleMask';
 
 conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
-conf.imgSize = 2^floor(log2(N));
+conf.imgSize = min(2^floor(log2(N)),1024);
 conf.prjWidth = N;
 conf.prjFull = opt.prjFull;
 conf.prjNum = opt.prjNum;
@@ -61,8 +61,8 @@ opt.mask=mask; opt.maskk=maskk;
 
 fprintf('Configuration Finished!\n');
 
-if(~isfield(opt,'E')) opt.E=100; end
-if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
+if(~isfield(opt,'E')) opt.E=30; end
+if(~isfield(opt,'spectBasis')) opt.spectBasis='b1'; end
 
 opt.beamharden=true; opt.maxItr=2e3; opt.thresh=1e-6;
 
@@ -79,7 +79,7 @@ Oopt=opt;
 for j=5:-1:1
     fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
     u  =  10^(-5);
-    opt=Oopt; opt.u=u*10^(j-3); opt.proximal='tviso';
+    opt=Oopt; opt.u=u*10^(j-3); opt.proximal='wvltADMM';
     if(j==5)
         npgTV{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
     else

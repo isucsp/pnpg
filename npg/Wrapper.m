@@ -138,6 +138,7 @@ classdef Wrapper < handle
             if(~isfield(opt,'bb')) opt.bb=zeros(size(y)); end
             if(~isfield(opt,'saveTrueCost')) opt.saveTrueCost=false; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltLagrangian'; end
+            if(~isfield(opt,'mask')) opt.mask=[]; end
             switch(lower(opt.proximal))
                 case {lower('wvltADMM'), lower('wvltLagrangian')}
                     penalty = @(x) pNorm(Psit(x),1);
@@ -156,7 +157,7 @@ classdef Wrapper < handle
                 'subtolerance',subtolerance,'monotone',1,...
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
                 'reconerrortype',3,'savedifalpha',1,'savestepsize',true,...
-                'savesolutionpath',0,'verbose',opt.verbose);
+                'savesolutionpath',0,'verbose',opt.verbose,'mask',opt.mask);
             out.alpha=alpha; out.p=p; out.cost=cost; out.RMSE=reconerror;
             out.time=time;
             out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...

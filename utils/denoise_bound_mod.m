@@ -145,7 +145,7 @@ while((i<MAXITER)&&(count<5))
     %Updating R and t
     tkp1=(1+sqrt(1+4*tk^2))/2;
     
-    R1=P1+(tk-1)/(tkp1)*(P1-Pold1);
+    R1=P1+(tk-1)/tkp1*(P1-Pold1);
     R2=P2+(tk-1)/tkp1*(P2-Pold2);
     
     re=norm(D-Dold,'fro')/norm(D,'fro');
@@ -155,16 +155,18 @@ while((i<MAXITER)&&(count<5))
         count=0;
     end
     
-    C=Xobs-lambda*Lforward(P1,P2);
-    PC=project(C);
-    fval=-norm(C-PC,'fro')^2+norm(C,'fro')^2;
-    fun_all=[fun_all;fval];
-    if(prnt)
-        fprintf('          %5d                   %10.10f              %10.10f',i,fval,norm(D-Dold,'fro')/norm(D,'fro'));
-        if (fval>fold)
-            fprintf('  *\n');
-        else
-            fprintf('   \n');
+    if(nargout==3)
+        C=Xobs-lambda*Lforward(P1,P2);
+        PC=project(C);
+        fval=-norm(C-PC,'fro')^2+norm(C,'fro')^2;
+        fun_all=[fun_all;fval];
+        if(prnt)
+            fprintf('          %5d                   %10.10f              %10.10f',i,fval,norm(D-Dold,'fro')/norm(D,'fro'));
+            if (fval>fold)
+                fprintf('  *\n');
+            else
+                fprintf('   \n');
+            end
         end
     end
 end

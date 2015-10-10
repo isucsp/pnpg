@@ -42,8 +42,23 @@ switch lower(op)
 
                 initSig=max(fbp{i,1,k}.alpha,0);
 
-                %if(k==2) save(filename); return; end
+                if(k==2) save(filename); return; end
                 opt.fullcont=true; opt.maxItr=1e4; opt.thresh=1e-6;
+
+                % for isotv
+                u_max=1;
+                aa =(3:-0.5:-6);
+                opt.u=(10.^aa)*u_max; opt.proximal='tviso';
+%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+                for j=1:length(aa); if(aa(j)>-2)
+                    opt.proximal='tviso';
+                    opt.u=10^aa(j)*u_max;
+                    if(j==1)
+                        spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    else
+                        spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k},opt);
+                    end
+                end; end
 
                 % for wavelet l1 norm
                 u_max=1;
@@ -51,24 +66,18 @@ switch lower(op)
                 opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
 %               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
-                for j=1:length(aa); if(aa(j)<=3 && aa(j)>-2)
+                for j=1:length(aa); if(aa(j)>-2)
                     opt.proximal='wvltLagrangian';
                     opt.u=10^aa(j)*u_max;
-                    spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    if(j==1)
+                        spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    else
+                        spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
+                    end
                 end; end
 
                 save(filename);
-
-                % for isotv
-                u_max=1;
-                aa =(3:-0.5:-6);
-                opt.u=(10.^aa)*u_max; opt.proximal='tviso';
-%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
-                for j=1:length(aa); if(aa(j)<=3 && aa(j)>-2)
-                    opt.proximal='tviso';
-                    opt.u=10^aa(j)*u_max;
-                    spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-                end; end
+                return;
 
                 opt.fullcont=false;
                 j=1;

@@ -147,6 +147,7 @@ subtolerance = 1e-5;
 
 % modified by Renliang Gu to add background noise support
 bb = zeros(size(y));
+mask = [];
 % Don't forget convergence criterion
 
 % ---- For Choosing Alpha ----
@@ -227,6 +228,7 @@ else
             case 'warnings';            warnings            = varargin{ii+1};
             case 'recenter';            recenter            = varargin{ii+1};
             case 'bb';                  bb                  = varargin{ii+1};
+            case 'mask';                mask                = varargin{ii+1};
         otherwise
                 % Something wrong with the parameter string
                 error(['Unrecognized option: ''', varargin{ii}, '''']);
@@ -636,7 +638,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
             step = xprevious - grad./alpha;
             x = computesubsolution(step,tau,alpha,penalty,mu,...
                 W,WT,subminiter,submaxiter,substopcriterion,...
-                subtolerance);
+                subtolerance,mask);
             dx = x - dx;
             Ax = A(x);            
             
@@ -653,7 +655,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     step = xprevious - grad./alpha;
                     x = computesubsolution(step,tau,alpha,penalty,mu,...
                         W,WT,subminiter,submaxiter,substopcriterion,...
-                        subtolerance);
+                        subtolerance,mask);
                     dx = x - dx;
                     Adx = Axprevious;
                     Ax = A(x);
@@ -682,7 +684,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 step = xprevious - grad./alpha;
                 x = computesubsolution(step,tau,alpha,penalty,mu,...
                     W,WT,subminiter,submaxiter,substopcriterion,...
-                    subtolerance);
+                    subtolerance,mask);
                 dx = x - dx;
                 Adx = Axprevious;
                 Ax = A(x);
@@ -923,26 +925,30 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
         case {'tv', 'tvl1'}
             subtolerance        = varargin{6};
             submaxiter          = varargin{4};
+            mask                = varargin{7};
             % From Becca's Code:
             pars.print = 0;
             pars.tv = 'l1';
             pars.MAXITER = submaxiter;
             pars.epsilon = subtolerance; % Becca used 1e-5;
             if tau>0
-                subsolution = denoise_bound(step,tau./alpha,-mu,Inf,pars);
+                %subsolution = denoise_bound(step,tau./alpha,-mu,Inf,pars);
+                subsolution=Utils.denoiseTV(step,tau./alpha,subtolerance,submaxiter,mask,'l1',-mu,Inf);
             else
                 subsolution = step.*(step>0);
             end
         case 'tviso'
             subtolerance        = varargin{6};
             submaxiter          = varargin{4};
+            mask                = varargin{7};
             % From Becca's Code:
             pars.print = 0;
             pars.tv = 'iso';
             pars.MAXITER = submaxiter;
             pars.epsilon = subtolerance; % Becca used 1e-5;
             if tau>0
-                subsolution = denoise_bound(step,tau./alpha,-mu,Inf,pars);
+                %subsolution=denoise_bound_mod(step,tau./alpha,-mu,Inf,pars);
+                subsolution=Utils.denoiseTV(step,tau./alpha,subtolerance,submaxiter,mask,'iso',-mu,Inf);
             else
                 subsolution = step.*(step>0);
             end
