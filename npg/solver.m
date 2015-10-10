@@ -192,7 +192,7 @@ switch lower(opt.noiseType)
             temp=0;
         end
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
-        contEta=@Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
+        constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
         trueCost = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp,1e-100);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
@@ -232,10 +232,10 @@ if(opt.continuation || opt.fullcont)
     else
         switch(lower(opt.proximal))
             case lower('tvl1')
-                [~,g]=constEst();
+                [~,g]=constEst(y);
                 u_max=Utils.tvParUpBound(g,opt.mask);
             case lower('tviso')
-                [~,g]=constEst();
+                [~,g]=constEst(y);
                 u_max=sqrt(2)*Utils.tvParUpBound(g,opt.mask);
             otherwise
                 [~,g]=alphaStep.fArray{1}(alpha);
