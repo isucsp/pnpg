@@ -60,6 +60,8 @@ switch lower(op)
                     end
                 end; end
 
+                save(filename);
+
                 % for wavelet l1 norm
                 u_max=1;
                 aa = (3:-0.5:-6);
