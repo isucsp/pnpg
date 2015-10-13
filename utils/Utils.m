@@ -3,11 +3,11 @@ classdef Utils < handle
         function out = getNthOutPut(f,x,n)
             switch(n)
                 case 2
-                    [a,out]=f(x);
+                    [~,out]=f(x);
                 case 3
-                    [a,b,out]=f(x);
+                    [~,~,out]=f(x);
                 case 4
-                    [a,b,c,out]=f(x);
+                    [~,~,~,out]=f(x);
             end
         end
         function y = softThresh(x,thresh)
@@ -388,7 +388,7 @@ classdef Utils < handle
 
         function [dif,coef,l1norm]=getError(x,perce,level,wave)
             h=daubcqf(wave);
-            [wav,L] = mdwt(x,h,level);
+            [wav,~] = mdwt(x,h,level);
             [~,idx]=sort(abs(wav(:)));
             coef=wav(idx);
             coef=coef(end:-1:1);
@@ -454,9 +454,9 @@ classdef Utils < handle
             [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,lb,ub,pars);
             newX=mask.a(newX);
         end
-        function b = tvParUpBound(g,mask)
+        function u_max = tvParUpBound(g,mask)
+            global strlen
             if(~exist('mask','var') || isempty(mask))
-                global strlen
                 strlen=0;
                 fprintf('\nempty mask in Utils.tvParUpBound\n');
                 G=g;
@@ -471,13 +471,13 @@ classdef Utils < handle
             t2=0;
             for i=1:m;
                 t2=t2+G(i,:);
-                temp=max(temp,abs(t2(:)));
+                temp=max(temp,max(abs(t2(:))));
             end
             u_max=min(temp,u_max);
             t2=0; temp=0;
             for i=1:n;
                 t2=t2+G(:,i);
-                temp=max(temp,abs(t2(:)));
+                temp=max(temp,max(abs(t2(:))));
             end
             u_max=min(temp,u_max);
         end

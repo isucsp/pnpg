@@ -39,15 +39,25 @@ switch lower(op)
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
                 %u_max=pNorm(Psit(Phit(1-y./opt.bb(:))),inf);
                 %u_max=pNorm(Psit(Phit(y)),inf);
+                u_max=1;
 
                 initSig=max(fbp{i,1,k}.alpha,0);
 
-                if(k==2) save(filename); return; end
+                %if(k==2) save(filename); return; end
+%               if(k==1) continue; end;
 
+if(i<5) continue; end
                 opt.fullcont=false;
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
                 opt.contShrnk=0.1;
+
+                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
+                npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                keyboard
 
                 opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
                 npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -58,11 +68,6 @@ switch lower(op)
                 opt.u = 10^as(i)*u_max; opt.proximal='wvltADMM';
                 npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
-                npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 save(filename);
 
@@ -122,6 +127,143 @@ switch lower(op)
 %               % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
             end
         end
+    case lower('plotTV')
+        filename = [mfilename '.mat']; load(filename);
+        fprintf('PET Poisson TV example\n');
+
+        count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+        K = 1:1;
+
+        npgTVcTime= mean(Cell.getField(npgTVc(:,1,K),'time'),3);
+        npgTVcCost= mean(Cell.getField(npgTVc(:,1,K),'cost'),3);
+        npgTVcRMSE= mean(Cell.getField(npgTVc(:,1,K),'RMSE'),3);
+        npgTVTime = mean(Cell.getField(npgTV (:,1,K),'time'),3);
+        npgTVCost = mean(Cell.getField(npgTV (:,1,K),'cost'),3);
+        npgTVRMSE = mean(Cell.getField(npgTV (:,1,K),'RMSE'),3);
+        spiralTVTime = mean(Cell.getField(spiralTV (:,1,K),'time'),3);
+        spiralTVCost = mean(Cell.getField(spiralTV (:,1,K),'cost'),3);
+        spiralTVRMSE = mean(Cell.getField(spiralTV (:,1,K),'RMSE'),3);
+
+        npgsTime  = mean(Cell.getField(  npgs(:,1,K),'time'),3);
+        npgsCost  = mean(Cell.getField(  npgs(:,1,K),'cost'),3);
+        npgsRMSE  = mean(Cell.getField(  npgs(:,1,K),'RMSE'),3);
+
+        npgscTime = mean(Cell.getField( npgsc(:,1,K),'time'),3);
+        npgscCost = mean(Cell.getField( npgsc(:,1,K),'cost'),3);
+        npgscRMSE = mean(Cell.getField( npgsc(:,1,K),'RMSE'),3);
+
+        fbpRMSE   = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
+
+        figure;
+        loglog(count,npgTVRMSE,'r-*'); hold on;
+        loglog(count,   fbpRMSE,'b-o');
+        loglog(count,spiralTVRMSE,'k-^');
+        loglog(count,  npgTVcRMSE,'k*-.');
+        loglog(count,  npgsRMSE,'c>-');
+        loglog(count, npgscRMSE,'gs-');
+        legend('npgTV','fbp','spiralTV','npgTVc','npgs','npgsc');
+
+        figure;
+        loglog(count,   npgTVTime,'r-*'); hold on;
+        loglog(count,spiralTVTime,'k-^');
+        loglog(count,  npgTVcTime,'k*-.');
+        loglog(count,  npgsTime,'c>-');
+        loglog(count, npgscTime,'gs-');
+        legend('npgTV','spiralTV','npgTVc','npgs','npgsc');
+
+        forSave=[npgTVTime, npgTVcTime, npgsTime, npgscTime, spiralTVTime,...
+            npgTVCost, npgTVcCost, npgsCost, npgscCost, spiralTVCost,...
+            npgTVRMSE, npgTVcRMSE, npgsRMSE, npgscRMSE, spiralTVRMSE,...
+            fbpRMSE, count(:)];
+        save('varyCntPETTV.data','forSave','-ascii');
+
+        forSave=[]; t=0; mIdx=5; k=1;
+        out=  npgTVc{mIdx,1,k};
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=   npgTV{mIdx,1,k};
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=spiralTV{mIdx,1,k};
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=npgs{mIdx,1,k};
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=npgsc{mIdx,1,k};
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+
+        save('cost_itrPETTV.data','forSave','-ascii');
+        mincost=reshape(forSave(:,[1,4,7]),[],1); 
+        mincost=min(mincost(mincost~=0));
+
+        figure;
+        semilogy(forSave(:,3),forSave(:,1)-mincost,'r'); hold on;
+        semilogy(forSave(:,6),forSave(:,4)-mincost,'g');
+        semilogy(forSave(:,9),forSave(:,7)-mincost,'b');
+        if(mIdx==5 && k==1)
+            semilogy(forSave(:,15),forSave(:,13)-min(max(forSave(:,13),0)),'c:');
+            legend('npgTVc','npgTV','spiralTV','npgsc');
+        else
+            legend('npgTVc','npgTV','spiralTV');
+        end
+        figure; semilogy(forSave(:,3),forSave(:,2),'r'); hold on;
+        semilogy(forSave(:,6),forSave(:,5),'g'); semilogy(forSave(:,9),forSave(:,8),'b');
+        legend('npgTVc','npgTV','spiralTV');
+
+        keyboard
+
+        nn=128;
+        xtrue = read_zubal_emis('nx', nn, 'ny', nn);
+        % attenuation map
+        mumap = read_zubal_attn('nx', nn, 'ny', nn);
+        imwrite(xtrue/max(xtrue(:)),'pet.png');
+        imwrite(mumap/max(mumap(:)),'mumap.png');
+
+        idx=5;
+        fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
+        fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
+        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
+        fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
+        fprintf('NPGscS: (%g%%, %g%%)\n',    npgsc_s.RMSE(end)*100,rmseTruncate(npgsc_s   )*100);
+        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet.png')
+        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet.png')
+        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet.png')
+        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
+        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
+        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
+        img=showImgMask( npgsc_s.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGscS_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGscS_pet.png')
+
+        idx=4;
+        fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
+        fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
+        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
+        fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
+        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet2.png')
+        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet2.png')
+        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
+        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
+        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet2.png')
+        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
+
+        keyboard
+        paperDir='~/research/myPaper/asilomar2014/'
+        system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);
+        system('rm *_pet.eps *_pet2.eps *_pet2.png');
+        close all;
 
     case 'plot'
         filename = [mfilename '.mat'];
@@ -130,7 +272,17 @@ switch lower(op)
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-        K = 1:3;
+        K = 1:1;
+
+        npgTVcTime= mean(Cell.getField(npgTVc(:,1,K),'time'),3);
+        npgTVcCost= mean(Cell.getField(npgTVc(:,1,K),'cost'),3);
+        npgTVcRMSE= mean(Cell.getField(npgTVc(:,1,K),'rmse'),3);
+        npgTVTime = mean(Cell.getField(npgTV (:,1,K),'time'),3);
+        npgTVCost = mean(Cell.getField(npgTV (:,1,K),'cost'),3);
+        npgTVRMSE = mean(Cell.getField(npgTV (:,1,K),'rmse'),3);
+        spiralTVTime = mean(Cell.getField(sprialTV (:,1,K),'time'),3);
+        spiralTVCost = mean(Cell.getField(sprialTV (:,1,K),'cost'),3);
+        spiralTVRMSE = mean(Cell.getField(sprialTV (:,1,K),'rmse'),3);
 
         npgTime   = mean(Cell.getField(   npg(:,1,K),'time'),3);
         npgcTime  = mean(Cell.getField(  npgc(:,1,K),'time'),3);
@@ -150,8 +302,6 @@ switch lower(op)
         npgsRMSE  = mean(Cell.getField(  npgs(:,1,K),'RMSE'),3);
         npgscRMSE = mean(Cell.getField( npgsc(:,1,K),'RMSE'),3);
         spiralRMSE= mean(Cell.getField(spiral(:,1,K),'RMSE'),3);
-
-        keyboard
 
         figure;
         loglog(count,   npgRMSE,'r-*'); hold on;
