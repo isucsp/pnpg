@@ -201,12 +201,12 @@ switch lower(opt.alphaStep)
             case lower('tvl1')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
-                penalty = @(x) tlv(x,'l1');
+                penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
                 fprintf('Use l1 TV\n');
             case lower('tviso')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
-                penalty = @(x) tlv(x,'iso');
+                penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
                 fprintf('Use ISO TV\n');
         end
 

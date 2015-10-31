@@ -1,4 +1,4 @@
-
+*.mex*
 *.mat
 *.bak
 *.log
@@ -9,7 +9,6 @@
 *.gz
 *.tar
 *.data
-*.mexmac*
 *.html
 *.class
 wavelet_FISTA/

@@ -155,9 +155,9 @@ classdef Wrapper < handle
                 case {lower('wvltADMM'), lower('wvltLagrangian')}
                     penalty = @(x) pNorm(Psit(x),1);
                 case lower('tvl1')
-                    penalty = @(x) tlv(x,'l1');
+                    penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
                 case lower('tviso')
-                    penalty = @(x) tlv(x,'iso');
+                    penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
             end
             [alpha,p,cost,reconerror,time,out] = ...
                 SPIRALTAP_mod(y,Phi,opt.u,'penalty',opt.proximal,...

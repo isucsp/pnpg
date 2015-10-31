@@ -31,6 +31,9 @@ switch lower(op)
         opt.mask=[];
         for k=1:K
             for i=1:length(count)
+
+                if(k==2) save(filename); keyboard; end
+
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
 
                 fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),opt.mask~=0);
@@ -38,15 +41,44 @@ switch lower(op)
 
                 fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha));
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
-                %u_max=pNorm(Psit(Phit(1-y./opt.bb(:))),inf);
-                %u_max=pNorm(Psit(Phit(y)),inf);
                 u_max=1;
 
                 initSig=max(fbp{i,1,k}.alpha,0);
+                 
+                opt.fullcont=true;
+                % for wavelet l1 norm
+                u_max=1;
+                aa = (3:-0.5:-6);
+                opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
+                npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               for j=1:length(aa); if(aa(j)>-2)
+%                   opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
+%                   if(j==1)
+%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%                   else
+%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
+%                   end
+%               end; end
 
-                %if(k==2) save(filename); return; end
-%               if(k==1) continue; end;
-if(i<=4) continue; end
+                % for isotv
+                u_max=1;
+                aa =(3:-0.5:-6);
+                opt.u=(10.^aa)*u_max; opt.proximal='tviso';
+                npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               for j=1:length(aa); if(aa(j)>-2)
+%                   opt.u=10^aa(j)*u_max; opt.proximal='tviso';
+%                   if(j==1)
+%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%                   else
+%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.alpha,opt);
+%                   end
+%               end; end
+
+                save(filename);
+                continue
+
+
                 opt.fullcont=false;
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
@@ -54,15 +86,18 @@ if(i<=4) continue; end
 
                 opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
                 
-                spiralTV_sub_neg_8{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt,'subtolerance',1e-8);
-                opt.thresh=1e-10;
-                spiralTV_thr_neg_10{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.saveTrueCost=true;
+                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                if(k==1 && i==5)
+                    spiralTV_sub_neg_8{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt,'subtolerance',1e-10);
+                    opt.thresh=1e-10;
+                    spiralTV_thr_neg_10{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                end
 
                 keyboard
                 save(filename);
                 npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
 
                 opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
@@ -76,41 +111,6 @@ if(i<=4) continue; end
                 npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 save(filename);
-
-%               opt.fullcont=true; opt.maxItr=1e4; opt.thresh=1e-6;
-
-%               % for isotv
-%               u_max=1;
-%               aa =(3:-0.5:-6);
-%               opt.u=(10.^aa)*u_max; opt.proximal='tviso';
-%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               for j=1:length(aa); if(aa(j)>-2)
-%                   opt.proximal='tviso';
-%                   opt.u=10^aa(j)*u_max;
-%                   if(j==1)
-%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-%                   else
-%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.alpha,opt);
-%                   end
-%               end; end
-
-%               % for wavelet l1 norm
-%               u_max=1;
-%               aa = (3:-0.5:-6);
-%               opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
-%               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               for j=1:length(aa); if(aa(j)>-2)
-%                   opt.proximal='wvltLagrangian';
-%                   opt.u=10^aa(j)*u_max;
-%                   if(j==1)
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-%                   else
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
-%                   end
-%               end; end
-
-%               save(filename);
 
 %               % following are methods for weighted versions
 %               ty=max(sqrt(y),1);
@@ -161,6 +161,10 @@ if(i<=4) continue; end
                 u_true(i,k)=opt.u/0.9;
             end
         end
+
+        figure; semilogy(count,u_max);
+        hold on; semilogy(count,u_true,'r');
+        legend('U','empirical U');
 
         forSave=[count(:) u_max, u_true];
         save('bound4U.data','forSave','-ascii');

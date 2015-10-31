@@ -10,6 +10,11 @@ function out=tlv(X,type)
 % OUTPUT
 % out ....................... The total variation of X.
 [m,n]=size(X);
+if(min(m,n)==1)
+    global strlen
+    fprintf('warning from tlv: using 1-d TV\n');
+    strlen=0;
+end
 [P1,P2]=Ltrans(X);
 
 switch type

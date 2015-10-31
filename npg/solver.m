@@ -138,11 +138,11 @@ switch lower(opt.alphaStep)
             case lower('tvl1')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
-                penalty = @(x) tlv(x,'l1');
+                penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
             case lower('tviso')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
-                penalty = @(x) tlv(x,'iso');
+                penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
         end
 
         if(strcmpi(opt.alphaStep,'NPGs'))
@@ -191,9 +191,8 @@ switch lower(opt.noiseType)
         else
             temp=0;
         end
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y,temp);
         constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
-        trueCost = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp,1e-100);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
     case 'logistic'
@@ -346,9 +345,6 @@ while(true)
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
     alpha = alphaStep.alpha;
-    if(isfield(opt,'saveTrueCost') && opt.saveTrueCost && strcmpi(opt.noiseType,'poisson') )
-            out.trueCost(p)=trueCost(alpha)+alphaStep.u*pNorm(Psit(alpha),1);
-    end
 
     str=sprintf([str ' %12g'],out.cost(p));
 

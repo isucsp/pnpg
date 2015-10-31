@@ -567,7 +567,7 @@ if savecputime
 end
 if saveobjective
     objective = zeros(maxiter+1,1);
-    objective(iter)=computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,penalty,WT);
+    objective(iter)=computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,penalty,WT,mask);
 end
 
 if savereconerror
@@ -606,7 +606,22 @@ if savedifalpha
 end
 if savetruecost
     out.trueCost=zeros(maxiter+1,1);
-    out.trueCost(iter)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
+    out.trueCost(iter)=Utils.poissonModel(x,A,AT,y,bb);
+    switch lower(penalty)
+        case 'canonical'
+            out.trueCost(iter) = out.trueCost(iter) + sum(abs(tau(:).*x(:)));
+        case {'onb',lower('wvltADMM'),lower('wvltLagrangian')}
+            WTx = WT(x);
+            out.trueCost(iter) = out.trueCost(iter) + sum(abs(tau(:).*WTx(:)));
+        case 'rdp'
+            todo
+        case 'rdp-ti'
+            todo
+        case {'tv', 'tvl1'}
+            out.trueCost(iter) = out.trueCost(iter) + tau.*tlv(maskFunc(x,mask),'l1');
+        case 'tviso'
+            out.trueCost(iter) = out.trueCost(iter) + tau.*tlv(maskFunc(x,mask),'iso');
+    end
 end
 if savestepsize
     out.stepSize=zeros(maxiter+1,1);
@@ -664,12 +679,27 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     
                     % --- Compute the resulting objective 
                     objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
-                        noisetype,logepsilon,penalty,WT);
+                        noisetype,logepsilon,penalty,WT,mask);
 
                     if savetruecost
-                        out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
+                        out.trueCost(iter+1)=Utils.poissonModel(x,A,AT,y,bb);
+                        switch lower(penalty)
+                            case 'canonical'
+                                out.trueCost(iter+1) = out.trueCost(iter+1) + sum(abs(tau(:).*x(:)));
+                            case {'onb',lower('wvltADMM'),lower('wvltLagrangian')}
+                                WTx = WT(x);
+                                out.trueCost(iter+1) = out.trueCost(iter+1) + sum(abs(tau(:).*WTx(:)));
+                            case 'rdp'
+                                todo
+                            case 'rdp-ti'
+                                todo
+                            case {'tv', 'tvl1'}
+                                out.trueCost(iter+1) = out.trueCost(iter+1) + tau.*tlv(maskFunc(x,mask),'l1');
+                            case 'tviso'
+                                out.trueCost(iter+1) = out.trueCost(iter+1) + tau.*tlv(maskFunc(x,mask),'iso');
+                        end
                     end
-                        
+
                     if ( objective(iter+1) <= (maxpastobjective ...
                             - acceptdecrease*alpha/2*normsqdx) ) ...
                             || (alpha >= acceptalphamax);
@@ -692,10 +722,10 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 normsqdx = sum( dx(:).^2 );
                 if saveobjective
                     objective(iter + 1) = computeobjective(x,y,Ax,bb,tau,...
-                        noisetype,logepsilon,penalty,WT);
+                        noisetype,logepsilon,penalty,WT,mask);
                 end
                 if savetruecost
-                    out.trueCost(iter+1)=Utils.poissonModelAppr(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
+                    out.trueCost(iter+1)=Utils.poissonModel(x,A,AT,y,bb,1e-100)+tau*sum(abs(WT(x)));
                 end
                     
             end
@@ -865,9 +895,12 @@ function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
     % 1) Compute log-likelihood:
     switch lower(noisetype)
         case 'poisson'
-            precompute = y.*log(Ax + bb + logepsilon);
-            objective = sum(Ax(:)+bb(:)) - sum(precompute(:));
-            objective = objective - (sum(y)-sum(y(y>0).*log(y(y>0))));
+            %precompute = y.*log(Ax + bb + logepsilon);
+            %objective = sum(Ax(:)+bb(:)) - sum(precompute(:));
+            %objective = objective - (sum(y)-sum(y(y>0).*log(y(y>0))));
+            % modified by renliang gu to centerize the objective
+            precompute = y(y>0).*log(y(y>0)./(Ax(y>0) + bb(y>0) + logepsilon));
+            objective = sum(Ax(:)+bb(:)-y(:)) + sum(precompute(:));
         case 'gaussian'
             objective = sum( (y(:) - Ax(:)).^2)./2;
     end
@@ -884,9 +917,11 @@ function objective = computeobjective(x,y,Ax,bb,tau,noisetype,logepsilon,...
         case 'rdp-ti'
             todo
         case {'tv', 'tvl1'}
-            objective = objective + tau.*tlv(x,'l1');
+            mask=varargin{2};
+            objective = objective + tau.*tlv(maskFunc(x,mask),'l1');
         case 'tviso'
-            objective = objective + tau.*tlv(x,'iso');
+            mask=varargin{2};
+            objective = objective + tau.*tlv(maskFunc(x,mask),'iso');
     end
 end
 
