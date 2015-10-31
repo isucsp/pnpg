@@ -13,7 +13,7 @@ CFLAGS := -std=c99 -fPIC
  
 all: cpu gpu
 
-cpu: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT)
+cpu: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT) 
 
 gpu: mGPUPrj gpuPrj
 

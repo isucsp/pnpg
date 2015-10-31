@@ -108,7 +108,7 @@ if(size(Psi,1)==length(alpha(:))) matPsi=Psi; Psi=@(xx) matPsi*xx; end
 if(size(Psit,2)==length(alpha(:))) matPsit=Psit; Psit=@(xx) matPsit*xx; end
 
 temp=randn(size(alpha));
-if(norm(Psi(Psit(temp))-temp)>1e-10) 
+if((~strcmpi(opt.proximal(1:2),'tv')) && norm(Psi(Psit(temp))-temp)>1e-10) 
     error('rows of Psi need to be orthogonal, that is ΨΨ''=I');
 end
 
@@ -136,11 +136,11 @@ switch lower(opt.alphaStep)
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('tvl1')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(x,'l1');
             case lower('tviso')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) Utils.denoiseTV(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(x,'iso');
         end
@@ -233,10 +233,11 @@ if(opt.continuation || opt.fullcont)
         switch(lower(opt.proximal))
             case lower('tvl1')
                 [~,g]=constEst(y);
-                u_max=Utils.tvParUpBound(g,opt.mask);
+                u_max=TV.upperBoundU(maskFunc(g,opt.mask));
             case lower('tviso')
                 [~,g]=constEst(y);
-                u_max=sqrt(2)*Utils.tvParUpBound(g,opt.mask);
+                u_max=sqrt(2)*TV.upperBoundU(maskFunc(g,opt.mask));
+                keyboard
             otherwise
                 [~,g]=alphaStep.fArray{1}(alpha);
                 u_max=pNorm(Psit(g),inf);

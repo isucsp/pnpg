@@ -132,8 +132,20 @@ classdef Wrapper < handle
             out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/trueAlphaNorm;
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
-        function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt)
+        function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt,varargin)
             subtolerance=1e-5;
+            if (rem(length(varargin),2)==1)
+                error('Optional parameters should always go by pairs');
+            else
+                for ii = 1:2:(length(varargin)-1)
+                    switch lower(varargin{ii})
+                        case 'subtolerance';        subtolerance        = varargin{ii+1}; %
+                        otherwise
+                            % Something wrong with the parameter string
+                            error(['Unrecognized option: ''', varargin{ii}, '''']);
+                    end
+                end
+            end
             if(~isfield(opt,'verbose')) opt.verbose=100; end
             if(~isfield(opt,'bb')) opt.bb=zeros(size(y)); end
             if(~isfield(opt,'saveTrueCost')) opt.saveTrueCost=false; end

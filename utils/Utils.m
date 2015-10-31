@@ -432,55 +432,6 @@ classdef Utils < handle
             Psi =@(z) mask.a(midwt(maskk.b(z),wav,dwt_L));
             Psit=@(z) maskk.a(mdwt(mask.b(z),wav,dwt_L));
         end
-        function [newX,innerSearch]=denoiseTV(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub)
-            if(~exist('tvType','var')) tvType='l1'; end
-            if(~exist('lb','var')) lb=0; end
-            if(~exist('ub','var')) ub=inf; end
-            pars.print = 0;
-            pars.tv = tvType;
-            pars.MAXITER = maxInnerItr;
-            pars.epsilon = innerThresh; 
-
-            if(~exist('maskmt','var') || isempty(maskmt))
-                mask.a=@(xx) xx;
-                mask.b=@(xx) xx;
-            else
-                maskIdx=find(maskmt~=0);
-                n=size(maskmt);
-                mask.a=@(xx) maskFunc(xx,maskIdx);
-                mask.b=@(xx) maskFunc(xx,maskIdx,n);
-            end
-
-            [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,lb,ub,pars);
-            newX=mask.a(newX);
-        end
-        function u_max = tvParUpBound(g,mask)
-            global strlen
-            if(~exist('mask','var') || isempty(mask))
-                strlen=0;
-                fprintf('\nempty mask in Utils.tvParUpBound\n');
-                G=g;
-            else
-                maskIdx=find(mask~=0);
-                n=size(mask);
-                G=maskFunc(g,maskIdx,n);
-            end
-            [m,n]=size(G);
-            u_max=+inf;
-            temp=0;
-            t2=0;
-            for i=1:m;
-                t2=t2+G(i,:);
-                temp=max(temp,max(abs(t2(:))));
-            end
-            u_max=min(temp,u_max);
-            t2=0; temp=0;
-            for i=1:n;
-                t2=t2+G(:,i);
-                temp=max(temp,max(abs(t2(:))));
-            end
-            u_max=min(temp,u_max);
-        end
         function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
             % This function tests whether
             %      f(x) ≤ f(y)+(x-y)'*∇f(y)+ 0.5*L*||x-y||^2

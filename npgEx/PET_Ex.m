@@ -28,6 +28,7 @@ switch lower(op)
         a  = [-0.5,   0,  0, 0.5, 0.5, 0.5];
         atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
+        opt.mask=[];
         for k=1:K
             for i=1:length(count)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
@@ -45,19 +46,24 @@ switch lower(op)
 
                 %if(k==2) save(filename); return; end
 %               if(k==1) continue; end;
-
-if(i<5) continue; end
+if(i<=4) continue; end
                 opt.fullcont=false;
                 j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
-                opt.contShrnk=0.1;
+                opt.contShrnk=0.1; opt.contGamma=15;
 
                 opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
+                
+                spiralTV_sub_neg_8{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt,'subtolerance',1e-8);
+                opt.thresh=1e-10;
+                spiralTV_thr_neg_10{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                keyboard
+                save(filename);
                 npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
                 npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                keyboard
 
                 opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
                 npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -127,6 +133,38 @@ if(i<5) continue; end
 %               % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
             end
         end
+    case 'bound'
+        clear('opt');
+        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
+        opt.minItr=30; opt.proximal='tviso';
+        opt.mask=[];
+
+        K=1;
+        count = [1e4 1e5 1e6 1e7 1e8 1e9];
+        for k=1:K
+            for i=1:length(count)
+                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
+                [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
+
+                [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
+                u_max(i,k)=sqrt(2)*TV.upperBoundU(maskFunc(g,opt.mask));
+                initSig=ones(size(opt.trueAlpha))*x0s;
+
+                rmse=0; opt.u=u_max(i,k);
+                while(rmse==0)
+                    opt.u = 0.9*opt.u;
+                    fprintf('u=%g\n',opt.u);
+                    out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
+                    rmse=norm(out.alpha-initSig);
+                end
+                u_true(i,k)=opt.u/0.9;
+            end
+        end
+
+        forSave=[count(:) u_max, u_true];
+        save('bound4U.data','forSave','-ascii');
+
     case lower('plotTV')
         filename = [mfilename '.mat']; load(filename);
         fprintf('PET Poisson TV example\n');
@@ -228,40 +266,32 @@ if(i<5) continue; end
         imwrite(mumap/max(mumap(:)),'mumap.png');
 
         idx=5;
-        fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
-        fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
-        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
-        fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
-        fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
-        fprintf('NPGscS: (%g%%, %g%%)\n',    npgsc_s.RMSE(end)*100,rmseTruncate(npgsc_s   )*100);
+        fprintf('   NPGTV: %g%%\n',   npgTV{idx}.RMSE(end)*100);
+        fprintf('SPIRALTV: %g%%\n',spiralTV{idx}.RMSE(end)*100);
+        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('    NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
         img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet.png')
-        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
-        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
-        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
-        img=showImgMask( npgsc_s.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGscS_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGscS_pet.png')
+        img=showImgMask(   npgTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet.png')
+        img=showImgMask(spiralTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet.png')
+        img=showImgMask(     fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet.png')
+        img=showImgMask(    npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet.png')
 
         idx=4;
-        fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
-        fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
-        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
-        fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
-        fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
+        fprintf('   NPGTV: %g%%\n',   npgTV{idx}.RMSE(end)*100);
+        fprintf('SPIRALTV: %g%%\n',spiralTV{idx}.RMSE(end)*100);
+        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('    NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
         img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet2.png')
-        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet2.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
-        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet2.png')
-        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
+        img=showImgMask(   npgTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet2.png')
+        img=showImgMask(spiralTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet2.png')
+        img=showImgMask(     fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet2.png')
+        img=showImgMask(    npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet2.png')
 
-        keyboard
-        paperDir='~/research/myPaper/asilomar2014/'
-        system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);
+        paperDir='~/research/myPaper/asilomar2015/'
+        decide=input(sprintf('start to copy to %s [y/N]?',paperDir));
+        if strcmpi(decide,'y')
+            system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);
+        end
         system('rm *_pet.eps *_pet2.eps *_pet2.png');
         close all;
 
@@ -274,56 +304,46 @@ if(i<5) continue; end
 
         K = 1:1;
 
-        npgTVcTime= mean(Cell.getField(npgTVc(:,1,K),'time'),3);
-        npgTVcCost= mean(Cell.getField(npgTVc(:,1,K),'cost'),3);
-        npgTVcRMSE= mean(Cell.getField(npgTVc(:,1,K),'rmse'),3);
-        npgTVTime = mean(Cell.getField(npgTV (:,1,K),'time'),3);
-        npgTVCost = mean(Cell.getField(npgTV (:,1,K),'cost'),3);
-        npgTVRMSE = mean(Cell.getField(npgTV (:,1,K),'rmse'),3);
-        spiralTVTime = mean(Cell.getField(sprialTV (:,1,K),'time'),3);
-        spiralTVCost = mean(Cell.getField(sprialTV (:,1,K),'cost'),3);
-        spiralTVRMSE = mean(Cell.getField(sprialTV (:,1,K),'rmse'),3);
+        npgTime      = mean(Cell.getField(npg     (:,1,K),'time'),3);
+        npgCost      = mean(Cell.getField(npg     (:,1,K),'cost'),3);
+        npgRMSE      = mean(Cell.getField(npg     (:,1,K),'RMSE'),3);
+        npgcTime     = mean(Cell.getField(npgc    (:,1,K),'time'),3);
+        npgcCost     = mean(Cell.getField(npgc    (:,1,K),'cost'),3);
+        npgcRMSE     = mean(Cell.getField(npgc    (:,1,K),'RMSE'),3);
+        npgsTime     = mean(Cell.getField(npgs    (:,1,K),'time'),3);
+        npgsCost     = mean(Cell.getField(npgs    (:,1,K),'cost'),3);
+        npgsRMSE     = mean(Cell.getField(npgs    (:,1,K),'RMSE'),3);
+        npgscTime    = mean(Cell.getField(npgsc   (:,1,K),'time'),3);
+        npgscCost    = mean(Cell.getField(npgsc   (:,1,K),'cost'),3);
+        npgscRMSE    = mean(Cell.getField(npgsc   (:,1,K),'RMSE'),3);
+        spiralTime   = mean(Cell.getField(spiral  (:,1,K),'time'),3);
+        spiralCost   = mean(Cell.getField(spiral  (:,1,K),'cost'),3);
+        spiralRMSE   = mean(Cell.getField(spiral  (:,1,K),'RMSE'),3);
 
-        npgTime   = mean(Cell.getField(   npg(:,1,K),'time'),3);
-        npgcTime  = mean(Cell.getField(  npgc(:,1,K),'time'),3);
-        npgsTime  = mean(Cell.getField(  npgs(:,1,K),'time'),3);
-        npgscTime = mean(Cell.getField( npgsc(:,1,K),'time'),3);
-        spiralTime= mean(Cell.getField(spiral(:,1,K),'time'),3);
-
-        npgCost   = mean(Cell.getField(   npg(:,1,K),'cost'),3);
-        npgcCost  = mean(Cell.getField(  npgc(:,1,K),'cost'),3);
-        npgsCost  = mean(Cell.getField(  npgs(:,1,K),'cost'),3);
-        npgscCost = mean(Cell.getField( npgsc(:,1,K),'cost'),3);
-        spiralCost= mean(Cell.getField(spiral(:,1,K),'cost'),3);
-
-        fbpRMSE   = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
-        npgRMSE   = mean(Cell.getField(   npg(:,1,K),'RMSE'),3);
-        npgcRMSE  = mean(Cell.getField(  npgc(:,1,K),'RMSE'),3);
-        npgsRMSE  = mean(Cell.getField(  npgs(:,1,K),'RMSE'),3);
-        npgscRMSE = mean(Cell.getField( npgsc(:,1,K),'RMSE'),3);
-        spiralRMSE= mean(Cell.getField(spiral(:,1,K),'RMSE'),3);
+        fbpRMSE      = mean(Cell.getField(fbp     (:,1,K),'RMSE'),3);
 
         figure;
-        loglog(count,   npgRMSE,'r-*'); hold on;
-        loglog(count,   fbpRMSE,'b-o');
-        loglog(count,spiralRMSE,'k-^');
-        loglog(count,  npgcRMSE,'k*-.');
-        loglog(count,  npgsRMSE,'c>-');
-        loglog(count, npgscRMSE,'gs-');
+        loglog(count,     npgRMSE,'r-*'); hold on;
+        loglog(count,     fbpRMSE,'b-o');
+        loglog(count,  spiralRMSE,'k-^');
+        loglog(count,    npgcRMSE,'k*-.');
+        loglog(count,    npgsRMSE,'c>-');
+        loglog(count,   npgscRMSE,'gs-');
         legend('npg','fbp','spiral','npgc','npgs','npgsc');
 
         figure;
-        loglog(count,   npgTime,'r-*'); hold on;
-        loglog(count,spiralTime,'k-^');
-        loglog(count,  npgcTime,'k*-.');
-        loglog(count,  npgsTime,'c>-');
-        loglog(count, npgscTime,'gs-');
+        loglog(count,     npgTime,'r-*'); hold on;
+        loglog(count,  spiralTime,'k-^');
+        loglog(count ,   npgcTime,'k*-.');
+        loglog(count,    npgsTime,'c>-');
+        loglog(count,   npgscTime,'gs-');
         legend('npg','spiral','npgc','npgs','npgsc');
 
         forSave=[npgTime, npgcTime, npgsTime, npgscTime, spiralTime,...
             npgCost, npgcCost, npgsCost, npgscCost, spiralCost,...
             npgRMSE, npgcRMSE, npgsRMSE, npgscRMSE, spiralRMSE,...
-            fbpRMSE, count(:)];
+            fbpRMSE, count(:)...
+            ];
         save('varyCntPET.data','forSave','-ascii');
 
         forSave=[]; t=0; mIdx=5; k=1;
@@ -446,7 +466,8 @@ if(i<5) continue; end
 
         keyboard
 
-        K=5;
+        K=1;
+        m = [1e4 1e5 1e6 1e7 1e8 1e9];
         fprintf('Poisson example\n');
 
         npgTime    = mean(Cell.getField(    npg(:,:,1:K),'time'),3);
@@ -454,44 +475,39 @@ if(i<5) continue; end
         npgsTime   = mean(Cell.getField(   npgs(:,:,1:K),'time'),3);
         npgscTime  = mean(Cell.getField(  npgsc(:,:,1:K),'time'),3);
         spiralTime = mean(Cell.getField( spiral(:,:,1:K),'time'),3);
-        spiral8Time= mean(Cell.getField(spiral8(:,:,1:K),'time'),3);
 
         npgCost    = mean(Cell.getField(    npg(:,:,1:K),'cost'),3);
         npgcCost   = mean(Cell.getField(   npgc(:,:,1:K),'cost'),3);
         npgsCost   = mean(Cell.getField(   npgs(:,:,1:K),'cost'),3);
         npgscCost  = mean(Cell.getField(  npgsc(:,:,1:K),'cost'),3);
         spiralCost = mean(Cell.getField( spiral(:,:,1:K),'cost'),3);
-        spiral8Cost= mean(Cell.getField(spiral8(:,:,1:K),'cost'),3);
 
         npgRMSE    = mean(Cell.getField(    npg(:,:,1:K),'RMSE'),3);
         npgcRMSE   = mean(Cell.getField(   npgc(:,:,1:K),'RMSE'),3);
         npgsRMSE   = mean(Cell.getField(   npgs(:,:,1:K),'RMSE'),3);
         npgscRMSE  = mean(Cell.getField(  npgsc(:,:,1:K),'RMSE'),3);
         spiralRMSE = mean(Cell.getField( spiral(:,:,1:K),'RMSE'),3);
-        spiral8RMSE= mean(Cell.getField(spiral8(:,:,1:K),'RMSE'),3);
 
         aIdx=4;
         figure;
-        semilogy(m,    npgRMSE(:,aIdx),'r-*'); hold on;
-        semilogy(m,   npgsRMSE(:,aIdx),'c-p');
-        semilogy(m, spiralRMSE(:,aIdx),'k-^');
-        semilogy(m,   npgcRMSE(:,aIdx),'k*-.');
-        semilogy(m,  npgscRMSE(:,aIdx),'bs-.');
-        semilogy(m,spiral8RMSE(:,aIdx),'go-.');
-        legend('npg','npgs','spiral','npgc','npgsc','spiral8');
+        loglog(m,    npgRMSE(:,aIdx),'r-*'); hold on;
+        loglog(m,   npgsRMSE(:,aIdx),'c-p');
+        loglog(m, spiralRMSE(:,aIdx),'k-^');
+        loglog(m,   npgcRMSE(:,aIdx),'k*-.');
+        loglog(m,  npgscRMSE(:,aIdx),'bs-.');
+        legend('npg','npgs','spiral','npgc','npgsc');
 
         figure;
-        semilogy(m,    npgTime(:,aIdx),'r-*' ); hold on;
-        semilogy(m,   npgsTime(:,aIdx),'c-p' );
-        semilogy(m, spiralTime(:,aIdx),'k-^' );
-        semilogy(m,   npgcTime(:,aIdx),'k*-.');
-        semilogy(m,  npgscTime(:,aIdx),'bs-.');
-        semilogy(m,spiral8Time(:,aIdx),'go-.');
-        legend('npg','npgs','spiral','npgc','npgsc','spiral8');
+        loglog(m,    npgTime(:,aIdx),'r-*' ); hold on;
+        loglog(m,   npgsTime(:,aIdx),'c-p' );
+        loglog(m, spiralTime(:,aIdx),'k-^' );
+        loglog(m,   npgcTime(:,aIdx),'k*-.');
+        loglog(m,  npgscTime(:,aIdx),'bs-.');
+        legend('npg','npgs','spiral','npgc','npgsc');
 
-        forSave=[npgTime(:,aIdx), npgsTime(:,aIdx), npgcTime(:,aIdx), npgscTime(:,aIdx), spiralTime(:,aIdx), spiral8Time(:,aIdx),...
-            npgCost(:,aIdx), npgsCost(:,aIdx), npgcCost(:,aIdx), npgscCost(:,aIdx), spiralCost(:,aIdx), spiral8Cost(:,aIdx),...
-            npgRMSE(:,aIdx), npgsRMSE(:,aIdx), npgcRMSE(:,aIdx), npgscRMSE(:,aIdx), spiralRMSE(:,aIdx), spiral8RMSE(:,aIdx),...
+        forSave=[npgTime(:,aIdx), npgsTime(:,aIdx), npgcTime(:,aIdx), npgscTime(:,aIdx), spiralTime(:,aIdx),...
+            npgCost(:,aIdx), npgsCost(:,aIdx), npgcCost(:,aIdx), npgscCost(:,aIdx), spiralCost(:,aIdx),...
+            npgRMSE(:,aIdx), npgsRMSE(:,aIdx), npgcRMSE(:,aIdx), npgscRMSE(:,aIdx), spiralRMSE(:,aIdx),...
             m(:)];
         save('varyMeasurementPoisson.data','forSave','-ascii');
 

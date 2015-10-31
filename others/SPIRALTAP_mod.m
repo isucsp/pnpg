@@ -933,7 +933,7 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
             pars.epsilon = subtolerance; % Becca used 1e-5;
             if tau>0
                 %subsolution = denoise_bound(step,tau./alpha,-mu,Inf,pars);
-                subsolution=Utils.denoiseTV(step,tau./alpha,subtolerance,submaxiter,mask,'l1',-mu,Inf);
+                subsolution=TV.denoise(step,tau./alpha,subtolerance,submaxiter,mask,'l1',-mu,Inf);
             else
                 subsolution = step.*(step>0);
             end
@@ -948,7 +948,7 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
             pars.epsilon = subtolerance; % Becca used 1e-5;
             if tau>0
                 %subsolution=denoise_bound_mod(step,tau./alpha,-mu,Inf,pars);
-                subsolution=Utils.denoiseTV(step,tau./alpha,subtolerance,submaxiter,mask,'iso',-mu,Inf);
+                subsolution=TV.denoise(step,tau./alpha,subtolerance,submaxiter,mask,'iso',-mu,Inf);
             else
                 subsolution = step.*(step>0);
             end

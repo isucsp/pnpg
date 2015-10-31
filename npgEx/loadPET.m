@@ -21,18 +21,22 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
 
     dwt_L=6; daub=6;
 
-    % reconstruction mask (which pixels do we estimate?)
-    mask = Utils.getCircularMask(ig.nx);
-    wvltName = sprintf('MaskWvlt%dCircleL%dD%d.mat',ig.nx,dwt_L,daub);
-    if(exist(wvltName,'file'))
-        load(wvltName);
+    if(isfield(opt,'mask') && isempty(opt.mask))
+        mask=[]; maskk=[];
     else
-        maskk=wvltMask(mask,dwt_L,daub,wvltName);
+        % reconstruction mask (which pixels do we estimate?)
+        mask = Utils.getCircularMask(ig.nx);
+        wvltName = sprintf('MaskWvlt%dCircleL%dD%d.mat',ig.nx,dwt_L,daub);
+        if(exist(wvltName,'file'))
+            load(wvltName);
+        else
+            maskk=wvltMask(mask,dwt_L,daub,wvltName);
+        end
+        opt.mask=mask; opt.maskk=maskk;
+        ig.mask = mask > 0;
+        % ig.mask = ig.circ(240, 240) > 0;
+        % showImg(ig.mask + xtrue); title('support mask + xtrue');
     end
-    opt.mask=mask; opt.maskk=maskk;
-    ig.mask = mask > 0;
-    % ig.mask = ig.circ(240, 240) > 0;
-    % showImg(ig.mask + xtrue); title('support mask + xtrue');
 
     % system matrix G
     sg = sino_geom('par', 'nb', ig.nx, 'na', ig.ny*0+90, ...
@@ -65,8 +69,6 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
     fbpfunc = @(yyy) em_fbp(sg, ig, reshape(yyy,size(ci)), ci, ri);
 
     x=xtrue;
-    maskIdx = find(mask~=0);
-    wvltIdx = find(maskk~=0);
 
     Phif = @(xx) ci(:).*(G*xx(:));
     Phitf = @(xx) G'*(ci(:).*xx);
@@ -76,11 +78,18 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
     W=@(z) midwt(z,wav,dwt_L);
     Wt=@(z) mdwt(z,wav,dwt_L);
 
-    Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,ig.nx)),maskIdx);
-    Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,ig.nx)),wvltIdx);
+    if(~isempty(mask))
+        maskIdx = find(mask~=0);
+        wvltIdx = find(maskk~=0);
+        Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,ig.nx)),maskIdx);
+        Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,ig.nx)),wvltIdx);
+        opt.trueAlpha=x(maskIdx);
+    else
+        Psi = @(s) W (s);
+        Psit= @(x) Wt(x);
+        opt.trueAlpha=x(:);
+    end
 
-    opt.trueAlpha=x(maskIdx);
     opt.bb=ri;
-
 end
 
