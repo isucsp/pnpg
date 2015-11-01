@@ -67,6 +67,7 @@ decription of the matlab call:
 
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define max(A,B) (A > B ? A : B)
 #define mat(a, i, j) (*(a + (m*(j)+i)))  /* macro for matrix indices */
@@ -83,11 +84,11 @@ int m, n, lh, L;
   double  *g0, *g1, *ydummyl, *ydummyh, *xdummy;
   long i, j;
   int actual_L, actual_m, actual_n, r_o_a, c_o_a, ir, ic, lhm1, lhhm1, sample_f;
-  xdummy = (double *)mxCalloc(max(m,n),sizeof(double));
-  ydummyl = (double *)mxCalloc(max(m,n)+lh/2-1,sizeof(double));
-  ydummyh = (double *)mxCalloc(max(m,n)+lh/2-1,sizeof(double));
-  g0 = (double *)mxCalloc(lh,sizeof(double));
-  g1 = (double *)mxCalloc(lh,sizeof(double));
+  xdummy = (double *)calloc(max(m,n),sizeof(double));
+  ydummyl = (double *)calloc(max(m,n)+lh/2-1,sizeof(double));
+  ydummyh = (double *)calloc(max(m,n)+lh/2-1,sizeof(double));
+  g0 = (double *)calloc(lh,sizeof(double));
+  g1 = (double *)calloc(lh,sizeof(double));
 
   if (n==1){
     n = m;
@@ -158,6 +159,8 @@ int m, n, lh, L;
       actual_m = actual_m*2;
     actual_n = actual_n*2;
   }
+  free(xdummy); free(ydummyl); free(ydummyh);
+  free(g0); free(g1);
 }
 
 #ifdef __STDC__
