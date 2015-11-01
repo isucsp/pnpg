@@ -1,7 +1,7 @@
 function setupPath
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sat 31 Oct 2015 09:50:39 PM CDT
+% $Revision: 0.3 $ $Date: Sat 31 Oct 2015 10:38:28 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -63,12 +63,12 @@ cd('rwt')
 tgt=['mdwt.' mexext];
 if(~exist(tgt,'file')...
         || isOlder(tgt,{'mdwt.c','mdwt_r.c'}))
-    mex mdwt.c mdwt_r.c
+    mex -largeArrayDims mdwt.c mdwt_r.c
 end
 tgt=['midwt.' mexext];
 if(~exist(tgt,'file')...
         || isOlder(tgt,{'midwt.c','midwt_r.c'}))
-    mex midwt.c midwt_r.c
+    mex -largeArrayDims midwt.c midwt_r.c
 end
 cd(pathstr)
 
