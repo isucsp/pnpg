@@ -46,21 +46,6 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.alpha,0);
                  
                 opt.fullcont=true;
-                % for wavelet l1 norm
-                u_max=1;
-                aa = (3:-0.5:-6);
-                opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
-                npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               for j=1:length(aa); if(aa(j)>-2)
-%                   opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
-%                   if(j==1)
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-%                   else
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
-%                   end
-%               end; end
-
                 % for isotv
                 u_max=1;
                 aa =(3:-0.5:-6);
@@ -77,6 +62,21 @@ switch lower(op)
 
                 save(filename);
                 continue
+
+                % for wavelet l1 norm
+                u_max=1;
+                aa = (3:-0.5:-6);
+                opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
+                npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               for j=1:length(aa); if(aa(j)>-2)
+%                   opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
+%                   if(j==1)
+%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%                   else
+%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
+%                   end
+%               end; end
 
 
                 opt.fullcont=false;

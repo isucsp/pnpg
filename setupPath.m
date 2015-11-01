@@ -1,6 +1,7 @@
+function setupPath
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Mon 07 Sep 2015 01:54:03 AM CDT
+% $Revision: 0.3 $ $Date: Sat 31 Oct 2015 09:50:39 PM CDT
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -58,6 +59,19 @@ elseif(ispc)
 end
 cd(pathstr)
 
+cd('rwt')
+tgt=['mdwt.' mexext];
+if(~exist(tgt,'file')...
+        || isOlder(tgt,{'mdwt.c','mdwt_r.c'}))
+    mex mdwt.c mdwt_r.c
+end
+tgt=['midwt.' mexext];
+if(~exist(tgt,'file')...
+        || isOlder(tgt,{'midwt.c','midwt_r.c'}))
+    mex midwt.c midwt_r.c
+end
+cd(pathstr)
+
 cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
 if(~exist(['lbfgsb_wrapper.' mexext],'file'))
     if(isunix)
@@ -69,6 +83,21 @@ if(~exist(['lbfgsb_wrapper.' mexext],'file'))
     end
 end
 cd(pathstr)
+end
 
-clear a pathstr
+function o = isOlder(f1, f2)
+    if(~iscell(f2))
+        dependence{1}=f2;
+    else
+        dependence=f2;
+    end
+    file=dir(dependence{1});
+    time=datenum(file.date);
+    for i=2:length(dependence)
+        file=dir(dependence{i});
+        time=max(time,datenum(file.date));
+    end
+    file=dir(f1);
+    o=datenum(file.date)<time;
+end
 
