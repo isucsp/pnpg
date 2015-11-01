@@ -50,7 +50,10 @@ switch lower(op)
                 u_max=1;
                 aa =(3:-0.5:-6);
                 opt.u=(10.^aa)*u_max; opt.proximal='tviso';
+                if(i<5) continue; end
                 npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                keyboard
 %               for j=1:length(aa); if(aa(j)>-2)
 %                   opt.u=10^aa(j)*u_max; opt.proximal='tviso';
 %                   if(j==1)
@@ -465,6 +468,7 @@ switch lower(op)
         figure; semilogy(aaa,'r-*'); hold on;
         semilogy(bbb,'g-o');
         semilogy(ccc,'b-s');
+        title('rmse vs count');
         legend('NPG','NPGs','NPG-TV');
 
 
