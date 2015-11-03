@@ -55,7 +55,7 @@ elseif(ispc)
     end
     tgt=['gpuPrj.' mexext];
     if(gpuDeviceCount>0  && (~exist(tgt,'file') || isOlder(tgt,{'gpuPrj.cu','mPrj.c','common/kiss_fft.c','prj.h'})))
-        link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"';
+        link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\lib\x64"';
         mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
     end
 end

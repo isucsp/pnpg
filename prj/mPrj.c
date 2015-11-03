@@ -23,9 +23,12 @@
 #include "prj.h"
 
 #ifdef __cplusplus
-extern "C" 
+extern "C" {
 #endif
 extern struct prjConf* pConf;
+#ifdef __cplusplus
+}
+#endif
 
 ft* img;
 ft* sino;

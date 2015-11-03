@@ -54,9 +54,7 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
     int N=conf->n;
 
     int x=0, y=threadIdx;
-    while(y>x){ x++; y-=x; }
-    // stop if go out of border
-    if(x>=(N+1)/2) return;
+
 
     ft cosT, sinT;  // cosine and sine of theta
 
@@ -71,6 +69,9 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
     ft imgt[8];
     ft t, tl, tr;
     int dt, dtl, dtr;
+	while (y>x){ x++; y -= x; }
+	// stop if go out of border
+	if (x >= (N + 1) / 2) return;
     for(int i=0; i<8; i++) imgt[i]=0;
     for(thetaIdx=0; thetaIdx<conf->prjFull/2;thetaIdx++){
 
@@ -181,9 +182,7 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     int N=conf->n;
 
     int x=0, y=threadIdx;
-    while(y>x){ x++; y-=x; }
-    // stop if go out of border
-    if(x>=(N+1)/2) return;
+
 
     ft cosT, sinT;  // cosine and sine of theta
 
@@ -203,6 +202,10 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
     ft imgt[8];
     ft t, tl, tr;
     int dt, dtl, dtr;
+
+	while (y>x){ x++; y -= x; }
+	// stop if go out of border
+	if (x >= (N + 1) / 2) return;
     for(int i=0; i<8; i++) imgt[i]=0;
     for(thetaIdx=0; thetaIdx<conf->prjFull;thetaIdx++){
 

@@ -35,7 +35,7 @@ if(~isempty(a)) % read raw data
     prjWidth=3072;  % here we suppose the width of detector is 3072
     str='';
     for i=0:359
-        file=fopen(sprintf(filename,i),'r');
+        file=fopen(sprintf(filename,i+1),'r');
         if(0==fseek(file,prjWidth*(slide-1)*2,'bof'))
             temp=fread(file,prjWidth,'uint16');
             if(~isempty(temp))
