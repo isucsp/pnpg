@@ -1,7 +1,7 @@
 function setupPath
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sun 01 Nov 2015 11:48:15 PM CST
+% $Revision: 0.3 $ $Date: Tue 03 Nov 2015 01:57:49 PM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -23,6 +23,7 @@ addpath([pathstr filesep 'irt' filesep 'nufft']);
 addpath([pathstr filesep 'irt' filesep 'systems']);
 addpath([pathstr filesep 'irt']);
 addpath([pathstr filesep 'irt' filesep 'emission']);
+addpath([pathstr filesep 'irt' filesep 'general']);
 addpath([pathstr filesep 'irt' filesep 'transmission']);
 addpath([pathstr filesep 'irt' filesep 'fbp']);
 addpath([pathstr filesep 'irt' filesep 'data']);
@@ -50,7 +51,7 @@ elseif(ispc)
         mex -output parPrj mParPrj.c parPrj.c
     end
     tgt=['cpuPrj.' mexext];
-    if (~exist(tgt,'file') || isOlder(tgt,{'cpuPrj.c', 'mPrj.c', 'common/kiss_fft.c', 'prj.h'))
+    if (~exist(tgt,'file') || isOlder(tgt,{'cpuPrj.c', 'mPrj.c', 'common/kiss_fft.c', 'prj.h'}))
         mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     end
     tgt=['gpuPrj.' mexext];

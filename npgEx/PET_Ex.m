@@ -49,6 +49,7 @@ switch lower(op)
 
                 opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
                 if(k==1 && i==5)
+                    keyboard
                     Opt=opt; opt.adaptiveStep=false;
                     npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=Opt;

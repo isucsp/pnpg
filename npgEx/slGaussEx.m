@@ -23,7 +23,7 @@ switch lower(op)
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
         Opt=opt;
-        for k=1
+        for k=1:5
             for i=length(m)
                 opt=Opt; opt.m=m(i); opt.snr=inf;
                 [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);

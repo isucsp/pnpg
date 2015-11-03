@@ -91,5 +91,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
     end
 
     opt.bb=ri;
+    opt.ci=ci(:);
+    opt.G=G;
 end
 

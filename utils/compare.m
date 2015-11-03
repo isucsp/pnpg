@@ -20,9 +20,9 @@ function compare(field,plotFunc,varargin)
             v{j}=getfield(varargin{ii},fieldname{j});
             m=min(m,min(v{j}));
         end
-        m=m-1e-2;
+        m=m-1e1;
         if(length(fieldname)==1)
-            plotFunc(v{1}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
+            plotFunc(v{1},[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
         elseif(length(fieldname)==2)
             plotFunc(v{1},v{2},[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
         end
