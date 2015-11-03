@@ -80,7 +80,7 @@ if(opt.fullcont)
     opt.continuation=false;
 end
 
-alpha=xInit;
+alpha=double(xInit(:));
 
 if(isfield(opt,'trueAlpha'))
     switch opt.errorType
@@ -191,7 +191,7 @@ switch lower(opt.noiseType)
         else
             temp=0;
         end
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y,temp);
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
         constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
@@ -236,7 +236,6 @@ if(opt.continuation || opt.fullcont)
             case lower('tviso')
                 [~,g]=constEst(y);
                 u_max=sqrt(2)*TV.upperBoundU(maskFunc(g,opt.mask));
-                keyboard
             otherwise
                 [~,g]=alphaStep.fArray{1}(alpha);
                 u_max=pNorm(Psit(g),inf);

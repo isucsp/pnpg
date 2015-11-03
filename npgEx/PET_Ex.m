@@ -31,9 +31,6 @@ switch lower(op)
         opt.mask=[];
         for k=1:K
             for i=1:length(count)
-
-                if(k==2) save(filename); keyboard; end
-
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
 
                 fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),opt.mask~=0);
@@ -44,16 +41,46 @@ switch lower(op)
                 u_max=1;
 
                 initSig=max(fbp{i,1,k}.alpha,0);
-                 
-                opt.fullcont=true;
-                % for isotv
-                u_max=1;
-                aa =(3:-0.5:-6);
-                opt.u=(10.^aa)*u_max; opt.proximal='tviso';
-                if(i<5) continue; end
-                npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                keyboard
+                opt.fullcont=false;
+                j=1;
+                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
+                opt.contShrnk=0.1; opt.contGamma=15;
+
+                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
+                if(k==1 && i==5)
+                    Opt=opt; opt.adaptiveStep=false;
+                    npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=Opt;
+                else
+                    continue
+                end
+
+%               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+
+                opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
+%               npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.proximal='wvltLagrangian';
+%               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+%               opt.u = 10^as(i)*u_max; opt.proximal='wvltADMM';
+%               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+
+%               opt.fullcont=true;
+%               % for isotv
+%               u_max=1;
+%               aa =(3:-0.5:-6);
+%               opt.u=(10.^aa)*u_max; opt.proximal='tviso';
+%               if(i<5) continue; end
+%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
 %               for j=1:length(aa); if(aa(j)>-2)
 %                   opt.u=10^aa(j)*u_max; opt.proximal='tviso';
 %                   if(j==1)
@@ -63,15 +90,12 @@ switch lower(op)
 %                   end
 %               end; end
 
-                save(filename);
-                continue
-
-                % for wavelet l1 norm
-                u_max=1;
-                aa = (3:-0.5:-6);
-                opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
-                npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               % for wavelet l1 norm
+%               u_max=1;
+%               aa = (3:-0.5:-6);
+%               opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
+%               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
 %               for j=1:length(aa); if(aa(j)>-2)
 %                   opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
 %                   if(j==1)
@@ -80,40 +104,6 @@ switch lower(op)
 %                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
 %                   end
 %               end; end
-
-
-                opt.fullcont=false;
-                j=1;
-                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
-                opt.contShrnk=0.1; opt.contGamma=15;
-
-                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
-                
-                opt.saveTrueCost=true;
-                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                if(k==1 && i==5)
-                    spiralTV_sub_neg_8{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt,'subtolerance',1e-10);
-                    opt.thresh=1e-10;
-                    spiralTV_thr_neg_10{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-                end
-
-                keyboard
-                save(filename);
-                npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-
-                opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
-                npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.proximal='wvltLagrangian';
-                spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt.u = 10^as(i)*u_max; opt.proximal='wvltADMM';
-                npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                save(filename);
 
 %               % following are methods for weighted versions
 %               ty=max(sqrt(y),1);
@@ -140,7 +130,7 @@ switch lower(op)
         clear('opt');
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
-        opt.minItr=30; opt.proximal='tviso';
+        opt.minItr=30;
         opt.mask=[];
 
         K=1;
@@ -151,25 +141,38 @@ switch lower(op)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
 
                 [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
-                u_max(i,k)=sqrt(2)*TV.upperBoundU(maskFunc(g,opt.mask));
+                u_maxANI(i,k)=TV.upperBoundU(maskFunc(g,opt.mask));
+                u_maxISO(i,k)=sqrt(2)*u_maxANI(i,k);
                 initSig=ones(size(opt.trueAlpha))*x0s;
 
-                rmse=0; opt.u=u_max(i,k);
+                rmse=0; opt.u=u_maxANI(i,k); opt.proximal='tvl1';
                 while(rmse==0)
                     opt.u = 0.9*opt.u;
                     fprintf('u=%g\n',opt.u);
                     out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
                     rmse=norm(out.alpha-initSig);
                 end
-                u_true(i,k)=opt.u/0.9;
+                u_trueANI(i,k)=opt.u/0.9;
+
+                rmse=0; opt.u=u_maxISO(i,k); opt.proximal='tviso';
+                while(rmse==0)
+                    opt.u = 0.9*opt.u;
+                    fprintf('u=%g\n',opt.u);
+                    out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
+                    rmse=norm(out.alpha-initSig);
+                end
+                u_trueISO(i,k)=opt.u/0.9;
             end
         end
 
-        figure; semilogy(count,u_max);
-        hold on; semilogy(count,u_true,'r');
-        legend('U','empirical U');
+        figure; semilogy(count,u_maxANI);
+        hold on; semilogy(count,u_trueANI,'r');
+        semilogy(count,u_maxISO,'r');
+        semilogy(count,u_trueISO,'r');
+        h=legend('U_0','empirical anisotropic U','sqrt(2)U_0','empirical isotropic U');
+        set(h,'interpreter','latex');
 
-        forSave=[count(:) u_max, u_true];
+        forSave=[count(:) u_maxANI, u_trueANI, u_maxISO, u_trueISO];
         save('bound4U.data','forSave','-ascii');
 
     case lower('plotTV')
@@ -178,7 +181,7 @@ switch lower(op)
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-        K = 1:1;
+        K = 1:3;
 
         npgTVcTime= mean(Cell.getField(npgTVc(:,1,K),'time'),3);
         npgTVcCost= mean(Cell.getField(npgTVc(:,1,K),'cost'),3);
@@ -224,6 +227,24 @@ switch lower(op)
         save('varyCntPETTV.data','forSave','-ascii');
 
         forSave=[]; t=0; mIdx=5; k=1;
+        out=   npgTV{mIdx,1,k};
+        t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=spiralTV{mIdx,1,k};
+        t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=npgTV_noAdpStp;
+        t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        save('stepSize.data','forSave','-ascii');
+
+        figure; semilogy(forSave(:,1),'r'); hold on;
+        semilogy(forSave(:,3),'g');
+        semilogy(forSave(:,5),'b');
+        title('step size versus number of iterations');
+        legend('npgTV','spiralTV','npgTV noAdaptive Step');
+
+        forSave=[]; t=0; mIdx=5; k=1;
         out=  npgTVc{mIdx,1,k};
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
@@ -244,6 +265,10 @@ switch lower(op)
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=npgTV_noAdpStp;
+        t=t+1; forSave(1:length(out.cost),t)=out.cost;
+        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
 
         save('cost_itrPETTV.data','forSave','-ascii');
         mincost=reshape(forSave(:,[1,4,7]),[],1); 
@@ -253,15 +278,18 @@ switch lower(op)
         semilogy(forSave(:,3),forSave(:,1)-mincost,'r'); hold on;
         semilogy(forSave(:,6),forSave(:,4)-mincost,'g');
         semilogy(forSave(:,9),forSave(:,7)-mincost,'b');
+        semilogy(forSave(:,18),forSave(:,16)-mincost,'k');
         if(mIdx==5 && k==1)
             semilogy(forSave(:,15),forSave(:,13)-min(max(forSave(:,13),0)),'c:');
-            legend('npgTVc','npgTV','spiralTV','npgsc');
+            legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp','npgsc');
         else
-            legend('npgTVc','npgTV','spiralTV');
+            legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp');
         end
         figure; semilogy(forSave(:,3),forSave(:,2),'r'); hold on;
-        semilogy(forSave(:,6),forSave(:,5),'g'); semilogy(forSave(:,9),forSave(:,8),'b');
-        legend('npgTVc','npgTV','spiralTV');
+        semilogy(forSave(:,6),forSave(:,5),'g');
+        semilogy(forSave(:,9),forSave(:,8),'b');
+        semilogy(forSave(:,18),forSave(:,17),'k');
+        legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp');
 
         keyboard
 
@@ -294,7 +322,7 @@ switch lower(op)
         img=showImgMask(     fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet2.png')
         img=showImgMask(    npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet2.png')
 
-        paperDir='~/research/myPaper/asilomar2015/'
+        paperDir='~/research/myPaper/asilomar2015/';
         decide=input(sprintf('start to copy to %s [y/N]?',paperDir));
         if strcmpi(decide,'y')
             system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);

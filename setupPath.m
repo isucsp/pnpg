@@ -1,7 +1,7 @@
 function setupPath
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Sat 31 Oct 2015 10:38:28 PM CDT
+% $Revision: 0.3 $ $Date: Sun 01 Nov 2015 11:48:15 PM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -38,9 +38,9 @@ addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utili
 
 cd 'prj'
 if(isunix)
-    !make cpu
+    system('make cpu');
     if(gpuDeviceCount>0)
-        !make gpu 
+        system('make gpu');
     end
 elseif(ispc)
     if (~exist(['solveTridiag.' mexext],'file'))
@@ -49,10 +49,12 @@ elseif(ispc)
     if ~exist(['parPrj.' mexext],'file')
         mex -output parPrj mParPrj.c parPrj.c
     end
-    if ~exist(['cpuPrj.' mexext],'file')
+    tgt=['cpuPrj.' mexext];
+    if (~exist(tgt,'file') || isOlder(tgt,{'cpuPrj.c', 'mPrj.c', 'common/kiss_fft.c', 'prj.h'))
         mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
     end
-    if(gpuDeviceCount>0  && ~exist(['gpuPrj.' mexext],'file'))
+    tgt=['gpuPrj.' mexext];
+    if(gpuDeviceCount>0  && (~exist(tgt,'file') || isOlder(tgt,{'gpuPrj.cu','mPrj.c','common/kiss_fft.c','prj.h'})))
         link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.0\lib\x64"';
         mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
     end
@@ -75,7 +77,7 @@ cd(pathstr)
 cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
 if(~exist(['lbfgsb_wrapper.' mexext],'file'))
     if(isunix)
-        !make
+        system('make');
     elseif(ispc)
         mex -largeArrayDims -O -g -UDEBUG -I../src ...
             lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...

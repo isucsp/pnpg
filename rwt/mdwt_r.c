@@ -68,7 +68,27 @@ Change History: Fixed the code such that 1D vectors passed to it can be in
 #define max(A,B) (A > B ? A : B)
 #define mat(a, i, j) (*(a + (m*(j)+i)))  /* macro for matrix indices */
 
-MDWT(double *x, int m, int n, double *h, int lh, int L, double *y)
+void fpsconv(double *x_in, int lx, double *h0, double *h1, int lhm1, 
+        double *x_outl, double *x_outh){
+    int i, j, ind;
+    double x0, x1;
+
+    for (i=lx; i < lx+lhm1; i++)
+        x_in[i] = *(x_in+(i-lx));
+    ind = 0;
+    for (i=0; i<(lx); i+=2){
+        x0 = 0;
+        x1 = 0;
+        for (j=0; j<=lhm1; j++){
+            x0 = x0 + x_in[i+j]*h0[lhm1-j];
+            x1 = x1 + x_in[i+j]*h1[lhm1-j];
+        }
+        x_outl[ind] = x0;
+        x_outh[ind++] = x1;
+    }
+}
+
+void MDWT(double *x, int m, int n, double *h, int lh, int L, double *y)
 {
     double  *h0, *h1, *ydummyl, *ydummyh, *xdummy;
     long i, j;
@@ -147,22 +167,3 @@ MDWT(double *x, int m, int n, double *h, int lh, int L, double *y)
     free(h0); free(h1);
 }
 
-fpsconv(double *x_in, int lx, double *h0, double *h1, int lhm1, 
-        double *x_outl, double *x_outh){
-    int i, j, ind;
-    double x0, x1;
-
-    for (i=lx; i < lx+lhm1; i++)
-        x_in[i] = *(x_in+(i-lx));
-    ind = 0;
-    for (i=0; i<(lx); i+=2){
-        x0 = 0;
-        x1 = 0;
-        for (j=0; j<=lhm1; j++){
-            x0 = x0 + x_in[i+j]*h0[lhm1-j];
-            x1 = x1 + x_in[i+j]*h1[lhm1-j];
-        }
-        x_outl[ind] = x0;
-        x_outh[ind++] = x1;
-    }
-}
