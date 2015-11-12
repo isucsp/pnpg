@@ -51,8 +51,15 @@ switch lower(op)
                 if(k==1 && i==5)
                     keyboard
                     Opt=opt; opt.adaptiveStep=false;
-                    npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    % npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    % opt.thresh=1e-10;
+                    % npgTV_noAdpStpLong=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=Opt; opt.cumuTol=1; opt.incCumuTol=false;
+                    npgTV_n1=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=Opt;
+                    npgTV{i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    keyboard
                 else
                     continue
                 end
@@ -132,7 +139,7 @@ switch lower(op)
         RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
         opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
         opt.minItr=30;
-        opt.mask=[];
+        opt.mask  =[];
 
         K=1;
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
@@ -153,7 +160,14 @@ switch lower(op)
                     out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
                     rmse=norm(out.alpha-initSig);
                 end
-                u_trueANI(i,k)=opt.u/0.9;
+                opt.u=opt.u/0.9; rmse=0;
+                while(rmse==0)
+                    opt.u = 0.99*opt.u;
+                    fprintf('u=%g\n',opt.u);
+                    out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
+                    rmse=norm(out.alpha-initSig);
+                end
+                u_trueANI(i,k)=opt.u/0.99;
 
                 rmse=0; opt.u=u_maxISO(i,k); opt.proximal='tviso';
                 while(rmse==0)
@@ -162,19 +176,29 @@ switch lower(op)
                     out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
                     rmse=norm(out.alpha-initSig);
                 end
-                u_trueISO(i,k)=opt.u/0.9;
+                opt.u=opt.u/0.9; rmse=0;
+                while(rmse==0)
+                    opt.u = 0.99*opt.u;
+                    fprintf('u=%g\n',opt.u);
+                    out=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
+                    rmse=norm(out.alpha-initSig);
+                end
+                u_trueISO(i,k)=opt.u/0.99;
             end
         end
 
-        figure; semilogy(count,u_maxANI);
-        hold on; semilogy(count,u_trueANI,'r');
-        semilogy(count,u_maxISO,'r');
-        semilogy(count,u_trueISO,'r');
+        figure;
+        loglog(count,u_maxANI,'b^-'); hold on;
+        loglog(count,u_trueANI,'bs--');
+        loglog(count,u_maxISO,'r*-');
+        loglog(count,u_trueISO,'ro--');
         h=legend('U_0','empirical anisotropic U','sqrt(2)U_0','empirical isotropic U');
         set(h,'interpreter','latex');
 
         forSave=[count(:) u_maxANI, u_trueANI, u_maxISO, u_trueISO];
         save('bound4U.data','forSave','-ascii');
+
+        save('PET_Ex_bound.mat');
 
     case lower('plotTV')
         filename = [mfilename '.mat']; load(filename);

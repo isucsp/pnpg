@@ -85,3 +85,9 @@ Studio -> Visual Studio Tools`;
 
 * Execute `imgRecSrc/setupPath.m`.
 
+### Note
+
+The comments in some of `*.m` files may contain greek letters, which
+are `UTF-8` encoded.  Please open in an appropriately configured text
+editor.
+

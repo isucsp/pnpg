@@ -1,5 +1,5 @@
-
-function compare(field,plotFunc,varargin)
+% centeralized compare
+function compareC(field,plotFunc,varargin)
     colors={'g','b','r','k','m'};
     marks = {'.','*','o','s','^'};
     lines = {'-','--','-.'};
@@ -10,13 +10,22 @@ function compare(field,plotFunc,varargin)
         fieldname=field;
     end
 
-    figure;
+    m=+inf;
     for ii=1:length(varargin)
         for j=1:length(fieldname)
             v{j}=getfield(varargin{ii},fieldname{j});
+            if(j==length(fieldname))
+                m=min(m,min(v{j}));
+            end
         end
+    end
+    figure;
+    for ii=1:length(varargin)
         if(ii==2)
             hold on;
+        end
+        for j=1:length(fieldname)
+            v{j}=getfield(varargin{ii},fieldname{j});
         end
         if(length(fieldname)==1)
             plotFunc(v{1}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);

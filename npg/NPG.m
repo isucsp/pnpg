@@ -11,6 +11,7 @@ classdef NPG < Methods
         admmTol=1e-2;
         cumu=0;
         cumuTol=4;
+        incCumuTol=true;
         nonInc=0;
         innerSearch=0;
 
@@ -84,10 +85,12 @@ classdef NPG < Methods
                         if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
-                                obj.cumuTol=obj.cumuTol+4;
+                                if(obj.incCumuTol)
+                                    obj.cumuTol=obj.cumuTol+4;
+                                end
                                 incStep=false;
                             end
-                        else
+                        else  % don't know what to do, mark on debug and break
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
                             break;

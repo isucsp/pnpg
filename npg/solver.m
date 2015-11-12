@@ -266,6 +266,10 @@ if(any(strcmp(properties(alphaStep),'cumuTol'))...
         && isfield(opt,'cumuTol'))
     alphaStep.cumuTol=opt.cumuTol;
 end
+if(any(strcmp(properties(alphaStep),'incCumuTol'))...
+        && isfield(opt,'incCumuTol'))
+    alphaStep.incCumuTol=opt.incCumuTol;
+end
 
 if(any(strcmp(properties(alphaStep),'innerSearch')))
     collectInnerSearch=true;
