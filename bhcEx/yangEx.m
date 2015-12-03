@@ -41,6 +41,14 @@ switch lower(op)
 
             Opt=opt;
 
+            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+            opt=Opt;
+            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='tviso';
+            npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+            save(filename);
+            continue
+             
             % unknown ι(κ), NPG-LBFGSB
             for j=[5:-1:2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
@@ -70,14 +78,11 @@ switch lower(op)
                         npgTV_b1_cont{i,j+1}.alpha,opt);
                 end
 
-                opt=Opt; opt.u=10^(j-3)*u(i);
-                opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt=Opt;
+                opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
-             
-            save(filename);
-            continue
-             
+
             % known ι(κ), NPG
             for j=2
                 fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
@@ -98,15 +103,6 @@ switch lower(op)
                 opt=Opt; opt.u=10^(j-3)*u(i);
                 opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
                 npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
-
-            % unknown ι(κ), NPG-LBFGSB
-            for j=[5:-1:3]
-                fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
-                opt.u=10^(j-3)*u(i);
-                opt.alphaStep='NPG'; opt.proximal='tviso';
-                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
 
             % known ι(κ), linearization
