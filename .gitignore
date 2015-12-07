@@ -1,4 +1,6 @@
 *.mex*
+*.swo
+*.swp
 *.mat
 *.bak
 *.log

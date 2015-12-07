@@ -22,13 +22,11 @@ switch lower(op)
         opt.estIe=true; opt.noiseType='poisson';
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
-        for i=length(prjFull):-1:1
+        for i=length(prjFull)-1:-1:1
             opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
             [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
             opt.maxItr=4e3; opt.thresh=1e-6;
-
-            keyboard
 
             initSig = maskFunc(FBP(y),opt.mask~=0);
 
@@ -43,12 +41,23 @@ switch lower(op)
 
             % unknown ι(κ), NPG-LBFGSB without sparsity constraints
             opt=Opt;
-            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='tviso';
-            npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-
+            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+            for k=1:5
+                [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt,k-1);
+                npgTV_b1_u0{i,j,k}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+            end
             save(filename);
             continue
-             
+
+            if(i==3)
+                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Opt;
+                save(filename);
+            else
+                continue;
+            end
+
             % unknown ι(κ), NPG-LBFGSB
             for j=[5:-1:2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
@@ -150,12 +159,18 @@ switch lower(op)
         linFbpRMSE    = Cell.getField(       linFbp,'RMSE');
         fbpRMSE       = Cell.getField(          fbp,'RMSE');
         npgTVb1RMSE   = Cell.getField(     npgTV_b1,'RMSE');
-        npgTVb1contRMSE   = Cell.getField(     npgTV_b1_cont,'RMSE');
-        npgTVb1E100RMSE   = Cell.getField(     npgTV_b1_E100,'RMSE');
+        for i=1:length(prjFull)
+            npgTVb1u0RMSE(i,1) = min(npgTV_b1_u0{i}.RMSE);
+        end
+        npgTVb1u0RMSE   = Cell.getField(     npgTV_b1_u0,'RMSE');
+        
+        npgTVb1contRMSE = Cell.getField(     npgTV_b1_cont,'RMSE');
+        npgTVb1E100RMSE = Cell.getField(     npgTV_b1_E100,'RMSE');
 
         linNpgRMSE    = Cell.getField(     linNpgTV,'RMSE');
         npgTValphaRMSE= Cell.getField(npgTValpha_b1,'RMSE');
         npgTValphaE100RMSE= Cell.getField(npgTValpha_b1_E100_cont,'RMSE');
+
 %       npgTVRMSE     = Cell.getField(        npgTV,'RMSE');
 %       npgWVRMSE     = Cell.getField(        npgWV,'RMSE');
          
@@ -168,9 +183,10 @@ switch lower(op)
         semilogy(prjFull,min(npgTValphaE100RMSE,[],2)*100,'r->');
         semilogy(prjFull,min(npgTVb1contRMSE,[],2)*100,'c-h');
         semilogy(prjFull,min(npgTVb1E100RMSE,[],2)*100,'c-h');
+        semilogy(prjFull,min(npgTVb1u0RMSE,[],2)*100,'g:+');
         xlabel('# fan-beam projections from 0-359^\circ'); ylabel('RMSE/%');
         legend('linearized FBP', 'FBP', 'NPG\_TV', 'linearized NPG', 'NPG\_TV (known \iota)',...
-            'NPG (known \iota 100)','NPG-BFGS-cont','NPG-BFGS-100');
+            'NPG (known \iota 100)','NPG-BFGS-cont','NPG-BFGS-100','NPG-BFGS-u0');
 
         forSave=[prjFull(:)';
         100*           linFbpRMSE(:)';
@@ -179,49 +195,78 @@ switch lower(op)
         100*min(    linNpgRMSE,[],2)';
         100*min(npgTValphaRMSE,[],2)';
         100*min(npgTVb1contRMSE,[],2)';
-        100*min(npgTValphaE100RMSE,[],2)'; ]';
+        100*min(npgTValphaE100RMSE,[],2)';
+        100*min(npgTVb1u0RMSE,[],2)'; ]';
         save('rmse_prj_yang.data','forSave','-ascii');
 
         keyboard
 
         prjIdx=3; col=250; h=figure; forSave=[];
 
-        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,       'fbp_yang.eps','psc2'); imwrite(img/maxImg,       'fbp_yang.png');
+        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:));
+        img=showImgMask(          fbp{prjIdx     }.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg); saveas(gcf,       'fbp_yang.eps','psc2'); imwrite(img/maxImg,       'fbp_yang.png');
         fprintf('FBP RMSE=%e\n',fbpRMSE(prjIdx));
         figure(h); plot(img(:,col),'b-'); hold on; forSave=[forSave, img(:,col)];
 
-        img=showImgMask(       linFbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'linFBP_yang.eps','psc2'); imwrite(img/maxImg,    'linFBP_yang.png');
+        img=showImgMask(       linFbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:));
+        img=showImgMask(       linFbp{prjIdx     }.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg); saveas(gcf,    'linFBP_yang.eps','psc2'); imwrite(img/maxImg,    'linFBP_yang.png');
         fprintf('linFBP RMSE=%e\n',linFbpRMSE(prjIdx));
         figure(h); plot(img(:,col),'r-'); hold on; forSave=[forSave, img(:,col)];
 
         rmse=linNpgRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u = 10.^[-5  -5   -5   -5   -5   -5 -5 -5];
-        img=showImgMask(     linNpgTV{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'linNPGTV_yang.eps','psc2'); imwrite(img/maxImg,  'linNPGTV_yang.png');
+        img=showImgMask(     linNpgTV{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg); saveas(gcf,  'linNPGTV_yang.eps','psc2'); imwrite(img/maxImg,  'linNPGTV_yang.png');
         fprintf('a for linNPGTV is %e and u=%g, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),linNpgTV{prjIdx,aIdx}.opt.u,rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'c-'); forSave=[forSave, img(:,col)];
 
-        rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
-        img=showImgMask(npgTValpha_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTValpha_yang.eps','psc2'); imwrite(img/maxImg,'npgTValpha_yang.png');
+        rmse=npgTValphaRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));
+        img=showImgMask(npgTValpha_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg); saveas(gcf,'npgTValpha_yang.eps','psc2'); imwrite(img/maxImg,'npgTValpha_yang.png');
         fprintf('u for npgTValpha_b1 is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'k--'); forSave=[forSave, img(:,col)];
 
-        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
-        img=showImgMask(     npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'npgTV_yang.eps','psc2'); imwrite(img/maxImg,     'npgTV_yang.png');
+        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));
+        img=showImgMask(     npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg); saveas(gcf,     'npgTV_yang.eps','psc2'); imwrite(img/maxImg,     'npgTV_yang.png');
         fprintf('u for NPGTV is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'g-.'); forSave=[forSave, img(:,col)];
 
-        rmse=npgTValphaE100RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
-        img=showImgMask(     npgTValpha_b1_E100_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0);  imwrite(img/maxImg,     'npgTValpha100_yang.png');
+        rmse=npgTValphaE100RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));
+        img=showImgMask(     npgTValpha_b1_E100_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTValpha100_yang.png');
         fprintf('u for NPGTValpha100 is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'k-.'); forSave=[forSave, img(:,col)];
 
-        rmse=npgTVb1contRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); u  =  10.^[-5  -5   -5   -5   -5   -5 -4 -5];
-        img=showImgMask(     npgTV_b1_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0);  imwrite(img/maxImg,     'npgTVcont_yang.png');
+        rmse=npgTVb1contRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));
+        img=showImgMask(     npgTV_b1_cont{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTVcont_yang.png');
         fprintf('u for NPGTVcont is %e, RMSE=%g\n',10^(aIdx-3)*u(prjIdx),rmse(prjIdx,aIdx));
         figure(h); plot(img(:,col),'c--'); forSave=[forSave, img(:,col)];
 
+        rmse=npgTVb1u0RMSE;
+        img=showImgMask(     npgTV_b1_u0{prjIdx}.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTVb1u0_full_yang.png');
+        fprintf('u for NPGTVcont is %e, best RMSE=%g, ending RMSE=%g\n',0,rmse(prjIdx),npgTV_b1_u0{prjIdx}.RMSE(end));
+        figure(h); plot(img(:,col),'c--'); forSave=[forSave, img(:,col)];
+
+        rmse=npgTV_b1_u0_i3.RMSE(end);
+        img=showImgMask(     npgTV_b1_u0_i3.alpha,opt.mask); maxImg=normalize(img(:),opt.trueImg);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTVb1u0_best_yang.png');
+        fprintf('u for NPGTVcont is %e, RMSE=%g\n',0,rmse);
+        figure(h); plot(img(:,col),'c--'); forSave=[forSave, img(:,col)];
+
+        img=opt.trueImg; maxImg=normalize(img(:),opt.trueImg); imwrite(img/maxImg,     'yang.png');
 
         legend('FBP', 'linearized FBP', 'linearized NPG', 'NPG\_TV (known \iota)', 'NPG\_TV','NPG 100 cont', 'NPG-BFGS cont');
         save('profile_yang.data','forSave','-ascii');
+
+        forSave=[];
+        forSave=[forSave, npgTV_b1_u0{prjIdx}.time(:)];
+        forSave=[forSave, npgTV_b1_u0{prjIdx}.cost(:)];
+        forSave=[forSave, npgTV_b1_u0{prjIdx}.RMSE(:)];
+        save('yangTrace.data','forSave','-ascii');
 
         prjIdx=3; col=250; forSave=[]; clear('opt');
         rmse=npgTVb1RMSE;    aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a1=npgTV_b1{prjIdx,aIdx};
@@ -259,6 +304,29 @@ switch lower(op)
         !cat test[1-3].data > linearization_yang.data
         !rm test[1-3].data
 
+        [upkappa,upiota]=getUpiota(a1.opt.epsilon,a1.opt.kappa,a1.opt.iota);
+        upkappa(3)=[]; upiota(3)=[];
+        q=upkappa(2)/upkappa(1);
+        N=40; offset=30; overlap=3;
+        %upkappa=[(q.^(-N:-1)')*upkappa(1); upkappa(:)];
+        upiota=upiota(:);
+        upiota1=[upiota(end-offset:-1:end-offset-N-overlap+2);  upiota(overlap:end)*0];
+        upiota2=[upiota(end-offset:-1:end-offset-N+1)*0;  upiota(1:end)];
+        %upiota=upiota2+upiota1;
+        forSave=[upkappa(:) upiota(:)];
+        save('upiota.data','forSave','-ascii');
+        sampledUpkappa=logspace(log10(0.03), log10(100), 50);
+        anchor=0.243;
+        temp=abs(sampledUpkappa-anchor);
+        temp=sampledUpkappa(temp==min(temp));
+        sampledUpkappa=sampledUpkappa*anchor/temp;
+        sampledUpiota=interp1(log(a1.opt.upkappa), a1.opt.upiota ,log(sampledUpkappa(:)),'linear');
+        sampledUpiota=max(sampledUpiota(:),0);
+        figure; semilogx(upkappa,upiota); hold on;
+        semilogx(sampledUpkappa,sampledUpiota,'*r');
+        forSave=[sampledUpkappa(:) sampledUpiota(:)];
+        save('sampledupiota.data','forSave','-ascii');
+
         idx= find((PhiAlpha>2.9) & (PhiAlpha<3.1));
         figure; hist(exp(-y(idx)),100);
 
@@ -281,4 +349,15 @@ switch lower(op)
     end
 end
 
+function data=normalize(a,mask)
+    if(~exist('mask','var'))
+        mask=opt.trueImg;
+    end
+    data=mean(a(mask>0))*1.4;
+    a=reshape(a,sqrt(length(a)),[]);
+
+    i=256;
+    figure; subplot(2,1,1); plot(sort(a(:),'descend')); hold on; plot(ones(10000,1)*data,'r');
+    subplot(2,1,2); plot(a(:,i)); hold on; plot(a(:,i)*0+data,'r');
+end
 

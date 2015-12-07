@@ -49,16 +49,23 @@ switch lower(op)
 
                 opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
                 if(k==1 && i==5)
-                    keyboard
                     Opt=opt; opt.adaptiveStep=false;
                     % npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    % opt.thresh=1e-10;
-                    % npgTV_noAdpStpLong=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.thresh=1e-10;
+                    %npgTV_noAdpStpLong=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=Opt; opt.cumuTol=1; opt.incCumuTol=false;
-                    npgTV_n1=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    %npgTV_n1=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.incCumuTol=true;
+                    test=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    keyboard
                     opt=Opt;
-                    npgTV{i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgTV_n4=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.thresh=1e-10;
+                    spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
+
+
+                save(filename);
                     keyboard
                 else
                     continue
@@ -252,13 +259,16 @@ switch lower(op)
         save('varyCntPETTV.data','forSave','-ascii');
 
         forSave=[]; t=0; mIdx=5; k=1;
-        out=   npgTV{mIdx,1,k};
+        out=   npgTV_n4;
         t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=spiralTV{mIdx,1,k};
+        out=spiralTV_Long;
         t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgTV_noAdpStp;
+        out=npgTV_noAdpStpLong;
+        t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
+        t=t+1; forSave(1:length(out.time),t)=out.time;
+        out=   npgTV_n1;
         t=t+1; forSave(1:length(out.stepSize),t)=out.stepSize;
         t=t+1; forSave(1:length(out.time),t)=out.time;
         save('stepSize.data','forSave','-ascii');
@@ -270,51 +280,49 @@ switch lower(op)
         legend('npgTV','spiralTV','npgTV noAdaptive Step');
 
         forSave=[]; t=0; mIdx=5; k=1;
-        out=  npgTVc{mIdx,1,k};
+        out=   npgTV_n4;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=   npgTV{mIdx,1,k};
+        out=  npgTV_n1;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=spiralTV{mIdx,1,k};
+        out=  npgTV_noAdpStpLong;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgs{mIdx,1,k};
+        t=t+1; forSave(1:length(out.difAlpha),t)=out.difAlpha;
+        out=  spiralTV_Long;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgsc{mIdx,1,k};
-        t=t+1; forSave(1:length(out.cost),t)=out.cost;
-        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
-        t=t+1; forSave(1:length(out.time),t)=out.time;
-        out=npgTV_noAdpStp;
-        t=t+1; forSave(1:length(out.cost),t)=out.cost;
-        t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
-        t=t+1; forSave(1:length(out.time),t)=out.time;
+        t=t+1; forSave(1:length(out.difAlpha),t)=out.difAlpha;
 
         save('cost_itrPETTV.data','forSave','-ascii');
-        mincost=reshape(forSave(:,[1,4,7]),[],1); 
+        mincost=reshape(forSave(:,[1,4,7,11]),[],1); 
         mincost=min(mincost(mincost~=0));
 
         figure;
         semilogy(forSave(:,3),forSave(:,1)-mincost,'r'); hold on;
         semilogy(forSave(:,6),forSave(:,4)-mincost,'g');
         semilogy(forSave(:,9),forSave(:,7)-mincost,'b');
-        semilogy(forSave(:,18),forSave(:,16)-mincost,'k');
-        if(mIdx==5 && k==1)
-            semilogy(forSave(:,15),forSave(:,13)-min(max(forSave(:,13),0)),'c:');
-            legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp','npgsc');
-        else
-            legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp');
-        end
+        semilogy(forSave(:,13),forSave(:,11)-mincost,'k');
+        legend('npgTV n4','npgTV n1','npgTV nInf','spiralTV');
+        hold on;
+        idx=min(find(forSave(:,10)<1e-6));
+        plot(forSave(idx,9),forSave(idx,7)-mincost,'bo');
+        xxx=idx;
+        idx=min(find(forSave(10:end,14)<1e-6))+10;
+        plot(forSave(idx,13),forSave(idx,11)-mincost,'k*');
+        xxx=[xxx;idx];  xxx=xxx(:)';
+        save('cost_itrPETTVidx.data','xxx','-ascii');
+
         figure; semilogy(forSave(:,3),forSave(:,2),'r'); hold on;
         semilogy(forSave(:,6),forSave(:,5),'g');
         semilogy(forSave(:,9),forSave(:,8),'b');
-        semilogy(forSave(:,18),forSave(:,17),'k');
-        legend('npgTVc','npgTV','spiralTV','npgTV-noAdpStp');
+        semilogy(forSave(:,13),forSave(:,12),'k');
+        legend('npgTV n4','npgTV n1','npgTV nInf','spiralTV');
 
         keyboard
 

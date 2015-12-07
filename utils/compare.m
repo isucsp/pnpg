@@ -1,4 +1,3 @@
-
 function compare(field,plotFunc,varargin)
     colors={'g','b','r','k','m'};
     marks = {'.','*','o','s','^'};
@@ -11,6 +10,7 @@ function compare(field,plotFunc,varargin)
     end
 
     figure;
+    m=0;
     for ii=1:length(varargin)
         for j=1:length(fieldname)
             v{j}=getfield(varargin{ii},fieldname{j});

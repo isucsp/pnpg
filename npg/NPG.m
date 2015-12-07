@@ -23,6 +23,8 @@ classdef NPG < Methods
         maxInnerItr=100;
 
         proxmapping
+
+        nbt=0;
     end
     methods
         function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
@@ -42,11 +44,9 @@ classdef NPG < Methods
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
-        % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.warned = false;
             pp=0; obj.debug='';
-            if(obj.restart>0) obj.restart=0; end
 
             while(pp<obj.maxItr)
                 obj.p = obj.p+1;
@@ -60,20 +60,18 @@ classdef NPG < Methods
 
                 [oldCost,obj.grad] = obj.func(xbar);
 
-                % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    % adaptively increase the step size
+                    obj.t=obj.t*obj.stepShrnk;
+                    obj.cumu=0;
+                    incStep=true;
+                end
+                % start of line Search
                 while(true)
-                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
-                        % adaptively increase the step size
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                        incStep=true;
-                    end
                     obj.ppp = obj.ppp+1;
-
                     [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
                         obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
-
                     newCost=obj.func(newX);
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
@@ -102,23 +100,25 @@ classdef NPG < Methods
                 temp = newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((temp-obj.cost)>0)
+                if((temp-obj.cost)>0 && obj.restart>=0)
                     if(goodMM)
                         if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
                             obj.theta=0;
-                            obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];
                             pp=pp-1; continue;
                         else
                             if(obj.innerSearch<obj.maxInnerItr)
-                                obj.restart= 2;
                                 obj.difAlpha=0;
                                 obj.debug=[obj.debug 'resetDifAlpha'];
                                 pp=pp-1; continue;
                             else
-                                obj.debug=[obj.debug 'forceConverge'];
-                                obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-                                newX=obj.alpha;  temp=obj.cost;
+                                obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                                global strlen
+                                fprintf('\n good MM but increased cost, do nothing\n');
+                                strlen=0;
+                                
+%                               obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
+%                               newX=obj.alpha;  temp=obj.cost;
                             end
                         end
                     else

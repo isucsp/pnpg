@@ -329,6 +329,8 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
 
+    out.nbt(p) = alphaStep.nbt;
+
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
     if(opt.restart) out.restart(p)=alphaStep.restart; end

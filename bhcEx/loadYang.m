@@ -1,4 +1,4 @@
-function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
+function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYang(opt,seed)
 %   n=512;
 %   trueImg=zeros(n,n);
 %   inFig=rgb2gray(double(imread('yinyang.png')));
@@ -8,7 +8,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP,mask]=loadYinyang(opt)
 %   t2=ceil((n-size(inFig,1))/2);
 %   trueImg(t1+1:n-t2,t1+1:n-t2)=inFig;
 
-    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+    if(~exist('seed','var')) seed=0; end
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
     if(~isfield(opt,'beamharden')) opt.beamharden=false; end
 
     trueImg=load('yang.mat'); opt.trueImg=trueImg.trueImg;

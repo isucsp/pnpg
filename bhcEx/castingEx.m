@@ -22,32 +22,47 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
+        clear('Oopt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spectBasis='b1'; opt.E=20;
-        opt.estIe=true;
+        Oopt.beamharden=true; Oopt.spectBasis='b1'; Oopt.E=20;
+        Oopt.maxItr=4e3; Oopt.thresh=1e-6;
+        Oopt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
         for i=6:-1:4
-            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
-
-            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt);
-            opt.maxItr=4e3; opt.thresh=1e-6;
-
-            initSig = maskFunc(FBP(y),opt.mask~=0);
+            Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
+            [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadCasting(Oopt);
+            initSig = maskFunc(FBP(y),Oopt.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
-            fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
+            fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
 
-            Oopt=opt;
-
-            % unknown ι(κ), NPG-AS
             for j=[5:-1:1]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
                 u  =  10.^[-5  -5   -5   -5   -5   -4.5];
+
+                if(i==6 && j==3)
+                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                    opt.thresh=-1; opt.maxItr=1e4;
+                    npgTV_b1_new{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
+                    opt.thresh=-1; opt.maxItr=1e4;
+                    npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                    opt.thresh=-1; opt.maxItr=1e4;
+                    pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                else
+                    continue;
+                end
+
+                save(filename);
+                keyboard
+                continue;
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 if(j<5)
@@ -58,10 +73,7 @@ switch lower(op)
                 end
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
-                npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                save(filename);
-                continue;
+%               npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
                 npgTV_b1_anim=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -118,12 +130,13 @@ switch lower(op)
 
         aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
         img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
-        fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx));
+        fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx)); temp=img(:)/maxImg;
         figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
-        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=max(img(:));
+        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
         figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u-4.png');
 
         legend('FBP', 'NPG\_TV');
         save('profile_casting.data','forSave','-ascii');

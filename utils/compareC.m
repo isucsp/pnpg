@@ -37,9 +37,9 @@ function compareC(field,plotFunc,varargin)
         str{ii}=sprintf('%d',ii);
     end
     if(length(fieldname)==1)
-        title(fieldname{1});
+        title(['Centralized ' fieldname{1}]);
     elseif(length(fieldname)==2)
-        title([fieldname{1} ' v.s. ' fieldname{2}]);
+        title([fieldname{1} ' v.s. Centeralized ' fieldname{2}]);
     end
     legend(str);
 end

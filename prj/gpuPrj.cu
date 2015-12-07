@@ -267,7 +267,7 @@ __global__ void pixelDriveFan(ft* img, ft* sino, int FBP){
     // x= t*cosT + (t*cosT+d*sinT)/(t*sinT-d*cosT)*(y-t*sinT);
     // or x = -t*d/(t*sinT-d*cosT) + y*(t*cosT+d*sinT)/(t*sinT-d*cosT);
     ft qe, oc;
-//ft qa;
+    //ft qa;
     ft bq;
     ft cosB, sinB; //, tanB=t/d;
     ft cosR, sinR;

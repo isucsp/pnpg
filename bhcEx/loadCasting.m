@@ -23,7 +23,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCasting(opt)
     daub = 2; dwt_L=6;        %levels of wavelet transform
     maskType='CircleMask';
 
-    conf.PhiMode = 'gpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
+    conf.PhiMode = 'cpuPrj'; %'parPrj'; %'basic'; %'gpuPrj'; %
     conf.imgSize = 2^floor(log2(N));
     conf.prjWidth = N;
     conf.prjFull = opt.prjFull;

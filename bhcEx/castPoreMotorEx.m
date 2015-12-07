@@ -22,26 +22,39 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
+        clear('Oopt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spectBasis='b1'; opt.E=20;
-        opt.estIe=true;
+        Oopt.beamharden=true; Oopt.spectBasis='b1'; Oopt.E=20;
+        Oopt.estIe=true; Oopt.maxItr=4e3; Oopt.thresh=1e-6;
 
         prjFull = [60, 40, 72, 120, 180, 360];
         for i=length(prjFull):-1:1
-            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
+            Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
 
-            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastPoreMotor(opt);
-            opt.maxItr=4e3; opt.thresh=1e-6;
+            [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadCastPoreMotor(Oopt);
 
-            initSig = maskFunc(FBP(y),opt.mask~=0);
+            initSig = maskFunc(FBP(y),Oopt.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
-            fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
+            fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
 
-            Oopt=opt;
+            if(i==6)
+                j=3;
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                opt.thresh=-1; opt.maxItr=1e4;
+                npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                opt.thresh=-1; opt.maxItr=1e4;
+                pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
+            else
+                continue;
+            end
+
+            continue;
 
             % unknown ι(κ), NPG-AS
             for j=[3 4 2]

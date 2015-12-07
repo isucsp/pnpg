@@ -188,6 +188,10 @@ switch lower(opt.alphaStep)
         end
     case {lower('NPGs'), lower('NPG'), lower('PG')}
         switch(lower(opt.proximal))
+            case lower('nonneg')
+                proxmalProj=@(x,u,innerThresh,maxInnerItr) customMax(x,0);
+                penalty = @(x) 0;
+                fprintf('Use apply nonnegativity only\n');
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
                     innerThresh,maxInnerItr,false);
@@ -395,7 +399,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
 
         out.alphaSearch(p) = alphaStep.ppp;
         out.stepSize(p) = alphaStep.stepSize;
-        if(hasRestart && alphaStep.restart>=0) out.restart(p)=alphaStep.restart; end
+        if(hasRestart) out.restart(p)=alphaStep.restart; end
         if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
         if(collectDebug && ~isempty(alphaStep.debug))
             out.debug{size(out.debug,1)+1,1}=p;
@@ -569,4 +573,11 @@ if(opt.estIe)
 end
 
 end
+
+
+function [y,z]=customMax(x,c)
+    y=max(x,c);
+    z=1;
+end
+
 
