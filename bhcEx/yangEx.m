@@ -37,8 +37,9 @@ switch lower(op)
             fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,Oopt.trueAlpha)^2)/sqrNorm(Oopt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
-            if(i==6)
-                j=3;
+            if(i==3)
+                j=4;
+                u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='NPG';
                 opt.thresh=-1; opt.maxItr=1e4;
                 npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
