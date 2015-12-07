@@ -16,54 +16,47 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
+        clear('Oopt'); filename = [mfilename '.mat'];
 
-        opt.beamharden=true; opt.spectBasis='b1'; opt.E=30;
-        opt.estIe=true; opt.noiseType='poisson';
+        Oopt.beamharden=true; Oopt.spectBasis='b1'; Oopt.E=30;
+        Oopt.estIe=true; Oopt.noiseType='poisson';
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
         for i=length(prjFull)-1:-1:1
-            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
+            Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
 
-            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt);
-            opt.maxItr=4e3; opt.thresh=1e-6;
+            [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadYang(Oopt);
+            Oopt.maxItr=4e3; Oopt.thresh=1e-6;
 
-            initSig = maskFunc(FBP(y),opt.mask~=0);
+            initSig = maskFunc(FBP(y),Oopt.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
-            fbp{i}.alpha=fbp{i}.img(opt.mask~=0);
-            fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,opt.trueAlpha)^2)/sqrNorm(opt.trueAlpha)/sqrNorm(fbp{i}.alpha);
+            fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
+            fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,Oopt.trueAlpha)^2)/sqrNorm(Oopt.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
-            Opt=opt;
-
-            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            opt=Opt;
-            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-            for k=1:5
-                [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt,k-1);
-                npgTV_b1_u0{i,j,k}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
-            save(filename);
-            continue
-
-            if(i==3)
-                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
-                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=Opt;
+            if(i==6)
+                j=3;
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='NPG';
+                opt.thresh=-1; opt.maxItr=1e4;
+                npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
-            else
-                continue;
+
+                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='PG';
+                opt.thresh=-1; opt.maxItr=1e4;
+                pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
             end
+            continue
 
             % unknown ι(κ), NPG-LBFGSB
             for j=[5:-1:2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
 
-                opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 opt.E=100;
                 if(j==5)
                     npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -74,11 +67,11 @@ switch lower(op)
                 end
                 continue;
 
-                opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 opt.E=100;
                 npgTV_b1_E100{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Opt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 if(j==5)
                     npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
                 else
@@ -87,9 +80,24 @@ switch lower(op)
                         npgTV_b1_cont{i,j+1}.alpha,opt);
                 end
 
-                opt=Opt;
+                opt=Oopt;
                 opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+            end
+
+            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+            opt=Oopt;
+            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+            for k=1:5
+                [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt,k-1);
+                npgTV_b1_u0{i,j,k}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+            end
+
+            if(i==3)
+                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Oopt;
+                save(filename);
             end
 
             % known ι(κ), NPG
@@ -97,7 +105,7 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
                 u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
 
-                opt=Opt; opt.u=10^(j-3)*u(i); opt.E=100;
+                opt=Oopt; opt.u=10^(j-3)*u(i); opt.E=100;
                 opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
                 if(j==5)
                     npgTValpha_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -109,7 +117,7 @@ switch lower(op)
 
                 continue;
 
-                opt=Opt; opt.u=10^(j-3)*u(i);
+                opt=Oopt; opt.u=10^(j-3)*u(i);
                 opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
                 npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end

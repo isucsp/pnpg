@@ -50,8 +50,6 @@ switch lower(op)
                 opt.thresh=-1; opt.maxItr=1e4;
                 pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
-            else
-                continue;
             end
 
             continue;
