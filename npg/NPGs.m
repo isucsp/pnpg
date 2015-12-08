@@ -9,7 +9,7 @@ classdef NPGs < Methods
         theta = 0;
         cumu=0;
         cumuTol=4;
-        nonInc=0;
+        incCumuTol=true;
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
         % the weight that applied to the l1 norm,
@@ -25,12 +25,19 @@ classdef NPGs < Methods
             obj.preAlpha=alpha;
             obj.Psi=Psi; obj.Psit=Psit;
         end
+        function setAlpha(obj,alpha)
+            obj.alpha=alpha;
+            obj.cumu=0;
+            obj.theta=0;
+            obj.preAlpha=alpha;
+        end
         % solves L(α) + u*||Ψ'*α||_1
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false;
+            obj.warned = false;
             pp=0; obj.debug='';
-            if(obj.restart>0) obj.restart=0; end
+
             while(pp<obj.maxItr)
+                obj.p = obj.p+1;
                 pp=pp+1;
                 temp=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
@@ -39,21 +46,20 @@ classdef NPGs < Methods
                 [oldCost,obj.grad] = obj.func(xbar);
                 si = obj.Psit(xbar); dsi = obj.Psit(obj.grad);
 
-                % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    % adaptively increase the step size
+                    obj.t=obj.t*obj.stepShrnk;
+                    obj.cumu=0;
+                    incStep=true;
+                end
+                % start of line Search
                 while(true)
-                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
-                        % adaptively increase the step size
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                        incStep=true;
-                    end
                     obj.ppp = obj.ppp+1;
                     newSi=Utils.softThresh(si-dsi/obj.t,obj.weight*obj.u/obj.t);
                     newX = obj.Psi(newSi);
                     newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if((LMM-newCost)>=0)
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -63,10 +69,12 @@ classdef NPGs < Methods
                         if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
-                                obj.cumuTol=obj.cumuTol+4;
+                                if(obj.incCumuTol)
+                                    obj.cumuTol=obj.cumuTol+4;
+                                end
                                 incStep=false;
                             end
-                        else
+                        else  % don't know what to do, mark on debug and break
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
                             break;
@@ -80,14 +88,18 @@ classdef NPGs < Methods
                 % restart
                 if((temp-obj.cost)>0)
                     if(goodMM)
-                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
-                            obj.theta=0;
-                            obj.restart= 1; % make sure only restart once each iteration
-                            obj.debug=[obj.debug 'restart'];
-                            pp=pp-1; continue;
+                        if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
+                            if(obj.restart>=0)
+                                obj.theta=0;
+                                obj.debug=[obj.debug 'restart'];
+                                pp=pp-1; continue;
+                            end
                         else
-                            obj.debug=[obj.debug 'forceConverge'];
-                            newX=obj.alpha; temp=obj.cost;
+                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                            global strlen
+                            fprintf('\n good MM but increased cost, do nothing\n');
+                            strlen=0;
+                            obj.cumu=0;
                         end
                     else
                         obj.debug=[obj.debug 'falseMonotone'];

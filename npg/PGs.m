@@ -7,13 +7,10 @@ classdef PGs < Methods
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
-        admmAbsTol=1e-9;
-        admmTol=1e-3;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
-        newCost;
-        nonInc=0;
-        innerSearch
+        incCumuTol=true;
+        innerSearch=0;
         adaptiveStep=true;
     end
     methods
@@ -22,46 +19,57 @@ classdef PGs < Methods
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.Psi = Psi; obj.Psit = Psit;
-            obj.nonInc=0;
+        end
+        function setAlpha(obj,alpha)
+            obj.alpha=alpha;
+            obj.cumu=0;
+            obj.theta=0;
         end
         % solves l(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside IST for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.p = obj.p+1; obj.warned = false;
+            obj.warned = false;
             pp=0; obj.debug='';
+
             while(pp<obj.maxItr)
+                obj.p = obj.p+1;
                 pp=pp+1;
                 xbar=obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(xbar);
                 si = obj.Psit(xbar); dsi = obj.Psit(obj.grad);
 
+                obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    % adaptively increase the step size
+                    obj.t=obj.t*obj.stepShrnk;
+                    obj.cumu=0;
+                    incStep=true;
+                end
                 % start of line Search
-                obj.ppp=0; goodStep=true; temp=0; goodMM=true;
                 while(true)
-                    if(goodStep && temp<obj.adaptiveStep && obj.cumu>=obj.cumuTol)
-                        % adaptively increase the step size
-                        temp=temp+1;
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                    end
                     obj.ppp = obj.ppp+1;
                     wi=si-dsi/obj.t;
                     newSi=Utils.softThresh(wi,obj.u/obj.t);
                     newX = obj.Psi(newSi);
-                    obj.newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if(obj.newCost<=LMM)
-                        if(obj.p<=obj.preSteps && obj.ppp<20 && goodStep)
+                    newCost=obj.func(newX);
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
+                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
                             break;
                         end
                     else
-                        if(obj.ppp<=20)
+                        if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
-                        else
+                            if(incStep)
+                                if(obj.incCumuTol)
+                                    obj.cumuTol=obj.cumuTol+4;
+                                end
+                                incStep=false;
+                            end
+                        else  % don't know what to do, mark on debug and break
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
                             break;
@@ -69,17 +77,28 @@ classdef PGs < Methods
                     end
                 end
                 obj.stepSize = 1/obj.t;
-                obj.fVal(3) = pNorm(obj.Psit(newX),1);
-                temp = obj.newCost+obj.u*obj.fVal(3);
-                if(temp>obj.cost)
+                obj.fVal(3) = pNorm(newSi,1);
+                temp = newCost+obj.u*obj.fVal(3);
+
+                % restart
+                if((temp-obj.cost)>0)
                     if(goodMM)
-                        obj.debug=[obj.debug 'forceConverge'];
-                        newX=obj.alpha;
-                        temp=obj.cost;
+                        if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
+                            if(obj.restart>=0)
+                                obj.theta=0;
+                                obj.debug=[obj.debug 'restart'];
+                                pp=pp-1; continue;
+                            end
+                        else
+                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                            global strlen
+                            fprintf('\n good MM but increased cost, do nothing\n');
+                            strlen=0;
+                            obj.cumu=0;
+                        end
                     else
-                        pp=pp-1;
                         obj.debug=[obj.debug 'falseMonotone'];
-                        continue;
+                        pp=pp-1; continue;
                     end
                 end
                 obj.cost = temp;

@@ -8,9 +8,10 @@ classdef PG < Methods
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-3;   % abs value should be 1e-8
+        admmTol=1e-2;   % abs value should be 1e-8
         cumu=0;
         cumuTol=4;
+        incCumuTol=true;
         nonInc=0;
         innerSearch=0;
         adaptiveStep=true;
@@ -46,23 +47,20 @@ classdef PG < Methods
 
                 [oldCost,obj.grad] = obj.func(xbar);
 
-                % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    % adaptively increase the step size
+                    obj.t=obj.t*obj.stepShrnk;
+                    obj.cumu=0;
+                    incStep=true;
+                end
+                % start of line Search
                 while(true)
-                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
-                        % adaptively increase the step size
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                        incStep=true;
-                    end
                     obj.ppp = obj.ppp+1;
-
                     [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
                         obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
-
                     newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-xbar)+sqrNorm(newX-xbar)*obj.t/2);
-                    if(newCost<=LMM)
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -72,10 +70,12 @@ classdef PG < Methods
                         if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
-                                obj.cumuTol=obj.cumuTol+4;
+                                if(obj.incCumuTol)
+                                    obj.cumuTol=obj.cumuTol+4;
+                                end
                                 incStep=false;
                             end
-                        else
+                        else  % don't know what to do, mark on debug and break
                             goodMM=false;
                             obj.debug=[obj.debug 'falseMM'];
                             break;
@@ -85,7 +85,7 @@ classdef PG < Methods
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
                 temp = newCost+obj.u*obj.fVal(3);
-                
+
                 if((temp-obj.cost)>0)
                     if(goodMM)
                         if(obj.innerSearch<obj.maxInnerItr)
@@ -93,13 +93,19 @@ classdef PG < Methods
                             obj.debug=[obj.debug 'resetDifAlpha'];
                             pp=pp-1; continue;
                         else
-                            obj.debug=[obj.debug 'forceConverge'];
-                            obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-                            newX=obj.alpha; temp=obj.cost;
+                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                            global strlen
+                            fprintf('\n good MM but increased cost, do nothing\n');
+                            strlen=0;
                         end
                     else
                         obj.debug=[obj.debug 'falseMonotone'];
-                        pp=pp-1; continue;
+                        if(obj.innerSearch<obj.maxInnerItr)
+                            % otherwise do nothing
+                            obj.debug=[obj.debug 'resetDifAlpha1'];
+                            obj.difAlpha=0;
+                            pp=pp-1; continue;
+                        end
                     end
                 end
                 obj.cost = temp;

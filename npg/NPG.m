@@ -99,31 +99,34 @@ classdef NPG < Methods
                 obj.fVal(3) = obj.fArray{3}(newX);
                 temp = newCost+obj.u*obj.fVal(3);
 
-                % restart
-                if((temp-obj.cost)>0 && obj.restart>=0)
+                if((temp-obj.cost)>0)
                     if(goodMM)
-                        if(sum(abs(xbar-obj.alpha))~=0) % if has monmentum term, restart
-                            obj.theta=0;
-                            obj.debug=[obj.debug 'restart'];
-                            pp=pp-1; continue;
+                        if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
+                            % restart
+                            if(obj.restart>=0)
+                                obj.theta=0;
+                                obj.debug=[obj.debug 'restart'];
+                                pp=pp-1; continue;
+                            end
                         else
                             if(obj.innerSearch<obj.maxInnerItr)
                                 obj.difAlpha=0;
                                 obj.debug=[obj.debug 'resetDifAlpha'];
                                 pp=pp-1; continue;
-                            else
-                                obj.debug=[obj.debug 'goodMM_but_increasedCost'];
-                                global strlen
-                                fprintf('\n good MM but increased cost, do nothing\n');
-                                strlen=0;
-                                obj.cumu=0;
-%                               obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-%                               newX=obj.alpha;  temp=obj.cost;
                             end
+                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                            global strlen
+                            fprintf('\n good MM but increased cost, do nothing\n');
+                            strlen=0;
                         end
                     else
                         obj.debug=[obj.debug 'falseMonotone'];
-                        pp=pp-1; continue;
+                        if(obj.innerSearch<obj.maxInnerItr)
+                            % otherwise do nothing
+                            obj.debug=[obj.debug 'resetDifAlpha1'];
+                            obj.difAlpha=0;
+                            pp=pp-1; continue;
+                        end
                     end
                 end
                 obj.cost = temp;

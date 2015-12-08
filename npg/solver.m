@@ -125,7 +125,7 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case {lower('NPGs'), lower('NPG'),lower('AT'),lower('ATs')}
+    case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
@@ -166,6 +166,10 @@ switch lower(opt.alphaStep)
             alphaStep=AT(1,alpha,1,opt.stepShrnk,proxmalProj);
             alphaStep.fArray{3} = penalty;
         end
+    case lower('GFB')
+        alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit);
+    case lower('Condat')
+        alphaStep=Condat(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
