@@ -49,6 +49,7 @@ switch lower(op)
                 % It seems that around 1865th iteration, there is a strange
                 % point
                 npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                 opt.thresh=-1; opt.maxItr=1e4;

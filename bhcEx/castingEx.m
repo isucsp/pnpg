@@ -48,20 +48,19 @@ switch lower(op)
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                     opt.thresh=-1; opt.maxItr=1e4;
                     npgTV_b1_new{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
 
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
                     opt.thresh=-1; opt.maxItr=1e4;
                     npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
 
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                     opt.thresh=-1; opt.maxItr=1e4;
                     pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                else
-                    continue;
+                    save(filename);
                 end
 
-                save(filename);
-                keyboard
                 continue;
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
