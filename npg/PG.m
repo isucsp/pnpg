@@ -77,7 +77,7 @@ classdef PG < Methods
                             end
                         else  % don't know what to do, mark on debug and break
                             goodMM=false;
-                            obj.debug=[obj.debug 'falseMM'];
+                            obj.debug=[obj.debug '_falseMM'];
                             break;
                         end
                     end
@@ -90,19 +90,19 @@ classdef PG < Methods
                     if(goodMM)
                         if(obj.innerSearch<obj.maxInnerItr)
                             obj.difAlpha=0;
-                            obj.debug=[obj.debug 'resetDifAlpha'];
+                            obj.debug=[obj.debug '_resetDifAlpha'];
                             pp=pp-1; continue;
                         else
-                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
+                            obj.debug=[obj.debug '_goodMM.but.increasedCost'];
                             global strlen
                             fprintf('\n good MM but increased cost, do nothing\n');
                             strlen=0;
                         end
                     else
-                        obj.debug=[obj.debug 'falseMonotone'];
+                        obj.debug=[obj.debug '_falseMonotone'];
                         if(obj.innerSearch<obj.maxInnerItr)
                             % otherwise do nothing
-                            obj.debug=[obj.debug 'resetDifAlpha1'];
+                            obj.debug=[obj.debug '_resetDifAlpha1'];
                             obj.difAlpha=0;
                             pp=pp-1; continue;
                         end
