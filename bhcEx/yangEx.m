@@ -22,6 +22,7 @@ switch lower(op)
         Oopt.estIe=true; Oopt.noiseType='poisson';
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
+        u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
         for i=length(prjFull)-1:-1:1
             Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
 
@@ -39,7 +40,6 @@ switch lower(op)
 
             if(i==3)
                 j=4;
-                u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='NPG';
                 opt.thresh=-1; opt.maxItr=1e4;
                 npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -55,7 +55,6 @@ switch lower(op)
             % unknown ι(κ), NPG-LBFGSB
             for j=[5:-1:2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
-                u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
 
                 opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
                 opt.E=100;
@@ -104,8 +103,6 @@ switch lower(op)
             % known ι(κ), NPG
             for j=2
                 fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
-                u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
-
                 opt=Oopt; opt.u=10^(j-3)*u(i); opt.E=100;
                 opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
                 if(j==5)
@@ -143,7 +140,6 @@ switch lower(op)
             initSig = maskFunc(FBP(yy),opt.mask~=0);
 
             for j=4
-                u = 10.^[-5  -5   -5   -5   -5   -5 -5 -5];
                 opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy)))); opt.proximal='tviso';
                 linNpgTV{i,j}=Wrapper.NPGc(Phi,Phit,Psi,Psit,yy,initSig,opt);
             end
@@ -151,7 +147,6 @@ switch lower(op)
              
             % linear sparse model
             for j=1:5
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy))));
                 opt.proximal='tvl1';
                 npgTV{i,j}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);

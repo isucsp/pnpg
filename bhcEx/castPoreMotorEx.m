@@ -28,6 +28,7 @@ switch lower(op)
         Oopt.estIe=true; Oopt.maxItr=4e3; Oopt.thresh=1e-6;
 
         prjFull = [60, 40, 72, 120, 180, 360];
+        u  =  10.^[-5  -5   -5   -5   -5   -5];
         for i=length(prjFull):-1:1
             Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
 
@@ -42,7 +43,6 @@ switch lower(op)
 
             if(i==6)
                 j=3;
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 opt.alphaStep='NPG';
                 opt.thresh=-1; opt.maxItr=1e4;
@@ -63,7 +63,6 @@ switch lower(op)
             for j=[3 4 2]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
-                u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
