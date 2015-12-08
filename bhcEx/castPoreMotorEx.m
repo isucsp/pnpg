@@ -45,14 +45,14 @@ switch lower(op)
                 u  =  10.^[-5  -5   -5   -5   -5   -5];
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 opt.alphaStep='NPG';
-                opt.thresh=-1; opt.maxItr=1e4;
+                opt.thresh=1e-16; opt.maxItr=1e4;
                 % It seems that around 1865th iteration, there is a strange
                 % point
                 npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
-                opt.thresh=-1; opt.maxItr=1e4;
+                opt.thresh=1e-16; opt.maxItr=1e4;
                 pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
             end
