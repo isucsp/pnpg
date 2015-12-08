@@ -116,7 +116,7 @@ classdef NPG < Methods
                                 global strlen
                                 fprintf('\n good MM but increased cost, do nothing\n');
                                 strlen=0;
-                                
+                                obj.cumu=0;
 %                               obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
 %                               newX=obj.alpha;  temp=obj.cost;
                             end

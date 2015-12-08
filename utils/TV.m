@@ -54,7 +54,7 @@ classdef TV < handle
     end
     methods(Static)
         function [newX,innerSearch]=denoise(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub)
-            if(~exist('tvType','var')) tvType='l1'; end
+            if(~exist('tvType','var')) tvType='iso'; end
             if(~exist('lb','var')) lb=0; end
             if(~exist('ub','var')) ub=inf; end
             pars.print = 0;
