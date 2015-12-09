@@ -287,7 +287,10 @@ if(any(strcmp(properties(alphaStep),'cumuTol'))...
         && isfield(opt,'cumuTol'))
     alphaStep.cumuTol=opt.cumuTol;
 end
-
+if(any(strcmp(properties(alphaStep),'admmTol'))...
+        && isfield(opt,'admmTol'))
+    alphaStep.admmTol=opt.admmTol;
+end
 if(strcmpi(opt.initStep,'fixed'))
     alphaStep.stepSizeInit(opt.initStep,opt.L);
 else alphaStep.stepSizeInit(opt.initStep);
