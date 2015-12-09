@@ -52,7 +52,7 @@ switch lower(op)
 
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                     opt.thresh=1e-16; opt.maxItr=1e4;
-                    pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
