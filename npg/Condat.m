@@ -1,7 +1,6 @@
 classdef Condat < Methods
     properties
         stepShrnk = 0.5;
-        preAlpha=0;
         preG=[];
         preY=[];
         thresh=1e-4;
@@ -25,23 +24,27 @@ classdef Condat < Methods
         proxmapping
 
         nbt=0;
+        prox
+        y
+        tau
+        rho
     end
     methods
-        function obj = Condat(n,alpha,maxAlphaSteps,stepShrnk,pm)
+        function obj = Condat(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit,L)
             %   alpha(alpha<0)=0;
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.nonInc=0;
-            obj.preAlpha=alpha;
-            obj.proxmapping=pm;
+            obj.Psi = Psi; obj.Psit = Psit;
+            obj.prox=@(x,t) max(min(x,abs(t)),-abs(t));
+            obj.setAlpha(alpha);
+            obj.sigma=1;
+            obj.tau=1/(obj.sigma+L/2) * 0.8;
+            obj.rho=(2-L/2/(1/obj.tau-obj.sigma)) * 1;
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
-            obj.cumu=0;
-            obj.theta=0;
-            obj.preAlpha=alpha;
-            obj.prox=@(x,t) max(min(x,abs(t)),-abs(t));
+            obj.y=zeros(size(alpha));
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         function out = main(obj)
@@ -53,20 +56,18 @@ classdef Condat < Methods
                 pp=pp+1;
 
                 [oldCost,obj.grad] = obj.func(obj.alpha);
-                obj.preAlpha = obj.alpha;
 
                 ybar=obj.prox(obj.y    +obj.sigma*obj.Psit(obj.alpha),obj.u);
                 xbar=max(obj.alpha-obj.tau*(obj.grad+obj.Psi(2*ybar-obj.y)),0);
-                obj.alpha=obj.alpha+obj.rho*(xbar-obj.alpha);
+                newX=obj.alpha+obj.rho*(xbar-obj.alpha);
                 obj.y = obj.y+obj.rho*(ybar-obj.y);
 
                 newCost=obj.func(newX);
-                obj.stepSize = obj.lambda;
+                obj.stepSize = obj.rho;
                 obj.fVal(3) = obj.fArray{3}(newX);
-                temp = newCost+obj.u*obj.fVal(3);
-                obj.cost = temp;
+                obj.cost = newCost+obj.u*obj.fVal(3);
 
-                obj.difAlpha = relativeDif(obj.preAlpha,newX);
+                obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 
                 if(obj.difAlpha<=obj.thresh) break; end
