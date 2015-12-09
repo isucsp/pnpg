@@ -1,7 +1,6 @@
 classdef GFB < Methods
     properties
         stepShrnk = 0.5;
-        preAlpha=0;
         preG=[];
         preY=[];
         thresh=1e-4;
@@ -25,23 +24,31 @@ classdef GFB < Methods
         proxmapping
 
         nbt=0;
+        z1
+        z2
+        r
+        lambda
+        w
+        prox
     end
     methods
-        function obj = GFB(n,alpha,maxAlphaSteps,stepShrnk,pm)
+        function obj = GFB(n,alpha,maxAlphaSteps,stepShrnk,Psi,Psit,L)
             %   alpha(alpha<0)=0;
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.nonInc=0;
-            obj.preAlpha=alpha;
-            obj.proxmapping=pm;
+            obj.Psi = Psi; obj.Psit = Psit;
+            obj.prox=@(x,t) obj.Psi(Utils.softThresh(obj.Psit(x),t));
+            obj.setAlpha(alpha);
+            obj.r=2/L;
+            obj.lambda=1;
+            obj.w=0.5;
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
-            obj.cumu=0;
-            obj.theta=0;
-            obj.preAlpha=alpha;
-            obj.prox=@(x,t) obj.Psi(Utils.softThresh(obj.Psit(x),t));
+
+            obj.z1=alpha;
+            obj.z2=alpha;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         function out = main(obj)
@@ -53,11 +60,10 @@ classdef GFB < Methods
                 pp=pp+1;
 
                 [oldCost,obj.grad] = obj.func(obj.alpha);
-                obj.preAlpha = obj.alpha;
 
                 obj.z1=obj.z1+obj.lambda*(obj.prox(2*obj.alpha-obj.z1-obj.r*obj.grad,obj.r*obj.u/obj.w)-obj.alpha);
                 obj.z2=obj.z2+obj.lambda*(     max(2*obj.alpha-obj.z2-obj.r*obj.grad,0                )-obj.alpha);
-                newX  =0.5*(obj.z1+obj.z2);
+                newX  =obj.w*obj.z1+(1-obj.w)*obj.z2;
 
                 newCost=obj.func(newX);
                 obj.stepSize = obj.lambda;
@@ -65,7 +71,7 @@ classdef GFB < Methods
                 temp = newCost+obj.u*obj.fVal(3);
                 obj.cost = temp;
 
-                obj.difAlpha = relativeDif(obj.preAlpha,newX);
+                obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 
                 if(obj.difAlpha<=obj.thresh) break; end
