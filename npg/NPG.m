@@ -100,6 +100,7 @@ classdef NPG < Methods
                 temp = newCost+obj.u*obj.fVal(3);
 
                 if((temp-obj.cost)>0)
+                    needReset=false;
                     if(goodMM)
                         if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
                             % restart
@@ -115,18 +116,23 @@ classdef NPG < Methods
                                 pp=pp-1; continue;
                             end
                             obj.debug=[obj.debug '_goodMM.but.increasedCost'];
-                            global strlen
-                            fprintf('\n good MM but increased cost, do nothing\n');
-                            strlen=0;
+                            needReset=true;
+                            % global strlen
+                            % fprintf('\n good MM but increased cost, do nothing\n');
+                            % strlen=0;
                         end
                     else
                         obj.debug=[obj.debug '_falseMonotone'];
                         if(obj.innerSearch<obj.maxInnerItr)
-                            % otherwise do nothing
                             obj.debug=[obj.debug '_resetDifAlpha1'];
                             obj.difAlpha=0;
                             pp=pp-1; continue;
                         end
+                        needReset=true;
+                        % otherwise do nothing
+                    end
+                    if(needReset)
+                        obj.reset();
                     end
                 end
                 obj.cost = temp;
