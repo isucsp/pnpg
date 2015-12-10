@@ -303,6 +303,12 @@ else
     collectNonInc=false;
 end
 
+if(any(strcmp(properties(alphaStep),'nbt')))
+    collectNbt=true;
+else
+    collectNbt=false;
+end
+
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Nestrov''s Proximal Gradient Method (%s) %s_%s',opt.proximal,opt.alphaStep,opt.noiseType);
@@ -338,12 +344,11 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
 
-    out.nbt(p) = alphaStep.nbt;
-
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
     if(opt.restart) out.restart(p)=alphaStep.restart; end
     if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
+    if(collectNbt) out.nbt(p)=alphaStep.nbt; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(collectDebug && ~isempty(alphaStep.debug))
         out.debug{size(out.debug,1)+1,1}=p;

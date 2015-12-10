@@ -41,15 +41,17 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
 
-            if(i==6)
+            if(i==5 || i==4)
                 j=3;
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 opt.alphaStep='NPG';
                 opt.thresh=1e-16; opt.maxItr=1e4;
                 % It seems that around 1865th iteration, there is a strange
                 % point
-                npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
+                if(i~=5)
+                    npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                 opt.thresh=1e-16; opt.maxItr=1e4;
