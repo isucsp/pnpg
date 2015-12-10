@@ -224,7 +224,7 @@ switch lower(opt.alphaStep)
                 alphaStep.fArray{3} = penalty;
             case 'pg'
                 alpha=max(alpha,0);
-                alphaStep=PG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+                alphaStep=PG  (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
                 alphaStep.fArray{3} = penalty;
         end
 end
@@ -287,7 +287,10 @@ if(any(strcmp(properties(alphaStep),'cumuTol'))...
         && isfield(opt,'cumuTol'))
     alphaStep.cumuTol=opt.cumuTol;
 end
-
+if(any(strcmp(properties(alphaStep),'admmTol'))...
+        && isfield(opt,'admmTol'))
+    alphaStep.admmTol=opt.admmTol;
+end
 if(strcmpi(opt.initStep,'fixed'))
     alphaStep.stepSizeInit(opt.initStep,opt.L);
 else alphaStep.stepSizeInit(opt.initStep);

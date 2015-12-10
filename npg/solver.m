@@ -125,7 +125,8 @@ switch lower(opt.alphaStep)
         end
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs')}
+    case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs'),...
+            lower('GFB'),lower('Condat')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
@@ -145,37 +146,41 @@ switch lower(opt.alphaStep)
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
         end
 
-        if(strcmpi(opt.alphaStep,'NPGs'))
-            alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
-            alphaStep.fArray{3} = penalty;
-        elseif(strcmpi(opt.alphaStep,'NPG'))
-            alpha=max(alpha,0);
-            alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
-            alphaStep.fArray{3} = penalty;
-            if(strcmpi(opt.noiseType,'poisson'))
-                if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
-                alphaStep.forcePositive=opt.forcePositive;
-                % opt.alphaStep='PG';
-                % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
-            end
-        elseif(strcmpi(opt.alphaStep,'ATs'))
-            alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
-            alphaStep.fArray{3} = penalty;
-        elseif(strcmpi(opt.alphaStep,'AT'))
-            alpha=max(alpha,0);
-            alphaStep=AT(1,alpha,1,opt.stepShrnk,proxmalProj);
-            alphaStep.fArray{3} = penalty;
+        switch lower(opt.alphaStep)
+            case {lower('NPGs')}
+                alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+                alphaStep.fArray{3} = penalty;
+            case lower('PG')
+                alphaStep=PG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
+            case {lower('NPG')}
+                alpha=max(alpha,0);
+                alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
+                if(strcmpi(opt.noiseType,'poisson'))
+                    if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
+                    alphaStep.forcePositive=opt.forcePositive;
+                    % opt.alphaStep='PG';
+                    % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
+                end
+            case lower('ATs')
+                alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+                alphaStep.fArray{3} = penalty;
+            case lower('AT')
+                alpha=max(alpha,0);
+                alphaStep=AT(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
+            case lower('GFB')
+                alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
+                alphaStep.fArray{3} = penalty;
+            case lower('Condat')
+                alphaStep=Condat(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
+                alphaStep.fArray{3} = penalty;
         end
-    case lower('GFB')
-        alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit);
-    case lower('Condat')
-        alphaStep=Condat(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
         alphaStep=FISTA_NNL1(2,alpha,1,opt.stepShrnk,Psi,Psit);
-    case lower('PG')
-        alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
     case {lower('ADMM_NNL1')}
         alphaStep=ADMM_NNL1(1,alpha,1,opt.stepShrnk,Psi,Psit);
         alphaStep.fArray{3} = @(x) pNorm(Psit(x),1);
@@ -298,6 +303,12 @@ else
     collectNonInc=false;
 end
 
+if(any(strcmp(properties(alphaStep),'nbt')))
+    collectNbt=true;
+else
+    collectNbt=false;
+end
+
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Nestrov''s Proximal Gradient Method (%s) %s_%s',opt.proximal,opt.alphaStep,opt.noiseType);
@@ -333,12 +344,11 @@ while(true)
     out.fVal(p,:) = (alphaStep.fVal(:))';
     out.cost(p) = alphaStep.cost;
 
-    out.nbt(p) = alphaStep.nbt;
-
     out.alphaSearch(p) = alphaStep.ppp;
     out.stepSize(p) = alphaStep.stepSize;
     if(opt.restart) out.restart(p)=alphaStep.restart; end
     if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
+    if(collectNbt) out.nbt(p)=alphaStep.nbt; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(collectDebug && ~isempty(alphaStep.debug))
         out.debug{size(out.debug,1)+1,1}=p;

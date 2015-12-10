@@ -29,7 +29,7 @@ switch lower(op)
         Oopt.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
-        u  =  10.^[-5  -5   -5   -5   -5   -5];
+        u  =  10.^[-5  -5   -5   -5   -5   -4.5];
         for i=6:-1:4
             Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
             [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadCasting(Oopt);
@@ -44,21 +44,21 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                if(i==6 && j==3)
+                if(i>=6 && j==3)
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
-                    opt.thresh=1e-16; opt.maxItr=1e4;
+                    opt.thresh=0e-16; opt.maxItr=1e4;
                     npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
-                    opt.thresh=1e-16; opt.maxItr=1e4;
-                    pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.thresh=0e-16; opt.maxItr=1e4;
+                    pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
-                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
-                    opt.thresh=1e-16; opt.maxItr=1e4;
-                    npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                    save(filename);
+%                   opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
+%                   opt.thresh=1e-16; opt.maxItr=1e4;
+%                   npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+%                   save(filename);
                 end
 
                 continue;

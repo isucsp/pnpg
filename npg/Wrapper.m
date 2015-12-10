@@ -8,6 +8,14 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='AT';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out = GFB(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='GFB';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = Condat(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='Condat';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);

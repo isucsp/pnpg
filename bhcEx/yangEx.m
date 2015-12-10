@@ -168,7 +168,7 @@ switch lower(op)
         for i=1:length(prjFull)
             npgTVb1u0RMSE(i,1) = min(npgTV_b1_u0{i}.RMSE);
         end
-        npgTVb1u0RMSE   = Cell.getField(     npgTV_b1_u0,'RMSE');
+        %npgTVb1u0RMSE   = Cell.getField(     npgTV_b1_u0,'RMSE');
         
         npgTVb1contRMSE = Cell.getField(     npgTV_b1_cont,'RMSE');
         npgTVb1E100RMSE = Cell.getField(     npgTV_b1_E100,'RMSE');
