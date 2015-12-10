@@ -42,8 +42,10 @@ switch lower(op)
                 j=4;
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='NPG';
                 opt.thresh=-1; opt.maxItr=1e4;
-                npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                npgTV_b1_long_a{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
+
+                return;
 
                 opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='PG';
                 opt.thresh=-1; opt.maxItr=1e4;

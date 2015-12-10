@@ -40,6 +40,21 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
 
+            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+            if(i==6)
+                opt=Oopt; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                opt.trueAlpha=npgTV_b1{i,4}.alpha;
+                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
+                return;
+                opt=Oopt; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=Oopt;
+            end
+            continue;
+
+
             for j=[5:-1:1]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
