@@ -28,6 +28,7 @@ classdef PG < Methods
             obj.stepShrnk = stepShrnk;
             obj.nonInc=0;
             obj.proxmapping=pm;
+            obj.setAlpha(alpha);
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
@@ -40,6 +41,7 @@ classdef PG < Methods
         function out = main(obj)
             obj.warned = false;
             pp=0; obj.debug='';
+
             while(pp<obj.maxItr)
                 obj.p = obj.p+1;
                 pp=pp+1;
@@ -77,7 +79,7 @@ classdef PG < Methods
                             end
                         else  % don't know what to do, mark on debug and break
                             goodMM=false;
-                            obj.debug=[obj.debug '_falseMM'];
+                            obj.debug=[obj.debug '_FalseMM'];
                             break;
                         end
                     end
@@ -87,25 +89,29 @@ classdef PG < Methods
                 temp = newCost+obj.u*obj.fVal(3);
 
                 if((temp-obj.cost)>0)
+                    needReset=false;
                     if(goodMM)
                         if(obj.innerSearch<obj.maxInnerItr)
                             obj.difAlpha=0;
-                            obj.debug=[obj.debug '_resetDifAlpha'];
+                            obj.debug=[obj.debug '_NullDif'];
                             pp=pp-1; continue;
-                        else
-                            obj.debug=[obj.debug '_goodMM.but.increasedCost'];
-                            global strlen
-                            fprintf('\n good MM but increased cost, do nothing\n');
-                            strlen=0;
                         end
+                        obj.debug=[obj.debug '_ResetAll'];
+                        needReset=true;
+                        % global strlen
+                        % fprintf('\n good MM but increased cost, do nothing\n');
+                        % strlen=0;
                     else
-                        obj.debug=[obj.debug '_falseMonotone'];
                         if(obj.innerSearch<obj.maxInnerItr)
-                            % otherwise do nothing
-                            obj.debug=[obj.debug '_resetDifAlpha1'];
+                            obj.debug=[obj.debug '_NullDif'];
                             obj.difAlpha=0;
                             pp=pp-1; continue;
                         end
+                        obj.debug=[obj.debug '_ResetAll'];
+                        needReset=true;
+                    end
+                    if(needReset)
+                        obj.reset();
                     end
                 end
                 obj.cost = temp;

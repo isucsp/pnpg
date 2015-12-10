@@ -34,10 +34,6 @@ classdef NPG < Methods
             obj.setAlpha(alpha);
         end
         function setAlpha(obj,alpha)
-            global strlen
-            fprintf('\n set alpha\n');
-            strlen=0;
-
             obj.alpha=alpha;
             obj.cumu=0;
             obj.theta=0;
@@ -130,7 +126,6 @@ classdef NPG < Methods
                         end
                         obj.debug=[obj.debug '_ResetAll'];
                         needReset=true;
-                        % otherwise do nothing
                     end
                     if(needReset)
                         obj.reset();

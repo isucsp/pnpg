@@ -22,35 +22,36 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('Oopt'); filename = [mfilename '.mat'];
+        clear('OPT'); filename = [mfilename '.mat'];
 
-        Oopt.beamharden=true; Oopt.spectBasis='b1'; Oopt.E=20;
-        Oopt.maxItr=4e3; Oopt.thresh=1e-6;
-        Oopt.estIe=true;
+        OPT.beamharden=true; OPT.spectBasis='b1'; OPT.E=20;
+        OPT.maxItr=4e3; OPT.thresh=1e-6;
+        OPT.estIe=true;
 
         prjFull = [60, 40, 72, 120, 180, 360];
         u  =  10.^[-5  -5   -5   -5   -5   -4.5];
         for i=6:-1:4
-            Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
-            [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadCasting(Oopt);
-            initSig = maskFunc(FBP(y),Oopt.mask~=0);
+            OPT.prjFull = prjFull(i); OPT.prjNum = OPT.prjFull;
+            [y,Phi,Phit,Psi,Psit,OPT,FBP]=loadCasting(OPT);
+            initSig = maskFunc(FBP(y),OPT.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
-            fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
+            fbp{i}.alpha=fbp{i}.img(OPT.mask~=0);
 
             % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            if(i==6)
-                opt=Oopt; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.trueAlpha=npgTV_b1{i,4}.alpha;
+            if(i==4)
+                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                opt.trueAlpha=npgTV_b1{6,4}.alpha;
                 npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
-                return;
-                opt=Oopt; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                continue;
+
+                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
                 opt.maxItr=500; % this one works the best, see npgTV_b1_u0
                 npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=Oopt;
+                opt=OPT;
             end
             continue;
 
@@ -60,18 +61,18 @@ switch lower(op)
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 if(i>=6 && j==3)
-                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
                     opt.thresh=0e-16; opt.maxItr=1e4;
 
                     npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
-                    opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                     opt.thresh=0e-16; opt.maxItr=1e4;
                     pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
-%                   opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
+%                   opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
 %                   opt.thresh=1e-16; opt.maxItr=1e4;
 %                   npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 %                   save(filename);
@@ -79,7 +80,7 @@ switch lower(op)
 
                 continue;
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
                 if(j<5)
                     opt.Ie=npgTV_b1_continuation{i,j+1}.Ie;
                     npgTV_b1_continuation{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,npgTV_b1_continuation{i,j+1}.alpha,opt);
@@ -87,28 +88,28 @@ switch lower(op)
                     npgTV_b1_continuation{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
 %               npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
+                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
                 npgTV_b1_anim=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3+0.25); opt.proximal='tvl1';
+                opt=OPT; opt.u=u(i)*10^(j-3+0.25); opt.proximal='tvl1';
                 npgTV_b1_25{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3+0.5); opt.proximal='tvl1';
+                opt=OPT; opt.u=u(i)*10^(j-3+0.5); opt.proximal='tvl1';
                 npgTV_b1_50{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3+0.75); opt.proximal='tvl1';
+                opt=OPT; opt.u=u(i)*10^(j-3+0.75); opt.proximal='tvl1';
                 npgTV_b1_75{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
+                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='wvltADMM';
                 npgWV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3+0.75); opt.proximal='wvltADMM';
+                opt=OPT; opt.u=u(i)*10^(j-3+0.75); opt.proximal='wvltADMM';
                 npgWV_b1_75{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
                 pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
 
