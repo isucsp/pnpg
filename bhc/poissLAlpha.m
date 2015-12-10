@@ -17,6 +17,7 @@ function [f,g,h] = poissLAlpha(Imea,Ie,alpha,Phi,Phit,polyIout)
         end
     end
 end
+
 function h = hessian(Phi, Phit, weight, x, opt)
     y = Phi(x);
     if(opt==1)

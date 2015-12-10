@@ -23,20 +23,21 @@ classdef NPG < Methods
         maxInnerItr=100;
 
         proxmapping
-
-        nbt=0;
     end
     methods
         function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
-        %   alpha(alpha<0)=0;
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.nonInc=0;
-            obj.preAlpha=alpha;
             obj.proxmapping=pm;
+            obj.setAlpha(alpha);
         end
         function setAlpha(obj,alpha)
+            global strlen
+            fprintf('\n set alpha\n');
+            strlen=0;
+
             obj.alpha=alpha;
             obj.cumu=0;
             obj.theta=0;
@@ -90,7 +91,7 @@ classdef NPG < Methods
                             end
                         else  % don't know what to do, mark on debug and break
                             goodMM=false;
-                            obj.debug=[obj.debug '_falseMM'];
+                            obj.debug=[obj.debug '_FalseMM'];
                             break;
                         end
                     end
@@ -106,28 +107,28 @@ classdef NPG < Methods
                             % restart
                             if(obj.restart>=0)
                                 obj.theta=0;
-                                obj.debug=[obj.debug '_restart'];
+                                obj.debug=[obj.debug '_Restart'];
                                 pp=pp-1; continue;
                             end
                         else
                             if(obj.innerSearch<obj.maxInnerItr)
                                 obj.difAlpha=0;
-                                obj.debug=[obj.debug '_resetDifAlpha'];
+                                obj.debug=[obj.debug '_NullDif'];
                                 pp=pp-1; continue;
                             end
-                            obj.debug=[obj.debug '_goodMM.but.increasedCost'];
+                            obj.debug=[obj.debug '_ResetAll'];
                             needReset=true;
                             % global strlen
                             % fprintf('\n good MM but increased cost, do nothing\n');
                             % strlen=0;
                         end
                     else
-                        obj.debug=[obj.debug '_falseMonotone'];
                         if(obj.innerSearch<obj.maxInnerItr)
-                            obj.debug=[obj.debug '_resetDifAlpha1'];
+                            obj.debug=[obj.debug '_NullDif'];
                             obj.difAlpha=0;
                             pp=pp-1; continue;
                         end
+                        obj.debug=[obj.debug '_ResetAll'];
                         needReset=true;
                         % otherwise do nothing
                     end

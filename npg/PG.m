@@ -1,7 +1,6 @@
 classdef PG < Methods
     properties
         stepShrnk = 0.5;
-        preAlpha=0;
         preG=[];
         preY=[];
         thresh=1e-4;
@@ -14,6 +13,8 @@ classdef PG < Methods
         incCumuTol=true;
         nonInc=0;
         innerSearch=0;
+
+        forcePositive=false;
         adaptiveStep=true;
 
         maxInnerItr=100;
@@ -32,7 +33,6 @@ classdef PG < Methods
             obj.alpha=alpha;
             obj.cumu=0;
             obj.theta=0;
-            obj.preAlpha=alpha;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside IST for NNL1

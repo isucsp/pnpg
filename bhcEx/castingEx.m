@@ -48,7 +48,6 @@ switch lower(op)
                     opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
                     opt.thresh=0e-16; opt.maxItr=1e4;
 
-                    keyboard
                     npgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
@@ -130,16 +129,24 @@ switch lower(op)
         figure(h2); plot(img(row2,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row2,:),[],1)];
 
         aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
-        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
+        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:));
         fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx)); temp=img(:)/maxImg;
+        figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
         figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
-        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
-        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
-        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
-        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u-4.png');
 
-        legend('FBP', 'NPG\_TV');
+        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u-4.png');
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+
+        img =showImgMask(npgTV_b1_u0{prjIdx}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u0.png');
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+
+        figure(h1); legend('FBP', 'NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0');
+        figure(h2); legend('FBP', 'NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0');
         save('profile_casting.data','forSave','-ascii');
 
         keyboard
