@@ -36,8 +36,11 @@ switch lower(op)
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     opt.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
-                    at       {i,j,k}=Wrapper.AT      (Phi,Phit,Psi,Psit,y,initSig,opt);
+
                     npg      {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    keyboard
+                    return;
+                    at       {i,j,k}=Wrapper.AT      (Phi,Phit,Psi,Psit,y,initSig,opt);
                     condat   {i,j,k}=Wrapper.Condat  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     gfb      {i,j,k}=Wrapper.GFB     (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgc     {i,j,k}=Wrapper.NPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
