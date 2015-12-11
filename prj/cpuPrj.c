@@ -157,7 +157,10 @@ void pixelDrivePar(ft* img, ft* sino, int threadIdx){
             }
         }
     }
-    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
+    // Here, the reason to divide dSize^2 is needed !!
+    ft scaling=PI/conf->np/conf->dSize/conf->dSize;
+    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++)
+        imgt[i]=imgt[i]*scaling;
     if(x>(N-1)/2 || y>(N-1)/2) return;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;
@@ -296,7 +299,11 @@ void pixelDriveFan(ft* img, ft* sino, int threadIdx){
             }
         }
     }
-    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++) imgt[i]=imgt[i]*PI/conf->np;
+
+    // need to specify the reason to devide by dSize^2 !!! ???
+    ft scaling=PI/conf->np/conf->dSize/conf->dSize;
+    if(conf->cmd & FBP_BIT) for(int i=0; i<8; i++)
+        imgt[i]=imgt[i]*scaling;
     if(x>(N-1)/2 || y>(N-1)/2) return;
     imgIdx = ( y+N/2)*N+x+N/2; img[imgIdx] = imgt[0]/conf->effectiveRate;
     imgIdx = ( x+N/2)*N-y+N/2; img[imgIdx] = imgt[1]/conf->effectiveRate;

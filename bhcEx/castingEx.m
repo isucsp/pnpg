@@ -40,8 +40,10 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(OPT.mask~=0);
 
+            keyboard
             % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            if(i==4)
+            if(i==6)
+
                 opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
                 opt.trueAlpha=npgTV_b1{6,4}.alpha;
                 npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
