@@ -40,20 +40,18 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(OPT.mask~=0);
 
-            keyboard
             % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            if(i==6)
-
+            if(i==6 || i==4)
                 opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
                 opt.trueAlpha=npgTV_b1{6,4}.alpha;
-                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.maxItr=350; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
                 continue;
 
                 opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
-                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT;
+                opt.trueAlpha=npgTV_b1{6,4}.alpha;
+                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
             continue;
 
