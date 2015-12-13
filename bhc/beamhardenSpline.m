@@ -59,6 +59,8 @@ if(~isfield(opt,'maxIeSteps')) opt.maxIeSteps=20; end
 if(~isfield(opt,'etaDifCost')) opt.etaDifCost=1e-2; end
 if(~isfield(opt,'spectBasis')) opt.spectBasis='dis'; end
 if(~isfield(opt,'CenterB')) opt.CenterB=false; end
+if(~isfield(opt,'shiftRight')) opt.shiftRight=false; end
+if(~isfield(opt,'shiftThresh')) opt.shiftThresh=100; end
 
 % The range for mass attenuation coeff is 1e-2 to 1e4 cm^2/g
 if(~isfield(opt,'sampleMode')) opt.sampleMode='logspan'; end
@@ -117,6 +119,13 @@ if(opt.debugLevel>=4) figRes=figure; end
 if(opt.debugLevel>=5 && ~opt.skipIe) figIe=figure; end
 if(opt.debugLevel>=6 && ~opt.skipAlpha) figAlpha=figure; end
 
+B=eye(opt.E); b=zeros(opt.E,1);
+if(isfield(opt,'CenterB') && opt.CenterB) % for active-set I step
+    if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
+    temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
+    temp=temp/sqrt(2);
+    B=[B; temp]; b=[b; zeros(opt.E-1,1)];
+end
 
 switch lower(opt.sampleMode)
     case 'assigned'
@@ -232,14 +241,6 @@ alphaStep.fArray{1} = @(aaa) alphaStepFunc(Ie,aaa,polyIout);
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 
-B=eye(opt.E); b=zeros(opt.E,1);
-if(isfield(opt,'CenterB') && opt.CenterB)
-    if(~isfield(opt,'correctCenterB')) opt.correctCenterB=true; end
-    temp=-eye(opt.E); temp(floor(opt.E/2)+1,:)=[]; temp(:,floor(opt.E/2)+1)=1;
-    temp=temp/sqrt(2);
-    B=[B; temp]; b=[b; zeros(opt.E-1,1)];
-end
-
 if(strcmpi(opt.uMode,'relative'))
     PsitPhitz=Psit(Phit(y));
     PsitPhit1=Psit(Phit(ones(length(y),1)));
@@ -293,30 +294,17 @@ if(any(strcmp(properties(alphaStep),'admmTol'))...
 end
 if(strcmpi(opt.initStep,'fixed'))
     alphaStep.stepSizeInit(opt.initStep,opt.L);
-else alphaStep.stepSizeInit(opt.initStep);
-end
-
-if(any(strcmp(properties(alphaStep),'innerSearch')))
-    collectInnerSearch=true;
 else
-    collectInnerSearch=false;
+    alphaStep.stepSizeInit(opt.initStep);
 end
 
-if(any(strcmp(properties(alphaStep),'debug')))
-    collectDebug=true; out.debug={};
-else
-    collectDebug=false;
-end
+if(any(strcmp(properties(alphaStep),'innerSearch'))) collectInnerSearch=true; else collectInnerSearch=false; end
+if(any(strcmp(properties(alphaStep),'debug'))) collectDebug=true; out.debug={}; else collectDebug=false; end
+if(any(strcmp(properties(alphaStep),'preSteps'))) alphaStep.preSteps=opt.preSteps; end
+if(any(strcmp(properties(alphaStep),'restart'))) hasRestart=true; else hasRestart=false; end
 
-if(any(strcmp(properties(alphaStep),'preSteps')))
-    alphaStep.preSteps=opt.preSteps;
-end
-
-if(any(strcmp(properties(alphaStep),'restart')))
-    hasRestart=true;
-else
-    hasRestart=false;
-end
+if(isfield(opt,'trueAlpha')) hasTrueAlpha=true; else hasTrueAlpha=false; end
+if(opt.shiftRight) m=0; end
 
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
@@ -331,9 +319,7 @@ if(opt.debugLevel>=1)
         if(opt.continuation || strcmpi(opt.uMode,'relative'))
             str=sprintf([str ' %6s'],'u');
         end
-        if(isfield(opt,'trueAlpha'))
-            str=sprintf([str ' %12s'], 'error');
-        end
+        if(hasTrueAlpha) str=sprintf([str ' %12s'], 'error'); end
         str=sprintf([str ' %12s %4s'], 'difα', 'αSrh');
         str=sprintf([str ' %12s'], 'difOjbα');
         if(strcmpi(opt.noiseType,'Gaussian'))
@@ -435,7 +421,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         else alphaStep.u=opt.u;
         end
 
-        if(isfield(opt,'trueAlpha'))
+        if(hasTrueAlpha)
             out.RMSE(p)=computError(alpha);
             str=sprintf([str ' %12g'], out.RMSE(p));
         end
@@ -462,6 +448,24 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         IeStep.thresh=opt.etaDifCost*difL;
         preCost=IeStep.cost;
         [~,IeStepCnt]=IeStep.main();
+
+        if(opt.shiftRight)
+            if(sum(IeStep.Ie(end))==0) m=m+1;
+            else
+                m=0;
+            end
+            if(m>opt.shiftThresh)
+                strlen=0;
+                fprintf('\n iota shift to the right!\n');
+
+                alphaStep.alpha = alphaStep.alpha/q;
+                IeStep.Ie = [0; IeStep.Ie(1:end-1)]/q;
+                alphaStep.reset();
+                IeStep.init();
+
+                m=0;
+            end
+        end
 
         alphaStep.cost=IeStep.cost+opt.u*alphaStep.fVal(3);
         out.llI(p) = IeStep.cost;
@@ -497,7 +501,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
             s = linspace(min(A),max(A),1000);
             plot(A(idx),-log(Imea(idx)),'g.');
             hold on;
-            if(isfield(opt,'trueAlpha'))
+            if(hasTrueAlpha)
                 PhiTrueAlpha=PhiTrueAlpha*innerProd(A,PhiTrueAlpha)/sqrNorm(PhiTrueAlpha);
                 plot(PhiTrueAlpha(idx),-log(Imea(idx)),'.');
             end
@@ -506,13 +510,13 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         end
         if(p>1 && opt.debugLevel>=3)
             set(0,'CurrentFigure',figCost);
-            if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
+            if(hasTrueAlpha) subplot(2,1,1); end
             if(out.cost(p)>0)
                 semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
                 title(sprintf('cost(%d)=%g',p,out.cost(p)));
             end
 
-            if(isfield(opt,'trueAlpha'))
+            if(hasTrueAlpha)
                 subplot(2,1,2);
                 semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
                 title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
@@ -569,7 +573,7 @@ out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
 fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
-if(isfield(opt,'trueAlpha')) fprintf(', RMSE=%g',out.RMSE(end)); end
+if(hasTrueAlpha) fprintf(', RMSE=%g',out.RMSE(end)); end
 fprintf('\n');
 
 if(opt.estIe)

@@ -27,5 +27,9 @@ classdef LBFGSB < handle
             obj.cost=cost;
             numItr=info.iterations;
         end
+        function init(obj,Ie)
+            if(nargin==1) Ie=obj.Ie; end
+            obj.Ie=Ie;
+        end
     end
 end

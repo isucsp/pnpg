@@ -40,29 +40,11 @@ switch lower(op)
             fbp{i}.img=FBP(y);
             fbp{i}.alpha=fbp{i}.img(OPT.mask~=0);
 
-            keyboard
-            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            if(i==6)
-
-                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.trueAlpha=npgTV_b1{6,4}.alpha;
-                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
-                continue;
-
-                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
-                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT;
-            end
-            continue;
-
-
             for j=[5:-1:1]
                 fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                if(i>=6 && j==3)
+                if(i==6 && j==3)
                     opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
                     opt.thresh=0e-16; opt.maxItr=1e4;
 
@@ -121,6 +103,22 @@ switch lower(op)
 %               fpcas {i,j}=Wrapper.FPCas(Phi,Phit,Psi,Psit,y,initSig,opt);
                 save(filename);
             end
+
+            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+            if(i==6)
+                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                opt.trueAlpha=npgTV_b1{6,4}.alpha;
+                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                save(filename);
+                continue;
+
+                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT;
+            end
+            continue;
+
         end
 
     case 'plot'
