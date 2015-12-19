@@ -16,97 +16,55 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('Oopt'); filename = [mfilename '.mat'];
+        clear('OPT'); filename = [mfilename '.mat'];
 
-        Oopt.beamharden=true; Oopt.spectBasis='b1'; Oopt.E=30;
-        Oopt.estIe=true; Oopt.noiseType='poisson';
+        OPT.beamharden=true; OPT.spectBasis='b1'; OPT.E=30;
+        OPT.estIe=true; OPT.noiseType='poisson';
 
         prjFull = [32, 40, 60, 80, 100, 120, 180, 360];
         u  =  10.^[-5  -5   -5   -5   -5   -5 -5 -5];
         for i=length(prjFull)-1:-1:1
-            Oopt.prjFull = prjFull(i); Oopt.prjNum = Oopt.prjFull;
+            OPT.prjFull = prjFull(i); OPT.prjNum = OPT.prjFull;
 
-            [y,Phi,Phit,Psi,Psit,Oopt,FBP]=loadYang(Oopt);
-            Oopt.maxItr=4e3; Oopt.thresh=1e-6;
+            [y,Phi,Phit,Psi,Psit,OPT,FBP]=loadYang(OPT);
+            OPT.maxItr=4e3; OPT.thresh=1e-6;
 
-            initSig = maskFunc(FBP(y),Oopt.mask~=0);
+            initSig = maskFunc(FBP(y),OPT.mask~=0);
 
             j=1;
             fprintf('%s, i=%d, j=%d\n','Filtered Backprojection',i,j);
             fbp{i}.img=FBP(y);
-            fbp{i}.alpha=fbp{i}.img(Oopt.mask~=0);
-            fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,Oopt.trueAlpha)^2)/sqrNorm(Oopt.trueAlpha)/sqrNorm(fbp{i}.alpha);
+            fbp{i}.alpha=fbp{i}.img(OPT.mask~=0);
+            fbp{i}.RMSE=1-(innerProd(fbp{i}.alpha,OPT.trueAlpha)^2)/sqrNorm(OPT.trueAlpha)/sqrNorm(fbp{i}.alpha);
             fprintf('fbp RMSE=%g\n',fbp{i}.RMSE);
 
-            if(i==3)
-                j=4;
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='NPG';
-                opt.thresh=-1; opt.maxItr=1e4;
-                npgTV_b1_long_a{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
+            % known ι(κ), NPG
+            for j=3:4
+                if(i==3)
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                    npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
 
-                return;
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.E=100; opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true; opt.adaptiveStep=false;
+                    npgTValpha_b1_E100_noAdaptive{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
 
-                opt=Oopt; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='PG';
-                opt.thresh=-1; opt.maxItr=1e4;
-                pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
-            end
-            continue
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.E=100; opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true; opt.restart=false;
+                    npgTValpha_b1_E100_norestart{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
 
-            % unknown ι(κ), NPG-LBFGSB
-            for j=[5:-1:2]
-                fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.E=100; opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true; opt.restart=false; opt.adaptiveStep=false;
+                    npgTValpha_b1_E100_norestart_noAdaptiveStep{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
 
-                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
-                opt.E=100;
-                if(j==5)
-                    npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                else
-                    opt.Ie=npgTV_b1_E100_cont{i,j+1}.Ie;
-                    npgTV_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
-                        npgTV_b1_E100_cont{i,j+1}.alpha,opt);
                 end
                 continue;
 
-                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
-                opt.E=100;
-                npgTV_b1_E100{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt=Oopt; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
-                if(j==5)
-                    npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                else
-                    opt.Ie=npgTV_b1_cont{i,j+1}.Ie;
-                    npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
-                        npgTV_b1_cont{i,j+1}.alpha,opt);
-                end
-
-                opt=Oopt;
-                opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
-                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
-
-            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            opt=Oopt;
-            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-            for k=1:5
-                [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt,k-1);
-                npgTV_b1_u0{i,j,k}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
-
-            if(i==3)
-                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
-                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=Oopt;
-                save(filename);
-            end
-
-            % known ι(κ), NPG
-            for j=2
-                fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
-                opt=Oopt; opt.u=10^(j-3)*u(i); opt.E=100;
-                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                opt=OPT; opt.u=10^(j-3)*u(i); opt.E=100; opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
                 if(j==5)
                     npgTValpha_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
                 else
@@ -115,14 +73,57 @@ switch lower(op)
                         npgTValpha_b1_E100_cont{i,j+1}.alpha,opt);
                 end
 
-                continue;
-
-                opt=Oopt; opt.u=10^(j-3)*u(i);
-                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
-                npgTValpha_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
             end
 
+            continue;
+             
+            % unknown ι(κ), NPG-LBFGSB
+            for j=[5:-1:2]
+                fprintf('%s, i=%d, j=%d\n','NPG-AS',i,j);
+
+                if(i==3 && (j==3 || j==4))
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso'; opt.restart=false; opt.adaptiveStep=false;
+                    npgTV_b1_norestart_noAdaptiveStep{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
+                continue;
+
+                if(i==3 && (j==3 || j==4))
+                    opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso'; opt.restart=false;
+                    npgTV_b1_norestart{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
+                continue;
+
+                opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                npgTV_b1{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso'; opt.E=100;
+                npgTV_b1_E100{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=OPT; opt.u=10^(j-3)*u(i); opt.alphaStep='NPG'; opt.proximal='tviso';
+                if(j==5)
+                    npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                else
+                    opt.Ie=npgTV_b1_cont{i,j+1}.Ie;
+                    npgTV_b1_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
+                        npgTV_b1_cont{i,j+1}.alpha,opt);
+                end
+            end
+            continue;
+
+            % unknown ι(κ), PG-LBFGSB
+            for j=5:-1:1
+                if(i==3 && (j==3||j==4))
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tviso'; opt.alphaStep='PG';
+                    pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
+            end
+            continue
+
             % known ι(κ), linearization
+            opt=OPT; opt.E=100;
             kappa=logspace(-floor(opt.E/2)/(opt.E-1)*3,...
                 floor(opt.E/2-0.5)/(opt.E-1)*3,opt.E);
             q=kappa(2)/kappa(1);
@@ -141,9 +142,45 @@ switch lower(op)
             fprintf('linFbp RMSE=%g\n',linFbp{i}.RMSE);
             initSig = maskFunc(FBP(yy),opt.mask~=0);
 
-            for j=4
-                opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy)))); opt.proximal='tviso';
-                linNpgTV{i,j}=Wrapper.NPGc(Phi,Phit,Psi,Psit,yy,initSig,opt);
+            if(i==3)
+                for j=3
+                    opt.u=10^(j-3)*u(i)*max(abs(Psit(Phit(yy)))); opt.proximal='tviso';
+                    opt.noiseType='gaussian';
+                    linNpgTV_E100{i,j}=Wrapper.NPG(Phi,Phit,Psi,Psit,yy,initSig,opt);
+                end
+                save(filename);
+            end
+
+            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+            opt=OPT;
+            opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+            for k=1:5
+                [y,Phi,Phit,Psi,Psit,opt,FBP]=loadYang(opt,k-1);
+                npgTV_b1_u0{i,j,k}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+            end
+
+            if(i==3)
+                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT;
+                save(filename);
+            end
+
+            % known ι(κ), NPG
+            for j=2
+                fprintf('%s, i=%d, j=%d\n','NPG skipIe',i,j);
+                opt=OPT; opt.u=10^(j-3)*u(i); opt.E=100;
+                opt.alphaStep='NPG'; opt.proximal='tviso'; opt.skipIe=true;
+                if(j==5)
+                    npgTValpha_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                else
+                    opt.Ie=npgTValpha_b1_E100_cont{i,j+1}.Ie;
+                    npgTValpha_b1_E100_cont{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,...
+                        npgTValpha_b1_E100_cont{i,j+1}.alpha,opt);
+                end
+
+                continue;
+
             end
 
              
@@ -268,11 +305,32 @@ switch lower(op)
         legend('FBP', 'linearized FBP', 'linearized NPG', 'NPG\_TV (known \iota)', 'NPG\_TV','NPG 100 cont', 'NPG-BFGS cont');
         save('profile_yang.data','forSave','-ascii');
 
-        forSave=[];
-        forSave=[forSave, npgTV_b1_u0{prjIdx}.time(:)];
-        forSave=[forSave, npgTV_b1_u0{prjIdx}.cost(:)];
-        forSave=[forSave, npgTV_b1_u0{prjIdx}.RMSE(:)];
+        forSave=[]; t=0; h1=figure; h2=figure;
+        a1=npgTV_b1_u0{prjIdx};
+        t=t+1; temp=a1.time(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:); forSave(1:length(temp),t)=temp; figure(h1); semilogy(temp,'r'); hold on;
+        t=t+1; temp=a1.RMSE(:); forSave(1:length(temp),t)=temp; figure(h2); semilogy(temp,'r'); hold on;
+        rmse=linNpgRMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a1=linNpgTV_E100{prjIdx,aIdx};
+        t=t+1; temp=a1.time(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:); forSave(1:length(temp),t)=temp; figure(h1); semilogy(temp,'g'); disp([prjIdx,aIdx]);
+        t=t+1; temp=a1.RMSE(:); forSave(1:length(temp),t)=temp; figure(h2); semilogy(temp,'g');
+        rmse=npgTValphaE100RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));  a1=npgTValpha_b1_E100{prjIdx,aIdx};
+        t=t+1; temp=a1.time(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:); forSave(1:length(temp),t)=temp; figure(h1); semilogy(temp,'b'); disp([prjIdx,aIdx]);
+        t=t+1; temp=a1.RMSE(:); forSave(1:length(temp),t)=temp; figure(h2); semilogy(temp,'b');
+        rmse=npgTVb1RMSE; aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:));  a1=npgTV_b1{prjIdx,aIdx};
+        t=t+1; temp=a1.time(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:); forSave(1:length(temp),t)=temp; figure(h1); semilogy(temp,'r--'); disp([prjIdx,aIdx]);
+        t=t+1; temp=a1.RMSE(:); forSave(1:length(temp),t)=temp; figure(h2); semilogy(temp,'r--');
+        a1=pgTV_b1{prjIdx,aIdx};
+        t=t+1; temp=a1.time(:); forSave(1:length(temp),t)=temp;
+        t=t+1; temp=a1.cost(:); forSave(1:length(temp),t)=temp; figure(h1); semilogy(temp,'r--'); disp([prjIdx,aIdx]);
+        t=t+1; temp=a1.RMSE(:); forSave(1:length(temp),t)=temp; figure(h2); semilogy(temp,'r--');
+        figure(h1); legend('npgTV\_b1\_u0','linNpgTV','npgTValpha\_b1\_E100','npgTV\_b1','pgTV\_b1'); title('objective vs itr');
+        figure(h2); legend('npgTV\_b1\_u0','linNpgTV','npgTValpha\_b1\_E100','npgTV\_b1','pgTV\_b1'); title('rmse vs itr');
         save('yangTrace.data','forSave','-ascii');
+
+        keyboard
 
         prjIdx=3; col=250; forSave=[]; clear('opt');
         rmse=npgTVb1RMSE;    aIdx=find(min(rmse(prjIdx,:))==rmse(prjIdx,:)); a1=npgTV_b1{prjIdx,aIdx};

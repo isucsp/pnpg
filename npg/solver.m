@@ -201,7 +201,7 @@ switch lower(opt.noiseType)
             temp=0;
         end
         alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
-        constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
+        constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,temp);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
     case 'logistic'

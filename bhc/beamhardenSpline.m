@@ -308,7 +308,7 @@ if(opt.shiftRight) m=0; end
 
 if(opt.debugLevel>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
-    str=sprintf('Beam Hardening Correction (%s)',opt.noiseType);
+    str=sprintf('Beam Hardening Correction (%s, %s)',opt.noiseType,opt.proximal);
     if(~opt.skipAlpha) str=sprintf('%s %s',str,opt.alphaStep); end
     if(~opt.skipIe) str=sprintf('%s-%s',str,opt.IeStep); end
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);

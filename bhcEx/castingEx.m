@@ -45,6 +45,55 @@ switch lower(op)
                 %npg_b1{i,j}=BHC.NPG2(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 if(i==6 && j==3)
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.admmTol=1e-3;
+                    npgTV_b1_admm3{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false; opt.admmTol=1e-3;
+                    npgTV_b1_norestart_admm3{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
+
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
+                    npgTV_b1_try{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
+
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
+                    pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+
+                    opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
+                    npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
+                continue;
+
+                % unknown ι(κ), NPG-LBFGSB without sparsity constraints
+                if((i==6 || i==4) && j==1)
+                    opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                    opt.trueAlpha=npgTV_b1{6,4}.alpha;
+                    opt.maxItr=500; % this one works the best, see npgTV_b1_u0
+                    npgTV_b1_u0_i500{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
+
+                    opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                    opt.trueAlpha=npgTV_b1{6,4}.alpha;
+                    opt.maxItr=350; % this one works the best, see npgTV_b1_u0
+                    npgTV_b1_u0_i3{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
+
+                    opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
+                    opt.trueAlpha=npgTV_b1{6,4}.alpha;
+                    npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
+                end
+                continue;
+
+
+
+                if(i==6 && j==3)
                     opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='NPG';
                     opt.thresh=0e-16; opt.maxItr=1e4;
 
@@ -56,10 +105,6 @@ switch lower(op)
                     pgTV_b1_long{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                     save(filename);
 
-%                   opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.restart=false;
-%                   opt.thresh=1e-16; opt.maxItr=1e4;
-%                   npgTV_b1_norestart{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-%                   save(filename);
                 end
 
                 continue;
@@ -71,9 +116,6 @@ switch lower(op)
                 else
                     npgTV_b1_continuation{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
-
-                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1';
-%               npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.saveAnimate=true;
                 npgTV_b1_anim=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -93,10 +135,6 @@ switch lower(op)
                 opt=OPT; opt.u=u(i)*10^(j-3+0.75); opt.proximal='wvltADMM';
                 npgWV_b1_75{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=OPT; opt.u=u(i)*10^(j-3); opt.proximal='tvl1'; opt.alphaStep='PG';
-                pgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
-
-
 %               opt.alphaStep='NPGs';
 %               npgsWV_dis{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 
@@ -104,65 +142,65 @@ switch lower(op)
                 save(filename);
             end
 
-            % unknown ι(κ), NPG-LBFGSB without sparsity constraints
-            if(i==6)
-                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.trueAlpha=npgTV_b1{6,4}.alpha;
-                npgTV_b1_u0{i,j}=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
-                continue;
-
-                opt=OPT; opt.u=0; j=1; opt.alphaStep='NPG'; opt.proximal='nonneg';
-                opt.maxItr=500; % this one works the best, see npgTV_b1_u0
-                npgTV_b1_u0_i3=beamhardenSpline(Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT;
-            end
-            continue;
-
         end
 
     case 'plot'
         load([mfilename '.mat']);
         prjFull = [60, 40, 72, 120, 180, 360];
 
-        prjIdx=4; aIdx=4; row1=337; row2=531;
+        prjIdx=4; aIdx=4; row1=337; row2=531; best=showImgMask(npgTV_b1{6,3}.alpha,opt.mask);
         h1=figure; forSave=[]; h2=figure;
-        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting_120.eps','psc2'); imwrite(img/maxImg,  'fbp_casting_120.png');
+        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0); saveas(gcf,  'fbp_casting_120.eps','psc2'); imwrite(img/maxImg,  'fbp_casting_120.png');
         figure(h1); plot(img(row1,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row2,:),[],1)];
 
-        img=showImgMask(npgTV_b1_25{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'npgTV_casting_120.eps','psc2'); imwrite(img/maxImg,'npgTV_casting_120.png');
+        img=showImgMask(npgTV_b1_25{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0); saveas(gcf,'npgTV_casting_120.eps','psc2'); imwrite(img/maxImg,'npgTV_casting_120.png');
         fprintf('u for NPGTV is %e\n',npgTV_b1_25{prjIdx,aIdx}.opt.u);
         figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
-        legend('FBP', 'NPG\_TV');
+
+        img =showImgMask(npgTV_b1_u0_i500{prjIdx}.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u0_120.png');
+        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+
+        figure(h1); legend('FBP', 'NPG\_TV','NPG\_TV\_u0');
+        figure(h2); legend('FBP', 'NPG\_TV','NPG\_TV\_u0');
         save('profile_casting_120.data','forSave','-ascii');
 
 
         prjIdx=6; h1=figure; forSave=[]; h2=figure;
-        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'fbp_casting.eps','psc2'); imwrite(img/maxImg,  'fbp_casting.png');
+        img=showImgMask(      fbp{prjIdx     }.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0); saveas(gcf,  'fbp_casting.eps','psc2'); imwrite(img/maxImg,  'fbp_casting.png');
         figure(h1); plot(img(row1,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'b-'); hold on; forSave=[forSave, reshape(img(row2,:),[],1)];
 
         aIdx=3; u  =  10.^[-5  -5  -5  -5  -5  -5];
-        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=max(img(:));
-        fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx)); temp=img(:)/maxImg;
+        img=showImgMask(npgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img,best);
+        fprintf('u for NPGTV is %e\n',10^(aIdx-3)*u(prjIdx));
         figure; showImg(img,0); saveas(gcf,'npgTV_casting.eps','psc2'); imwrite(img/maxImg,'npgTV_casting.png');
         figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
         figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
 
-        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
-        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u-4.png');
-        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
-        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+        img =showImgMask(npgTV_b1{prjIdx,aIdx+1}.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u4.png');
+        figure(h1); plot(img(row1,:)/maxImg,'r-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'r-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
 
-        img =showImgMask(npgTV_b1_u0{prjIdx}.alpha,opt.mask); maxImg=(img(:)'*img(:))/(img(:)'*temp);
+        img =showImgMask(npgTV_b1_u0_i500{prjIdx}.alpha,opt.mask); maxImg=normalize(img,best);
         figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'npgTV_casting_u0.png');
-        figure(h1); plot(img(row1,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
-        figure(h2); plot(img(row2,:)/maxImg,'g-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+        figure(h1); plot(img(row1,:)/maxImg,'k-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'k-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
 
-        figure(h1); legend('FBP', 'NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0');
-        figure(h2); legend('FBP', 'NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0');
+        img =showImgMask(pgTV_b1{prjIdx,aIdx}.alpha,opt.mask); maxImg=normalize(img,best);
+        figure; showImg(img,0,maxImg);  imwrite(img/maxImg,     'pgTV_casting.png');
+        figure(h1); plot(img(row1,:)/maxImg,'c-.'); forSave=[forSave, reshape(img(row1,:),[],1)];
+        figure(h2); plot(img(row2,:)/maxImg,'c-.'); forSave=[forSave, reshape(img(row2,:),[],1)];
+
+        figure(h1); legend('FBP','NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0','PG\_TV');
+        figure(h2); legend('FBP','NPG\_TV','NPG\_TV\_u=1e-4','NPG\_TV\_u=0','PG\_TV');
         save('profile_casting.data','forSave','-ascii');
 
         keyboard
@@ -178,7 +216,10 @@ switch lower(op)
         t=t+1; temp=a2.stepSize(:); forSave(1:length(temp),t)=temp;
         t=t+1; temp=a2.cost(:);     forSave(1:length(temp),t)=temp;
         t=t+1; temp=a2.time(:);     forSave(1:length(temp),t)=temp;
+        forSave(1:1,t+1)=pgTV_b1_long{6,3}.cost(end);
         save('castingTrace.data','forSave','-ascii');
+        figure; semilogy(a1.cost); hold on; semilogy(a2.cost,'r');
+        legend('NPG\_TV', 'PG\_TV'); title('cost vs itr');
 
         [y,Phi,Phit,Psi,Psit,~,FBP]=loadCasting(a1.opt);
 
@@ -238,3 +279,9 @@ end
 function [] = selectRegPar()
     npgTV_b1{i,j}=BHC.main(Phi,Phit,Psi,Psit,y,initSig,opt);
 end
+
+function data=normalize(a,b)
+    data=max(b(:))/(innerProd(a(:),b(:))/sqrNorm(a(:)));
+end
+
+
