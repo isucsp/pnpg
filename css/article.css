@@ -1,0 +1,93 @@
+/* -------------------------------------------------------------- 
+   
+   article.css
+   * Overrides default styles in blueprint
+   * Adds some borders.
+   * Loaded last. 
+
+
+-------------------------------------------------------------- */
+
+/* Default font settings. The font-size percentage is of 16px. */
+
+
+@font-face{
+  font-family:aaa;
+  src: url('ald_files/fonts/aaar.otf');
+}
+
+@font-face{
+  font-family:aaa;
+  src: url('ald_files/fonts/aaab.otf');
+font-weight: bold;
+}
+
+@font-face{
+  font-family:aaa;
+  src: url('ald_files/fonts/aaai.otf');
+font-style: italic;
+}
+
+body { 
+  font-size: 100%;
+  color: #2222; 
+/*  font-family: Helvetica, Arial, sans-serif;         */
+  font-family: aaa, Calibri, Tahoma, Verdana, sans-serif;         
+  padding-right: 1em;
+  padding-left: 4em;
+  max-width: 46em; 
+}
+
+.image-border {
+	
+}
+
+/* Headings
+-------------------------------------------------------------- */
+
+h1,h2,h3,h4,h5,h6 { font-weight: normal; color: #111; }
+
+h1 { font-size: 2em; line-height: 1; margin-bottom: 0.5em; color:#C20000; } /*LBG Red*/ 
+/*h2 { font-size: 1.6em; margin-bottom: 0.5em; color:#4444; }*/
+h2 { font-size: 1.6em; margin-bottom: 0.5em; color:#C20000; }
+h3 { font-size: 1.2em; line-height: 1; margin-bottom: 0.5em; color:#4444; }
+h4 { font-size: 1em; font-weight: bold; line-height: 1.25; margin-bottom: 1.25em; margin-top: 0.25em; color:#C20000; font-family: aaa, Helvetica, sans-serif}
+h5 { font-size: 1em; font-weight: normal; line-height: 1.25; margin-bottom: 1.25em; color:#2222;}
+h6 { font-size: 1em; font-weight: bold; margin-bottom: 1.1em;}
+
+h1 img, h2 img, h3 img, 
+h4 img, h5 img, h6 img {
+  margin: 0;
+}
+  
+a {color: #222;}
+a:link, a:visited {
+	text-decoration: none;
+	color: #222;
+	border-color: #999;
+	border-width: 0 0 1px 0;
+	border-style: none none solid none;
+	padding: 0px 0px 1px 0px;
+    }	
+
+.title {font-weight: bold;}
+
+/**************************************************************
+   Alignment classes for menu
+ **************************************************************/
+
+.floatLeft {
+  float: left;
+}
+
+.floatRight {
+  float: right;
+}
+
+.alignLeft {
+  text-align: left;
+}
+
+.alignRight {
+  text-align: right;
+} 
