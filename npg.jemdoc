@@ -1,0 +1,9 @@
+# jemdoc: nodefaultcss, addcss{css/bhc.css}, addcss{css/bibtex.css}
+# jemdoc: title{Blind X-ray CT Image Reconstruction from Polychromatic Measurements}
+# jemdoc: menu{MENU}{bhc.html}
+
+= Projected Nesterov's Proximal-Gradient Algorithms for Sparse Signal Reconstruction with a Convex Constraint
+
+[http://home.eng.iastate.edu/~renliang Renliang Gu] and
+[http://home.eng.iastate.edu/~ald Aleksandar Dogandžić]
+
