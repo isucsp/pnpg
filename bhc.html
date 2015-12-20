@@ -4,7 +4,7 @@
 <head>
 <meta name="generator" content="jemdoc, see http://jemdoc.jaboc.net/" />
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-<link rel="stylesheet" href="css/imgRecSrc.css" type="text/css" />
+<link rel="stylesheet" href="css/mysite.css" type="text/css" />
 <link rel="stylesheet" href="css/bibtex.css" type="text/css" />
 <title>Blind X-ray CT Image Reconstruction from Polychromatic Measurements</title>
 <!-- MathJax -->
@@ -33,6 +33,7 @@ function toggleBibtex(articleid) {
 </script>
 </head>
 <body>
+<div class="preamble noshow">
 \(
 \newcommand{\b}[1]{{\boldsymbol{#1}}}
 \newcommand{\bm}[1]{{\boldsymbol{#1}}}
@@ -41,6 +42,7 @@ function toggleBibtex(articleid) {
 \newcommand{\balpha}{\b{\alpha}}
 \newcommand{\bcI}{\b{\mathcal{I}}}
 \)
+</div>
 <table summary="Table for page layout." id="tlayout">
 <tr valign="top">
 <td id="layout-menu">
@@ -65,6 +67,11 @@ may be challenging.  Our method, requiring <i>no more</i> information than the
 conventional FBP method, simplifies the beam hardening correction and
 extends the usage to the scenarios where X-ray spectrum or material to
 inspect is unknown.</p>
+<div class="infoblock">
+<div class="blockcontent">
+<p>This work was supported by the National Science Foundation under 
+<a href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1421480&amp;HistoricalAwards=false" target=&ldquo;blank&rdquo;>Grant CCF-1421480</a>.</p>
+</div></div>
 <h3>Preview of our Iterative NPG-BFGS Method</h3>
 <table class="imgtable"><tr><td>
 <img src="fig/castingAnim.gif" alt="iterative algorithm animation" width="700px" />&nbsp;</td>
@@ -259,9 +266,17 @@ Process.</i>, Vancouver, Canada, May 2013, pp.&nbsp;1085–1089.
     year    = 2013
 }
 </pre></div>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-71579362-1', 'auto');
+  ga('send', 'pageview');
+</script>
 <div id="footer">
 <div id="footer-text">
-Page generated 2015-12-20 10:41:22 CST, by <a href="https://github.com/wsshin/jemdoc_mathjax" target="blank">jemdoc+MathJax</a>.
+Page generated 2015-12-20 12:12:46 CST, by <a href="https://github.com/wsshin/jemdoc_mathjax" target="blank">jemdoc+MathJax</a>.
 </div>
 </div>
 </td>

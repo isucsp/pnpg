@@ -32,7 +32,7 @@ body {
 }
 
 #layout-content {
-	padding-top: 0.0em;
+	padding-top: 1.0em;
 	padding-left: 1.0em;
 	padding-right: 1.0em;
 	border: none;
@@ -271,6 +271,16 @@ div.infoblock p + p {
 
 div.codeblock > div.blockcontent {
 	background: #f6f6f6;
+}
+
+div.preamble {
+	margin-right: 0%;
+	margin-top: 1.2em;
+	margin-bottom: 1.3em;
+	border: 0px solid silver;
+	padding: 0em 0em;
+	background: #ffffff;
+	color: #ffffff;
 }
 
 span.pycommand {
