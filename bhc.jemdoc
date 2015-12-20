@@ -168,20 +168,22 @@ iterations limit, e.g., 500, gives fast and decent solution.
 - R.~Gu and A.~Dogandžić, (Sep.~2015). Polychromatic X-ray CT image 
   reconstruction and mass-attenuation spectrum estimation. arXiv: 
   [http://arxiv.org/abs/1509.02193 1509.02193] \[stat.ME\].
-
-- R.~Gu and A.~Dogandžić, “Blind beam-hardening correction from {P}oisson 
-  measurements,” in /Rev. Prog. Quant.  Nondestr. Eval./, D.~E.~Chimenti 
-  and L.~J.~Bond, Eds., ser. AIP Conf. Proc. 2016, to appear. 
-  #[/qnde2015.bib \[BibTex\]]
-  #[/pdf/qnde2015.pdf \[PDF\]] 
   [http://www.slideshare.net/AleksandarDogandi/blind-beamhardening-correction-from-poisson-measurements 
   \[slides\]]
+
+#- R.~Gu and A.~Dogandžić, “Blind beam-hardening correction from {P}oisson
+#measurements,” in /Rev. Prog. Quant.  Nondestr. Eval./, D.~E.~Chimenti and
+#L.~J.~Bond, Eds., ser. AIP Conf. Proc. 2016, to appear. [/qnde2015.bib
+#\[BibTex\]][/pdf/qnde2015.pdf \[PDF\]] 
 
 - R.~Gu and A.~Dogandžić, “Polychromatic sparse image reconstruction and 
   mass attenuation spectrum estimation via B-spline basis function 
   expansion,” in /Rev. Prog. Quant.  Nondestr. Eval./, D.~E.~Chimenti and 
   L.~J.~Bond, Eds., ser. AIP Conf. Proc. Vol.~34 1650, Melville, NY, 2015, 
-  pp.~1707–1716. [/javascript:toggleBibtex('gdqnde14') \[BibTex\]] 
+  pp.~1707–1716.
+  (This paper is on the *lognormal* measurement model with $\ell_1$-norm
+  regularizations)
+  [/javascript:toggleBibtex('gdqnde14') \[BibTex\]] 
   [http://dx.doi.org/10.1063/1.4914792 \[DOI\]] [/pdf/qnde2014.pdf 
   \[PDF\]]#[/pdf/qnde2014slides.pdf \[slides\]]
 ~~~
