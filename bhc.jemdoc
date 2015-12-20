@@ -9,15 +9,16 @@ and [http://home.eng.iastate.edu/~ald Aleksandar Dogandžić]
 
 === Summary
 
-We proposed a method for sparse image reconstruction from polychromatic
+We propose a method for sparse image reconstruction from polychromatic
 computed tomography (CT) measurements under the blind scenario where the
 material of the inspected object and the incident-energy spectrum are
-unknown.  Our model works for both the Poisson and lognormal noise assumption.
+unknown.  Our framework is general and applies for both the Poisson and lognormal noise assumption.
 
-This is the first model that writes the noiseless CT measurements in a form
-of Laplace transform, which may open a new gate to handle the beam
-hardening artifacts and lead to a new framework for signal reconstruction
-and material characterization from polychromatic measurements.
+This is the first model that expresses noiseless CT measurements in a form
+of Laplace transform. This new representation may open a new gate to handle
+the beam hardening artifacts and lead to a new framework for signal
+reconstruction and material characterization from polychromatic
+measurements.
 
 In many scenarios, knowing the incident spectrum and the inspected material
 may be challenging.  Our method, requiring /no more/ information than the
@@ -31,7 +32,7 @@ This work was supported by the National Science Foundation under
 Grant CCF-1421480].
 ~~~
 
-=== Preview of our Iterative NPG-BFGS Method
+=== Illustration of our Iterative NPG-BFGS Method
 ~~~
 {}{img_left}{fig/castingAnim.gif}{iterative algorithm animation}{700px}{}{}
 ~~~
