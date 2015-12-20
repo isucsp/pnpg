@@ -25,6 +25,17 @@ conventional FBP method, simplifies the beam hardening correction and
 extends the usage to the scenarios where X-ray spectrum or material to
 inspect is unknown.
 
+=== Preview of our Iterative NPG-BFGS Method
+~~~
+{}{img_left}{castingAnim.gif}{iterative algorithm animation}{700px}{}{}
+~~~
+
+Estimated $\balpha$ and $-\ln\bigl(\b{b}^\text{L}(\cdot)\bcI\bigr)$ from 360 fanbeam
+real X-ray CT projections.
+
+Courtesy to Dr.~Joseph~N.~Gray, Center for Nondestructive Evaluation, Iowa 
+State University, for providing real X-ray CT data.
+
 === Background
 
 According to the Lambert-Beer's law, the fraction $\dif \cI / \cI$ of plane 
@@ -104,17 +115,6 @@ $\varepsilon(\kappa)$ and
         \exp\Bigl[ -\kappa \int_\ell \alpha(x,y)  d\ell\Bigr] d\kappa
     \end{align}
 \)
-
-=== Preview of our Iterative NPG-BFGS Method
-~~~
-{}{img_left}{castingAnim.gif}{iterative algorithm animation}{700px}{}{}
-~~~
-
-Estimated $\balpha$ and $-\ln\bigl(\b{b}^\text{L}(\cdot)\bcI\bigr)$ from 360 fanbeam
-real X-ray CT projections.
-
-Courtesy to Dr.~Joseph~N.~Gray, Center for Nondestructive Evaluation, Iowa 
-State University, for providing real X-ray CT data.
 
 === Download
 
