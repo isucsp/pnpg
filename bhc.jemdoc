@@ -1,4 +1,4 @@
-# jemdoc: nodefaultcss, addcss{bhc.css}, addcss{bibtex.css}
+# jemdoc: nodefaultcss, addcss{css/bhc.css}, addcss{css/bibtex.css}
 # jemdoc: title{Blind X-ray CT Image Reconstruction from Polychromatic Measurements}
 # jemdoc: menu{MENU}{bhc.html}
 
@@ -27,7 +27,7 @@ inspect is unknown.
 
 === Preview of our Iterative NPG-BFGS Method
 ~~~
-{}{img_left}{castingAnim.gif}{iterative algorithm animation}{700px}{}{}
+{}{img_left}{fig/castingAnim.gif}{iterative algorithm animation}{700px}{}{}
 ~~~
 
 Estimated $\balpha$ and $-\ln\bigl(\b{b}^\text{L}(\cdot)\bcI\bigr)$ from 360 fanbeam
@@ -90,7 +90,7 @@ detector upon traversing a straight line $\ell=\ell(x,y)$ is
 
 === Main Idea
 ~~~
-{}{img_left}{triRelate.png}{triRelate}{400px}{}{}
+{}{img_left}{fig/triRelate.png}{triRelate}{400px}{}{}
 *Assumption:*
 - Both incident spectrum {{$\iota(\varepsilon)$}} and mass attenuation
   function {{$\kappa(\varepsilon)$}} of the object are /unknown/.
