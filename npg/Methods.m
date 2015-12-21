@@ -25,6 +25,7 @@ classdef Methods < handle
         Psit
         sigma =0.01;    %
         t=-1;   % suppose be larger than L, largest eigenvalue of Hessian
+        preT=-1;
         u       % coefficient of l1 norm term
         M = 5;  % keep the record of objective from the last M iterations
         oldCost

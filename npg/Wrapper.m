@@ -4,6 +4,10 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='NPG';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out =PNPG(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PNPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out = AT(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='AT';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);

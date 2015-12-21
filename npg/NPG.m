@@ -48,13 +48,11 @@ classdef NPG < Methods
             while(pp<obj.maxItr)
                 obj.p = obj.p+1;
                 pp=pp+1;
-                temp=(1+sqrt(1+4*obj.theta^2))/2;
-                xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
+                newTheta=(1+sqrt(1+4*obj.theta^2))/2;
+                xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
                 if(obj.forcePositive)
                     xbar=max(xbar,0);
                 end
-                obj.theta = temp; obj.preAlpha = obj.alpha;
-
                 [oldCost,obj.grad] = obj.func(xbar);
 
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
@@ -86,6 +84,12 @@ classdef NPG < Methods
                                 incStep=false;
                             end
                         else  % don't know what to do, mark on debug and break
+                            if(obj.t<0)
+                                global strlen
+                                fprintf('\n NPG is having a negative step size, do nothing and return!!\n');
+                                strlen=0;
+                                return;
+                            end
                             goodMM=false;
                             obj.debug=[obj.debug '_FalseMM'];
                             break;
@@ -94,15 +98,15 @@ classdef NPG < Methods
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
-                temp = newCost+obj.u*obj.fVal(3);
+                newObj = newCost+obj.u*obj.fVal(3);
 
-                if((temp-obj.cost)>0)
+                if((newObj-obj.cost)>0)
                     needReset=false;
                     if(goodMM)
                         if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
                             % restart
                             if(obj.restart>=0)
-                                obj.theta=0;
+                                obj.theta=1;
                                 obj.debug=[obj.debug '_Restart'];
                                 pp=pp-1; continue;
                             end
@@ -131,7 +135,8 @@ classdef NPG < Methods
                         obj.reset();
                     end
                 end
-                obj.cost = temp;
+                obj.theta = newTheta; obj.preAlpha = obj.alpha;
+                obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 

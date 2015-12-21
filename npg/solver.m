@@ -126,7 +126,7 @@ switch lower(opt.alphaStep)
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
     case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs'),...
-            lower('GFB'),lower('Condat')}
+            lower('GFB'),lower('Condat'),lower('PNPG')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
                 proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
@@ -162,6 +162,14 @@ switch lower(opt.alphaStep)
                     alphaStep.forcePositive=opt.forcePositive;
                     % opt.alphaStep='PG';
                     % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
+                end
+            case {lower('PNPG')}
+                alpha=max(alpha,0);
+                alphaStep=PNPG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep.fArray{3} = penalty;
+                if(strcmpi(opt.noiseType,'poisson'))
+                    if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
+                    alphaStep.forcePositive=opt.forcePositive;
                 end
             case lower('ATs')
                 alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
@@ -303,6 +311,12 @@ else
     collectNonInc=false;
 end
 
+if(any(strcmp(properties(alphaStep),'theta')))
+    collectTheta=true;
+else
+    collectTheta=false;
+end
+
 if(any(strcmp(properties(alphaStep),'nbt')))
     collectNbt=true;
 else
@@ -349,6 +363,7 @@ while(true)
     if(opt.restart) out.restart(p)=alphaStep.restart; end
     if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
     if(collectNbt) out.nbt(p)=alphaStep.nbt; end
+    if(collectTheta) out.theta(p)=alphaStep.theta; end
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(collectDebug && ~isempty(alphaStep.debug))
         out.debug{size(out.debug,1)+1,1}=p;
