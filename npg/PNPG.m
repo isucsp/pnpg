@@ -1,4 +1,4 @@
-classdef NPG < Methods
+classdef PNPG < Methods
     properties
         stepShrnk = 0.5;
         preAlpha=0;
@@ -15,7 +15,7 @@ classdef NPG < Methods
         nonInc=0;
         innerSearch=0;
 
-        forcePositive=false;
+        forcePositive=true;
 
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
@@ -25,7 +25,7 @@ classdef NPG < Methods
         proxmapping
     end
     methods
-        function obj = NPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
+        function obj = PNPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
@@ -46,15 +46,7 @@ classdef NPG < Methods
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
-                obj.p = obj.p+1;
-                pp=pp+1;
-                newTheta=(1+sqrt(1+4*obj.theta^2))/2;
-                xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
-                if(obj.forcePositive)
-                    xbar=max(xbar,0);
-                end
-                [oldCost,obj.grad] = obj.func(xbar);
-
+                obj.p = obj.p+1; pp=pp+1;
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                     % adaptively increase the step size
@@ -65,8 +57,18 @@ classdef NPG < Methods
                 % start of line Search
                 while(true)
                     obj.ppp = obj.ppp+1;
-                    [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
-                        obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+
+                    B=obj.t/obj.preT;
+                    newTheta=(1+sqrt(1+4*B*obj.theta^2))/2;
+                    xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
+                    if(obj.forcePositive)
+                        xbar=max(xbar,0);
+                    end
+                    [oldCost,obj.grad] = obj.func(xbar);
+                    [newX,obj.innerSearch]=obj.proxmapping(...
+                        xbar-obj.grad/obj.t,...
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                        obj.maxInnerItr);
                     newCost=obj.func(newX);
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
@@ -86,7 +88,7 @@ classdef NPG < Methods
                         else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
                                 global strlen
-                                fprintf('\n NPG is having a negative step size, do nothing and return!!\n');
+                                fprintf('\n PNPG is having a negative step size, do nothing and return!!\n');
                                 strlen=0;
                                 return;
                             end
@@ -139,6 +141,7 @@ classdef NPG < Methods
                 obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
+                obj.preT=obj.t;
 
                 if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;

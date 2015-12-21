@@ -11,6 +11,7 @@ classdef AT < Methods
         admmTol=1e-3;
         cumu=0;
         cumuTol=4;
+        incCumuTol=true;
         nonInc=0;
         innerSearch=0;
 
@@ -43,30 +44,30 @@ classdef AT < Methods
         function out = main(obj)
             obj.warned = false;
             pp=0; obj.debug='';
-            if(obj.restart>0) obj.restart=0; end
 
             while(pp<obj.maxItr)
-                obj.p = obj.p+1;
-                pp=pp+1;
+                obj.p = obj.p+1; pp=pp+1;
                 obj.theta=(1+sqrt(1+4*obj.theta^2))/2;
 
                 y=(1-1/obj.theta)*obj.alpha+obj.zbar/obj.theta;
 
                 [oldCost,obj.grad] = obj.func(y);
 
-                % start of line Search
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
+                    % adaptively increase the step size
+                    obj.t=obj.t*obj.stepShrnk;
+                    obj.cumu=0;
+                    incStep=true;
+                end
+                % start of line Search
                 while(true)
-                    if(obj.adaptiveStep && ~incStep && obj.cumu>=obj.cumuTol)
-                        % adaptively increase the step size
-                        obj.t=obj.t*obj.stepShrnk;
-                        obj.cumu=0;
-                        incStep=true;
-                    end
                     obj.ppp = obj.ppp+1;
 
-                    [newZbar,obj.innerSearch]=obj.proxmapping(obj.zbar-obj.grad/obj.t*obj.theta,...
-                        obj.theta*obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+                    [newZbar,obj.innerSearch]=obj.proxmapping(...
+                        obj.zbar-obj.grad/obj.t*obj.theta,...
+                        obj.theta*obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                        obj.maxInnerItr);
                     newX=(1-1/obj.theta)*obj.alpha+newZbar/obj.theta;
 
                     newCost=obj.func(newX);
@@ -81,22 +82,30 @@ classdef AT < Methods
                         if(obj.ppp<=20 && obj.t>0)
                             obj.t=obj.t/obj.stepShrnk; goodStep=false; 
                             if(incStep)
-                                obj.cumuTol=obj.cumuTol+4;
+                                if(obj.incCumuTol)
+                                    obj.cumuTol=obj.cumuTol+4;
+                                end
                                 incStep=false;
                             end
                         else
+                            if(obj.t<0)
+                                global strlen
+                                fprintf('\n PNPG is having a negative step size, do nothing and return!!\n');
+                                strlen=0;
+                                return;
+                            end
                             goodMM=false;
-                            obj.debug=[obj.debug 'falseMM'];
+                            obj.debug=[obj.debug '_FalseMM'];
                             break;
                         end
                     end
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
-                temp = newCost+obj.u*obj.fVal(3);
+                newObj = newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((temp-obj.cost)>0 || mod(obj.p,600)==0)
+                if((newObj-obj.cost)>0 || mod(obj.p,200)==0)
                     if(goodMM)
                         if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
                             obj.zbar=obj.alpha;
@@ -113,7 +122,7 @@ classdef AT < Methods
                             else
                                 obj.debug=[obj.debug 'forceConverge'];
                                 obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-                                newX=obj.alpha;  temp=obj.cost;
+                                newX=obj.alpha;  newObj=obj.cost;
                             end
                         end
                     else
@@ -121,7 +130,7 @@ classdef AT < Methods
                         pp=pp-1; continue;
                     end
                 end
-                obj.cost = temp;
+                obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
                 obj.zbar=newZbar;
