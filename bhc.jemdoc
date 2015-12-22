@@ -40,8 +40,10 @@ Grant CCF-1421480].
 Estimated $\balpha$ and $-\ln\bigl(\b{b}^\text{L}(\cdot)\bcI\bigr)$ from 360 fanbeam
 real X-ray CT projections.
 
-Courtesy to Dr.~Joseph~N.~Gray, Center for Nondestructive Evaluation, Iowa 
-State University, for providing real X-ray CT data.
+~~~
+Real X-ray CT data: courtesy of Dr.~Joseph N.~Gray, Center for 
+Nondestructive Evaluation, Iowa State University.
+~~~
 
 === Background
 
