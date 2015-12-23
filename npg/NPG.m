@@ -46,8 +46,7 @@ classdef NPG < Methods
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
-                obj.p = obj.p+1;
-                pp=pp+1;
+                obj.p = obj.p+1; pp=pp+1;
                 newTheta=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
                 if(obj.forcePositive)
@@ -66,7 +65,8 @@ classdef NPG < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
                     [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
-                        obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                        obj.maxInnerItr,obj.alpha);
                     newCost=obj.func(newX);
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
@@ -99,40 +99,29 @@ classdef NPG < Methods
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
                 newObj = newCost+obj.u*obj.fVal(3);
+                objBar = oldCost+obj.u*obj.fArray{3}(xbar);
 
                 if((newObj-obj.cost)>0)
-                    needReset=false;
-                    if(goodMM)
-                        if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
-                            % restart
-                            if(obj.restart>=0)
-                                obj.theta=1;
-                                obj.debug=[obj.debug '_Restart'];
-                                pp=pp-1; continue;
-                            end
-                        else
-                            if(obj.innerSearch<obj.maxInnerItr)
-                                obj.difAlpha=0;
-                                obj.debug=[obj.debug '_NullDif'];
-                                pp=pp-1; continue;
-                            end
-                            obj.debug=[obj.debug '_ResetAll'];
-                            needReset=true;
-                            % global strlen
-                            % fprintf('\n good MM but increased cost, do nothing\n');
-                            % strlen=0;
-                        end
-                    else
-                        if(obj.innerSearch<obj.maxInnerItr)
-                            obj.debug=[obj.debug '_NullDif'];
-                            obj.difAlpha=0;
+                    if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
+                        obj.theta=1;
+                        obj.debug=[obj.debug '_Restart'];
+                        pp=pp-1; continue;
+                    elseif((~goodMM) || (objBar<newObj))
+                        obj.debug=[obj.debug '_Reset'];
+                        if(~goodMM) obj.reset(); end
+                        if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
+                            obj.admmTol=obj.admmTol/10;
+                            global strlen
+                            fprintf('\n decrease admmTol to %g\n',obj.admmTol);
+                            strlen=0;
+                            pp=pp-1; continue;
+                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                            obj.maxInnerItr=obj.maxInnerItr*10;
+                            global strlen
+                            fprintf('\n increase maxInnerItr to %g\n',obj.maxInnerItr);
+                            strlen=0;
                             pp=pp-1; continue;
                         end
-                        obj.debug=[obj.debug '_ResetAll'];
-                        needReset=true;
-                    end
-                    if(needReset)
-                        obj.reset();
                     end
                 end
                 obj.theta = newTheta; obj.preAlpha = obj.alpha;
@@ -150,96 +139,9 @@ classdef NPG < Methods
             out = obj.alpha;
         end
         function reset(obj)
-            obj.theta=0; obj.preAlpha=obj.alpha;
+            obj.theta=1;
             recoverT=obj.stepSizeInit('hessian');
             obj.t=min([obj.t;max(recoverT)]);
-        end
-    end
-    methods (Access = protected)
-        % this method can be redefined in the subclasses for an indicator
-        % of a constraints.
-        function res=indicate(obj)
-            if(any(obj.alpha<0)) res=inf;
-            else res=0; end
-        end
-    end
-    methods(Static)
-        function [alpha,pppp] = ADMM(Psi,Psit,a,u,absTol,maxItr,isInDebugMode)
-            % solve 0.5*||α-a||_2 + I(α≥0) + u*||Ψ'*α||_1
-            if((~exist('absTol','var')) || isempty(absTol)) absTol=1e-6; end
-            if((~exist('maxItr','var')) || isempty(maxItr)) maxItr=1e3;  end
-            if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
-            % this makes sure the convergence criteria is nontrival
-            absTol=min(1e-3,absTol);
-            nu=0; rho=1; cnt=0; preS=Psit(a); s=preS;
-
-            pppp=0;
-            while(true)
-                pppp=pppp+1;
-                cnt= cnt + 1;
-
-                alpha = max((a+rho*Psi(s+nu))/(1+rho),0);
-                Psit_alpha=Psit(alpha);
-                s = Utils.softThresh(Psit_alpha-nu,u/rho);
-                nu=nu+s-Psit_alpha;
-
-                difS=pNorm(s-preS); preS=s;
-                residual = pNorm(s-Psit_alpha);
-                sNorm = pNorm(s);
-
-                if(isInDebugMode)
-                    cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
-                    cost1(pppp)=0.5*sqrNorm(alpha-a)+u*pNorm(Psit_alpha,1);
-                    cost2(pppp)=0.5*sqrNorm(alpha-a)+u*pNorm(s,1);
-
-                    rhoRec(pppp)=rho;
-
-                    if(pppp>1)
-                        difAlpha = pNorm(preAlpha-alpha);
-                        difAlphaRec(pppp-1)=difAlpha/sNorm;
-                        difSRec(pppp-1)=difS/sNorm;
-                        residualRec(pppp-1)=residual/sNorm;
-                    end
-
-                    preAlpha=alpha;
-                end
-
-                if(pppp>maxItr) break; end
-                if(difS<=absTol*sNorm && residual<=absTol*sNorm) break; end
-                if(cnt>10) % prevent excessive back and forth adjusting
-                    if(difS>10*residual)
-                        rho = rho/2 ; nu=nu*2; cnt=0;
-                    elseif(difS<residual/10)
-                        rho = rho*2 ; nu=nu/2; cnt=0;
-                    end
-                end
-            end 
-            alpha= max(Psi(s),0);
-
-            if(isInDebugMode)
-                costRef=0.5*sqrNorm(max(a,0)-a)+u*pNorm(Psit(max(a,0)),1);
-                figure;
-                semilogy(rhoRec,'r'); title('rho');
-                figure;
-                semilogy(difAlphaRec,'r'); hold on;
-                semilogy(difSRec,'g');
-                semilogy(residualRec,'b');
-                legend('difAlpha','difS','residual');
-                title('covnergence criteria');
-                figure;
-                semilogy(cost1-min([cost,cost1,cost2]),'r-.'); hold on;
-                semilogy(cost -min([cost,cost1,cost2]),'g-'); hold on;
-                semilogy(cost2 -min([cost,cost1,cost2]),'b-'); hold on;
-                title('admm centered obj');
-                legend('alpha','s','alpha,s');
-                figure;
-                semilogy(cost1,'r'); hold on;
-                semilogy(cost,'g'); hold on;
-                semilogy(ones(size(cost))*costRef,'k');
-                title('admm obj');
-                legend('alpha','s','ref');
-            end
-            % end of the ADMM inside the NPG
         end
     end
 end

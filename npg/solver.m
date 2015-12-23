@@ -129,19 +129,20 @@ switch lower(opt.alphaStep)
             lower('GFB'),lower('Condat'),lower('PNPG')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,false);
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) admm(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,init,false);
+                % remember to find what I wrote on the paper in office
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltLagrangian')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('tvl1')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
             case lower('tviso')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
         end
@@ -233,6 +234,11 @@ end
 if(any(strcmp(properties(alphaStep),'admmTol'))...
         && isfield(opt,'admmTol'))
     alphaStep.admmTol=opt.admmTol;
+end
+
+if(any(strcmp(properties(alphaStep),'maxInnerItr'))...
+        && isfield(opt,'maxInnerItr'))
+    alphaStep.maxInnerItr=opt.maxInnerItr;
 end
 
 if(any(strcmp(properties(alphaStep),'weight'))...
@@ -352,7 +358,7 @@ while(true)
         alphaStep.t=min(alphaStep.t,temp);
     end
     
-    %if(p>273) keyboard; end
+    %if(p==173) keyboard; end
     alphaStep.main();
 
     out.fVal(p,:) = (alphaStep.fVal(:))';

@@ -4,8 +4,16 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='NPG';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out =PNPG(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='PNPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out =PNPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PNPG'; opt.adaptiveStep=false;
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = AT(Phi,Phit,Psi,Psit,y,xInit,opt)
@@ -18,10 +26,6 @@ classdef Wrapper < handle
         end
         function out = Condat(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='Condat';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
         function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
@@ -219,7 +223,7 @@ classdef Wrapper < handle
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
             if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-            ppsi = @(xxx,uuu,thrsh) NPG.ADMM(Psi,Psit,xxx,uuu,thrsh,100);
+            ppsi = @(xxx,uuu,thrsh) admm(Psi,Psit,xxx,uuu,thrsh,100);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             xInit(xInit<0)=0;
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...

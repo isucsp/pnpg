@@ -941,7 +941,7 @@ function subsolution = computesubsolution(step,tau,alpha,penalty,mu,varargin)
             substopcriterion    = varargin{5};
             subtolerance        = varargin{6};
                                    
-            subsolution = NPG.ADMM(W,WT,step,tau./alpha,subtolerance,submaxiter);
+            subsolution = admm(W,WT,step,tau./alpha,subtolerance,submaxiter);
         case {'onb',lower('wvltLagrangian')}
             % if onb is selected, varargin must be such that
             W                   = varargin{1};

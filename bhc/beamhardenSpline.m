@@ -202,22 +202,22 @@ switch lower(opt.alphaStep)
                 penalty = @(x) 0;
                 fprintf('Use apply nonnegativity only\n');
             case lower('wvltADMM')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) NPG.ADMM(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,false);
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) admm(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,init,false);
                 penalty = @(x) pNorm(Psit(x),1);
                 fprintf('Use l1 norm of wavelet coeff, ADMM\n');
             case lower('wvltLagrangian')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) constrainedl2l1denoise(...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
                 fprintf('Use l1 norm of wavelet coeff, SPIRAL\n');
             case lower('tvl1')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
                 fprintf('Use l1 TV\n');
             case lower('tviso')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) TV.denoise(x,u,...
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
                 fprintf('Use ISO TV\n');

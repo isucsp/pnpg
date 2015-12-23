@@ -1,19 +1,21 @@
-classdef AT < Methods
+classdef PNPG < Methods
     properties
         stepShrnk = 0.5;
-        zbar=0;
+        preAlpha=0;
         preG=[];
         preY=[];
         thresh=1e-4;
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-3;
+        admmTol=1e-2;
         cumu=0;
         cumuTol=4;
         incCumuTol=true;
         nonInc=0;
         innerSearch=0;
+
+        forcePositive=true;
 
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
@@ -23,8 +25,7 @@ classdef AT < Methods
         proxmapping
     end
     methods
-        function obj = AT(n,alpha,maxAlphaSteps,stepShrnk,pm)
-        %   alpha(alpha<0)=0;
+        function obj = PNPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
@@ -36,23 +37,16 @@ classdef AT < Methods
             obj.alpha=alpha;
             obj.cumu=0;
             obj.theta=0;
-            obj.zbar=alpha;
+            obj.preAlpha=alpha;
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
-        % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
             obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
                 obj.p = obj.p+1; pp=pp+1;
-                obj.theta=(1+sqrt(1+4*obj.theta^2))/2;
-
-                y=(1-1/obj.theta)*obj.alpha+obj.zbar/obj.theta;
-
-                [oldCost,obj.grad] = obj.func(y);
-
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                     % adaptively increase the step size
@@ -64,15 +58,19 @@ classdef AT < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
 
-                    [newZbar,obj.innerSearch]=obj.proxmapping(...
-                        obj.zbar-obj.grad/obj.t*obj.theta,...
-                        obj.theta*obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                    B=obj.t/obj.preT;
+                    newTheta=(1+sqrt(1+4*B*obj.theta^2))/2;
+                    xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
+                    if(obj.forcePositive)
+                        xbar=max(xbar,0);
+                    end
+                    [oldCost,obj.grad] = obj.func(xbar);
+                    [newX,obj.innerSearch]=obj.proxmapping(...
+                        xbar-obj.grad/obj.t,...
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,...
                         obj.maxInnerItr,obj.alpha);
-                    newX=(1-1/obj.theta)*obj.alpha+newZbar/obj.theta;
-
                     newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
-                    if(newCost<=LMM)
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -87,7 +85,7 @@ classdef AT < Methods
                                 end
                                 incStep=false;
                             end
-                        else
+                        else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
                                 global strlen
                                 fprintf('\n PNPG is having a negative step size, do nothing and return!!\n');
@@ -103,37 +101,36 @@ classdef AT < Methods
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
                 newObj = newCost+obj.u*obj.fVal(3);
+                objBar = oldCost+obj.u*obj.fArray{3}(xbar);
 
-                % restart
-                if((newObj-obj.cost)>0 || mod(obj.p,200)==0)
-                    if(goodMM)
-                        if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
-                            obj.zbar=obj.alpha;
-                            obj.theta=0;
-                            obj.restart= 1; % make sure only restart once each iteration
-                            obj.debug=[obj.debug 'restart'];
-                            pp=pp-1; continue;
-                        else
-                            if(obj.innerSearch<obj.maxInnerItr)
-                                obj.restart= 2;
-                                obj.difAlpha=0;
-                                obj.debug=[obj.debug 'resetDifAlpha'];
-                                pp=pp-1; continue;
-                            else
-                                obj.debug=[obj.debug 'forceConverge'];
-                                obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-                                newX=obj.alpha;  newObj=obj.cost;
-                            end
-                        end
-                    else
-                        obj.debug=[obj.debug 'falseMonotone'];
+                if((newObj-obj.cost)>0)
+                    if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
+                        obj.theta=1;
+                        obj.debug=[obj.debug '_Restart'];
                         pp=pp-1; continue;
+                    elseif((~goodMM) || (objBar<newObj))
+                        obj.debug=[obj.debug '_Reset'];
+                        if(~goodMM) obj.reset(); end
+                        if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
+                            obj.admmTol=obj.admmTol/10;
+                            global strlen
+                            fprintf('\n decrease admmTol to %g\n',obj.admmTol);
+                            strlen=0;
+                            pp=pp-1; continue;
+                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                            obj.maxInnerItr=obj.maxInnerItr*10;
+                            global strlen
+                            fprintf('\n increase maxInnerItr to %g\n',obj.maxInnerItr);
+                            strlen=0;
+                            pp=pp-1; continue;
+                        end
                     end
                 end
+                obj.theta = newTheta; obj.preAlpha = obj.alpha;
                 obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                obj.zbar=newZbar;
+                obj.preT=obj.t;
 
                 if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;
@@ -145,7 +142,7 @@ classdef AT < Methods
             out = obj.alpha;
         end
         function reset(obj)
-            obj.theta=0; obj.zbar=obj.alpha;
+            obj.theta=1;
             recoverT=obj.stepSizeInit('hessian');
             obj.t=min([obj.t;max(recoverT)]);
         end
