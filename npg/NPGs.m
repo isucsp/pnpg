@@ -22,8 +22,8 @@ classdef NPGs < Methods
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
-            obj.preAlpha=alpha;
             obj.Psi=Psi; obj.Psit=Psit;
+            obj.setAlpha(alpha);
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
@@ -33,15 +33,12 @@ classdef NPGs < Methods
         end
         % solves L(α) + u*||Ψ'*α||_1
         function out = main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
-                obj.p = obj.p+1;
-                pp=pp+1;
-                temp=(1+sqrt(1+4*obj.theta^2))/2;
-                xbar=obj.alpha+(obj.theta -1)/temp*(obj.alpha-obj.preAlpha);
-                obj.theta = temp; obj.preAlpha = obj.alpha;
+                obj.p = obj.p+1; pp=pp+1;
+                newTheta=(1+sqrt(1+4*obj.theta^2))/2;
+                xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
 
                 [oldCost,obj.grad] = obj.func(xbar);
                 si = obj.Psit(xbar); dsi = obj.Psit(obj.grad);
@@ -75,38 +72,39 @@ classdef NPGs < Methods
                                 incStep=false;
                             end
                         else  % don't know what to do, mark on debug and break
+                            if(obj.t<0)
+                                global strlen
+                                fprintf('\n NPG is having a negative step size, do nothing and return!!');
+                                strlen=0;
+                                return;
+                            end
                             goodMM=false;
-                            obj.debug=[obj.debug 'falseMM'];
+                            obj.debug=[obj.debug '_FalseMM'];
                             break;
                         end
                     end
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = pNorm(newSi,1);
-                temp = newCost+obj.u*obj.fVal(3);
+                newObj = newCost+obj.u*obj.fVal(3);
+                objBar = oldCost+obj.u*pNorm(si,1);
 
-                % restart
-                if((temp-obj.cost)>0)
-                    if(goodMM)
-                        if(pNorm(xbar-obj.alpha,1)~=0) % if has monmentum term, restart
-                            if(obj.restart>=0)
-                                obj.theta=0;
-                                obj.debug=[obj.debug 'restart'];
-                                pp=pp-1; continue;
-                            end
-                        else
-                            obj.debug=[obj.debug 'goodMM_but_increasedCost'];
-                            global strlen
-                            fprintf('\n good MM but increased cost, do nothing\n');
-                            strlen=0;
-                            obj.cumu=0;
-                        end
-                    else
-                        obj.debug=[obj.debug 'falseMonotone'];
+                if((newObj-obj.cost)>0)
+                    if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
+                        obj.theta=1;
+                        obj.debug=[obj.debug '_Restart'];
+                        global strlen
+                        fprintf('\t restart');
+                        strlen=0;
                         pp=pp-1; continue;
+                    elseif((~goodMM) || (objBar<newObj))
+                        % give up and force it to converge
+                        obj.debug=[obj.debug '_ForceConverge'];
+                        newObj=obj.cost;  newX=obj.alpha;
                     end
                 end
-                obj.cost = temp;
+                obj.theta = newTheta; obj.preAlpha = obj.alpha;
+                obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 
@@ -120,7 +118,7 @@ classdef NPGs < Methods
             out = obj.alpha;
         end
         function reset(obj)
-            obj.theta=0; obj.preAlpha=obj.alpha;
+            obj.theta=1;
             recoverT=obj.stepSizeInit('hessian');
             obj.t=min([obj.t;max(recoverT)]);
         end

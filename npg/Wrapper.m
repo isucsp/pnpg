@@ -12,6 +12,10 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='PNPG';
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
         end
+        function out =PNPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='PNPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
         function out =PNPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='PNPG'; opt.adaptiveStep=false;
             out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
@@ -139,6 +143,103 @@ classdef Wrapper < handle
             if(~isfield(out,'time')) out.time=out.cpu; end
             out.opt = opt;
             fprintf('fpcas cost=%g, RMSE=%g\n',out.f(end),out.RMSE(end));
+        end
+        function f = tfocs_affineF(x,op,Phi,Phit,PhiSize)
+            if(op==0)
+                f=PhiSize;
+            elseif(op==1)
+                f=Phi(x);
+            elseif(op==2)
+                f=Phit(x);
+            end
+        end
+        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,u)
+            if(~exist('u','var') || isempty(u))
+                f=penalty(x);
+            else
+                xx=proximalProj(x,u,1e-8,500);
+                f=penalty(xx);
+            end
+        end
+        function out = tfocs(Phi,Phit,Psi,Psit,y,xInit,opt)
+            affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
+            if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+            if(~isfield(opt,'errorType')) opt.errorType=1; end
+            if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
+            switch lower(opt.noiseType)
+                case lower('poissonLogLink')
+                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) xxx(:),@(xxx) xxx(:),y);
+                    [~,g]=L(xInit*0);
+                    u_max=pNorm(Psi'*g,inf);
+                    model='poisson';
+                    options.intr = true; % need the interception
+                    options.standardize=false;
+                    A=-A;
+                case lower('poissonLogLink0')
+                    y=y/opt.I0;
+                    opt.u=opt.u/opt.I0;
+                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
+                    [~,g]=L(xInit*0);
+                    u_max=pNorm(Psi'*g,inf);
+                    model='poisson';
+                    options.standardize=false;
+                    A=-A;
+                    options.intr = false; % disable the interception, but need to rescale y
+                case 'gaussian'
+                    L = @(x) Utils.linearModel(x,@(a)Phi(a),@(a)Phit(a),y);
+            end
+            switch(lower(opt.proximal))
+                case lower('wvltADMM')
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
+                        innerThresh,maxInnerItr,false,varargin{:});
+                    penalty = @(x) opt.u*pNorm(Psit(x),1);
+                case lower('wvltLagrangian')
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
+                        x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
+                    penalty = @(x) pNorm(Psit(x),1);
+                case lower('tvl1')
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                        innerThresh,maxInnerItr,opt.mask,'l1');
+                    penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
+                case lower('tviso')
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                        innerThresh,maxInnerItr,opt.mask,'iso');
+                    penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
+            end
+            if(isfield(opt,'trueAlpha'))
+                switch opt.errorType
+                    case 0
+                        trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
+                        computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+                    case 1
+                        trueAlphaNorm=sqrNorm(opt.trueAlpha);
+                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+                        computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                    case 2
+                        trueAlphaNorm=pNorm(opt.trueAlpha);
+                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
+                        computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                end
+            end
+            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,varargin{:});
+            if(isfield(opt,'restartEvery'))
+                opts.restart=opt.restartEvery;
+            end
+            opts.tol=opt.thresh;
+            opts.errFcn=@(f,x)computError(x);
+            opts.maxIts=opt.maxItr;
+            tic;
+            [x,out1,opts] = tfocs(L,[],projectorF, xInit,opts);
+            keyboard
+            out.time=linspace(0,toc,out1.niter);
+            out.alpha=x;
+            out.cost=out1.f;
+            out.stepSize=out1.stepsize;
+            out.difAlpha=out1.normGrad;
+            out.theta=1./out1.theta;
+            out.p=out1.niter;
+            out.opt=opts;
+            if(isfield(out1,'err')) out.RMSE=out1.err; end
         end
         function out = gaussStabProxite(Phi,Phit,Psi,Psit,y,xInit,opt)
             tic;

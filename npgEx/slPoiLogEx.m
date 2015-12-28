@@ -35,7 +35,7 @@ switch lower(op)
         for k=1:10
             for i=1:length(m)
                 opt.m=m(i); opt.noiseType='poissonLogLink'; opt.matrixType='conv';
-                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt,k*100+i);
                 initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
                 fprintf('i=%d, k=%d, min=%d, max=%d\n',i,k,min(y), max(y));
 
@@ -93,7 +93,7 @@ switch lower(op)
         for k=1:10
             for i=1:length(m)
                 opt.m=m(i); opt.noiseType='poissonLogLink'; opt.matrixType='conv';
-                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt,k*100+i);
                 initSig=-Phit(invEAAt*log(max(y,1)/max(y)))*0;
                 fprintf('i=%d, k=%d, min=%d, max=%d\n',i,k,min(y), max(y));
 

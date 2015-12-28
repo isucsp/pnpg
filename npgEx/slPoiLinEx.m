@@ -17,32 +17,42 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-        opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1;
-        opt.noiseType='poisson'; opt.matrixType='nonneg'; opt.snr=1e7;
-        opt.contShrnk=0.1;
+        clear('OPT'); filename = [mfilename '.mat'];
+        OPT.maxItr=2e4; OPT.thresh=1e-6; OPT.debugLevel=1;
+        OPT.noiseType='poisson'; OPT.matrixType='nonneg'; OPT.snr=1e7;
+        OPT.contShrnk=0.1;
         m=[ 200, 300, 400, 500, 600, 700, 800]; % should go from 200
         a=[1e-3,1e-3,1e-3,1e-3,1e-3,1e-3,1e-3];
         aa =10.^(3:-1:-10);
-        Opt=opt;
 
-        for k=1:1
-            for i=2; %length(m)
-                opt=Opt; opt.m=m(i);
-                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+        for k=1:5
+            for i=1:length(m)
+                opt=OPT; opt.m=m(i);
+                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt,k*100+i);
                 initSig=randn(size(initSig));
                 initSig=Phit(invEAAt*y)*0+1;
                 fprintf('min=%d, max=%d, sum(y)=%d\n',min(y), max(y),sum(y));
                 u_max=1;
 
-                for j=1:5;
+                for j=5:-1:1;
                     fprintf('%s, i=%d, j=%d, k=%d\n','Skyline Poisson Linear Example',i,j,k);
                     opt.u = a(i)*u_max*10^(j-3);
 
                   % % This method by Dupe etc 2009 seems not working at all
                   % dupe   {i,j,k}=Wrapper.gaussStabProxite(Phi,Phit,Psi,Psit,y,initSig,opt);
                    
+                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npg      {i,j,k}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    spiral   {i,j,k}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
+
+                    npg_nads {i,j,k}=Wrapper.NPG_nads (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.maxItr=opt.maxItr*10;
+                    gfb      {i,j,k}=Wrapper.GFB      (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT;
+
                 if(i==2 && j==4 && k==1) 
                     opt.admmTol=1e-2;
                     opt.proximal='wvltLagrangian';
@@ -59,11 +69,9 @@ switch lower(op)
                 end
                     continue
                     npgc   {i,j,k}=Wrapper.NPGc  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npg    {i,j,k}=Wrapper.NPG   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgs   {i,j,k}=Wrapper.NPGs  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgsc  {i,j,k}=Wrapper.NPGsc (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
-                save(filename);
             end
         end
 
@@ -269,7 +277,7 @@ switch lower(op)
         for k=1:1
             for i=1:length(m)
                 opt.m=m(i);
-                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt,k*100+i);
                 %initSig=randn(size(initSig));
                 initSig=Phit(invEAAt*y)*0+1;
                 fprintf('min=%d, max=%d, sum(y)=%d\n',min(y), max(y),sum(y));

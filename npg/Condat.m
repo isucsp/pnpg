@@ -48,7 +48,6 @@ classdef Condat < Methods
         end
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         function out = main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)

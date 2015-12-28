@@ -42,7 +42,6 @@ classdef PNPG < Methods
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
         function out = main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
@@ -88,7 +87,7 @@ classdef PNPG < Methods
                         else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
                                 global strlen
-                                fprintf('\n PNPG is having a negative step size, do nothing and return!!\n');
+                                fprintf('\n PNPG is having a negative step size, do nothing and return!!');
                                 strlen=0;
                                 return;
                             end
@@ -107,23 +106,31 @@ classdef PNPG < Methods
                     if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
                         obj.theta=1;
                         obj.debug=[obj.debug '_Restart'];
+                        global strlen
+                        fprintf('\t restart');
+                        strlen=0;
                         pp=pp-1; continue;
                     elseif((~goodMM) || (objBar<newObj))
-                        obj.debug=[obj.debug '_Reset'];
-                        if(~goodMM) obj.reset(); end
+                        if(~goodMM)
+                            obj.debug=[obj.debug '_Reset'];
+                            obj.reset();
+                        end
                         if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
                             obj.admmTol=obj.admmTol/10;
                             global strlen
-                            fprintf('\n decrease admmTol to %g\n',obj.admmTol);
+                            fprintf('\n decrease admmTol to %g',obj.admmTol);
                             strlen=0;
                             pp=pp-1; continue;
                         elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
                             obj.maxInnerItr=obj.maxInnerItr*10;
                             global strlen
-                            fprintf('\n increase maxInnerItr to %g\n',obj.maxInnerItr);
+                            fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
                             strlen=0;
                             pp=pp-1; continue;
                         end
+                        % give up and force it to converge
+                        obj.debug=[obj.debug '_ForceConverge'];
+                        newObj=obj.cost;  newX=obj.alpha;
                     end
                 end
                 obj.theta = newTheta; obj.preAlpha = obj.alpha;

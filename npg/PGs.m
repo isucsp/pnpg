@@ -29,7 +29,6 @@ classdef PGs < Methods
         % method No.4 with ADMM inside IST for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)

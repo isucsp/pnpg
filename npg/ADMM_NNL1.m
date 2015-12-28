@@ -35,7 +35,6 @@ classdef ADMM_NNL1 < Methods
             obj.cnt=0;
         end
         function main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)

@@ -1,6 +1,6 @@
-function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt)
-    %s = RandStream.create('mt19937ar','seed',0);
-    %RandStream.setGlobalStream(s);
+function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt,seed)
+    if(~exist('seed','var')) seed=0; end
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
 
     tics=[0,...
         90, 190,...

@@ -202,8 +202,9 @@ switch lower(opt.alphaStep)
                 penalty = @(x) 0;
                 fprintf('Use apply nonnegativity only\n');
             case lower('wvltADMM')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) admm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,init,false);
+                % varargin is for the initialization
+                proxmalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,false,varargin{:});
                 penalty = @(x) pNorm(Psit(x),1);
                 fprintf('Use l1 norm of wavelet coeff, ADMM\n');
             case lower('wvltLagrangian')

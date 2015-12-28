@@ -14,7 +14,6 @@ classdef Methods < handle
         stepNum
         stepSize=0;
         converged = false;
-        warned = false;
         debug;
         % steps at the beginning with BB stepsize and then backtracking
         preSteps=10;
@@ -89,7 +88,8 @@ classdef Methods < handle
                     warning(['\n%s: obj function is non-convex over alpha, '...
                         'x''*H*x=%g, replace it by 1'],class(obj),hh);
                     keyboard
-                    obj.warned = true;
+                    global strlen
+                    strlen=0;
                     hh=1;
                 end
             end

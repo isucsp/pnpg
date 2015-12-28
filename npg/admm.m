@@ -1,11 +1,15 @@
-function [alpha,pppp] = admm(Psi,Psit,a,u,absTol,maxItr,init,isInDebugMode)
-    % solve 0.5*||α-a||_2 + I(α≥0) + u*||Ψ'*α||_1
-    if((~exist('absTol','var')) || isempty(absTol)) absTol=1e-6; end
+function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
+    %
+    % solve 0.5*||α-a||_2 + I(α≥0) + u*||Psit(α)||_1
+    %
+    % author: Renliang Gu (gurenliang@gmail.com)
+    %
+    if((~exist('relativeTol','var')) || isempty(relativeTol)) relativeTol=1e-6; end
     if((~exist('maxItr','var')) || isempty(maxItr)) maxItr=1e3;  end
     if((~exist('init','var')) || isempty(init)) init=a;  end
     if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
     % this makes sure the convergence criteria is nontrival
-    absTol=min(1e-3,absTol);
+    relativeTol=min(1e-3,relativeTol);
     nu=0; rho=1; cnt=0; preS=Psit(init); s=preS;
 
     pppp=0;
@@ -40,7 +44,7 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,absTol,maxItr,init,isInDebugMode)
         end
 
         if(pppp>maxItr) break; end
-        if(difS<=absTol*sNorm && residual<=absTol*sNorm) break; end
+        if(difS<=relativeTol*sNorm && residual<=relativeTol*sNorm) break; end
         if(cnt>10) % prevent excessive back and forth adjusting
             if(difS>10*residual)
                 rho = rho/2 ; nu=nu*2; cnt=0;
@@ -49,7 +53,7 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,absTol,maxItr,init,isInDebugMode)
             end
         end
     end 
-    alpha= max(Psi(s),0);
+    alpha = max((a+rho*Psi(s+nu))/(1+rho),0);
 
     if(isInDebugMode)
         costRef=0.5*sqrNorm(max(init,0)-a)+u*pNorm(Psit(max(init,0)),1);

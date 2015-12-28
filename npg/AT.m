@@ -14,6 +14,7 @@ classdef AT < Methods
         incCumuTol=true;
         nonInc=0;
         innerSearch=0;
+        restartEvery=100;
 
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
@@ -42,7 +43,6 @@ classdef AT < Methods
         % method No.4 with ADMM inside FISTA for NNL1
         % the order of 2nd and 3rd terms is determined by the ADMM subroutine
         function out = main(obj)
-            obj.warned = false;
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
@@ -90,7 +90,7 @@ classdef AT < Methods
                         else
                             if(obj.t<0)
                                 global strlen
-                                fprintf('\n PNPG is having a negative step size, do nothing and return!!\n');
+                                fprintf('\n PNPG is having a negative step size, do nothing and return!!');
                                 strlen=0;
                                 return;
                             end
@@ -105,13 +105,16 @@ classdef AT < Methods
                 newObj = newCost+obj.u*obj.fVal(3);
 
                 % restart
-                if((newObj-obj.cost)>0 || mod(obj.p,200)==0)
+                if((newObj-obj.cost)>0 || mod(obj.p,obj.restartEvery)==0)
                     if(goodMM)
                         if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
                             obj.zbar=obj.alpha;
                             obj.theta=0;
                             obj.restart= 1; % make sure only restart once each iteration
                             obj.debug=[obj.debug 'restart'];
+                            global strlen
+                            fprintf('\t restart');
+                            strlen=0;
                             pp=pp-1; continue;
                         else
                             if(obj.innerSearch<obj.maxInnerItr)

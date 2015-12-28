@@ -18,14 +18,13 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear('OPT'); filename = [mfilename '.mat'];
 
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-        OPT.maxItr=1e5; OPT.thresh=1e-6; OPT.debugLevel=1;
+        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1;
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
         for k=1:5
-            for i=1:length(m); if(any(i==[2 4 6]))
+            for i=1:length(m); if(any(i==[2 3 4 6]))
                 opt=OPT; opt.m=m(i); opt.snr=inf;
-                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt);
+                [y,Phi,Phit,Psi,Psit,opt,~,invEAAt]=loadLinear(opt,k*100+i);
                 initSig = Phit(invEAAt*y);
 
                 opt.u = u(i)*10.^(-2:2);
@@ -34,18 +33,30 @@ switch lower(op)
                 for j=5:-1:1
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     opt.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
+                    
+                    if(~(k==1 && i==3)) continue; end
+                    npgsc    {i,j,k}=Wrapper.NPGsc    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npgs     {i,j,k}=Wrapper.NPGs     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    fpcas    {i,j,k}=Wrapper.FPCas    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgc    {i,j,k}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                    continue;
 
+                    opt.restartEvery=200;
+                    at200    {i,j,k}=Wrapper.AT       (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    tfocs    {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    npg      {i,j,k}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    npg_nads {i,j,k}=Wrapper.NPG_nads (Phi,Phit,Psi,Psit,y,initSig,opt);
                     sparsn   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     spiral   {i,j,k}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npg_nads {i,j,k}=Wrapper.NPG_nads (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npg      {i,j,k}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    opt.maxItr=opt.maxItr*10;
                     gfb      {i,j,k}=Wrapper.GFB      (Phi,Phit,Psi,Psit,y,initSig,opt);
                     condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    at200    {i,j,k}=Wrapper.AT       (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.maxItr=opt.maxItr/10;
 
-
-                    continue;
                     temp=opt; opt.thresh=1e-12; opt.maxItr=5e4;
                     % pgc12{i,j,k}=Wrapper.PGc(Phi,Phit,Psi,Psit,y,initSig,opt);
                     %sparsn12{i,j,k}=Wrapper.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -53,9 +64,6 @@ switch lower(op)
                     sparsa12 {i,j,k}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=temp;
 
-                    npgsc    {i,j,k}=Wrapper.NPGsc    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    npgs     {i,j,k}=Wrapper.NPGs     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    continue;
 
                     npgsT {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     temp=opt; opt.initStep='fixed';
@@ -64,13 +72,11 @@ switch lower(op)
                     continue;
 
                     fista    {i,j,k}=Wrapper.FISTA    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    fpcas    {i,j,k}=Wrapper.FPCas    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     sparsa   {i,j,k}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     fpc      {i,j,k}=Wrapper.FPC      (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgc_nads{i,j,k}=Wrapper.NPGc_nads(Phi,Phit,Psi,Psit,y,initSig,opt);
                     pgc      {i,j,k}=Wrapper.PGc      (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
-                save(filename);
             end; end;
         end
 

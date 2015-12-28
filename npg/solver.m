@@ -48,7 +48,6 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
 if(~isfield(opt,'proximal' )) opt.proximal='wvltADMM'; end
-if(~isfield(opt,'preSteps')) opt.preSteps=2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
@@ -65,6 +64,14 @@ if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
+if(~isfield(opt,'preSteps'))
+    switch lower(opt.noiseType)
+        case 'poisson'
+            opt.preSteps=2;
+        otherwise
+            opt.preSteps=0;
+    end
+end
 % continuation setup
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
@@ -129,20 +136,20 @@ switch lower(opt.alphaStep)
             lower('GFB'),lower('Condat'),lower('PNPG')}
         switch(lower(opt.proximal))
             case lower('wvltADMM')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) admm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,init,false);
+                proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,false,varargin{:});
                 % remember to find what I wrote on the paper in office
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltLagrangian')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('tvl1')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
             case lower('tviso')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
         end
@@ -152,11 +159,11 @@ switch lower(opt.alphaStep)
                 alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
                 alphaStep.fArray{3} = penalty;
             case lower('PG')
-                alphaStep=PG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep=PG(1,alpha,1,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
             case {lower('NPG')}
                 alpha=max(alpha,0);
-                alphaStep=NPG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep=NPG(1,alpha,1,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
                 if(strcmpi(opt.noiseType,'poisson'))
                     if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
@@ -166,7 +173,7 @@ switch lower(opt.alphaStep)
                 end
             case {lower('PNPG')}
                 alpha=max(alpha,0);
-                alphaStep=PNPG(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep=PNPG(1,alpha,1,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
                 if(strcmpi(opt.noiseType,'poisson'))
                     if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
@@ -177,7 +184,7 @@ switch lower(opt.alphaStep)
                 alphaStep.fArray{3} = penalty;
             case lower('AT')
                 alpha=max(alpha,0);
-                alphaStep=AT(1,alpha,1,opt.stepShrnk,proxmalProj);
+                alphaStep=AT(1,alpha,1,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
             case lower('GFB')
                 alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
@@ -244,6 +251,11 @@ end
 if(any(strcmp(properties(alphaStep),'weight'))...
         && isfield(opt,'weight'))
     alphaStep.weight=opt.weight(:);
+end
+
+if(any(strcmp(properties(alphaStep),'restartEvery'))...
+        && isfield(opt,'restartEvery'))
+    alphaStep.restartEvery=opt.restartEvery(:);
 end
 
 if(opt.continuation || opt.fullcont)
@@ -334,16 +346,16 @@ if(opt.debugLevel>=1)
     str=sprintf('Nestrov''s Proximal Gradient Method (%s) %s_%s',opt.proximal,opt.alphaStep,opt.noiseType);
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
-    str=sprintf( ' %5s','itr');
-    str=sprintf([str ' %12s'],'Obj');
+    str=sprintf( ' %5s','Itr');
+    str=sprintf([str ' %12s'],'Objective');
     if(isfield(opt,'trueAlpha'))
-        str=sprintf([str ' %12s'], 'error');
+        str=sprintf([str ' %12s'], 'Error');
     end
     if(opt.continuation || opt.fullcont)
         str=sprintf([str ' %12s'],'u');
     end
-    str=sprintf([str ' %12s %4s'], 'difα', 'αSrh');
-    str=sprintf([str ' %12s'], 'difOjbα');
+    str=sprintf([str ' %12s %4s'], '|difα|/|α|', 'αSrh');
+    str=sprintf([str ' %12s'], '|difObj/Obj|');
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
@@ -407,7 +419,7 @@ while(true)
         if(temp>1 && out.difAlpha(p) < temp1 )
             out.contAlpha{contIdx}=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
-            strlen=0; fprintf('\nu=%g\n',alphaStep.u);
+            strlen=0; fprintf('\tu=%g',alphaStep.u);
             contIdx=contIdx+1;
             if(length(opt.u)>1)
                 alphaStep.u = opt.u(contIdx);
@@ -457,15 +469,12 @@ while(true)
     end
     %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
     if(opt.debugLevel>=1)
-        if(alphaStep.warned)
-            fprintf('%s',str);
+        if(strlen==0 || mod(p-1,opt.verbose)==0)
+            fprintf('\n%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
         end
-        if(mod(p,opt.verbose)==0)
-            strlen=0; fprintf('\n');
-        else strlen = length(str);
-        end
+        strlen = length(str);
     end
     out.time(p)=toc;
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
