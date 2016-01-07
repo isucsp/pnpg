@@ -1,9 +1,6 @@
-function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastSim(opt)
-    %theta=1:180;     %for phantom
-    %theta=[1:10, 21:100, 111:180]; % Kun2012TSP cut
-    %theta=1:160;  % Dogandzic2011Asilomar
-
-    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadCastSim(opt,seed)
+    if(~exist('seed','var')) seed=0; end
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
     if(~isfield(opt,'beamharden')) opt.beamharden=false; end
 
     opt.trueImg=double(imread('binaryCasting.bmp'));

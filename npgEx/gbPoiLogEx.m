@@ -17,61 +17,55 @@ switch(lower(op))
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear -regexp '(?i)opt'
         filename = [mfilename '_full.mat'];
-        conf=ConfigCT();
-        conf.imageName = 'glassBeadsSim';
-        conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-        conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
-        conf.dist = 17000;
-        conf.beamharden = false;
 
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
         % aa = -1:-1:-10;
         % aa = -4.5:-0.5:-5.5;
         aa = -2.0:-0.5:-8.0;
-        opt.maxItr=4e3; opt.thresh=1e-6; opt.snr=1e6; opt.debugLevel=1;
+        opt.maxItr=4e3; opt.thresh=1e-6; %opt.snr=1e6;
         for i=1:3 %length(prjFull)
             opt.noiseType='poissonLogLink'; %'gaussian'; %
-            RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0)); j=1;
-            conf.prjFull = prjFull(i); conf.prjNum = conf.prjFull;
-            opt=conf.setup(opt);
-            fprintf('i=%d, min=%d, max=%d\n',i,min(conf.y), max(conf.y));
-            initSig = maskFunc(conf.FBP(-log(max(conf.y,1)/max(conf.y))),opt.mask~=0);
+            opt.prjFull = prjFull(i); opt.prjNum = opt.prjFull;
 
-            fbp{i,j}.img=conf.FBP(-log(max(conf.y,1)/max(conf.y)));
+            [y,Phi,Phit,Psi,Psit,opt,FBP]=loadGlassBeadsSim(opt);
+            fprintf('i=%d, min=%d, max=%d\n',i,min(y), max(y));
+            initSig = maskFunc(FBP(-log(max(y,1)/max(y))),opt.mask~=0);
+
+            fbp{i,j}.img=FBP(-log(max(y,1)/max(y)));
             fbp{i,j}.alpha=fbp{i,j}.img(opt.mask~=0);
             fbp{i,j}.RMSE=sqrNorm(fbp{i,j}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             fprintf('fbp RMSE: %g,  ',fbp{i,j}.RMSE);
             fprintf('after truncation: %g\n',rmseTruncate(fbp{i,j},opt.trueAlpha));
 
             % the poisson model with log link, where I0 is unknown
-            % u_max=pNorm(conf.Psit(conf.Phit(conf.y-opt.I0)),inf); % for loglink0
-            % u_max=pNorm(conf.Psit(conf.Phit(conf.y.*log(max(conf.y,1)/opt.I0))),inf) % for loglink0 approximated by weight
-            u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
+            % u_max=pNorm(Psit(Phit(y-opt.I0)),inf); % for loglink0
+            % u_max=pNorm(Psit(Phit(y.*log(max(y,1)/opt.I0))),inf) % for loglink0 approximated by weight
+            u_max=pNorm(Psit(Phit(y-mean(y))),inf); % for loglink
 
             opt.fullcont=true; opt.u=10.^aa*u_max;
-            pnpgFull{i}=Wrapper.PNPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            pnpgFull{i}=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
             out=npgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            npgsFull{i}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
             out=npgsFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             save(filename); continue;
 
             % fit with the poisson model with log link but known I0
-            opt.noiseType='poissonLogLink0'; opt.I0=conf.I0;
-%           npg0Full{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npg0Full{i};
+            opt.noiseType='poissonLogLink0';
+%           npg0Full{i}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt); out=npg0Full{i};
 %           fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            npgs0Full{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt); out=npgs0Full{i};
+            npgs0Full{i}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt); out=npgs0Full{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
 
             save(filename); continue;
 
             % for loglink0 approximated by weight
             opt.noiseType='gaussian';
-            wPhi=@(xx) sqrt(conf.y).*conf.Phi(xx);
-            wPhit=@(xx) conf.Phit(sqrt(conf.y).*xx);
-            wy=sqrt(conf.y).*(log(opt.I0)-log(max(conf.y,1)));
-            wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgFull{i};
+            wPhi=@(xx) sqrt(y).*Phi(xx);
+            wPhit=@(xx) Phit(sqrt(y).*xx);
+            wy=sqrt(y).*(log(opt.I0)-log(max(y,1)));
+            wnpgFull{i}=Wrapper.NPG(wPhi,wPhit,Psi,Psit,wy,initSig,opt); out=wnpgFull{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,conf.Psi,conf.Psit,wy,initSig,opt); out=wnpgsFull{i};
+            wnpgsFull{i}=Wrapper.NPGs(wPhi,wPhit,Psi,Psit,wy,initSig,opt); out=wnpgsFull{i};
             fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
 
             save(filename);

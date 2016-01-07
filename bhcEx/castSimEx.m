@@ -19,8 +19,8 @@ switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
+        clear -regexp '(?i)opt'
+        filename = [mfilename '.mat'];
         opt.beamharden=true;
 
         prjFull = [60, 80, 100, 120, 180, 360];
