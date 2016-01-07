@@ -44,7 +44,7 @@ switch(lower(op))
 
             opt.fullcont=true; opt.u=10.^aa*u_max;
             pnpgFull{i}=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
-            out=npgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
+            out=pnpgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgsFull{i}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
             out=npgsFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             save(filename); continue;
