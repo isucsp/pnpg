@@ -8,6 +8,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadGlassBeadsSim(opt,seed)
     opt.trueImg = opt.trueImg/max(opt.trueImg(:));
 
     daub = 2; dwt_L=4;        %levels of wavelet transform
+    maskType='CircleMask';
 
     conf=ConfigCT();
     conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
@@ -23,8 +24,8 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadGlassBeadsSim(opt,seed)
     detectorBitWidth=16;
 
     [ops.Phi,ops.Phit,ops.FBP]=conf.genOperators();  % without using mask
-    if(~obj.beamharden)
-        switch lower(noiseType)
+    if(~opt.beamharden)
+        switch lower(opt.noiseType)
             case {lower('poissonLogLink'),lower('poissonLogLink0')}
                 % suppose Φx \in [a,b], we want to map I_0 exp(-Φx) to [A,B]
                 y = ops.Phi(opt.trueImg);
@@ -36,7 +37,7 @@ function [y,Phi,Phit,Psi,Psit,opt,FBP]=loadGlassBeadsSim(opt,seed)
                 y = opt.I0*exp(-y*scale);
                 y = poissrnd(y);
             case 'gaussian'
-                y = ops.Phi(obj.trueImg);
+                y = ops.Phi(opt.trueImg);
                 v = randn(size(y));
                 v = v*(norm(y)/sqrt(opt.snr*length(y)));
                 y = y + v;
