@@ -4,7 +4,7 @@
 % should have a size of NxN.
 
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.2 $ $Date: Wed 09 Sep 2015 02:50:30 PM CDT
+% $Revision: 0.2 $ $Date: Wed 06 Jan 2016 11:07:48 PM CST
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;
 
@@ -39,6 +39,7 @@ classdef ConfigCT < handle
             end
         end
         function opt=setup(obj,opt)
+            % obsoleted function
             if(nargin==1) opt=[]; end;
             if(~isfield(opt,'snr')) opt.snr=inf; end
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
