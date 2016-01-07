@@ -1,4 +1,4 @@
-function PET_Ex(op)
+function PET_TV_Ex(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %     Reconstruction of Nonnegative Sparse Signals Using Accelerated
 %                      Proximal-Gradient Algorithms

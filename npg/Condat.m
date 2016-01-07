@@ -38,9 +38,12 @@ classdef Condat < Methods
             obj.Psi = Psi; obj.Psit = Psit;
             obj.prox=@(x,t) max(min(x,abs(t)),-abs(t));
             obj.setAlpha(alpha);
-            obj.sigma=1;
-            obj.tau=1/(obj.sigma+L/2) * 0.8;
+            
+            obj.sigma=(sqrt(L^2/16+1)-L/4)*1;
+            obj.tau=1/(obj.sigma+L/2) * 1;
             obj.rho=(2-L/2/(1/obj.tau-obj.sigma)) * 1;
+
+            fprintf('sigma=%g, tau=%g, rho=%g\n',obj.sigma,obj.tau,obj.rho);
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;

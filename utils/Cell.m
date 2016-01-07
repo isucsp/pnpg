@@ -5,19 +5,27 @@ classdef Cell < handle
             for i=1:length(ele(:))
                 if(~isempty(ele{i}))
                     if(nargin==3)
-                        res{i}=getfield(getfield(ele{i},field),field2);
-                        summary(i)=res{i}(end);
+                        if(isfield(ele{i},field) &&...
+                            isfield(getfield(ele{i},field),field2))
+                            res{i}=getfield(getfield(ele{i},field),field2);
+                            summary(i)=res{i}(end);
+                        end
                     elseif(nargin==2)
-                        res{i}=getfield(ele{i},field);
-                        summary(i)=res{i}(end);
+                        if(isfield(ele{i},field))
+                            res{i}=getfield(ele{i},field);
+                            summary(i)=res{i}(end);
+                        end
                     end
                 end
             end
         end
         function summary = getCell(ele,field)
+            res=cell(size(ele));
             for i=1:length(ele(:))
                 if(~isempty(ele{i}))
-                    res{i}=getfield(ele{i},field);
+                    if(isfield(ele{i},field))
+                        res{i}=getfield(ele{i},field);
+                    end
                 end
             end
             summary = reshape(res,size(ele));

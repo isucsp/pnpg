@@ -7,7 +7,7 @@ classdef PG < Methods
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-2;   % abs value should be 1e-8
+        admmTol=1e-2;
         cumu=0;
         cumuTol=4;
         incCumuTol=true;
@@ -42,8 +42,7 @@ classdef PG < Methods
             pp=0; obj.debug='';
 
             while(pp<obj.maxItr)
-                obj.p = obj.p+1;
-                pp=pp+1;
+                obj.p = obj.p+1; pp=pp+1;
                 xbar=obj.alpha;
 
                 [oldCost,obj.grad] = obj.func(xbar);
@@ -59,7 +58,8 @@ classdef PG < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
                     [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
-                        obj.u/obj.t,obj.admmTol*obj.difAlpha,obj.maxInnerItr);
+                        obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                        obj.maxInnerItr,obj.alpha);
                     newCost=obj.func(newX);
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
@@ -77,6 +77,12 @@ classdef PG < Methods
                                 incStep=false;
                             end
                         else  % don't know what to do, mark on debug and break
+                            if(obj.t<0)
+                                global strlen
+                                fprintf('\n NPG is having a negative step size, do nothing and return!!');
+                                strlen=0;
+                                return;
+                            end
                             goodMM=false;
                             obj.debug=[obj.debug '_FalseMM'];
                             break;
@@ -85,35 +91,31 @@ classdef PG < Methods
                 end
                 obj.stepSize = 1/obj.t;
                 obj.fVal(3) = obj.fArray{3}(newX);
-                temp = newCost+obj.u*obj.fVal(3);
+                newObj = newCost+obj.u*obj.fVal(3);
 
-                if((temp-obj.cost)>0)
-                    needReset=false;
-                    if(goodMM)
-                        if(obj.innerSearch<obj.maxInnerItr)
-                            obj.difAlpha=0;
-                            obj.debug=[obj.debug '_NullDif'];
-                            pp=pp-1; continue;
-                        end
-                        obj.debug=[obj.debug '_ResetAll'];
-                        needReset=true;
-                        % global strlen
-                        % fprintf('\n good MM but increased cost, do nothing\n');
-                        % strlen=0;
-                    else
-                        if(obj.innerSearch<obj.maxInnerItr)
-                            obj.debug=[obj.debug '_NullDif'];
-                            obj.difAlpha=0;
-                            pp=pp-1; continue;
-                        end
-                        obj.debug=[obj.debug '_ResetAll'];
-                        needReset=true;
-                    end
-                    if(needReset)
+                if((~goodMM) || (newObj-obj.cost)>0)
+                    if(~goodMM)
+                        obj.debug=[obj.debug '_Reset'];
                         obj.reset();
                     end
+                    if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
+                        obj.admmTol=obj.admmTol/10;
+                        global strlen
+                        fprintf('\n decrease admmTol to %g',obj.admmTol);
+                        strlen=0;
+                        pp=pp-1; continue;
+                    elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                        obj.maxInnerItr=obj.maxInnerItr*10;
+                        global strlen
+                        fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
+                        strlen=0;
+                        pp=pp-1; continue;
+                    end
+                    % give up and force it to converge
+                    obj.debug=[obj.debug '_ForceConverge'];
+                    newObj=obj.cost;  newX=obj.alpha;
                 end
-                obj.cost = temp;
+                obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
 

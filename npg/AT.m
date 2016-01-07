@@ -8,7 +8,7 @@ classdef AT < Methods
         maxItr=1e3;
         theta = 0;
         admmAbsTol=1e-9;
-        admmTol=1e-3;
+        admmTol=1e-2;
         cumu=0;
         cumuTol=4;
         incCumuTol=true;
@@ -47,12 +47,6 @@ classdef AT < Methods
 
             while(pp<obj.maxItr)
                 obj.p = obj.p+1; pp=pp+1;
-                obj.theta=(1+sqrt(1+4*obj.theta^2))/2;
-
-                y=(1-1/obj.theta)*obj.alpha+obj.zbar/obj.theta;
-
-                [oldCost,obj.grad] = obj.func(y);
-
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                     % adaptively increase the step size
@@ -64,15 +58,21 @@ classdef AT < Methods
                 while(true)
                     obj.ppp = obj.ppp+1;
 
+                    B=obj.t/obj.preT;
+                    newTheta=(1+sqrt(1+4*B*obj.theta^2))/2;
+                    xbar=(1-1/newTheta)*obj.alpha+obj.zbar/newTheta;
+
+                    [oldCost,obj.grad] = obj.func(xbar);
+
                     [newZbar,obj.innerSearch]=obj.proxmapping(...
-                        obj.zbar-obj.grad/obj.t*obj.theta,...
-                        obj.theta*obj.u/obj.t,obj.admmTol*obj.difAlpha,...
-                        obj.maxInnerItr,obj.alpha);
-                    newX=(1-1/obj.theta)*obj.alpha+newZbar/obj.theta;
+                        obj.zbar-obj.grad/obj.t*newTheta,...
+                        newTheta*obj.u/obj.t,...
+                        obj.admmTol*obj.difAlpha,...
+                        obj.maxInnerItr,obj.zbar);
+                    newX=(1-1/newTheta)*obj.alpha+newZbar/newTheta;
 
                     newCost=obj.func(newX);
-                    LMM=(oldCost+innerProd(obj.grad,newX-y)+sqrNorm(newX-y)*obj.t/2);
-                    if(newCost<=LMM)
+                    if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;
                         else
@@ -87,10 +87,10 @@ classdef AT < Methods
                                 end
                                 incStep=false;
                             end
-                        else
+                        else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
                                 global strlen
-                                fprintf('\n PNPG is having a negative step size, do nothing and return!!');
+                                fprintf('\n AT is having a negative step size, do nothing and return!!');
                                 strlen=0;
                                 return;
                             end
@@ -104,39 +104,42 @@ classdef AT < Methods
                 obj.fVal(3) = obj.fArray{3}(newX);
                 newObj = newCost+obj.u*obj.fVal(3);
 
-                % restart
-                if((newObj-obj.cost)>0 || mod(obj.p,obj.restartEvery)==0)
-                    if(goodMM)
-                        if(sum(abs(y-obj.alpha))~=0) % if has monmentum term, restart
-                            obj.zbar=obj.alpha;
-                            obj.theta=0;
-                            obj.restart= 1; % make sure only restart once each iteration
-                            obj.debug=[obj.debug 'restart'];
+                if((newObj-obj.cost)>0 ||...
+                        (mod(obj.p,obj.restartEvery)==0 && obj.restart>=0))
+                    if(mod(obj.p,obj.restartEvery)==0 && obj.restart>=0) % if has monmentum term, restart
+                        obj.theta=0; obj.zbar=obj.alpha;
+                        obj.debug=[obj.debug '_Restart'];
+                        global strlen
+                        fprintf('\t restart');
+                        strlen=0;
+                        pp=pp-1; continue;
+                    else
+                        if(~goodMM)
+                            obj.debug=[obj.debug '_Reset'];
+                            obj.reset();
+                        end
+                        if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
+                            obj.admmTol=obj.admmTol/10;
                             global strlen
-                            fprintf('\t restart');
+                            fprintf('\n decrease admmTol to %g',obj.admmTol);
                             strlen=0;
                             pp=pp-1; continue;
-                        else
-                            if(obj.innerSearch<obj.maxInnerItr)
-                                obj.restart= 2;
-                                obj.difAlpha=0;
-                                obj.debug=[obj.debug 'resetDifAlpha'];
-                                pp=pp-1; continue;
-                            else
-                                obj.debug=[obj.debug 'forceConverge'];
-                                obj.t=obj.t/obj.stepShrnk; obj.cumu=0;
-                                newX=obj.alpha;  newObj=obj.cost;
-                            end
+                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                            obj.maxInnerItr=obj.maxInnerItr*10;
+                            global strlen
+                            fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
+                            strlen=0;
+                            pp=pp-1; continue;
                         end
-                    else
-                        obj.debug=[obj.debug 'falseMonotone'];
-                        pp=pp-1; continue;
-                    end
+                        % give up and force it to converge
+                        obj.debug=[obj.debug '_ForceConverge'];
+                        newObj=obj.cost;  newX=obj.alpha;
                 end
+                obj.theta = newTheta; obj.zbar=newZbar;
                 obj.cost = newObj;
                 obj.difAlpha = relativeDif(obj.alpha,newX);
                 obj.alpha = newX;
-                obj.zbar=newZbar;
+                obj.preT=obj.t;
 
                 if(obj.ppp==1 && obj.adaptiveStep)
                     obj.cumu=obj.cumu+1;

@@ -15,7 +15,8 @@ switch(lower(op))
     case 'full' % code to generate .mat files
         filename = [mfilename '_full.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt');
+        clear -regexp '(?i)opt'
+        filename = [mfilename '_full.mat'];
         conf=ConfigCT();
         conf.imageName = 'glassBeadsSim';
         conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
@@ -47,11 +48,11 @@ switch(lower(op))
             u_max=pNorm(conf.Psit(conf.Phit(conf.y-mean(conf.y))),inf); % for loglink
 
             opt.fullcont=true; opt.u=10.^aa*u_max;
-            npgFull{i}=Wrapper.NPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
+            pnpgFull{i}=Wrapper.PNPG(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             out=npgFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
             npgsFull{i}=Wrapper.NPGs(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
             out=npgsFull{i}; fprintf('i=%d, good a = 1e%g\n',i,max((aa(out.contRMSE==min(out.contRMSE)))));
-            save(filename);
+            save(filename); continue;
 
             % fit with the poisson model with log link but known I0
             opt.noiseType='poissonLogLink0'; opt.I0=conf.I0;

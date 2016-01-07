@@ -135,6 +135,11 @@ switch lower(opt.alphaStep)
     case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs'),...
             lower('GFB'),lower('Condat'),lower('PNPG')}
         switch(lower(opt.proximal))
+            case lower('wvltFADMM')
+                proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u,...
+                    innerThresh,maxInnerItr,false,varargin{:});
+                % remember to find what I wrote on the paper in office
+                penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
                     innerThresh,maxInnerItr,false,varargin{:});
@@ -167,7 +172,6 @@ switch lower(opt.alphaStep)
                 alphaStep.fArray{3} = penalty;
                 if(strcmpi(opt.noiseType,'poisson'))
                     if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
-                    alphaStep.forcePositive=opt.forcePositive;
                     % opt.alphaStep='PG';
                     % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
                 end
@@ -177,7 +181,6 @@ switch lower(opt.alphaStep)
                 alphaStep.fArray{3} = penalty;
                 if(strcmpi(opt.noiseType,'poisson'))
                     if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
-                    alphaStep.forcePositive=opt.forcePositive;
                 end
             case lower('ATs')
                 alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
@@ -256,6 +259,11 @@ end
 if(any(strcmp(properties(alphaStep),'restartEvery'))...
         && isfield(opt,'restartEvery'))
     alphaStep.restartEvery=opt.restartEvery(:);
+end
+
+if(any(strcmp(properties(alphaStep),'forcePositive'))...
+        && isfield(opt,'forcePositive'))
+    alphaStep.forcePositive=opt.forcePositive;
 end
 
 if(opt.continuation || opt.fullcont)
@@ -354,9 +362,9 @@ if(opt.debugLevel>=1)
     if(opt.continuation || opt.fullcont)
         str=sprintf([str ' %12s'],'u');
     end
-    str=sprintf([str ' %12s %4s'], '|difα|/|α|', 'αSrh');
-    str=sprintf([str ' %12s'], '|difObj/Obj|');
-    fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
+    str=sprintf([str ' %12s %4s'], '|d α|/|α|', 'αSrh');
+    str=sprintf([str ' %12s'], '|d Obj/Obj|');
+    fprintf('%s\n%s',str,repmat( '-', 1, 80 ) );
 end
 
 global strlen
@@ -427,6 +435,23 @@ while(true)
                 alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             end
             alphaStep.reset();
+
+            if any(strcmp(properties(alphaStep),'admmTol'))
+                if isfield(opt,'admmTol')
+                    alphaStep.admmTol=opt.admmTol;
+                else
+                    alphaStep.admmTol=1e-2;
+                end
+            end
+
+            if any(strcmp(properties(alphaStep),'maxInnerItr'))
+                if isfield(opt,'maxInnerItr')
+                    alphaStep.maxInnerItr=opt.maxInnerItr;
+                else
+                    alphaStep.maxInnerItr=100;
+                end
+            end
+
         end
     end
 

@@ -1,7 +1,7 @@
-function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt)
-    %s = RandStream.create('mt19937ar','seed',0);
-    %RandStream.setGlobalStream(s);
+function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
+    if(~exist('seed','var')) seed=0; end
     if(~exist('totalCnt','var')) totalCnt=1e7; end
+    RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
 
     % true emission image
     ig = image_geom('nx', 128, 'ny', 128, 'fov', 500);

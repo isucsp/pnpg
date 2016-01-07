@@ -25,7 +25,7 @@ function compare(field,plotFunc,varargin)
             xlabel(fieldname{1});
             ylabel(fieldname{2});
         end
-        str{ii}=sprintf('%d',ii);
+        str{ii}=sprintf('%c',ii+96);
     end
     if(length(fieldname)==1)
         title(fieldname{1});

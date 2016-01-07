@@ -1,3 +1,3 @@
-function e=gEle(x,i)
-    e=x(i);
+function e=gEle(x,varargin)
+    e=x(varargin{:});
 end

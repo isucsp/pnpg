@@ -15,7 +15,7 @@ classdef NPG < Methods
         nonInc=0;
         innerSearch=0;
 
-        forcePositive=false;
+        forcePositive=true;
 
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;

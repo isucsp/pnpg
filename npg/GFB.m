@@ -40,7 +40,7 @@ classdef GFB < Methods
             obj.Psi = Psi; obj.Psit = Psit;
             obj.prox=@(x,t) obj.Psi(Utils.softThresh(obj.Psit(x),t));
             obj.setAlpha(alpha);
-            obj.r=2/L;
+            obj.r=1.8/L;
             obj.lambda=1;
             obj.w=0.5;
         end

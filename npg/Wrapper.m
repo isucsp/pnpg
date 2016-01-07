@@ -99,6 +99,7 @@ classdef Wrapper < handle
                 out.RMSE=out.n2re.^2;
                 %sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
             end
+            out.date=datestr(now);
             out.opt = opt;
             fprintf('fpc cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
             function out = AA(xxx, mode , Phi, Phit)
@@ -141,8 +142,9 @@ classdef Wrapper < handle
             end
             if(~isfield(out,'cost')) out.cost=out.f; end
             if(~isfield(out,'time')) out.time=out.cpu; end
+            out.date=datestr(now);
             out.opt = opt;
-            fprintf('fpcas cost=%g, RMSE=%g\n',out.f(end),out.RMSE(end));
+            fprintf('fpcas time=%g, cost=%g, RMSE=%g\n',out.time(end),out.f(end),out.RMSE(end));
         end
         function f = tfocs_affineF(x,op,Phi,Phit,PhiSize)
             if(op==0)
@@ -157,7 +159,7 @@ classdef Wrapper < handle
             if(~exist('u','var') || isempty(u))
                 f=penalty(x);
             else
-                xx=proximalProj(x,u,1e-8,500);
+                xx=proximalProj(x,u,1e-6,1000);
                 f=penalty(xx);
             end
         end
@@ -167,28 +169,28 @@ classdef Wrapper < handle
             if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
             switch lower(opt.noiseType)
+                case 'poisson'
+                    if(isfield(opt,'bb'))
+                        temp=reshape(opt.bb,size(y));
+                    else
+                        temp=0;
+                    end
+                    L = @(aaa) Utils.poissonModelAppr(aaa,@(xx)xx(:),@(xx) xx(:),y,temp);
                 case lower('poissonLogLink')
                     L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) xxx(:),@(xxx) xxx(:),y);
-                    [~,g]=L(xInit*0);
-                    u_max=pNorm(Psi'*g,inf);
-                    model='poisson';
-                    options.intr = true; % need the interception
-                    options.standardize=false;
-                    A=-A;
                 case lower('poissonLogLink0')
                     y=y/opt.I0;
                     opt.u=opt.u/opt.I0;
-                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) Phi*xxx,@(xxx) Phi'*xxx,y);
-                    [~,g]=L(xInit*0);
-                    u_max=pNorm(Psi'*g,inf);
-                    model='poisson';
-                    options.standardize=false;
-                    A=-A;
-                    options.intr = false; % disable the interception, but need to rescale y
+                    L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) xxx(:),@(xxx) xxx(:),y);
                 case 'gaussian'
                     L = @(x) Utils.linearModel(x,@(a)Phi(a),@(a)Phit(a),y);
+                    L = @(x) Utils.linearModel(x,@(a)(a(:)),@(a)(a(:)),y);
             end
             switch(lower(opt.proximal))
+                case lower('wvltFADMM')
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u*opt.u,...
+                        innerThresh,maxInnerItr,false,varargin{:});
+                    penalty = @(x) opt.u*pNorm(Psit(x),1);
                 case lower('wvltADMM')
                     proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
@@ -222,15 +224,14 @@ classdef Wrapper < handle
                 end
             end
             projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,varargin{:});
-            if(isfield(opt,'restartEvery'))
-                opts.restart=opt.restartEvery;
-            end
+            if(isfield(opt,'restartEvery')) opts.restart=opt.restartEvery; end
+            if(isfield(opt,'alg')) opts.alg=opt.alg; end
             opts.tol=opt.thresh;
             opts.errFcn=@(f,x)computError(x);
             opts.maxIts=opt.maxItr;
+            opts.printEvery=10;
             tic;
-            [x,out1,opts] = tfocs(L,[],projectorF, xInit,opts);
-            keyboard
+            [x,out1,opts] = tfocs(L,affineF,projectorF, xInit,opts);
             out.time=linspace(0,toc,out1.niter);
             out.alpha=x;
             out.cost=out1.f;
@@ -239,7 +240,15 @@ classdef Wrapper < handle
             out.theta=1./out1.theta;
             out.p=out1.niter;
             out.opt=opts;
+            out.date=datestr(now);
             if(isfield(out1,'err')) out.RMSE=out1.err; end
+
+            fprintf('\nTFOCS: Time used: %d, cost=%g',out.time(end),out.cost(end));
+            if(isfield(opt,'trueAlpha'))
+                fprintf(', RMSE=%g\n',out.RMSE(end));
+            else
+                fprintf('\n');
+            end
         end
         function out = gaussStabProxite(Phi,Phit,Psi,Psit,y,xInit,opt)
             tic;
@@ -247,6 +256,7 @@ classdef Wrapper < handle
             out.time =toc;
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
             out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/trueAlphaNorm;
+            out.date=datestr(now);
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
         function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt,varargin)
@@ -293,6 +303,7 @@ classdef Wrapper < handle
                 sqrNorm(out.alpha.*(out.alpha<0));...
                 penalty(out.alpha)];
             out.opt=opt;
+            out.date=datestr(now);
             fprintf('SPIRAL cost=%g, RMSE=%g, cpu time=%g\n',out.cost(end),out.RMSE(end),out.time(end));
         end
 
@@ -318,6 +329,8 @@ classdef Wrapper < handle
                 'MaxiterA',opt.maxItr);
             out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
             out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
+            out.p=length(out.cost);
+            out.date=datestr(now);
             fprintf('SpaRSA cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
         end
 
@@ -344,6 +357,8 @@ classdef Wrapper < handle
                 'MaxiterA',opt.maxItr);
             out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
             out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
+            out.p=length(out.cost);
+            out.date=datestr(now);
             fprintf('SpaRSA nonnegative cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
         end
         function out = glmnet(Phi,Psi,y,xInit,opt)
@@ -393,6 +408,7 @@ classdef Wrapper < handle
 
             out.time=toc;
             out.opt = opt;
+            out.date=datestr(now);
 
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
             for i=1:length(out.lambda)
