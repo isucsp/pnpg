@@ -1,4 +1,4 @@
-function PET_l1_Ex(op)
+function PET_l1_nzb_Ex(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %     Reconstruction of Nonnegative Sparse Signals Using Accelerated
 %                      Proximal-Gradient Algorithms
@@ -20,18 +20,17 @@ switch lower(op)
         clear -regexp '(?i)opt'
         filename = [mfilename '.mat'];
         OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson';
-        OPT.contShrnk=0.1; OPT.contGamma=15; OPT.noBackground=true;
+        OPT.contShrnk=0.1; OPT.contGamma=15;
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
-        K=1;
+        K=5;
 
         as = [ 0.5, 0.5,0.5, 0.5, 0.5,   1];
         a  = [-0.5,   0,  0, 0.5, 0.5, 0.5];
 
         OPT.mask=[];
         for k=1:K
-            for i=length(count):-1:1
-                j=1;
+            for i=1:length(count)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
 
                 fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),OPT.mask~=0);
@@ -43,22 +42,13 @@ switch lower(op)
 
                 initSig=max(fbp{i,1,k}.alpha,0);
 
-                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
-
-                opt=OPT; opt.u = 10^a(i)*u_max; opt.proximal='wvltFADMM';
-                fpnpg  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
-                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                pnpgc  {i,j,k}=Wrapper.PNPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                npg    {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.u = 10^a(i)*u_max;
-                spiral {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                save(filename);
-                continue;
-
                 % for wavelet l1 norm
                 u_max=1;
                 aa = (3:-0.5:-6);
+                opt=OPT; opt.fullcont=true; opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
+                pnpgFull {i,k}=Wrapper.PNPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.fullcont=true; opt.u=(10.^aa)*u_max; opt.proximal='wvltFADMM';
+                fpnpgFull{i,k}=Wrapper.PNPG (Phi,Phit,Psi,Psit,y,initSig,opt);
                 for j=1:length(aa); if(aa(j)>-2)
                     opt=OPT; opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
                     if(j==1)
@@ -67,10 +57,47 @@ switch lower(op)
                         spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
                     end
                 end; end
-                opt=OPT; opt.fullcont=true; opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
-                pnpgFull {i,k}=Wrapper.PNPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.fullcont=true; opt.u=(10.^aa)*u_max; opt.proximal='wvltFADMM';
-                fpnpgFull{i,k}=Wrapper.PNPG (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+                continue;
+
+                opt=OPT; opt.fullcont=false;
+                j=1;
+                fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
+
+                opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
+%               npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt.proximal='wvltLagrangian';
+%               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+%               opt.u = 10^as(i)*u_max; opt.proximal='wvltADMM';
+%               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+
+                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
+                if(k==1 && i==5)
+                    Opt=opt; opt.adaptiveStep=false;
+                    % npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.thresh=1e-10;
+                    %npgTV_noAdpStpLong=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=Opt; opt.cumuTol=1; opt.incCumuTol=false;
+                    %npgTV_n1=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.incCumuTol=true;
+                    test=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    keyboard
+                    opt=Opt;
+                    npgTV_n4=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt.thresh=1e-10;
+                    spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                save(filename);
+                    keyboard
+                else
+                    continue
+                end
 
 %               % following are methods for weighted versions
 %               ty=max(sqrt(y),1);
@@ -394,30 +421,31 @@ switch lower(op)
         k=1;
         aa =(3:-0.5:-6);
         for i=1:length(count)
-            pnpgContRMSE  {i,k} = [  pnpgFull{i,k}.contRMSE(:);  pnpgFull{i,k}.RMSE(end)]; out=pnpgContRMSE{i,k};
-            fprintf('i=%d, good a = 1e%g PNPG\n',i,max((aa(out==min(out)))));
-            fpnpgContRMSE {i,k} = [ fpnpgFull{i,k}.contRMSE(:); fpnpgFull{i,k}.RMSE(end)]; out=fpnpgContRMSE{i,k};
-            fprintf('i=%d, good a = 1e%g FPNPG\n',i,max((aa(out==min(out)))));
-            spiralContRMSE {i,k} = Cell.getField(spiralFull(i,:,k),'RMSE'); out=fpnpgContRMSE{i,k};
-            fprintf('i=%d, good a = 1e%g SPIRAL\n',i,max((aa(out==min(out)))));
+            npgContRMSE  {i,k} = [  npgFull{i,k}.contRMSE(:);  npgFull{i,k}.RMSE(end)]; out=npgContRMSE{i,k};
+            fprintf('i=%d, good a = 1e%g NPG\n',i,max((aa(out==min(out)))));
+            npgsContRMSE {i,k} = [ npgsFull{i,k}.contRMSE(:); npgsFull{i,k}.RMSE(end)]; out=npgsContRMSE{i,k};
+            fprintf('i=%d, good a = 1e%g NPGs\n',i,max((aa(out==min(out)))));
+            npgTVContRMSE{i,k} = [npgTVFull{i,k}.contRMSE(:);npgTVFull{i,k}.RMSE(end)]; out=npgTVContRMSE{i,k};
+            fprintf('i=%d, good a = 1e%g NPG_TV\n',i,max((aa(out==min(out)))));
         end
 
         for i=1:length(count)
             figure;
-            semilogy(aa(1:length(pnpgContRMSE{i})),pnpgContRMSE{i},'r-*'); hold on;
-            semilogy(aa(1:length(fpnpgContRMSE{i})),fpnpgContRMSE{i},'g-o');
-            semilogy(aa(1:length(spiralContRMSE{i})),spiralContRMSE{i},'b-s');
+            semilogy(aa(1:length(npgContRMSE{i})),npgContRMSE{i},'r-*'); hold on;
+            semilogy(aa(1:length(npgsContRMSE{i})),npgsContRMSE{i},'g-o');
+            semilogy(aa(1:length(npgTVContRMSE{i})),npgTVContRMSE{i},'b-s');
             title(num2str(i));
-            legend('PNPG','FPNPG','SPIRAL');
-            aaa(i)=min(pnpgContRMSE{i});
-            bbb(i)=min(fpnpgContRMSE{i});
-            ccc(i)=min(spiralContRMSE{i});
+            legend('NPG','NPGs','NPG-TV');
+            aaa(i)=min(npgContRMSE{i});
+            bbb(i)=min(npgsContRMSE{i});
+            ccc(i)=min(npgTVContRMSE{i});
         end
         figure; semilogy(aaa,'r-*'); hold on;
         semilogy(bbb,'g-o');
         semilogy(ccc,'b-s');
         title('rmse vs count');
-        legend('PNPG','FPNPG','SPIRAL');
+        legend('NPG','NPGs','NPG-TV');
+
 
         keyboard
 

@@ -167,15 +167,13 @@ classdef Utils < handle
                 log(eps)-1.5+2*PhiAlpha(~nzpx & nzy)/eps-(PhiAlpha(~nzpx & nzy).^2)/4/eps^2-log(y(~nzpx & nzy)));
 
             if(nargout>=2)
-                % if(any(nzy & (~nzpx))) keyboard; end
-                t=zeros(size(y));
-                t(nzpx)=1-y(nzpx)./PhiAlpha(nzpx);
-                t(~nzpx)= 1-y(~nzpx).*(2/eps-PhiAlpha(~nzpx)/eps^2);
+                t=PhiAlpha;
+                t(~nzpx)=eps./(2-t(~nzpx)/eps);
+                t=1-y./t;
                 g=Phit( t );
                 if(nargout>=3)
-                    weight=zeros(size(y));
-                    weight(nzpx)=y(nzpx)./(PhiAlpha(nzpx).^2);
-                    weight(~nzpx)=y(~nzpx)/(eps^2);
+                    weight=max(PhiAlpha,eps);
+                    weight=y./(weight.^2);
                     h=@(x,opt) hessian(weight,x,opt);
                 end
             end
@@ -194,6 +192,7 @@ classdef Utils < handle
             %     y ~ Poisson ( Φα + b )
             %  f(α)=1'*(Φα+b) - y'*ln(Φα+b)
             %  g(α)=Φ'*[ 1-y./(Φα+b) ]
+            %  default eps is zero, suggest to just use default value
             if(exist('EPS','var')) eps=EPS; else eps=0; end
             if(~exist('b','var')) b=0; end
 
@@ -203,18 +202,13 @@ classdef Utils < handle
             nzpx=(PhiAlpha~=0);
             f=sum(PhiAlpha-y)-innerProd(y(nzy),log(PhiAlpha(nzy)./y(nzy)));
 
-            if(isnan(f)) keyboard; end
-            if(any(isnan(alpha))) keyboard; end
-            if(any(isnan(PhiAlpha))) keyboard; end
-
             if(nargout>=2)
-                % if(any(nzy & (~nzpx))) keyboard; end
-                t=zeros(size(y));
-                t(nzpx)=1-y(nzpx)./(PhiAlpha(nzpx)+eps);
+                t=ones(size(y));
+                t(nzy)=1-y(nzy)./(PhiAlpha(nzy)+eps);
                 g=Phit( t );
                 if(nargout>=3)
                     weight=zeros(size(y));
-                    weight(nzpx)=y(nzpx)./((PhiAlpha(nzpx)+eps).^2);
+                    weight(nzy)=y(nzy)./((PhiAlpha(nzy)+eps).^2);
                     h=@(x,opt) hessian(weight,x,opt);
                 end
             end

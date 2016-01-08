@@ -59,7 +59,9 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
         f.randpercent = 10;
     end
     ri = f.randpercent / 100 * mean(ytrue(:)) * sg.ones;
-    ri=ri;
+    if(isfield(opt,'noBackground') && opt.noBackground)
+        ri=ri*0;
+    end
     yi = poisson(ytrue + ri);
 
     y=yi(:);
@@ -91,7 +93,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
     end
 
     opt.bb=ri;
-    opt.ci=ci(:);
-    opt.G=G;
+    % opt.ci=ci(:);
+    % opt.G=G;
 end
 

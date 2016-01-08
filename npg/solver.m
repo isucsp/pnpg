@@ -219,7 +219,7 @@ switch lower(opt.noiseType)
         else
             temp=0;
         end
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModelAppr(aaa,Phi,Phit,y,temp);
+        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y,temp);
         constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,temp);
     case 'gaussian'
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
@@ -427,13 +427,13 @@ while(true)
         if(temp>1 && out.difAlpha(p) < temp1 )
             out.contAlpha{contIdx}=alpha;
             if(isfield(opt,'trueAlpha')) out.contRMSE(contIdx)=out.RMSE(p); end
-            strlen=0; fprintf('\tu=%g',alphaStep.u);
             contIdx=contIdx+1;
             if(length(opt.u)>1)
                 alphaStep.u = opt.u(contIdx);
             else
                 alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             end
+            strlen=0; fprintf('\tu=%g',alphaStep.u);
             alphaStep.reset();
 
             if any(strcmp(properties(alphaStep),'admmTol'))
