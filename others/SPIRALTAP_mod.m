@@ -1009,7 +1009,7 @@ function [converged, difAlpha] = checkconvergence(iter,miniter,stopcriterion,tol
                 % Relative changes in iterate
                 temp=(sum(dx(:).^2));
                 temp1=sum(x(:).^2);
-                converged = ( temp <= tolerance^2*temp1);
+                converged = ( temp <= tolerance^2*max(eps,temp1));
                 difAlpha=sqrt(temp/temp1);
             case 4
                 % relative changes in objective

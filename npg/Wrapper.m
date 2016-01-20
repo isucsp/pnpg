@@ -155,11 +155,17 @@ classdef Wrapper < handle
                 f=Phit(x);
             end
         end
-        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,u)
+        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,u,thresh,maxItr)
             if(~exist('u','var') || isempty(u))
                 f=penalty(x);
             else
-                xx=proximalProj(x,u,1e-6,1000);
+                if(~exist('thresh') || isempty(thresh))
+                    thresh=1e-6;
+                end
+                if(~exist('maxItr') || isempty(maxItr))
+                    maxItr=1e3;
+                end
+                xx=proximalProj(x,u,thresh,maxItr);
                 f=penalty(xx);
             end
         end
@@ -168,6 +174,7 @@ classdef Wrapper < handle
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
             if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
+            if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-6; end
             switch lower(opt.noiseType)
                 case 'poisson'
                     if(isfield(opt,'bb'))
@@ -175,7 +182,7 @@ classdef Wrapper < handle
                     else
                         temp=0;
                     end
-                    L = @(aaa) Utils.poissonModelAppr(aaa,@(xx)xx(:),@(xx) xx(:),y,temp);
+                    L = @(aaa) Utils.poissonModel(aaa,@(xx)xx(:),@(xx) xx(:),y,temp);
                 case lower('poissonLogLink')
                     L = @(aaa) Utils.poissonModelLogLink(aaa,@(xxx) xxx(:),@(xxx) xxx(:),y);
                 case lower('poissonLogLink0')
@@ -223,7 +230,7 @@ classdef Wrapper < handle
                         computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
                 end
             end
-            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,varargin{:});
+            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,varargin{:},opt.innerThresh);
             if(isfield(opt,'restartEvery')) opts.restart=opt.restartEvery; end
             if(isfield(opt,'alg')) opts.alg=opt.alg; end
             opts.tol=opt.thresh;
@@ -260,13 +267,16 @@ classdef Wrapper < handle
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
         function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt,varargin)
-            subtolerance=1e-5;
+            % use the default value for SPIRAL
+            if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-5; end
+            if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=50; end
             if (rem(length(varargin),2)==1)
                 error('Optional parameters should always go by pairs');
             else
                 for ii = 1:2:(length(varargin)-1)
                     switch lower(varargin{ii})
-                        case 'subtolerance';        subtolerance        = varargin{ii+1}; %
+                        case 'subtolerance'
+                            error(['Unrecognized option: ''', varargin{ii}, '''']);
                         otherwise
                             % Something wrong with the parameter string
                             error(['Unrecognized option: ''', varargin{ii}, '''']);
@@ -293,7 +303,8 @@ classdef Wrapper < handle
                 'miniter',0,'stopcriterion',3,...
                 'tolerance',opt.thresh,'truth',opt.trueAlpha,...
                 'bb',opt.bb,'savetruecost',opt.saveTrueCost,...
-                'subtolerance',subtolerance,'monotone',1,...
+                'submaxiter',opt.maxInnerItr,...
+                'substopcriterion',2,'subtolerance',opt.innerThresh,'monotone',1,...
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
                 'reconerrortype',3,'savedifalpha',1,'savestepsize',true,...
                 'savesolutionpath',0,'verbose',opt.verbose,'mask',opt.mask);
@@ -337,7 +348,9 @@ classdef Wrapper < handle
         function out = SpaRSAp(Phi,Phit,Psi,Psit,y,xInit,opt)
             fprintf('SpaRSA nonnegative start\n');
             if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-            ppsi = @(xxx,uuu,thrsh) admm(Psi,Psit,xxx,uuu,thrsh,100);
+            if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-6; end
+            if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=1e2; end
+            ppsi = @(xxx,uuu) admm(Psi,Psit,xxx,uuu,opt.innerThresh,opt.maxInnerItr);
             rrrr = @(xxx) pNorm(Psit(xxx),1);
             xInit(xInit<0)=0;
             [x_SpaRSA,x_debias_SpaRSA,obj_SpaRSA,times_SpaRSA,debias_start_SpaRSA,out]=...

@@ -1,7 +1,7 @@
 function setupPath
 %
 % Author: Renliang Gu (renliang@iastate.edu)
-% $Revision: 0.3 $ $Date: Tue 03 Nov 2015 01:57:49 PM CST
+% $Revision: 0.3 $ $Date: Sun 10 Jan 2016 11:04:48 PM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -36,6 +36,7 @@ addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen' filesep 'c
 addpath([pathstr filesep 'others' filesep 'glmnet_matlab']);
 addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers']);
 addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utilities']);
+addpath([pathstr filesep 'others' filesep 'TFOCS']);
 
 cd 'prj'
 if(isunix)

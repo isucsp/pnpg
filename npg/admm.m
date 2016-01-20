@@ -24,7 +24,7 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
 
         difS=pNorm(s-preS); preS=s;
         residual = pNorm(s-Psit_alpha);
-        sNorm = pNorm(s);
+        sNorm = max(pNorm(s),eps);
 
         if(isInDebugMode)
             cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);

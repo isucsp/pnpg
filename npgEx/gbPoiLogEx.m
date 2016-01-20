@@ -73,37 +73,42 @@ switch(lower(op))
     case 'ind' % individual
         filename = [mfilename '_ind.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt');
-        conf=ConfigCT();
-        conf.imageName = 'glassBeadsSim';
-        conf.PhiMode = 'gpuPrj';    % change the option to cpuPrj if no GPU equipped
-        conf.PhiModeGen = 'gpuPrj'; % change the option to cpuPrj if no GPU equipped
-        conf.dist = 17000;
-        conf.beamharden = false;
+        clear -regexp '(?i)opt'
+        filename = [mfilename '_ind.mat'];
 
         prjFull = [60, 80, 100, 120, 180, 360]; j=1;
-        a=-5;
-        opt.maxItr=4e3; opt.thresh=1e-6; opt.debugLevel=1;
-        %for i=1:length(prjFull)
-        a=[-3.5 -3.75 -4 -4.25 -4.5];
-        for j=1:5;
-            fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-            opt.u = 10^a(j)*u_max;
-            npg{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-            npgs{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-            save(filename);
-        end
+        OPT.maxItr=4e3; OPT.thresh=1e-6; %OPT.snr=1e6;
+        OPT.noiseType='poissonLogLink'; %'gaussian'; %
+        for i=1:6
+            OPT.prjFull = prjFull(i); OPT.prjNum = OPT.prjFull;
 
-        a=[-3.5 -3.75 -4 -4.25 -4.5];
-        bb=[ 2 2 3 3 3 4];
-        if((any([1 2 6]==i)))
+            [y,Phi,Phit,Psi,Psit,OPT,FBP]=loadGlassBeadsSim(OPT);
+            fprintf('i=%d, min=%d, max=%d\n',i,min(y), max(y));
+            initSig = maskFunc(FBP(-log(max(y,1)/max(y))),OPT.mask~=0);
+            u_max=pNorm(Psit(Phit(y-mean(y))),inf); % for loglink
+
+            %for i=1:length(prjFull)
+            a=[-3.5 -3.75 -4 -4.25 -4.5];
             for j=1:5;
-                if(j~=bb(i)) continue; end
                 fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
-                opt.u = 10^a(j)*u_max;
-                npg0{i,j}=Wrapper.NPGc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                npgs0{i,j}=Wrapper.NPGsc(conf.Phi,conf.Phit,conf.Psi,conf.Psit,conf.y,initSig,opt);
-                save(filename);
+                opt=OPT; opt.u = 10^a(j)*u_max;
+                pnpg{i,j}=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+                %npgs{i,j}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
+            save(filename);
+            end
+            continue;
+
+            a=[-3.5 -3.75 -4 -4.25 -4.5];
+            bb=[ 2 2 3 3 3 4];
+            if((any([1 2 6]==i)))
+                for j=1:5;
+                    if(j~=bb(i)) continue; end
+                    fprintf('%s, i=%d, j=%d\n','X-ray CT example glassBeads Simulated',i,j);
+                    opt=OPT; opt.u = 10^a(j)*u_max; opt.noiseType='poissonLogLink0';
+                    pnpg0{i,j}=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    %npgs0{i,j}=Wrapper.NPGsc(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    save(filename);
+                end
             end
         end
     case 'plotfull' % code to plot figures and generate .data files for gnuplot

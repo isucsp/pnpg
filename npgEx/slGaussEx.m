@@ -11,7 +11,6 @@ function slGaussEx(op)
 
 
 if(~exist('op','var')) op='run'; end
-keyboard
 switch lower(op)
     case 'run'
         filename = [mfilename '.mat'];
@@ -35,49 +34,64 @@ switch lower(op)
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
-                    if(~(k==1 && i==4 && j<=2)) continue; end
+                    if(i~=6)
                     opt=OPT;
                     pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgc    {i,j,k}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.innerThresh=1e-5;
+                    spiral_m5   {i,j,k}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.innerThresh=1e-5;
+                    sparsn_m5   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    mysave;
+                    continue;
+                else
+                    continue;
+                end
+
+                    opt=OPT; opt.alg='N83';
+                    tfocs_n83_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restart=false;
+                    pnpg_noRestart {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.forcePositive=false;
+                    pnpg_noPrj {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.forcePositive=false; opt.adaptiveStep=false;
+                    pnpg_noPrj_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.adaptiveStep=false;
+                    pnpg_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+                    pnpg_cumu0 {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
+                    tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    opt=OPT; opt.innerThresh=1e-4;
+                    sparsn_m4   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    opt=OPT; opt.thresh=1e-10; opt.adaptiveStep=false;
+                    Tpnpg_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.thresh=1e-10;
+                    Tpnpg       {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    mysave;
+                    continue;
+
+                    opt=OPT; opt.restartEvery=100;
+                    tfocs_100_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=300;
+                    tfocs_300_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200;
+                    tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    continue;
+
+                    if(~(k==1 && i==4 && j<=2)) continue; end
                     condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     keyboard
                     gfb      {i,j,k}=Wrapper.GFB      (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                    if(~(k==1 && i==4)) continue; end
-                    if(k==1 && i==4)
-                        OPT.thresh=1e-10;
-                        opt=OPT; opt.adaptiveStep=false;
-                        Tpnpg_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT;
-                        Tpnpg       {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        Tnpg        {i,j,k}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-                        Tpnpg_cumu0 {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        save(filename);
-                        continue;
 
-                        opt=OPT; opt.alg='N83';
-                        tfocs_n83_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.restartEvery=100;
-                        tfocs_100_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.restartEvery=300;
-                        tfocs_300_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.restartEvery=200;
-                        tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.restart=false;
-                        pnpg_noRestart {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.forcePositive=false;
-                        pnpg_noPrj {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                        opt=OPT; opt.forcePositive=false; opt.adaptiveStep=false;
-                        pnpg_noPrj_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                        OPT.thresh=1e-6;
-                    end
-
-                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
                     tfocs_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     sparsn   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    spiral   {i,j,k}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    pnpgc    {i,j,k}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npgsc    {i,j,k}=Wrapper.NPGsc    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     npg      {i,j,k}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
 
@@ -93,7 +107,7 @@ switch lower(op)
 
 
                     temp=opt; opt.thresh=1e-12; opt.maxItr=5e4;
-                    % pgc12{i,j,k}=Wrapper.PGc(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    %pgc12{i,j,k}=Wrapper.PGc(Phi,Phit,Psi,Psit,y,initSig,opt);
                     %sparsn12{i,j,k}=Wrapper.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
                     %spiral12{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
                     sparsa12 {i,j,k}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -123,17 +137,23 @@ switch lower(op)
 
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
-        idx=2:2:7;
-        K = 5;
+        K = 1;
 
-           npg=   npg(:,:,1:K);
-          npgc=  npgc(:,:,1:K);
-          pnpg=  pnpg(:,:,1:K);
-         pnpgc= pnpgc(:,:,1:K);
-        spiral=spiral(:,:,1:K);
-        sparsn=sparsn(:,:,1:K);
-           gfb=   gfb(:,:,1:K);
-        condat=condat(:,:,1:K);
+        temp=pnpg(6,:,2:5); pnpg(:,:,2:5)=[]; pnpg(6,:,2:5)=temp;
+        temp=pnpgc(6,:,2:5); pnpgc(:,:,2:5)=[]; pnpgc(6,:,2:5)=temp;
+          pnpg      =        pnpg(:,:,1:5);
+         pnpgc      =       pnpgc(:,:,1:5);
+           npg      =        pnpg(:,:,1:5);
+          npgc      =       pnpgc(:,:,1:5);
+        spiral      =   spiral_m5(:,:,1:K);
+        sparsn      =   sparsn_m5(:,:,1:K);
+           gfb      =         gfb(:,:,1:K);
+        condat      =      condat(:,:,1:K);
+        tfocs_AT    =tfocs_200_m5(:,:,1:K);
+        tfocs_200_m5=tfocs_200_m5(:,:,1:K);
+        spiral_m5   =   spiral_m5(:,:,1:K);
+        sparsn_m5   =   sparsn_m5(:,:,1:K);
+
        %tfocs1=tfocs1(:,:,1:K);
        % at200= at200(:,:,1:K);
 
@@ -147,8 +167,8 @@ switch lower(op)
         idx8=findBestJ(condat); disp(['condat: ' sprintf('%d  ',idx8')]);
        %idx9=findBestJ(tfocs1); disp(['tfocs1: ' sprintf('%d  ',idx9')]);
        %idxa=findBestJ( at200); disp([' at200: ' sprintf('%d  ',idxa')]);
-        idxb=findBestJ( npgsc); disp([' npgsc: ' sprintf('%d  ',idxb')]);
-        idxc=findBestJ( fpcas); disp([' fpcas: ' sprintf('%d  ',idxc')]);
+       %idxb=findBestJ( npgsc); disp([' npgsc: ' sprintf('%d  ',idxb')]);
+       %idxc=findBestJ( fpcas); disp([' fpcas: ' sprintf('%d  ',idxc')]);
         uNonneg=[3 3 3 3 3 2 3 3 3];
         figure;
         semilogy(findBest(   npg,'RMSE'),'r-*'); hold on;
@@ -206,89 +226,131 @@ switch lower(op)
 
         as=1:5;
         forSave=[]; forTime=[];
+        idx=[2,4,6];
         for mIdx=idx
             figure(900);
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   npg,'RMSE'),mIdx,as),'r-*'); hold on;
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  npgc,'RMSE'),mIdx,as),'r.-');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  pnpg,'RMSE'),mIdx,as),'r-s');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK( pnpgc,'RMSE'),mIdx,as),'r-^');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(spiral,'RMSE'),mIdx,as),'k-s');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(sparsn,'RMSE'),mIdx,as),'g-o');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   gfb,'RMSE'),mIdx,as),'g-.');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(condat,'RMSE'),mIdx,as),'g->');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(     npg,'RMSE'),mIdx,as),'r-*'); hold on;
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(tfocs_AT,'RMSE'),mIdx,as),'r.-');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(    pnpg,'RMSE'),mIdx,as),'r-s');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   pnpgc,'RMSE'),mIdx,as),'r-^');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  spiral,'RMSE'),mIdx,as),'k-s');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  sparsn,'RMSE'),mIdx,as),'g-o');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(     gfb,'RMSE'),mIdx,as),'g-.');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  condat,'RMSE'),mIdx,as),'g->');
 
             forSave=[forSave log10(u(mIdx))+as(:)-3];
-            forSave=[forSave reshape(gEle(meanOverK(   npg,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(  npgc,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(  pnpg,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK( pnpgc,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(spiral,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(sparsn,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(   gfb,'RMSE'),mIdx,as),[],1)];
-            forSave=[forSave reshape(gEle(meanOverK(condat,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(     npg,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(tfocs_AT,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(    pnpg,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(   pnpgc,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(  spiral,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(  sparsn,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(     gfb,'RMSE'),mIdx,as),[],1)];
+            forSave=[forSave reshape(gEle(meanOverK(  condat,'RMSE'),mIdx,as),[],1)];
 
             figure;
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   npg,'time'),mIdx,as),'r-*'); hold on;
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  npgc,'time'),mIdx,as),'r.-');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(  pnpg,'time'),mIdx,as),'r-s');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK( pnpgc,'time'),mIdx,as),'r-^');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(spiral,'time'),mIdx,as),'k-s');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(sparsn,'time'),mIdx,as),'g-o');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   gfb,'time'),mIdx,as),'g-.');
-            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(condat,'time'),mIdx,as),'g->');
-            legend('npg','npgc','pnpg','pnpgc', 'spiral','sparsn','gfb','condat');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(      npg,'time'),mIdx,as),'r-*'); hold on;
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK( tfocs_AT,'time'),mIdx,as),'r.-');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(     pnpg,'time'),mIdx,as),'r-s');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(    pnpgc,'time'),mIdx,as),'r-^');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   spiral,'time'),mIdx,as),'k-s');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   sparsn,'time'),mIdx,as),'g-o');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(      gfb,'time'),mIdx,as),'g-.');
+            semilogy(log10(u(mIdx))+as-3, gEle(meanOverK(   condat,'time'),mIdx,as),'g->');
+            legend('npg','tfocs','pnpg','pnpgc', 'spiral','sparsn','gfb','condat');
             title(sprintf('mIdx=%d',mIdx));
 
             forTime=[forTime log10(u(mIdx))+as(:)-3];
-            forTime=[forTime reshape(gEle(meanOverK(   npg,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(  npgc,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(  pnpg,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK( pnpgc,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(spiral,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(sparsn,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(   gfb,'time'),mIdx,as),[],1)];
-            forTime=[forTime reshape(gEle(meanOverK(condat,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(      npg,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK( tfocs_AT,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(     pnpg,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(    pnpgc,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(   spiral,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(   sparsn,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(      gfb,'time'),mIdx,as),[],1)];
+            forTime=[forTime reshape(gEle(meanOverK(   condat,'time'),mIdx,as),[],1)];
         end
         figure(900); 
-        legend('npg','npgc','pnpg','pnpgc', 'spiral','sparsn','gfb','condat');
+        legend('npg','tfocs','pnpg','pnpgc', 'spiral','sparsn','gfb','condat');
         save('rmseVsA.data','forSave','-ascii');
         save('timeVsA.data','forTime','-ascii');
 
-        mIdx=4; as=2; forSave=[];  % add as=3 and 4
-        forSave=addTrace(   npg{mIdx,as},forSave); % each time add 3 columns (time cost RMSE)
-        forSave=addTrace(  npgc{mIdx,as},forSave); %  4 -  6
-        forSave=addTrace(  pnpg{mIdx,as},forSave); %  7 -  9
-        forSave=addTrace( pnpgc{mIdx,as},forSave); % 10 - 12
-        forSave=addTrace(spiral{mIdx,as},forSave); % 13 - 15
-        forSave=addTrace(sparsn{mIdx,as},forSave); % 16 - 18
-        forSave=addTrace(   gfb{mIdx,as},forSave); % 19 - 21
-        forSave=addTrace(condat{mIdx,as},forSave); % 22
-        save('traceLinGauss.data','forSave','-ascii');
+        keyboard
 
-        mc=forSave(:,[2,8,14,20,23]); mc = min(mc(mc(:)>0));
-        figure;
-        semilogy(forSave(:, 1),forSave(:, 2)-mc,'r-' ); hold on;
-        semilogy(forSave(:, 7),forSave(:, 8)-mc,'r-.');
-        semilogy(forSave(:,13),forSave(:,14)-mc,'c--');
-        semilogy(forSave(:,19),forSave(:,20)-mc,'b:' ); 
-        semilogy(forSave(:,22),forSave(:,23)-mc,'g-.' ); 
-        legend('npg','pnpg','spiral','gfb','condat');
+        for mIdx=[4 6];
+            for as=[2 3 4]
+                forSave=[];
+                forSave=addTrace(         npg{mIdx,as},forSave); % each time add 3 columns (time cost RMSE)
+                forSave=addTrace(        npgc{mIdx,as},forSave); %  4 -  6
+                forSave=addTrace(        pnpg{mIdx,as},forSave); %  7 -  9
+                forSave=addTrace(       pnpgc{mIdx,as},forSave); % 10 - 12
+                forSave=addTrace(      spiral{mIdx,as},forSave); % 13 - 15
+                forSave=addTrace(      sparsn{mIdx,as},forSave); % 16 - 18
+                forSave=addTrace(         gfb{mIdx,as},forSave); % 19 - 21
+                forSave=addTrace(      condat{mIdx,as},forSave); % 22
+                forSave=addTrace(    tfocs_AT{mIdx,as},forSave); % 25
+                forSave=addTrace(tfocs_n83_m6{mIdx,as},forSave); % 28
+                forSave=addTrace(  pnpg_cumu0{mIdx,as},forSave); % 31
+                save('traceLinGauss.data','forSave','-ascii');
 
+                mc=forSave(:,[2,8,14,20,23,26,29,32]); mc = min(mc(mc(:)>0));
+                figure; subplot(1,2,1);
+                semilogy(forSave(:, 1),forSave(:, 2)-mc,'r-' ); hold on;
+                semilogy(forSave(:, 7),forSave(:, 8)-mc,'r-.');
+                semilogy(forSave(:,13),forSave(:,14)-mc,'c--');
+                semilogy(forSave(:,19),forSave(:,20)-mc,'b:' ); 
+                semilogy(forSave(:,22),forSave(:,23)-mc,'g-.' ); 
+                semilogy(forSave(:,25),forSave(:,26)-mc,'k--' ); 
+                semilogy(forSave(:,28),forSave(:,29)-mc,'k-' ); 
+                semilogy(forSave(:,31),forSave(:,32)-mc,'b-' ); 
+                legend('npg','pnpg','spiral','gfb','condat','tfocsAT','tfocsN83','pnpg\_cumu0');
+                subplot(1,2,2);
+                semilogy(forSave(:, 2)-mc,'r-' ); hold on;
+                semilogy(forSave(:, 8)-mc,'r-.');
+                semilogy(forSave(:,14)-mc,'c--');
+                semilogy(forSave(:,20)-mc,'b:' ); 
+                semilogy(forSave(:,23)-mc,'g-.' ); 
+                semilogy(forSave(:,26)-mc,'k--' ); 
+                semilogy(forSave(:,29)-mc,'k-' ); 
+                semilogy(forSave(:,32)-mc,'b-' ); 
+                legend('npg','pnpg','spiral','gfb','condat','tfocsAT','tfocsN83','pnpg\_cumu0');
+
+                %mc=forSave(:,[5,11,17]); mc = min(mc(mc(:)>0));
+                %figure;
+                %semilogy(forSave(:, 4),forSave(:, 5)-mc,'r-'); hold on;
+                %semilogy(forSave(:,10),forSave(:,11)-mc,'g-.');
+                %semilogy(forSave(:,16),forSave(:,17)-mc,'c--');
+                %legend('npgc','pnpgc','sparsn');
+            end
+        end
+
+        keyboard
+
+        mIdx=4;
         % each time add 3 columns (time cost RMSE)
-        temp=addTrace(  pnpg{mIdx,2},[]);temp=addTrace(  pnpg{mIdx,3},temp);temp=addTrace(  pnpg{mIdx,4},temp); save('traceLG-pnpg.data','temp','-ascii');
-        temp=addTrace( pnpgc{mIdx,2},[]);temp=addTrace( pnpgc{mIdx,3},temp);temp=addTrace( pnpgc{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
-        temp=addTrace(spiral{mIdx,2},[]);temp=addTrace(spiral{mIdx,3},temp);temp=addTrace(spiral{mIdx,4},temp); save('traceLG-spiral.data','temp','-ascii');
-        temp=addTrace(sparsn{mIdx,2},[]);temp=addTrace(sparsn{mIdx,3},temp);temp=addTrace(sparsn{mIdx,4},temp); save('traceLG-sparsn.data','temp','-ascii');
-        temp=addTrace(   gfb{mIdx,2},[]);temp=addTrace(   gfb{mIdx,3},temp);temp=addTrace(   gfb{mIdx,4},temp); save('traceLG-gfb.data','temp','-ascii');
-        temp=addTrace(condat{mIdx,2},[]);temp=addTrace(condat{mIdx,3},temp);temp=addTrace(condat{mIdx,4},temp); save('traceLG-condat.data','temp','-ascii');
-        
-        mc=forSave(:,[5,11,17]); mc = min(mc(mc(:)>0));
-        figure;
-        semilogy(forSave(:, 4),forSave(:, 5)-mc,'r-'); hold on;
-        semilogy(forSave(:,10),forSave(:,11)-mc,'g-.');
-        semilogy(forSave(:,16),forSave(:,17)-mc,'c--');
-        legend('npgc','pnpgc','sparsn');
+        out=        pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpg.data','temp','-ascii');
+        out=       pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
+        out=      spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-spiral.data','temp','-ascii');
+        out=      sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsn.data','temp','-ascii');
+        out=         gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-gfb.data','temp','-ascii');
+        out=      condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-condat.data','temp','-ascii');
+        out=    tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsAT.data','temp','-ascii');
+        out=tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsN83.data','temp','-ascii');
+        out=  pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgCumu0.data','temp','-ascii');
 
+        mIdx=6;
+        % each time add 3 columns (time cost RMSE)
+        out=        pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpg.data','temp','-ascii');
+        out=       pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgc.data','temp','-ascii');
+        out=      spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-spiral.data','temp','-ascii');
+        out=      sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-sparsn.data','temp','-ascii');
+        out=         gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-gfb.data','temp','-ascii');
+        out=      condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-condat.data','temp','-ascii');
+        out=    tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-tfocsAT.data','temp','-ascii');
+        out=tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-tfocsN83.data','temp','-ascii');
+        out=  pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgCumu0.data','temp','-ascii');
+        
+        npgsc=npgc;
         mIdx=6; as=gEle(uNonneg,mIdx); forSave=[]; t=0;
         t=t+1; temp=  npgc{mIdx,as}.RMSE(:);      forSave(1:length(temp),t)=temp;
         t=t+1; temp=  npgc{mIdx,as}.time(:);      forSave(1:length(temp),t)=temp;
@@ -302,10 +364,10 @@ switch lower(op)
         t=t+1; temp= npgsc{mIdx,as}.difAlpha(:);  forSave(1:length(temp),t)=temp;
         t=t+1; temp= npgsc{mIdx,as}.uRecord(:,2); forSave(1:length(temp),t)=temp;
         t=t+1; temp= npgsc{mIdx,as}.contThresh(:);forSave(1:length(temp),t)=temp;
-        save('continuation.data','forSave','-ascii');
+        %save('continuation.data','forSave','-ascii');
 
         mIdx = 4;
-        signal=npg{1}.opt.trueAlpha;
+        signal=pnpg{1}.opt.trueAlpha;
         signal=[signal,    npg{mIdx,idx1(mIdx)}.alpha];  % #2
         signal=[signal,   npgc{mIdx,idx2(mIdx)}.alpha];
         signal=[signal,   pnpg{mIdx,idx3(mIdx)}.alpha];
@@ -314,13 +376,13 @@ switch lower(op)
         signal=[signal, sparsn{mIdx,idx6(mIdx)}.alpha];
         signal=[signal,    gfb{mIdx,idx7(mIdx)}.alpha];
         signal=[signal, condat{mIdx,idx8(mIdx)}.alpha];
-        signal=[signal,  npgsc{mIdx,idxb(mIdx)}.alpha];
-        signal=[signal,  fpcas{mIdx,idxc(mIdx)}.alpha];
+%       signal=[signal,  npgsc{mIdx,idxb(mIdx)}.alpha];
+%       signal=[signal,  fpcas{mIdx,idxc(mIdx)}.alpha];
         save('skyline.data','signal','-ascii');
 
         figure; plot(signal(:, 3)); hold on; plot(signal(:,1),'r'); title('NPG');
-        figure; plot(signal(:,10)); hold on; plot(signal(:,1),'r'); title('NPGs');
-        figure; plot(signal(:,11)); hold on; plot(signal(:,1),'r'); title('FPCas');
+%       figure; plot(signal(:,10)); hold on; plot(signal(:,1),'r'); title('NPGs');
+%       figure; plot(signal(:,11)); hold on; plot(signal(:,1),'r'); title('FPCas');
         fprintf('\nfor N=350:\n'); mIdx=4;
         fprintf('   npgRec RMSE: %g%% -> %g%%\n',   npg{mIdx,idx1(mIdx)}.RMSE(end)*100, rmseTruncate(   npg{mIdx,idx1(mIdx)})*100);
         fprintf('  npgcRec RMSE: %g%% -> %g%%\n',  npgc{mIdx,idx2(mIdx)}.RMSE(end)*100, rmseTruncate(  npgc{mIdx,idx2(mIdx)})*100);
@@ -329,8 +391,8 @@ switch lower(op)
         fprintf('spiralRec RMSE: %g%% -> %g%%\n',spiral{mIdx,idx5(mIdx)}.RMSE(end)*100, rmseTruncate(spiral{mIdx,idx5(mIdx)})*100);
         fprintf('   gfbRec RMSE: %g%% -> %g%%\n',   gfb{mIdx,idx7(mIdx)}.RMSE(end)*100, rmseTruncate(   gfb{mIdx,idx7(mIdx)})*100);
         fprintf('condatRec RMSE: %g%% -> %g%%\n',condat{mIdx,idx8(mIdx)}.RMSE(end)*100, rmseTruncate(condat{mIdx,idx8(mIdx)})*100);
-        fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
-        fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
+%       fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
+%       fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
 
         fprintf('\nfor N=250:\n'); mIdx=2;
         fprintf('   npgRec RMSE: %g%% -> %g%%\n',   npg{mIdx,idx1(mIdx)}.RMSE(end)*100, rmseTruncate(   npg{mIdx,idx1(mIdx)})*100);
@@ -340,8 +402,8 @@ switch lower(op)
         fprintf('spiralRec RMSE: %g%% -> %g%%\n',spiral{mIdx,idx5(mIdx)}.RMSE(end)*100, rmseTruncate(spiral{mIdx,idx5(mIdx)})*100);
         fprintf('   gfbRec RMSE: %g%% -> %g%%\n',   gfb{mIdx,idx7(mIdx)}.RMSE(end)*100, rmseTruncate(   gfb{mIdx,idx7(mIdx)})*100);
         fprintf('condatRec RMSE: %g%% -> %g%%\n',condat{mIdx,idx8(mIdx)}.RMSE(end)*100, rmseTruncate(condat{mIdx,idx8(mIdx)})*100);
-        fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
-        fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
+%       fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
+%       fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
 
         fprintf('\nfor N=500:\n'); mIdx=6;
         fprintf('   npgRec RMSE: %g%% -> %g%%\n',   npg{mIdx,idx1(mIdx)}.RMSE(end)*100, rmseTruncate(   npg{mIdx,idx1(mIdx)})*100);
@@ -351,8 +413,8 @@ switch lower(op)
         fprintf('spiralRec RMSE: %g%% -> %g%%\n',spiral{mIdx,idx5(mIdx)}.RMSE(end)*100, rmseTruncate(spiral{mIdx,idx5(mIdx)})*100);
         fprintf('   gfbRec RMSE: %g%% -> %g%%\n',   gfb{mIdx,idx7(mIdx)}.RMSE(end)*100, rmseTruncate(   gfb{mIdx,idx7(mIdx)})*100);
         fprintf('condatRec RMSE: %g%% -> %g%%\n',condat{mIdx,idx8(mIdx)}.RMSE(end)*100, rmseTruncate(condat{mIdx,idx8(mIdx)})*100);
-        fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
-        fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
+%       fprintf(' npgscRec RMSE: %g%% -> %g%%\n', npgsc{mIdx,idxb(mIdx)}.RMSE(end)*100, rmseTruncate( npgsc{mIdx,idxb(mIdx)})*100);
+%       fprintf(' fpcasRec RMSE: %g%% -> %g%%\n', fpcas{mIdx,idxc(mIdx)}.RMSE(end)*100, rmseTruncate( fpcas{mIdx,idxc(mIdx)})*100);
 
         mIdx=4; as=3; experi=1; forSave=[];
         fields={'stepSize','RMSE','time','cost'};
@@ -361,7 +423,7 @@ switch lower(op)
         p2=pnpg_noPrj    {mIdx,as,experi};  forSave=addTrace(p2,forSave,fields); % 9
         p4=pnpg_cumu0    {mIdx,as,experi};  forSave=addTrace(p4,forSave,fields); % 13
         p5=pnpg_noRestart{mIdx,as,experi};  forSave=addTrace(p5,forSave,fields); % 17
-        p6=tfocs_200_m6  {mIdx,as,experi};  forSave=addTrace(p6,forSave,fields); % 21
+        p6=tfocs_AT      {mIdx,as,experi};  forSave=addTrace(p6,forSave,fields); % 21
 
         temp=forSave(:,[4 8 12 16 20 24]); temp=temp(:); temp=temp(temp>0); temp=min(temp);
         forSave(:,[4 8 12 16 20 24])=forSave(:,[4 8 12 16 20 24])-temp;
@@ -373,7 +435,7 @@ switch lower(op)
         semilogy(forSave(:,15),forSave(:,16),'c');
         semilogy(forSave(:,19),forSave(:,20),'k');
         semilogy(forSave(:,23),forSave(:,24),'g--');
-        legend('pnpg','pnpg_noAdp','pnpg_noPrj','pnpg_cumu0','pnpg_noRestart','tfocs_200');
+        legend('pnpg','pnpg\_noAdp','pnpg\_noPrj','pnpg\_cumu0','pnpg\_noRestart','tfocs\_200');
         keyboard
 
         disp('done');

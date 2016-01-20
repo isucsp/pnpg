@@ -232,7 +232,7 @@ times(1) = cputime - t0;
 
 % test for number of required parametres
 if (nargin-length(varargin)) ~= 3
-     error('Wrong number of required parameters');
+  error('Wrong number of required parameters');
 end
 
 % Set the defaults for the optional parameters
@@ -279,69 +279,69 @@ if (rem(length(varargin),2)==1)
 else
   for i=1:2:(length(varargin)-1)
     switch upper(varargin{i})
-     case 'PSI'
-       psi_function = varargin{i+1};
-     case 'PHI'
-       phi_function = varargin{i+1};
-     case 'STOPCRITERION'
-       stopCriterion = varargin{i+1};
-     case 'TOLERANCEA'       
-       tolA = varargin{i+1};
-     case 'TOLERANCED'
-       tolD = varargin{i+1};
-     case 'DEBIAS'
-       debias = varargin{i+1};
-     case 'MAXITERA'
-       maxiter = varargin{i+1};
-     case 'MAXITERD'
-       maxiter_debias = varargin{i+1};
-     case 'MINITERA'
-       miniter = varargin{i+1};
-     case 'MINITERD'
-       miniter_debias = varargin{i+1};
-     case 'INITIALIZATION'
-       if prod(size(varargin{i+1})) > 1   % we have an initial x
-	 init = 33333;    % some flag to be used below
-	 x = varargin{i+1};
-       else 
-	 init = varargin{i+1};
-       end
-     case 'BB_VARIANT'
-       bbVariant = varargin{i+1};
-     case 'BB_CYCLE'
-       bbCycle = varargin{i+1};
-     case 'MONOTONE'
-       enforceMonotone = varargin{i+1};
-     case 'SAFEGUARD'
-       enforceSafeguard = varargin{i+1};
-     case 'M'
-       M = varargin{i+1};
-     case 'SIGMA'
-       sigma = varargin{i+1};
-     case 'ETA'
-       eta = varargin{i+1};
-     case 'ALPHA_FACTOR'
-       alphaFactor = varargin{i+1};
-     case 'CONTINUATION'
-       continuation = varargin{i+1};  
-     case 'CONTINUATIONSTEPS' 
-       cont_steps = varargin{i+1};
-     case 'FIRSTTAUFACTOR'
-       firstTauFactor = varargin{i+1};
-     case 'TRUE_X'
-       compute_mse = 1;
-       true = varargin{i+1};
-     case 'ALPHAMIN'
-       alphamin = varargin{i+1};
-     case 'ALPHAMAX'
-       alphamax = varargin{i+1};
-     case 'AT'
-       AT = varargin{i+1};
-     case 'VERBOSE'
-       verbose = varargin{i+1};
-     otherwise
-      % Hmmm, something wrong with the parameter string
-      error(['Unrecognized option: ''' varargin{i} '''']);
+      case 'PSI'
+        psi_function = varargin{i+1};
+      case 'PHI'
+        phi_function = varargin{i+1};
+      case 'STOPCRITERION'
+        stopCriterion = varargin{i+1};
+      case 'TOLERANCEA'       
+        tolA = varargin{i+1};
+      case 'TOLERANCED'
+        tolD = varargin{i+1};
+      case 'DEBIAS'
+        debias = varargin{i+1};
+      case 'MAXITERA'
+        maxiter = varargin{i+1};
+      case 'MAXITERD'
+        maxiter_debias = varargin{i+1};
+      case 'MINITERA'
+        miniter = varargin{i+1};
+      case 'MINITERD'
+        miniter_debias = varargin{i+1};
+      case 'INITIALIZATION'
+        if prod(size(varargin{i+1})) > 1   % we have an initial x
+          init = 33333;    % some flag to be used below
+          x = varargin{i+1};
+        else 
+          init = varargin{i+1};
+        end
+      case 'BB_VARIANT'
+        bbVariant = varargin{i+1};
+      case 'BB_CYCLE'
+        bbCycle = varargin{i+1};
+      case 'MONOTONE'
+        enforceMonotone = varargin{i+1};
+      case 'SAFEGUARD'
+        enforceSafeguard = varargin{i+1};
+      case 'M'
+        M = varargin{i+1};
+      case 'SIGMA'
+        sigma = varargin{i+1};
+      case 'ETA'
+        eta = varargin{i+1};
+      case 'ALPHA_FACTOR'
+        alphaFactor = varargin{i+1};
+      case 'CONTINUATION'
+        continuation = varargin{i+1};  
+      case 'CONTINUATIONSTEPS' 
+        cont_steps = varargin{i+1};
+      case 'FIRSTTAUFACTOR'
+        firstTauFactor = varargin{i+1};
+      case 'TRUE_X'
+        compute_mse = 1;
+        true = varargin{i+1};
+      case 'ALPHAMIN'
+        alphamin = varargin{i+1};
+      case 'ALPHAMAX'
+        alphamax = varargin{i+1};
+      case 'AT'
+        AT = varargin{i+1};
+      case 'VERBOSE'
+        verbose = varargin{i+1};
+      otherwise
+        % Hmmm, something wrong with the parameter string
+        error(['Unrecognized option: ''' varargin{i} '''']);
     end;
   end;
 end
@@ -349,16 +349,16 @@ end
 
 % it makes no sense to ask for a nonmonotone variant of a non-BB method
 if ~enforceMonotone && bbVariant==0
-    error(['non-monotone, non-BBmethod requested']);
+  error(['non-monotone, non-BBmethod requested']);
 end
 
 if (sum(stopCriterion == [0 1 2 3 4 5])==0)
-   error(['Unknown stopping criterion']);
+  error(['Unknown stopping criterion']);
 end
 
 % if A is a function handle, we have to check presence of AT,
 if isa(A, 'function_handle') && ~isa(AT,'function_handle')
-   error(['The function handle for transpose of A is missing']);
+  error(['The function handle for transpose of A is missing']);
 end 
 
 % if A is a matrix, we find out dimensions of y and x,
@@ -366,8 +366,8 @@ end
 % so that the code below doesn't have to distinguish between
 % the handle/not-handle cases
 if ~isa(A, 'function_handle')
-   AT = @(x) A'*x;
-   A = @(x) A*x;
+  AT = @(x) A'*x;
+  A = @(x) A*x;
 end
 % from this point down, A and AT are always function handles.
 
@@ -377,83 +377,83 @@ Aty = AT(y);
 % if phi was given, check to see if it is a handle and that it 
 % accepts two arguments
 if exist('psi_function','var')
-   if isa(psi_function,'function_handle')
-      try  % check if phi can be used, using Aty, which we know has 
-           % same size as x
-            dummy = psi_function(Aty,tau); 
-            psi_ok = 1;
-      catch
-         error(['Something is wrong with function handle for psi'])
-      end
-   else
-      error(['Psi does not seem to be a valid function handle']);
-   end
+  if isa(psi_function,'function_handle')
+    try  % check if phi can be used, using Aty, which we know has 
+      % same size as x
+      dummy = psi_function(Aty,tau); 
+      psi_ok = 1;
+    catch
+      error(['Something is wrong with function handle for psi'])
+    end
+  else
+    error(['Psi does not seem to be a valid function handle']);
+  end
 else %if nothing was given, use soft thresholding
-   psi_function = @(x,tau) soft(x,tau);
+  psi_function = @(x,tau) soft(x,tau);
 end
 
 % if psi exists, phi must also exist
 if (psi_ok == 1)
-   if exist('phi_function','var')
-      if isa(phi_function,'function_handle')
-         try  % check if phi can be used, using Aty, which we know has 
-              % same size as x
-              dummy = phi_function(Aty); 
-         catch
-           error(['Something is wrong with function handle for phi'])
-         end
-      else
-        error(['Phi does not seem to be a valid function handle']);
+  if exist('phi_function','var')
+    if isa(phi_function,'function_handle')
+      try  % check if phi can be used, using Aty, which we know has 
+        % same size as x
+        dummy = phi_function(Aty); 
+      catch
+        error(['Something is wrong with function handle for phi'])
       end
-   else
-      error(['If you give Psi you must also give Phi']); 
-   end
+    else
+      error(['Phi does not seem to be a valid function handle']);
+    end
+  else
+    error(['If you give Psi you must also give Phi']); 
+  end
 else  % if no psi and phi were given, simply use the l1 norm.
-   phi_function = @(x) sum(abs(x(:))); 
-   phi_l1 = 1;
+  phi_function = @(x) sum(abs(x(:))); 
+  phi_l1 = 1;
 end
 
 
 % Initialization
 switch init
-    case 0   % initialize at zero, using AT to find the size of x
-       x = AT(zeros(size(y)));
-    case 1   % initialize randomly, using AT to find the size of x
-       x = randn(size(AT(zeros(size(y)))));
-    case 2   % initialize x0 = A'*y
-       x = Aty; 
-    case 33333
-       % initial x was given as a function argument; just check size
-       if size(A(x)) ~= size(y)
-          error(['Size of initial x is not compatible with A']); 
-       end
-    otherwise
-       error(['Unknown ''Initialization'' option']);
+  case 0   % initialize at zero, using AT to find the size of x
+    x = AT(zeros(size(y)));
+  case 1   % initialize randomly, using AT to find the size of x
+    x = randn(size(AT(zeros(size(y)))));
+  case 2   % initialize x0 = A'*y
+    x = Aty; 
+  case 33333
+    % initial x was given as a function argument; just check size
+    if size(A(x)) ~= size(y)
+      error(['Size of initial x is not compatible with A']); 
+    end
+  otherwise
+    error(['Unknown ''Initialization'' option']);
 end
 
 % if the true x was given, check its size
 if compute_mse & (size(true) ~= size(x))  
   error(['Initial x has incompatible size']); 
 end
- 
+
 % if tau is large enough, in the case of phi = l1, thus psi = soft,
 % the optimal solution is the zero vector
 if phi_l1
-   aux = AT(y);
-   max_tau = max(abs(aux(:)));
-   firstTauFactor = 0.8*max_tau / tau;
-   if (tau >= max_tau) && (psi_ok==0)
-      x = zeros(size(aux));
-      if debias
-         x_debias = x;
-      end
-      objective(1) = 0.5*(y(:)'*y(:));
-      times(1) = 0;
-      if compute_mse
-        mses(1) = sum(true(:).^2);
-      end
-      return
-   end
+  aux = AT(y);
+  max_tau = max(abs(aux(:)));
+  firstTauFactor = 0.8*max_tau / tau;
+  if (tau >= max_tau) && (psi_ok==0)
+    x = zeros(size(aux));
+    if debias
+      x_debias = x;
+    end
+    objective(1) = 0.5*(y(:)'*y(:));
+    times(1) = 0;
+    if compute_mse
+      mses(1) = sum(true(:).^2);
+    end
+    return
+  end
 end
 
 % define the indicator vector or matrix of nonzeros in x
@@ -484,11 +484,11 @@ if (continuation && phi_l1 && (cont_steps > 1))
     if firstTauFactor*tau >= max_tau
       firstTauFactor = 0.5 * max_tau / tau;
       if verbose
-	fprintf(1,'\n setting parameter FirstTauFactor\n')
+        fprintf(1,'\n setting parameter FirstTauFactor\n')
       end
     end
     cont_factors = 10.^[log10(firstTauFactor):...
-	  log10(1/firstTauFactor)/(cont_steps-1):0];
+      log10(1/firstTauFactor)/(cont_steps-1):0];
   end
 else
   if ( ~continuation )
@@ -504,55 +504,55 @@ taus = [];
 
 % loop for continuation
 while keep_continuation 
-  
+
   % initialize the count of steps since last update of alpha 
   % (for use in cyclic BB)
   iterThisCycle = 0;
-  
+
   % Compute the initial residual and gradient
   resid =  A(x) - y;
   gradq = AT(resid);
-  
+
   if cont_steps == -1
-     
-     temp_tau = max(final_tau,0.2*max(abs(gradq(:))));
-     
-     if temp_tau > tau
-        tau = final_tau;    
-     else
-        tau = temp_tau;
-     end
-     
-     if tau == final_tau
-        stopCriterion = final_stopCriterion;
-        tolA = final_tolA;
-        keep_continuation = 0;
-     else
-        stopCriterion = 1;
-        tolA = 1e-5;
-     end
+
+    temp_tau = max(final_tau,0.2*max(abs(gradq(:))));
+
+    if temp_tau > tau
+      tau = final_tau;    
+    else
+      tau = temp_tau;
+    end
+
+    if tau == final_tau
+      stopCriterion = final_stopCriterion;
+      tolA = final_tolA;
+      keep_continuation = 0;
+    else
+      stopCriterion = 1;
+      tolA = 1e-5;
+    end
   else
-     tau = final_tau * cont_factors(cont_loop);
-     if cont_loop == cont_steps
-        stopCriterion = final_stopCriterion;
-        tolA = final_tolA;
-        keep_continuation = 0;
-     else
-        stopCriterion = 1;
-        tolA = 1e-5;
-     end
+    tau = final_tau * cont_factors(cont_loop);
+    if cont_loop == cont_steps
+      stopCriterion = final_stopCriterion;
+      tolA = final_tolA;
+      keep_continuation = 0;
+    else
+      stopCriterion = 1;
+      tolA = 1e-5;
+    end
   end
-  
+
   taus = [taus tau];
-  
+
   if verbose
     fprintf('\n Regularization parameter tau = %10.6e\n',tau)
   end
-  
+
   % compute and store initial value of the objective function 
   % for this tau
   alpha = 1; %1/eps;
-  
+
   f = 0.5*(resid(:)'*resid(:)) + tau * phi_function(x);
   if enforceSafeguard
     f_lastM = f;
@@ -567,30 +567,30 @@ while keep_continuation
     end
     if verbose
       fprintf(1,'Initial obj=%10.6e, alpha=%6.2e, nonzeros=%7d\n',...
-	  f,alpha,num_nz_x);
+        f,alpha,num_nz_x);
     end
   end
- 
+
   % initialization of alpha
   % alpha = 1/max(max(abs(du(:))),max(abs(dv(:))));
   % or just do a dumb initialization 
   %alphas(iter) = alpha;
-  
+
   % control variable for the outer loop and iteration counter
   keep_going = 1;
-  
+
   while keep_going
-    
+
     % compute gradient
     gradq = AT(resid);
-    
+
     % save current values
     prev_x = x;
     prev_f = f;
     prev_resid = resid;
-    
+
     % computation of step
-    
+
     cont_inner = 1;
     while cont_inner
       x = psi_function(prev_x - gradq*(1/alpha),tau/alpha);
@@ -599,53 +599,53 @@ while keep_continuation
       resid = prev_resid + Adx;
       f = 0.5*(resid(:)'*resid(:)) + tau * phi_function(x);
       if enforceMonotone
-	f_threshold = prev_f;
+        f_threshold = prev_f;
       elseif enforceSafeguard
-	f_threshold = max(f_lastM) - 0.5*sigma*alpha*(dx(:)'*dx(:));
+        f_threshold = max(f_lastM) - 0.5*sigma*alpha*(dx(:)'*dx(:));
       else
-	f_threshold = inf;
+        f_threshold = inf;
       end
-       % f_threshold
-      
+      % f_threshold
+
       if f <= f_threshold
-	cont_inner=0;
+        cont_inner=0;
       else
-	% not good enough, increase alpha and try again
-	alpha = eta*alpha;
-	if verbose
-	  fprintf(1,' f=%10.6e, increasing alpha to %6.2e\n', f, alpha);
-	end
+        % not good enough, increase alpha and try again
+        alpha = eta*alpha;
+        if verbose
+          fprintf(1,' f=%10.6e, increasing alpha to %6.2e\n', f, alpha);
+        end
       end
     end   % of while cont_inner
 
     if enforceSafeguard
       if length(f_lastM)<M+1
-	f_lastM = [f_lastM f];
+        f_lastM = [f_lastM f];
       else
-	f_lastM = [f_lastM(2:M+1) f];
+        f_lastM = [f_lastM(2:M+1) f];
       end
     end
-    
+
     % print stuff
     if verbose
       fprintf(1,'t=%4d, obj=%10.6e, alpha=%e  ', iter, f, alpha );
     end
-    
+
     if bbVariant==1
       % standard BB choice of initial alpha for next step
       if iterThisCycle==0 | enforceMonotone==1
-	dd  = dx(:)'*dx(:);  
-	dGd = Adx(:)'*Adx(:);
-	alpha = min(alphamax,max(alphamin,dGd/(realmin+dd)));
+        dd  = dx(:)'*dx(:);  
+        dGd = Adx(:)'*Adx(:);
+        alpha = min(alphamax,max(alphamin,dGd/(realmin+dd)));
       end
     elseif bbVariant==2
       % alternative BB choice of initial alpha for next step
       if iterThisCycle==0 | enforceMonotone==1
-	dd  = dx(:)'*dx(:);  
-	dGd = Adx(:)'*Adx(:);
-	ATAdx=AT(Adx);
-	dGGd = ATAdx(:)'*ATAdx(:);
-	alpha = min(alphamax,max(alphamin,dGGd/(realmin+dGd)));
+        dd  = dx(:)'*dx(:);  
+        dGd = Adx(:)'*Adx(:);
+        ATAdx=AT(Adx);
+        dGGd = ATAdx(:)'*ATAdx(:);
+        alpha = min(alphamax,max(alphamin,dGGd/(realmin+dGd)));
       end
     else  
       % reduce current alpha to get initial alpha for next step
@@ -662,76 +662,76 @@ while keep_continuation
       err = true - x;
       mses(iter) = (err(:)'*err(:));
     end
-    
+
     % compute stopping criteria and test for termination
     switch stopCriterion
-        case 0,
-            % compute the stopping criterion based on the change
-            % of the number of non-zero components of the estimate
-            nz_x_prev = nz_x;
-            nz_x = (abs(x)~=0.0);
-            num_nz_x = sum(nz_x(:));
-            num_changes_active = (sum(nz_x(:)~=nz_x_prev(:)));
-            if num_nz_x >= 1
-                criterionActiveSet = num_changes_active / num_nz_x;
-                keep_going = (criterionActiveSet > tolA);
-            end
-            if verbose
-                fprintf(1,'Delta nz = %d (target = %e)\n',...
-                    criterionActiveSet , tolA)
-            end
-        case 1,
-            % compute the stopping criterion based on the relative
-            % variation of the objective function.
-            criterionObjective = abs(f-prev_f)/(prev_f);
-            keep_going =  (criterionObjective > tolA);
-            if verbose
-                fprintf(1,'Delta obj. = %e (target = %e)\n',...
-                    criterionObjective , tolA)
-            end
-        case 2,
-            % compute the "duality" stopping criterion - actually based on the
-            % iterate PRIOR to the step just taken. Make it relative to the primal
-            % function value.
-            scaleFactor = norm(gradq(:),inf);
-            w = tau*prev_resid(:) / scaleFactor;
-            criterionDuality = 0.5* (prev_resid(:)'*prev_resid(:)) + ...
-                tau * phi_function(prev_x) + 0.5*w(:)'*w(:) + y(:)'*w(:);
-            criterionDuality = criterionDuality / prev_f;
-            keep_going = (criterionDuality > tolA);
-            if verbose
-                fprintf(1,'Duality = %e (target = %e)\n',...
-                    criterionDuality , tolA)
-            end
-        case 3,
-            % compute the "LCP" stopping criterion - again based on the previous
-            % iterate. Make it "relative" to the norm of x.
-            w = [ min(tau + gradq(:), max(prev_x(:),0.0)); ...
-                min(tau - gradq(:), max(-prev_x(:),0.0))];
-            criterionLCP = norm(w(:), inf);
-            criterionLCP = criterionLCP / max(1.0e-6, norm(prev_x(:),inf));
-            keep_going = (criterionLCP > tolA);
-            if verbose
-                fprintf(1,'LCP = %e (target = %e)\n',criterionLCP,tolA)
-            end
-        case 4,
-            % continue if not yeat reached target value tolA
-            keep_going = (f > tolA);
-            if verbose
-                fprintf(1,'Objective = %e (target = %e)\n',f,tolA)
-            end
-        case 5,
-            % stopping criterion based on relative norm of step taken
-            delta_x_criterion = sqrt(dx(:)'*dx(:))/(x(:)'*x(:));
-            keep_going = (delta_x_criterion > tolA);
-            if verbose
-                fprintf(1,'Norm(delta x)/norm(x) = %e (target = %e)\n',...
-                    delta_x_criterion,tolA)
-            end
-        otherwise,
-            error(['Unknown stopping criterion']);
+      case 0,
+        % compute the stopping criterion based on the change
+        % of the number of non-zero components of the estimate
+        nz_x_prev = nz_x;
+        nz_x = (abs(x)~=0.0);
+        num_nz_x = sum(nz_x(:));
+        num_changes_active = (sum(nz_x(:)~=nz_x_prev(:)));
+        if num_nz_x >= 1
+          criterionActiveSet = num_changes_active / num_nz_x;
+          keep_going = (criterionActiveSet > tolA);
+        end
+        if verbose
+          fprintf(1,'Delta nz = %d (target = %e)\n',...
+            criterionActiveSet , tolA)
+        end
+      case 1,
+        % compute the stopping criterion based on the relative
+        % variation of the objective function.
+        criterionObjective = abs(f-prev_f)/(prev_f);
+        keep_going =  (criterionObjective > tolA);
+        if verbose
+          fprintf(1,'Delta obj. = %e (target = %e)\n',...
+            criterionObjective , tolA)
+        end
+      case 2,
+        % compute the "duality" stopping criterion - actually based on the
+        % iterate PRIOR to the step just taken. Make it relative to the primal
+        % function value.
+        scaleFactor = norm(gradq(:),inf);
+        w = tau*prev_resid(:) / scaleFactor;
+        criterionDuality = 0.5* (prev_resid(:)'*prev_resid(:)) + ...
+          tau * phi_function(prev_x) + 0.5*w(:)'*w(:) + y(:)'*w(:);
+        criterionDuality = criterionDuality / prev_f;
+        keep_going = (criterionDuality > tolA);
+        if verbose
+          fprintf(1,'Duality = %e (target = %e)\n',...
+            criterionDuality , tolA)
+        end
+      case 3,
+        % compute the "LCP" stopping criterion - again based on the previous
+        % iterate. Make it "relative" to the norm of x.
+        w = [ min(tau + gradq(:), max(prev_x(:),0.0)); ...
+          min(tau - gradq(:), max(-prev_x(:),0.0))];
+        criterionLCP = norm(w(:), inf);
+        criterionLCP = criterionLCP / max(1.0e-6, norm(prev_x(:),inf));
+        keep_going = (criterionLCP > tolA);
+        if verbose
+          fprintf(1,'LCP = %e (target = %e)\n',criterionLCP,tolA)
+        end
+      case 4,
+        % continue if not yeat reached target value tolA
+        keep_going = (f > tolA);
+        if verbose
+          fprintf(1,'Objective = %e (target = %e)\n',f,tolA)
+        end
+      case 5,
+        % stopping criterion based on relative norm of step taken
+        delta_x_criterion = sqrt(dx(:)'*dx(:))/(x(:)'*x(:));
+        keep_going = (delta_x_criterion > tolA);
+        if verbose
+          fprintf(1,'Norm(delta x)/norm(x) = %e (target = %e)\n',...
+            delta_x_criterion,tolA)
+        end
+      otherwise,
+        error(['Unknown stopping criterion']);
     end % end of the stopping criteria switch
-    
+
     % overrule the stopping decision to ensure we take between miniter and
     % maxiter iterations
     if iter<=miniter
@@ -741,11 +741,11 @@ while keep_continuation
       % and no more than maxiter iterations  
       keep_going = 0;
     end
-    
+
   end % end of the main loop of the GPBB algorithm (while keep_going)
-  
+
   cont_loop = cont_loop + 1;
-  
+
 end % end of the continuation loop (while keep_continuation) 
 
 % Print results
@@ -769,86 +769,86 @@ if (debias & (sum(x(:)~=0)~=0))
   if verbose
     fprintf(1,'\nStarting the debiasing phase...\n\n')
   end
-  
+
   x_debias = x;
   zeroind = (x_debias~=0); 
   cont_debias_cg = 1;
   debias_start = iter;
-  
+
   % calculate initial residual
   resid = A(x_debias);
   resid = resid-y;
   prev_resid = eps*ones(size(resid));
-  
+
   rvec = AT(resid);
-  
+
   % mask out the zeros
   rvec = rvec .* zeroind;
   rTr_cg = rvec(:)'*rvec(:);
-  
+
   % set convergence threshold for the residual || RW x_debias - y ||_2
   tol_debias = tolD * (rvec(:)'*rvec(:));
-  
+
   % initialize pvec
   pvec = -rvec;
-  
+
   % main loop
   while cont_debias_cg
-    
+
     % calculate A*p = Wt * Rt * R * W * pvec
     RWpvec = A(pvec);      
     Apvec = AT(RWpvec);
-    
+
     % mask out the zero terms
     Apvec = Apvec .* zeroind;
-    
+
     % calculate alpha for CG
     alpha_cg = rTr_cg / (pvec(:)'* Apvec(:));
-    
+
     % take the step
     x_debias = x_debias + alpha_cg * pvec;
     resid = resid + alpha_cg * RWpvec;
     rvec  = rvec  + alpha_cg * Apvec;
-    
+
     rTr_cg_plus = rvec(:)'*rvec(:);
     beta_cg = rTr_cg_plus / rTr_cg;
     pvec = -rvec + beta_cg * pvec;
-    
+
     rTr_cg = rTr_cg_plus;
-    
+
     iter = iter+1;
-    
+
     objective(iter) = 0.5*(resid(:)'*resid(:)) + ...
-	                  tau * phi_function(x_debias(:));
+      tau * phi_function(x_debias(:));
     times(iter) = cputime - t0;
-    
+
     if compute_mse
       err = true - x_debias;
       mses(iter) = (err(:)'*err(:));
     end
-    
+
     % in the debiasing CG phase, always use convergence criterion
     % based on the residual (this is standard for CG)
     if verbose
-       fprintf(1,'t = %5d, debias resid = %13.8e, convergence = %8.3e\n', ...
-	   iter, resid(:)'*resid(:), rTr_cg / tol_debias);
+      fprintf(1,'t = %5d, debias resid = %13.8e, convergence = %8.3e\n', ...
+        iter, resid(:)'*resid(:), rTr_cg / tol_debias);
     end
     cont_debias_cg = ...
-     	(iter-debias_start <= miniter_debias )| ...
-	    ((rTr_cg > tol_debias) & ...
-	    (iter-debias_start <= maxiter_debias));
-    
+      (iter-debias_start <= miniter_debias )| ...
+      ((rTr_cg > tol_debias) & ...
+      (iter-debias_start <= maxiter_debias));
+
   end
   if verbose
-  fprintf(1,'\nFinished the debiasing phase! Results:\n')
-  fprintf(1,'Final number of iterations = %d\n',iter);
-  fprintf(1,'0.5*||A x - y ||_2 = %10.3e\n',0.5*resid(:)'*resid(:))
-  fprintf(1,'tau * penalty = %10.3e\n',tau * phi_function(x))
-  fprintf(1,'Objective function = %10.3e\n',f);
-  fprintf(1,'Number of non-zero components = %d\n',...
-          sum((x_debias(:)~=0.0)));
-  fprintf(1,'CPU time so far = %10.3e\n', times(iter));
-  fprintf(1,'\n');
+    fprintf(1,'\nFinished the debiasing phase! Results:\n')
+    fprintf(1,'Final number of iterations = %d\n',iter);
+    fprintf(1,'0.5*||A x - y ||_2 = %10.3e\n',0.5*resid(:)'*resid(:))
+    fprintf(1,'tau * penalty = %10.3e\n',tau * phi_function(x))
+    fprintf(1,'Objective function = %10.3e\n',f);
+    fprintf(1,'Number of non-zero components = %d\n',...
+      sum((x_debias(:)~=0.0)));
+    fprintf(1,'CPU time so far = %10.3e\n', times(iter));
+    fprintf(1,'\n');
   end
 end
 
@@ -856,3 +856,4 @@ if compute_mse
   mses = mses/length(true(:));
 end
 
+% vim: shiftwidth=2 

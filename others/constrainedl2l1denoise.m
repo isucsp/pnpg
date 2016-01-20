@@ -17,6 +17,7 @@ WTlambda = WT(lambda);
 y = WT(y);
 iter = 1;
 converged = 0;
+preTheta=0;
 
 while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     %disp(['Subiter = ',num2str(iter)])
@@ -29,7 +30,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
         temp=abs(W(theta));
         cost(iter)=0.5*sqrNorm(temp-W(y))+tau*pNorm(WT(temp),1);
         if(iter>1)
-            difTheta(iter) = pNorm(preTheta-theta)/pNorm(theta);
+            difTheta(iter) = pNorm(preTheta-theta)/max(eps,pNorm(theta));
         end
     end
 
@@ -53,7 +54,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     converged = 1;
                 end
             case 2
-                if(iter>1 && pNorm(preTheta-theta)<=tolerance*max(1,pNorm(theta)))
+                if(iter>1 && pNorm(preTheta-theta)<=tolerance*max(eps,pNorm(theta)))
                     converged = 1;
                 end
                 preTheta=theta;
