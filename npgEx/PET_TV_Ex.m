@@ -17,65 +17,82 @@ switch lower(op)
         % PET example
         filename = [mfilename '.mat'];
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-        clear('opt'); filename = [mfilename '.mat'];
-        RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',0));
-        opt.maxItr=1e4; opt.thresh=1e-6; opt.debugLevel=1; opt.noiseType='poisson';
+        clear -regexp '(?i)opt'
+        filename = [mfilename '.mat'];
+        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson';
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
-        K=3;
+        K=5;
 
         as = [ 0.5, 0.5,0.5, 0.5, 0.5,   1];
         a  = [-0.5,   0,  0, 0.5, 0.5, 0.5];
         atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
-        opt.mask=[];
+        OPT.mask=[];
         for k=1:K
-            for i=1:length(count)
-                [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
+            for i=length(count):-1:1
+                j=1;
+                [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
 
-                fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),opt.mask~=0);
-                fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),OPT.mask~=0);
+                fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.alpha-OPT.trueAlpha)/sqrNorm(OPT.trueAlpha);
 
-                fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha));
+                fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.alpha-OPT.trueAlpha)/sqrNorm(OPT.trueAlpha));
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
                 u_max=1;
+                OPT.u = 10^atv(i)*u_max; OPT.proximal='tviso';
 
                 initSig=max(fbp{i,1,k}.alpha,0);
 
-                opt.fullcont=false;
-                j=1;
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
-                opt.contShrnk=0.1; opt.contGamma=15;
 
-                opt.u = 10^atv(i)*u_max; opt.proximal='tviso';
+                if(k>1) return; end
+                if(i<5) return; end
+                opt=OPT; opt.cumuTol=0;
+                pnpg_n0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                mysave;
+                continue
+
+                opt=OPT; opt.admmTol=1;
+                pnpg_p0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.admmTol=100;
+                pnpg_p2   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
+                tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
+                tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                mysave;
+                continue
+
+                opt=OPT;
+                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=OPT;
+                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=OPT; opt.innerThresh=1e-5;
+                spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.innerThresh=1e-6;
+                spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+
                 if(k==1 && i==5)
-                    Opt=opt; opt.adaptiveStep=false;
-                    % npgTV_noAdpStp=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt.thresh=1e-10;
-                    %npgTV_noAdpStpLong=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=Opt; opt.cumuTol=1; opt.incCumuTol=false;
-                    %npgTV_n1=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt.incCumuTol=true;
-                    test=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    keyboard
-                    opt=Opt;
-                    npgTV_n4=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt.thresh=1e-10;
+                    opt=OPT; opt.adaptiveStep=false;
+                    pnpgTV_noAdpStp=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
+                    pnpgTV_noAdpStpLong=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+                    pnpgTV_n0=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.thresh=1e-10;
                     spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-
-
-                save(filename);
-                    keyboard
-                else
-                    continue
                 end
 
 %               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                save(filename);
+                mysave;
 
                 opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
 %               npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -87,7 +104,7 @@ switch lower(op)
 %               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                save(filename);
+                mysave;
 
 %               opt.fullcont=true;
 %               % for isotv

@@ -20,7 +20,6 @@ switch lower(op)
         clear -regexp '(?i)opt'
         filename = [mfilename '.mat'];
         OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson';
-        OPT.contShrnk=0.1; OPT.contGamma=15;
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
         K=5;
@@ -29,7 +28,7 @@ switch lower(op)
         a  = [-0.5,   0,  0, 0.5, 0.5, 0.5];
 
         OPT.mask=[];
-        for k=3:K
+        for k=1:K
             for i=length(count):-1:1
                 j=1;
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
@@ -45,6 +44,9 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.alpha,0);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
+
+                opt=OPT; opt.proximal='wvltADMM';
+                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=OPT; opt.innerThresh=1e-5;
                 spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);

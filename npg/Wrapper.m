@@ -155,26 +155,22 @@ classdef Wrapper < handle
                 f=Phit(x);
             end
         end
-        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,u,thresh,maxItr)
+        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,thresh,maxItr,u)
             if(~exist('u','var') || isempty(u))
                 f=penalty(x);
             else
-                if(~exist('thresh') || isempty(thresh))
-                    thresh=1e-6;
-                end
-                if(~exist('maxItr') || isempty(maxItr))
-                    maxItr=1e3;
-                end
                 xx=proximalProj(x,u,thresh,maxItr);
                 f=penalty(xx);
             end
         end
         function out = tfocs(Phi,Phit,Psi,Psit,y,xInit,opt)
+            % it is better to have affineF as {affineF, b} when b is non-zero
             affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
             if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
             if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-6; end
+            if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=1e3; end
             switch lower(opt.noiseType)
                 case 'poisson'
                     if(isfield(opt,'bb'))
@@ -197,23 +193,23 @@ classdef Wrapper < handle
                 case lower('wvltFADMM')
                     proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
-                    penalty = @(x) opt.u*pNorm(Psit(x),1);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('wvltADMM')
                     proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
-                    penalty = @(x) opt.u*pNorm(Psit(x),1);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('wvltLagrangian')
                     proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
-                        x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
-                    penalty = @(x) pNorm(Psit(x),1);
+                        x,Psi,Psit,u*opt.u,0,1,maxInnerItr,2,innerThresh,false);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('tvl1')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'l1');
-                    penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
+                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'l1')+infdicator(x<0);
                 case lower('tviso')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'iso');
-                    penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
+                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'iso')+infdicator(x<0);
             end
             if(isfield(opt,'trueAlpha'))
                 switch opt.errorType
@@ -230,7 +226,7 @@ classdef Wrapper < handle
                         computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
                 end
             end
-            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,varargin{:},opt.innerThresh);
+            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,opt.innerThresh,opt.maxInnerItr,varargin{:});
             if(isfield(opt,'restartEvery')) opts.restart=opt.restartEvery; end
             if(isfield(opt,'alg')) opts.alg=opt.alg; end
             opts.tol=opt.thresh;

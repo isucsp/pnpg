@@ -30,26 +30,28 @@ switch lower(op)
                 OPT.u = u(i)*10.^(-2:2);
                 %gnet{i,k}=Wrapper.glmnet(Phi,wvltMat(length(OPT.trueAlpha),dwt_L,daub),y,initSig,OPT);
 
+                if(k>1) return ; end
                 for j=5:-1:1
                     fprintf('%s, i=%d, j=%d, k=%d\n','NPG',i,j,k);
                     OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
-                    if(i~=6)
-                    opt=OPT;
-                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    pnpgc    {i,j,k}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
                     tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
+                    tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200;
+                    tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    mysave;
+                    continue;
+
                     opt=OPT; opt.innerThresh=1e-5;
                     spiral_m5   {i,j,k}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.innerThresh=1e-5;
                     sparsn_m5   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    mysave;
-                    continue;
-                else
-                    continue;
-                end
-
+                    opt=OPT;
+                    pnpg     {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgc    {i,j,k}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.alg='N83';
                     tfocs_n83_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.restart=false;
@@ -62,8 +64,6 @@ switch lower(op)
                     pnpg_noAdp {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
                     pnpg_cumu0 {i,j,k}=Wrapper.PNPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
-                    tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                     opt=OPT; opt.innerThresh=1e-4;
                     sparsn_m4   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -79,8 +79,6 @@ switch lower(op)
                     tfocs_100_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     opt=OPT; opt.restartEvery=300;
                     tfocs_300_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.restartEvery=200;
-                    tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                     continue;
 
