@@ -70,7 +70,7 @@ classdef PNPG < Methods
                         obj.admmTol*obj.difAlpha,...
                         obj.maxInnerItr,obj.alpha);
                     newCost=obj.func(newX);
-                    if(obj.p<15) keyboard; end
+                    %if(obj.p<15) keyboard; end
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
                         if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
                             obj.t=obj.t*obj.stepShrnk; continue;

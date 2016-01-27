@@ -47,9 +47,17 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
                 if(k>1) return; end
+                if(i==6) continue; end
                 if(i<5) return; end
-                opt=OPT; opt.cumuTol=0;
+                opt=OPT; opt.cumuTol=0; opt.maxItr=1e3;
+                pg_n0   {i,j,k}=Wrapper.PG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 pnpg_n0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                opt=OPT; opt.maxItr=1e3;
+                pg   {i,j,k}=Wrapper.PG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                keyboard
                 mysave;
                 continue
 

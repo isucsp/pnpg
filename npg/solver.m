@@ -67,7 +67,7 @@ if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
 if(~isfield(opt,'preSteps'))
     switch lower(opt.noiseType)
         case 'poisson'
-            opt.preSteps=2;
+            opt.preSteps=0;
         otherwise
             opt.preSteps=0;
     end
@@ -133,7 +133,7 @@ switch lower(opt.alphaStep)
     case {lower('SpaRSA')}
         alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
     case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs'),...
-            lower('GFB'),lower('Condat'),lower('PNPG')}
+            lower('GFB'),lower('Condat'),lower('PNPG'),lower('PG')}
         switch(lower(opt.proximal))
             case lower('wvltFADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u,...

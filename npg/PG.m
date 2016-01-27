@@ -57,8 +57,10 @@ classdef PG < Methods
                 % start of line Search
                 while(true)
                     obj.ppp = obj.ppp+1;
-                    [newX,obj.innerSearch]=obj.proxmapping(xbar-obj.grad/obj.t,...
-                        obj.u/obj.t,obj.admmTol*obj.difAlpha,...
+                    [newX,obj.innerSearch]=obj.proxmapping(...
+                        xbar-obj.grad/obj.t,...
+                        obj.u/obj.t,...
+                        obj.admmTol*obj.difAlpha,...
                         obj.maxInnerItr,obj.alpha);
                     newCost=obj.func(newX);
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
@@ -79,7 +81,7 @@ classdef PG < Methods
                         else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
                                 global strlen
-                                fprintf('\n NPG is having a negative step size, do nothing and return!!');
+                                fprintf('\n PG is having a negative step size, do nothing and return!!');
                                 strlen=0;
                                 return;
                             end
