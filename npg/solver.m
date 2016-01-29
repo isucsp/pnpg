@@ -48,7 +48,8 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
 if(~isfield(opt,'proximal' )) opt.proximal='wvltADMM'; end
-if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.8; end
+if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
@@ -64,14 +65,8 @@ if(~isfield(opt,'muLustig')) opt.muLustig=1e-12; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'restart')) opt.restart=true; end
 if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
-if(~isfield(opt,'preSteps'))
-    switch lower(opt.noiseType)
-        case 'poisson'
-            opt.preSteps=0;
-        otherwise
-            opt.preSteps=0;
-    end
-end
+if(~isfield(opt,'preSteps')) opt.preSteps=0; end
+
 % continuation setup
 if(~isfield(opt,'continuation')) opt.continuation=false; end
 if(~isfield(opt,'contShrnk')) opt.contShrnk=0.5; end
@@ -251,6 +246,11 @@ if(any(strcmp(properties(alphaStep),'maxInnerItr'))...
     alphaStep.maxInnerItr=opt.maxInnerItr;
 end
 
+if(any(strcmp(properties(alphaStep),'stepIncre'))...
+        && isfield(opt,'stepIncre'))
+    alphaStep.stepIncre=opt.stepIncre;
+end
+
 if(any(strcmp(properties(alphaStep),'weight'))...
         && isfield(opt,'weight'))
     alphaStep.weight=opt.weight(:);
@@ -373,12 +373,7 @@ tic; p=0; strlen=0; convThresh=0;
 while(true)
     p=p+1;
     str=sprintf(' %5d',p);
-    if(p<=opt.preSteps && ~strcmpi(opt.initStep,'fixed'))
-        temp=alphaStep.stepSizeInit(opt.initStep);
-        alphaStep.t=min(alphaStep.t,temp);
-    end
     
-    %if(p==173) keyboard; end
     alphaStep.main();
 
     out.fVal(p,:) = (alphaStep.fVal(:))';

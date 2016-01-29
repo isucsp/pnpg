@@ -33,11 +33,29 @@ classdef Utils < handle
             g=x-z;
             f=sqrNorm(x-z)/2;
             if(nargout>=3)
-                h = @(xx,opt) hessian(xx,opt);
+                h = ones(size(x));
             end
-            function hh = hessian(x,opt)
-                if(opt==1) hh = x;
-                else hh = x'*x;
+        end
+        function varargout = linearModel(alpha,Phi,Phit,y,b)
+            PhiAlpha=Phi(alpha);
+            if(exist('b','var')) PhiAlpha=PhiAlpha+b; end
+            switch(nargout)
+                case 1
+                   varargout{1}=Utils.augLag(PhiAlpha,y);
+                case 2
+                   [varargout{1},g]=Utils.augLag(PhiAlpha,y);
+                   varargout{2}=Phit(g);
+                case 3
+                   [varargout{1},g,h]=Utils.augLag(PhiAlpha,y);
+                   varargout{2}= Phit(g);
+                   varargout{3}= @(x,opt) hessian(x,opt,h);
+            end
+            function hh = hessian(x,opt,h)
+                yy = Phi(x);
+                if(opt==1)
+                    hh = Phit(h.*yy);
+                else
+                    hh = yy'*(h.*yy);
                 end
             end
         end
@@ -134,25 +152,6 @@ classdef Utils < handle
             end
         end
 
-        function [f,g,h] = linearModel(alpha,Phi,Phit,y)
-            PhiAlpha=Phi(alpha);
-            f=sqrNorm(y-PhiAlpha)/2;
-            if(nargout>=2)
-                g=Phit(PhiAlpha-y);
-                if(nargout>=3)
-                    h=@(x,opt) hessian(x,opt);
-                end
-            end
-            function hh = hessian(x,opt)
-                yy = Phi(x);
-                if(opt==1)
-                    hh = Phit(yy);
-                else
-                    hh = yy'*yy;
-                end
-            end
-        end
-
         % The Poisson Generalized Linear Model with identity log link: Ey=Φα
         function [f,g,h] = poissonModelAppr(alpha,Phi,Phit,y,b,EPS)
             if(~exist('b','var')) b=0; end
@@ -221,7 +220,49 @@ classdef Utils < handle
                 end
             end
         end
+        function [f,g,h] = poisson(x,y,EPS)
+            % modeling the Poisson measurement with linear model
+            %     y ~ Poisson ( x )
+            %  f(α)=1'*(x-y) - y'*ln(x./y)
+            %  g(α)=[ 1-y./x ]
+            %  h(α)=[ y./x.^2 ]
 
+            if(nargout>=1)
+                nzy=(y~=0);  %nzx=(x~=0);
+                f=sum(x-y)-innerProd(y(nzy),log(x(nzy)./y(nzy)));
+                if(nargout>=2)
+                    g=ones(size(y));
+                    g(nzy)=1-y(nzy)./x(nzy);
+                    if(nargout>=3)
+                        h=zeros(size(y));
+                        h(nzy)=y(nzy)./(x(nzy).^2);
+                    end
+                end
+            end
+        end
+        function varargout = glm(alpha,y,model,Phi,Phit,b)
+            PhiAlpha=Phi(alpha);
+            if(exist('b','var')) PhiAlpha=PhiAlpha+b; end
+            switch(nargout)
+                case 1
+                   varargout{1}=model(PhiAlpha,y);
+                case 2
+                   [varargout{1},g]=model(PhiAlpha,y);
+                   varargout{2}=Phit(g);
+                case 3
+                   [varargout{1},g,h]=model(PhiAlpha,y);
+                   varargout{2}= Phit(g);
+                   varargout{3}= @(x,opt) hessian(x,opt,h);
+            end
+            function hh = hessian(x,opt,h)
+                yy = Phi(x);
+                if(opt==1)
+                    hh = Phit(h.*yy);
+                else
+                    hh = yy'*(h.*yy);
+                end
+            end
+        end
         function [a,b] = poissonModelConstEst(Phi,Phit,y,b)
             % Estimate the MLE given the signal is a constant
             if(~exist('b','var') || isempty(b)) b=0; end

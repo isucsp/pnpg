@@ -1,6 +1,7 @@
 classdef PNPG < Methods
     properties
         stepShrnk = 0.5;
+        stepIncre = 0.9;
         preAlpha=0;
         preG=[];
         preY=[];
@@ -46,10 +47,10 @@ classdef PNPG < Methods
 
             while(pp<obj.maxItr)
                 obj.p = obj.p+1; pp=pp+1;
-                obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
+                obj.ppp=0; incStep=false; goodMM=true;
                 if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                     % adaptively increase the step size
-                    obj.t=obj.t*obj.stepShrnk;
+                    obj.t=obj.t*obj.stepIncre;
                     obj.cumu=0;
                     incStep=true;
                 end
@@ -72,14 +73,10 @@ classdef PNPG < Methods
                     newCost=obj.func(newX);
                     %if(obj.p<15) keyboard; end
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
-                        if(obj.p<=obj.preSteps && obj.ppp<18 && goodStep && obj.t>0)
-                            obj.t=obj.t*obj.stepShrnk; continue;
-                        else
-                            break;
-                        end
+                        break;
                     else
                         if(obj.ppp<=20 && obj.t>0)
-                            obj.t=obj.t/obj.stepShrnk; goodStep=false; 
+                            obj.t=obj.t/obj.stepShrnk;
                             if(incStep)
                                 if(obj.incCumuTol)
                                     obj.cumuTol=obj.cumuTol+4;

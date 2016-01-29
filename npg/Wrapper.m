@@ -171,6 +171,8 @@ classdef Wrapper < handle
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
             if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-6; end
             if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=1e3; end
+            if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+            if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
             switch lower(opt.noiseType)
                 case 'poisson'
                     if(isfield(opt,'bb'))
@@ -233,6 +235,8 @@ classdef Wrapper < handle
             opts.errFcn=@(f,x)computError(x);
             opts.maxIts=opt.maxItr;
             opts.printEvery=10;
+            opts.alpha=opt.stepIncre;
+            opts.beta=opt.stepShrnk;
             tic;
             [x,out1,opts] = tfocs(L,affineF,projectorF, xInit,opts);
             out.time=linspace(0,toc,out1.niter);

@@ -41,76 +41,50 @@ switch lower(op)
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
                 u_max=1;
                 OPT.u = 10^atv(i)*u_max; OPT.proximal='tviso';
+                OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
 
                 initSig=max(fbp{i,1,k}.alpha,0);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-                if(k>1) return; end
-                if(i==6) continue; end
-                if(i<5) return; end
-                opt=OPT; opt.cumuTol=0; opt.maxItr=1e3;
-                pg_n0   {i,j,k}=Wrapper.PG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                if(k==1) continue; end
+                opt=OPT; opt.cumuTol=0;
                 pnpg_n0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT;
+                pnpg      {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.innerThresh=1e-5;
+                spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=OPT; opt.maxItr=1e3;
-                pg   {i,j,k}=Wrapper.PG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                keyboard
                 mysave;
                 continue
 
-                opt=OPT; opt.admmTol=1;
-                pnpg_p0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.admmTol=100;
-                pnpg_p2   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+                pnpg_n0m0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.adaptiveStep=false;
+                pnpg_nInf{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+
+                opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
+                pnpgTV_noAdpStpLong{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.thresh=1e-10;
+                spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                opt=OPT; opt.innerThresh=1e-6;
+                spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
                 tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
                 tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
                 tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                mysave;
-                continue
-
-                opt=OPT;
-                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt=OPT;
-                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                opt=OPT; opt.innerThresh=1e-5;
-                spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.innerThresh=1e-6;
-                spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 if(k==1 && i==5)
-                    opt=OPT; opt.adaptiveStep=false;
-                    pnpgTV_noAdpStp=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
-                    pnpgTV_noAdpStpLong=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-                    pnpgTV_n0=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.thresh=1e-10;
-                    spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
 
 %               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                mysave;
-
-                opt.u = 10^a(i)*u_max; opt.proximal='wvltADMM';
-%               npg   {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgc  {i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt.proximal='wvltLagrangian';
-%               spiral{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-%               opt.u = 10^as(i)*u_max; opt.proximal='wvltADMM';
-%               npgs  {i,j,k}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsc {i,j,k}=Wrapper.NPGsc  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 mysave;
 
@@ -127,21 +101,6 @@ switch lower(op)
 %                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 %                   else
 %                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.alpha,opt);
-%                   end
-%               end; end
-
-%               % for wavelet l1 norm
-%               u_max=1;
-%               aa = (3:-0.5:-6);
-%               opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
-%               npgFull {i,k}=Wrapper.NPG (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgsFull{i,k}=Wrapper.NPGs(Phi,Phit,Psi,Psit,y,initSig,opt);
-%               for j=1:length(aa); if(aa(j)>-2)
-%                   opt.u=10^aa(j)*u_max; opt.proximal='wvltLagrangian';
-%                   if(j==1)
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-%                   else
-%                       spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.alpha,opt);
 %                   end
 %               end; end
 
