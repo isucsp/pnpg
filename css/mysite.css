@@ -15,7 +15,11 @@ body {
 }
 
 #forLoad{
-    margin-top: 18.0px;
+    margin: 0px;
+    padding: 0px;
+}
+#forLoad h1:first-child, #forLoad h2:first-child, #forLoad h3:first-child {
+    margin-top: -0.7em;
 }
 
 #layout-menu {

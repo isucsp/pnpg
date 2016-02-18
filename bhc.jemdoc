@@ -1,4 +1,5 @@
 # jemdoc: nodefaultcss, addcss{css/mysite.css}, addcss{css/bibtex.css}
+# jemdoc: notime
 # jemdoc: title{Blind X-ray CT Image Reconstruction from Polychromatic Measurements}
 # jemdoc: menu{MENU}{bhc.html}
 
@@ -11,6 +12,20 @@
 
 [http://home.eng.iastate.edu/~renliang Renliang Gu]
 and [http://home.eng.iastate.edu/~ald Aleksandar Dogandžić]
+
+~~~
+{}{raw}
+<div class="preamble noshow">
+\(
+\newcommand{\b}[1]{{\boldsymbol{#1}}}
+\newcommand{\bm}[1]{{\boldsymbol{#1}}}
+\newcommand{\cI}{\mathcal{I}}
+\newcommand{\dif}{\rm d}
+\newcommand{\balpha}{\b{\alpha}}
+\newcommand{\bcI}{\b{\mathcal{I}}}
+\)
+</div>
+~~~
 
 === Summary
 

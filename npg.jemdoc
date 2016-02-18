@@ -2,6 +2,11 @@
 # jemdoc: title{Nesterov's Proximal-Gradient}
 # jemdoc: menu{MENU}{npg.html}
 
+~~~
+{}{raw}
+<div id="forLoad">
+~~~
+
 = Projected Nesterov's Proximal-Gradient Algorithms for Sparse Signal Reconstruction with a Convex Constraint
 
 [http://home.eng.iastate.edu/~renliang Renliang Gu] and
@@ -19,5 +24,10 @@ Under construction ...
   ga('create', 'UA-71579362-2', 'auto');
   ga('send', 'pageview');
 </script>
+~~~
+
+~~~
+{}{raw}
+</div>
 ~~~
 
