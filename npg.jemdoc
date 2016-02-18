@@ -2,8 +2,7 @@
 # jemdoc: title{Nesterov's Proximal-Gradient}
 # jemdoc: menu{MENU}{npg.html}
 
-= Projected Nesterov's Proximal-Gradient Algorithms for Sparse Signal 
-Reconstruction with a Convex Constraint
+= Projected Nesterov's Proximal-Gradient Algorithms for Sparse Signal Reconstruction with a Convex Constraint
 
 [http://home.eng.iastate.edu/~renliang Renliang Gu] and
 [http://home.eng.iastate.edu/~ald Aleksandar Dogandžić]
