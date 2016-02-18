@@ -3,11 +3,6 @@
 # jemdoc: title{Blind X-ray CT Image Reconstruction from Polychromatic Measurements}
 # jemdoc: menu{MENU}{bhc.html}
 
-~~~
-{}{raw}
-<div id="forLoad">
-~~~
-
 = Blind X-ray CT Image Reconstruction from Polychromatic Measurements
 
 [http://home.eng.iastate.edu/~renliang Renliang Gu]
@@ -263,10 +258,5 @@ iterations limit, e.g., 500, gives fast and decent solution.
   ga('create', 'UA-71579362-1', 'auto');
   ga('send', 'pageview');
 </script>
-~~~
-
-~~~
-{}{raw}
-</div>
 ~~~
 

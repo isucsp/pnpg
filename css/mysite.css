@@ -14,14 +14,6 @@ body {
     margin: auto;
 }
 
-#forLoad{
-    margin: 0px;
-    padding: 0px;
-}
-#forLoad h1:first-child, #forLoad h2:first-child, #forLoad h3:first-child {
-    margin-top: -0.7em;
-}
-
 #layout-menu {
     background: #f6f6f6;
     border: 1px solid #dddddd;
