@@ -7,10 +7,11 @@ table#tlayout {
 }
 
 body {
+    max-width: 80em;
     background: white;
     font-family: Georgia, serif;
     padding-bottom: 8px;
-    margin: 0;
+    margin: auto;
 }
 
 #forLoad{
