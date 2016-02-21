@@ -9,6 +9,31 @@
 
 Under construction ...
 
+=== Reference:
+
+- R.~Gu and A.~Dogandžić, “Projected Nesterov’s proximal-gradient signal 
+  recovery from compressive Poisson measurements”, in /Proc.\ Asilomar 
+  Conf.\ Signals, Syst.\ Comput./, Pacific Grove, CA, Nov.\ 2015, pp.~1490–
+  1495.
+  [/javascript:toggleBibtex('gdasil15') \[BibTeX\]]
+  [/pdf/asilomar2015.pdf \[PDF\]]
+~~~
+{}{raw}
+<div id="bib_gdasil15" class="bibtex noshow"><pre>
+@string{asilomar = {{Proc. Asilomar Conf. Signals, Syst. Comput.}}}
+@inproceedings{gdasil15,
+    Address = {Pacific Grove, CA},
+    Author = {Renliang Gu and Aleksandar Dogand\v{z}i\'c},
+    Booktitle = Asilomar,
+    Month = nov,
+    Title = {Projected {N}esterov's Proximal-Gradient Signal Recovery from 
+      Compressive {P}oisson Measurements}, 
+    Year = {2015},
+    pages={1490-1495}
+}
+</pre></div>
+~~~
+
 ~~~
 {}{raw}
 <script>
