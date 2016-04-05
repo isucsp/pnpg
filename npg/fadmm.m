@@ -1,7 +1,7 @@
 function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
     % overelaxation version of ADMM
     %
-    % solve 0.5*||α-a||_2 + I(α≥0) + u*||Psit(α)||_1
+    % solve 0.5*||α-a||_2^2 + I(α≥0) + u*||Psit(α)||_1
     %
     % author: Renliang Gu (gurenliang@gmail.com)
     %
@@ -26,7 +26,7 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
 
         difS=pNorm(s-preS); preS=s;
         residual = pNorm(s-Psit_alpha);
-        sNorm = pNorm(s);
+        sNorm = max(pNorm(s),eps);
 
         if(isInDebugMode)
             cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);

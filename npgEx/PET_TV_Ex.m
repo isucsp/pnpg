@@ -191,6 +191,59 @@ switch lower(op)
 
         save('PET_Ex_bound.mat');
 
+    case lower('tspAddition')
+        filename = [mfilename '.mat']; load(filename);
+        fprintf('PET Poisson TV example for TSP\n');
+
+        count = [1e4 1e5 1e6 1e7 1e8 1e9];
+        spiral=spiral_m5;
+        tfocs=tfocs_200_m5;
+
+        % time cost RMSE
+        forSave=[count(:),meanOverK(   fbp,'RMSE'),...
+            meanOverK(     pnpg),...
+            meanOverK(  pnpg_n0),...
+            meanOverK(   spiral),...
+            meanOverK(    tfocs),...
+            ];
+        save('varyCntPET_TV.data','forSave','-ascii');
+         
+        % mIdx=6 is also good
+        mIdx=4; as=1; k=1;
+        fields={'stepSize','RMSE','time','cost'};
+        forSave=addTrace(        pnpg{mIdx,as,k},     [],fields); %  1- 4
+        forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); %  5- 8
+        forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
+        forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
+        forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields); % 17-20
+        forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
+
+        save('cost_itrPET_TV.data','forSave','-ascii');
+
+        nn=128;
+        xtrue = read_zubal_emis('nx', nn, 'ny', nn);
+        idx=5;
+        fprintf('  PNPG: %g%%\n',  pnpg{idx}.RMSE(end)*100);
+        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+        fprintf(' tfocs: %g%%\n', tfocs{idx}.RMSE(end)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg{idx}.opt.trueAlpha)*100);
+        img=pnpg{idx}.alpha; mask=pnpg{idx}.opt.mask;
+        img=showImgMask(  pnpg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV_pet.png')
+        img=showImgMask( tfocs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV_pet.png')
+        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV_pet.png')
+        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV_pet.png')
+
+        idx=4;
+        fprintf('  PNPG: %g%%\n',  pnpg{idx}.RMSE(end)*100);
+        fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+        fprintf(' tfocs: %g%%\n', tfocs{idx}.RMSE(end)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg{idx}.opt.trueAlpha)*100);
+        img=pnpg{idx}.alpha; mask=pnpg{idx}.opt.mask;
+        img=showImgMask(  pnpg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV4_pet.png')
+        img=showImgMask( tfocs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV4_pet.png')
+        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV4_pet.png')
+        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV4_pet.png')
+
     case lower('plotTV')
         filename = [mfilename '.mat']; load(filename);
         fprintf('PET Poisson TV example\n');
@@ -568,3 +621,31 @@ switch lower(op)
 end
 
 end
+
+function [a,b,c]=meanOverK(method,field)
+    if(nargin==2)
+        a=mean(Cell.getField(method,field),3);
+    else
+        a=mean(Cell.getField(method,'time'),3);
+        b=mean(Cell.getField(method,'cost'),3);
+        c=mean(Cell.getField(method,'RMSE'),3);
+        a=[a b c];
+    end
+end
+function forSave=addTrace(method,forSave,fields)
+    if(~exist('fields','var'))
+        fields={'time','cost','RMSE'};
+    end
+    n=length(fields);
+    for i=1:n
+        data(:,i)=reshape(getfield(method,fields{i}),[],1);
+    end
+    forSave=appendColumns(data,forSave);
+end
+function forSave = appendColumns(col,forSave)
+    [r,c]=size(forSave);
+    forSave(1:size(col,1),c+1:c+size(col,2))=col;
+end
+
+
+

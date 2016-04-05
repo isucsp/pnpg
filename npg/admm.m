@@ -1,6 +1,6 @@
 function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
     %
-    % solve 0.5*||α-a||_2 + I(α≥0) + u*||Psit(α)||_1
+    % solve 0.5*||α-a||_2^2 + I(α≥0) + u*||Psit(α)||_1
     %
     % author: Renliang Gu (gurenliang@gmail.com)
     %

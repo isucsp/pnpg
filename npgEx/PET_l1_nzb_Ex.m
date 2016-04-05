@@ -45,16 +45,41 @@ switch lower(op)
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-                opt=OPT; opt.proximal='wvltADMM';
+                if(i==5)
+                    opt=OPT;
                 pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                keyboard
+                opt.L=1/pnpg{i,j,k}.stepSize(end);
+                condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                keyboard
+            else
+                continue
+            end
+
+                if(i==5)
+                    OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
+
+                    opt=OPT; opt.proximal='wvltADMM';
+                    pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.proximal='wvltADMM'; opt.adaptiveStep=false;
+                    pnpg_nInf{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.proximal='wvltADMM'; opt.cumuTol=0; opt.incCumuTol=false;
+                    pnpg_n0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+                    keyboard
+                else
+                    continue;
+                end
+
 
                 opt=OPT; opt.innerThresh=1e-5;
                 spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.innerThresh=1e-6;
                 spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
                 tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
@@ -88,10 +113,6 @@ switch lower(op)
                 pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 pnpgc  {i,j,k}=Wrapper.PNPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
                 npg    {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.proximal='wvltADMM'; opt.adaptiveStep=false;
-                pnpg_nInf{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.proximal='wvltADMM'; opt.cumuTol=0; opt.incCumuTol=false;
-                pnpg_n0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                  
                 if(i==6)
                 % for wavelet l1 norm
