@@ -2,10 +2,10 @@
 close all;
 clear all;
 
-opt.maxItr=5e4; opt.thresh=1e-116; opt.debugLevel=1;
-A=[1,1.21;0.5,3];
+opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=1;
+A=[1,0.1;0.5,4];
 y=poisson(A*[1;1]*100)/100;
-y=A*[0.1;1];
+y=A*[0.1;0.1];
 f=@(a,b) (A(1,1)*a+A(1,2)*b-y(1)+A(2,1)*a+A(2,2)*b-y(2))...
     +y(1)*log(y(1)./(A(1,1)*a+A(1,2)*b))...
     +y(2)*log(y(2)./(A(2,1)*a+A(2,2)*b));
