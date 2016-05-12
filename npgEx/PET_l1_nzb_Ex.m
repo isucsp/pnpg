@@ -45,17 +45,49 @@ switch lower(op)
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
+                if any(i==[4 5]) && k==1
+                    opt=OPT; opt.gamma=5; opt.a=1/4;
+                    pnpgG5Aq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=15; opt.a=1/4;
+                    pnpgGfAq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    mysave;
+                    continue;
+
+                    opt=OPT;
+                    pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.a=0;
+                    pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=3; opt.a=0;
+                    pnpgG3A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=4; opt.a=0;
+                    pnpgG4A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=5; opt.a=0;
+                    pnpgG5A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=6; opt.a=0;
+                    pnpgG6A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=9; opt.a=0;
+                    pnpgG9A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=15; opt.a=0;
+                    pnpgGfA0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.gamma=20; opt.a=0;
+                    pnpgG20A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+
+                    mysave;
+                end
+                continue
+
                 if(i==5)
                     opt=OPT;
-                pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-                keyboard
-                opt.L=1/pnpg{i,j,k}.stepSize(end);
-                condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
-                keyboard
-            else
-                continue
-            end
+                    keyboard
+                    opt.L=1/pnpg{i,j,k}.stepSize(end);
+                    condat   {i,j,k}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    keyboard
+                else
+                    continue
+                end
 
                 if(i==5)
                     OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
@@ -235,7 +267,11 @@ switch lower(op)
         forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
         forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); % 17-20
         forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
-
+        forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields); % 25-28
+        forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields); % 29-32
+        forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields); % 33-26
+        forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields); % 37-40
+        forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields); % 41-44
         save('cost_itrPET.data','forSave','-ascii');
         mincost=reshape(forSave(:,[4,8,12,16,20,24]),[],1); 
         mincost=min(mincost(mincost~=0));

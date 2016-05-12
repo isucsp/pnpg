@@ -24,6 +24,10 @@ classdef PNPG < Methods
         maxInnerItr=100;
 
         proxmapping
+
+        % The following two controls the growth of theta
+        gamma=2;
+        a=1/4;
     end
     methods
         function obj = PNPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
@@ -59,7 +63,12 @@ classdef PNPG < Methods
                     obj.ppp = obj.ppp+1;
 
                     B=obj.t/obj.preT;
-                    newTheta=(1+sqrt(1+4*B*obj.theta^2))/2;
+                    %newTheta=(1+sqrt(1+4*B*obj.theta^2))/2;
+                    if(obj.p==1)
+                        newTheta=1;
+                    else
+                        newTheta=1/obj.gamma+sqrt(obj.a+B*obj.theta^2);
+                    end
                     xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
                     if(obj.forcePositive)
                         xbar=max(xbar,0);

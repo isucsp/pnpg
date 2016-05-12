@@ -52,6 +52,7 @@ if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
+if(~isfield(opt,'saveXtrace')) opt.saveXtrace=false; end
 if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
@@ -266,6 +267,16 @@ if(any(strcmp(properties(alphaStep),'forcePositive'))...
     alphaStep.forcePositive=opt.forcePositive;
 end
 
+if(any(strcmp(properties(alphaStep),'gamma'))...
+        && isfield(opt,'gamma'))
+    alphaStep.gamma=opt.gamma;
+end
+
+if(any(strcmp(properties(alphaStep),'a'))...
+        && isfield(opt,'a'))
+    alphaStep.a=opt.a;
+end
+
 if(opt.continuation || opt.fullcont)
     contIdx=1;
     u_max=opt.u(1);
@@ -449,6 +460,7 @@ while(true)
 
         end
     end
+    if(opt.saveXtrace) out.alphaTrace(:,p)=alpha; end
 
     str=sprintf([str ' %12g %4d'],out.difAlpha(p),alphaStep.ppp);
     if(p>1)

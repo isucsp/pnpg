@@ -36,10 +36,13 @@ switch lower(op)
                     OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
                     if any(i==[6 4]) && any(j==[2 3 4])
-                        opt=OPT; opt.innerThresh=1e-5; opt.thresh=1e-9; opt.maxItr=1e4; opt.debugLevel=0;
-                        sparsn_m5_long   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                        opt=OPT; opt.a=0;
+                        pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                         mysave;
                         continue;
+
+                        opt=OPT; opt.innerThresh=1e-5; opt.thresh=1e-9; opt.maxItr=1e4; opt.debugLevel=0;
+                        sparsn_m5_long   {i,j,k}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     end
                     continue;
 
@@ -340,31 +343,32 @@ switch lower(op)
 
         mIdx=4;
         % each time add 3 columns (time cost RMSE)
-        out=        pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpg.data','temp','-ascii');
-        out=       pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
-        out=      spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-spiral.data','temp','-ascii');
-        out=      sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsn.data','temp','-ascii');
-        out=         gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-gfb.data','temp','-ascii');
-        out=      condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-condat.data','temp','-ascii');
-        out=    tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsAT.data','temp','-ascii');
-        out=tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsN83.data','temp','-ascii');
-        out=  pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgCumu0.data','temp','-ascii');
-        out=sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
+        out=           pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpg.data','temp','-ascii');
+        out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
+        out=         spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-spiral.data','temp','-ascii');
+        out=         sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsn.data','temp','-ascii');
+        out=            gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-gfb.data','temp','-ascii');
+        out=         condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-condat.data','temp','-ascii');
+        out=       tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsAT.data','temp','-ascii');
+        out=   tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsN83.data','temp','-ascii');
+        out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgCumu0.data','temp','-ascii');
+        out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
+        out=         pnpgA0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgG2A0.data','temp','-ascii');
 
         mIdx=6;
         % each time add 3 columns (time cost RMSE)
-        out=        pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpg.data','temp','-ascii');
-        out=       pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgc.data','temp','-ascii');
-        out=      spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-spiral.data','temp','-ascii');
-        out=      sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-sparsn.data','temp','-ascii');
-        out=         gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-gfb.data','temp','-ascii');
-        out=      condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-condat.data','temp','-ascii');
-        out=    tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp);
-        temp=addTrace(tfocs_200_m5_long{mIdx,2},temp);
-        save('traceLG2-tfocsAT.data','temp','-ascii');
-        out=tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-tfocsN83.data','temp','-ascii');
-        out=  pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgCumu0.data','temp','-ascii');
-        out=sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp);save('traceLG2-sparsnL.data','temp','-ascii');
+        out=           pnpg;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpg.data','temp','-ascii');
+        out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgc.data','temp','-ascii');
+        out=         spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-spiral.data','temp','-ascii');
+        out=         sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-sparsn.data','temp','-ascii');
+        out=            gfb;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-gfb.data','temp','-ascii');
+        out=         condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-condat.data','temp','-ascii');
+        out=       tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp);
+        temp=addTrace(tfocs_200_m5_long{mIdx,2},temp); save('traceLG2-tfocsAT.data','temp','-ascii');
+        out=   tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-tfocsN83.data','temp','-ascii');
+        out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgCumu0.data','temp','-ascii');
+        out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp);save('traceLG2-sparsnL.data','temp','-ascii');
+        out=         pnpgA0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG2-pnpgG2A0.data','temp','-ascii');
         
         npgsc=npgc;
         mIdx=6; as=gEle(uNonneg,mIdx); forSave=[]; t=0;
