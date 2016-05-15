@@ -40,7 +40,7 @@ hold on; plot(xInit(1),xInit(2),'r.');
 
 for i=1:out.p
     plot(out.alphaTrace(1,i),out.alphaTrace(2,i),'r.');
-    %pause(0.2);
+    pause(0.1);
 end
 
 opt.alphaStep='pnpg'; opt.adaptiveStep=false;
