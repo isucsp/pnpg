@@ -188,7 +188,7 @@ iterations limit, e.g., 500, gives fast and decent solution.
   [http://www.sigport.org/668 \[Poster\]]
 ~~~
 {}{raw}
-<div id="bib_gdqnde14" class="bibtex noshow"><pre>
+<div id="bib_gd16beamharden" class="bibtex noshow"><pre>
 @STRING{IEEE_J_CI        = "{IEEE} Trans. Comput. Imag."}
 @article{gd16beamharden,
   Author = {Renliang Gu and Aleksandar Dogand\v{z}i\'c},
