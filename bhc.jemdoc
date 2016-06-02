@@ -182,9 +182,27 @@ iterations limit, e.g., 500, gives fast and decent solution.
 - R.~Gu and A.~Dogandžić, "Blind X-ray CT Image Reconstruction from
   Polychromatic Poisson Measurements," /IEEE Trans. Comput. Imag./, vol.~2, 
   no.~2, pp.~150--165, 2016.
+  [/javascript:toggleBibtex('gd16beamharden') \[BibTex\]] 
   [http://dx.doi.org/10.1109/TCI.2016.2523431 \[DOI\]]
   [/pdf/beamhardenDouble.pdf \[PDF\]]
   [http://www.sigport.org/668 \[Poster\]]
+~~~
+{}{raw}
+<div id="bib_gdqnde14" class="bibtex noshow"><pre>
+@STRING{IEEE_J_CI        = "{IEEE} Trans. Comput. Imag."}
+@article{gd16beamharden,
+  Author = {Renliang Gu and Aleksandar Dogand\v{z}i\'c},
+  Journal = IEEE_J_CI,
+  Title = {Blind {X}-ray {CT} Image Reconstruction from Polychromatic 
+    {P}oisson Measurements},
+  volume={2},
+  number={2},
+  pages={150-165},
+  doi={10.1109/tci.2016.2523431},
+  Year = 2016
+}
+</pre></div>
+~~~
 
 - R.~Gu and A.~Dogandžić, (Sep.~2015). Polychromatic X-ray CT image 
   reconstruction and mass-attenuation spectrum estimation. arXiv: 
