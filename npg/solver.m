@@ -221,6 +221,8 @@ switch lower(opt.noiseType)
         alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
     case 'logistic'
         alphaStep.fArray{1} = @(alpha) Utils.logisticModel(alpha,Phi,Phit,y);
+    case 'other'
+        alphaStep.fArray{1} = opt.f;
 end
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
