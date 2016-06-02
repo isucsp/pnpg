@@ -18,7 +18,8 @@ which use the some utility functions under `utils` folder.
 1. R. Gu and A. Dogandžić, “Projected Nesterov’s proximal-gradient signal
    recovery from compressive Poisson measurements”, in *Proc. Asilomar Conf.
    Signals, Syst. Comput.*, Pacific Grove, CA, Nov. 2015, pp. 1490–1495.
-   [DOI](http://dx.doi.org/10.1109/ACSSC.2015.7421393)
+   [\[DOI\]](http://dx.doi.org/10.1109/ACSSC.2015.7421393)
+   [\[PDF\]](http://isucsp.github.io/imgRecSrc/pdf/asilomar2015.pdf)
 
 <!---
 R. Gu and A. Dogandžić, “Nesterov’s Proximal-Gradient Algorithms for Reconstructing Nonnegative Signals with Sparse Transform Coefficients,” 2014.
@@ -38,9 +39,9 @@ paper can be reproduced by first run `*Ex`, e.g., `yangEx`, followed by
 1. R. Gu and A. Dogandžić, “Blind X-ray CT Image Reconstruction from
    Polychromatic Poisson Measurements,” *IEEE Trans. Comput. Imag.*, vol. 2,
    no. 2, pp. 150–165, 2016.
-   [DOI](http://dx.doi.org/10.1109/TCI.2016.2523431)
-   [PDF](http://isucsp.github.io/imgRecSrc/pdf/beamhardenDouble.pdf)
-   [Poster](http://www.sigport.org/668)
+   [\[DOI\]](http://dx.doi.org/10.1109/TCI.2016.2523431)
+   [\[PDF\]](http://isucsp.github.io/imgRecSrc/pdf/beamhardenDouble.pdf)
+   [\[Poster\]](http://www.sigport.org/668)
 
 1. R. Gu and A. Dogandžić. (Sep. 2015). Polychromatic X-ray CT Image
    Reconstruction and Mass-Attenuation Spectrum Estimation. *arXiv*:
@@ -49,9 +50,9 @@ paper can be reproduced by first run `*Ex`, e.g., `yangEx`, followed by
 1. R. Gu and A. Dogandžić, “Beam hardening correction via mass attenuation
    discretization,” in *Proc. IEEE Int. Conf. Acoust., Speech, Signal
    Process.*, Vancouver, Canada, May 2013, pp. 1085–1089.
-   [DOI](http://dx.doi.org/10.1109/ICASSP.2013.6637817)
-   [PDF](http://isucsp.github.io/imgRecSrc/pdf/icassp2013.pdf)
-   [poster](http://isucsp.github.io/imgRecSrc/pdf/icassp2013poster.pdf)
+   [\[DOI\]](http://dx.doi.org/10.1109/ICASSP.2013.6637817)
+   [\[PDF\]](http://isucsp.github.io/imgRecSrc/pdf/icassp2013.pdf)
+   [\[poster\]](http://isucsp.github.io/imgRecSrc/pdf/icassp2013poster.pdf)
 
 ### How to Install
 
