@@ -2,18 +2,23 @@
 
 ### What does this package contain
 
-#### 1. Accelerated Proximal-Gradient Algorithms (NPG and NPGs)
+#### 1. Projected Nesterov's Proximal-Gradient Algorithms (NPG, NPGs and PNPG)
 
 The examples about this methods are under `npgEx` folder with filenames
 ended with `Ex`, where the code can reproduce the figures appear in our
-paper.  The algorithm implementations are under folder `npg`, which use the
-some utility functions under `utils` folder.
+papers and reports.  The algorithm implementations are under folder `npg`,
+which use the some utility functions under `utils` folder.
 
 ##### References
 
-1. R. Gu and A. Dogandžić. (Feb. 2015). Reconstruction of nonnegative
-   sparse signals using accelerated proximal-gradient algorithms. *arXiv*:
-   [1502.02613](http://arxiv.org/abs/1502.02613).
+1. R. Gu and A. Dogandžić, (May. 2016). Projected Nesterov's
+   Proximal-Gradient Algorithm for Sparse Signal Reconstruction with a
+   Convex Constraint. *arXiv*: [1502.02613](http://arxiv.org/abs/1502.02613) \[stat.CO\].
+   
+1. R. Gu and A. Dogandžić, “Projected Nesterov’s proximal-gradient signal
+   recovery from compressive Poisson measurements”, in *Proc. Asilomar Conf.
+   Signals, Syst. Comput.*, Pacific Grove, CA, Nov. 2015, pp. 1490–1495.
+   [DOI](http://dx.doi.org/10.1109/ACSSC.2015.7421393)
 
 <!---
 R. Gu and A. Dogandžić, “Nesterov’s Proximal-Gradient Algorithms for Reconstructing Nonnegative Signals with Sparse Transform Coefficients,” 2014.
@@ -30,13 +35,23 @@ paper can be reproduced by first run `*Ex`, e.g., `yangEx`, followed by
 
 ##### References
 
-1. R. Gu and A. Dogandžić, Beam hardening correction via mass attenuation
-   discretization, in *Proc. IEEE Int. Conf. Acoust., Speech, Signal
-   Process.*, Vancouver, Canada, May 2013, pp. 1085–1089.
+1. R. Gu and A. Dogandžić, “Blind X-ray CT Image Reconstruction from
+   Polychromatic Poisson Measurements,” *IEEE Trans. Comput. Imag.*, vol. 2,
+   no. 2, pp. 150–165, 2016.
+   [DOI](http://dx.doi.org/10.1109/TCI.2016.2523431)
+   [PDF](http://isucsp.github.io/imgRecSrc/pdf/beamhardenDouble.pdf)
+   [Poster](http://www.sigport.org/668)
 
 1. R. Gu and A. Dogandžić. (Sep. 2015). Polychromatic X-ray CT Image
    Reconstruction and Mass-Attenuation Spectrum Estimation. *arXiv*:
    [1509.02193](http://arxiv.org/abs/1509.02193).
+
+1. R. Gu and A. Dogandžić, “Beam hardening correction via mass attenuation
+   discretization,” in *Proc. IEEE Int. Conf. Acoust., Speech, Signal
+   Process.*, Vancouver, Canada, May 2013, pp. 1085–1089.
+   [DOI](http://dx.doi.org/10.1109/ICASSP.2013.6637817)
+   [PDF](http://isucsp.github.io/imgRecSrc/pdf/icassp2013.pdf)
+   [poster](http://isucsp.github.io/imgRecSrc/pdf/icassp2013poster.pdf)
 
 ### How to Install
 
@@ -45,7 +60,7 @@ To install this package, first download the repository by running
     git clone https://github.com/isucsp/imgRecSrc.git
 
 after downloading, from MATLAB change your current folder to `imgRecSrc/`
-and first execute `setupPath.m` to add necessary paths to the environment.
+and execute `setupPath.m` to add necessary paths to the environment.
 
 For X-ray CT examples, the projection and back projection operator
 subroutines may be called from MATLAB.  Since they are written in `c`
