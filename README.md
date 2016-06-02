@@ -52,7 +52,7 @@ paper can be reproduced by first run `*Ex`, e.g., `yangEx`, followed by
    Process.*, Vancouver, Canada, May 2013, pp. 1085–1089.
    [\[DOI\]](http://dx.doi.org/10.1109/ICASSP.2013.6637817)
    [\[PDF\]](http://isucsp.github.io/imgRecSrc/pdf/icassp2013.pdf)
-   [\[poster\]](http://isucsp.github.io/imgRecSrc/pdf/icassp2013poster.pdf)
+   [\[Poster\]](http://isucsp.github.io/imgRecSrc/pdf/icassp2013poster.pdf)
 
 ### How to Install
 
