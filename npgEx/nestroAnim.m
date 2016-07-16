@@ -44,7 +44,7 @@ function nestroAnim(func)
 
     Psi=@(x) x;
     opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=1;
-    opt.u=1e-19;
+    opt.u=1e-10;
     opt.continuation=false; opt.alphaStep='pnpg'; opt.saveXtrace=true;
     opt.adaptiveStep=true;
     out=solver(Phi,Phit,Psi,Psi,y,xInit,opt);
