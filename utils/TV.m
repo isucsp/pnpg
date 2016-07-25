@@ -207,34 +207,50 @@ classdef TV < handle
             cnt=0;
             ii=0;
 
-            while(ii<2000)
+            opts.printEvery=inf;
+            opts.maxTotalIts=5e5;
+            opts.maxIts=1000;
+            opts.factr=1e-8/eps;
+            normG=norm(g,'fro');
+            relDif=1;
+
+            while(relDif<1e-3)
                 ii=ii+1; cnt=cnt+1;
 
                 preP=p; preQ=q; preU=u;
 
-                p=-inv_AtA(At(B(q)+g/u+y/rho/u));
-                p=min(p,1); p=max(p,-1);
-                q=-inv_BtB(Bt(A(p)+g/u+y/rho/u));
-                q=min(q,1); q=max(q,-1);
-                u=-(1+sum(sum((rho*g+y).*(A(p)+B(q)))))/(1+rho*norm(A(p)+B(q),'fro')^2);
-                y=y+rho*(u*A(p)+u*B(q)+g);
+                % objective: 0.5*||Ap+Bq+g/u+y/rho/u||_F^2
+                % subject to the [-1,1] box
+                opts.x0=[p(:); q(:)];
+                [x0,cost,info]=lbfgsb(@(x) quadbox(x,(rho*g+y)/(rho*u),@A,@At,@B,@Bt),...
+                    -1*ones(2*I*J-I-J,1),1*ones(2*I*J-I-J,1), opts);
+                p=reshape(x0(1:(I-1)*J),I-1,J);
+                q=reshape(x0((I-1)*J+1:end),I,J-1);
+                cost=cost;
+                numItr=info.iterations;
 
-                difQ=norm(At(B(q-preQ)),'fro');
-                dif1=abs(preU-u)*norm(Bt(y+rho*preU*(A(p)+B(q))),'fro');
-                dif2=norm((preU-u)*At(y+rho*preU*(A(p)+B(q)))+rho*preU^2*At(B(preQ-q)),'fro');
-                residual=norm(u*A(p)+u*B(q)+g,'fro');
+                newG=A(p)+B(q);
+                u=-(1+sum((rho*g(:)+y(:)).*newG(:)))/(1+rho*norm(newG,'fro')^2);
+
+                y=y+rho*(u*newG+g);
+
+                residual=norm(u*newG+g,'fro');
+                difPQ=norm((preU-u)*newG,'fro');
                 gap=y(:)'*reshape(u*A(p)+u*B(q)+g,[],1);
 
-                fprintf('cnt=%g, u=%g %g residual=%g rho=%g dif=%g, dif1=%g dif2=%g gap=%g\n',...
-                    ii, max(abs([p(:); q(:)])), u, residual, rho, difQ,dif1,dif2,gap);
+                relDif=max(residual, difPQ)/normG;
 
-                if(cnt>10) % prevent excessive back and forth adjusting
-                    if(dif2>10*residual)
-                        rho=rho/2 ; cnt=0;
-                    elseif(dif2<residual/10)
-                        rho=rho*2 ; cnt=0;
-                    end
-                end
+                fprintf('itr=%d, u=%g relDif=%g gap=%g\n',ii, u, relDif, gap);
+                %fprintf('itr=%d, u=%g %g residual=%g rho=%g difPQ=%g, gap=%g numItr=%d normG=%g\n',...
+                %   ii, max(abs([p(:); q(:)])), u, residual, rho, difPQ,gap, numItr, normG);
+
+                %if(cnt>10) % prevent excessive back and forth adjusting
+                %    if(difPQ>10*residual)
+                %        rho=rho/2 ; cnt=0;
+                %    elseif(difPQ<residual/10)
+                %        rho=rho*2 ; cnt=0;
+                %    end
+                %end
             end
             o=u;
 
@@ -270,6 +286,20 @@ classdef TV < handle
                 matrix=min(k,j).*min(J-k,J-j);
                 invQ=q*matrix/J;
             end
+
+            function [f,g] = quadbox(x,c,A,At,B,Bt)
+                % Err= z-f(theta)
+                [I,J]=size(c);
+                p=reshape(x(1:(I-1)*J),I-1,J);
+                q=reshape(x((I-1)*J+1:end),I,J-1);
+                r=A(p)+B(q)+c;
+                f=0.5*norm(r,'fro')^2;
+
+                if(nargout>1)
+                    g=[reshape(At(r),[],1); reshape(Bt(r),[],1)];
+                end
+            end
+
         end
     end
 end
