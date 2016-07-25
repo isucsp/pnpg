@@ -214,7 +214,7 @@ classdef TV < handle
             normG=norm(g,'fro');
             relDif=1;
 
-            while(relDif<1e-3)
+            while(relDif>=1e-3)
                 ii=ii+1; cnt=cnt+1;
 
                 preP=p; preQ=q; preU=u;
