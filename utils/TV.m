@@ -125,11 +125,11 @@ classdef TV < handle
             [I,J]=size(g);
             p=zeros(I-1,J);
             q=zeros(I,J-1);
-            lambda_p1=p+0/(4*I*J-2*I-2*J);
-            lambda_p2=p+0/(4*I*J-2*I-2*J);
-            lambda_q1=q+0/(4*I*J-2*I-2*J);
-            lambda_q2=q+0/(4*I*J-2*I-2*J);
-            %lambda_p1(1,1)=0.5; lambda_q1(1,1)=0.5;
+            lambda1=p+0/(4*I*J-2*I-2*J);
+            lambda2=p+0/(4*I*J-2*I-2*J);
+            lambda3=q+0/(4*I*J-2*I-2*J);
+            lambda4=q+0/(4*I*J-2*I-2*J);
+            %lambda1(1,1)=0.5; lambda3(1,1)=0.5;
             y=zeros(I,J);
             rho=1;
             cnt=0;
@@ -137,19 +137,19 @@ classdef TV < handle
             while(cnt<100)
                 cnt=cnt+1;
 
-                u=sum([lambda_p1(:); lambda_p2(:); lambda_q1(:); lambda_q2(:)]);
-                p=-inv_AtA(At(B(q)+g+y/rho)+(lambda_p1-lambda_p2)/rho);
-                q=-inv_BtB(Bt(A(p)+g+y/rho)+(lambda_q1-lambda_q2)/rho);
+                u=sum([lambda1(:); lambda2(:); lambda3(:); lambda4(:)]);
+                p=-inv_AtA(At(B(q)+g+y/rho)+(lambda1-lambda2)/rho);
+                q=-inv_BtB(Bt(A(p)+g+y/rho)+(lambda3-lambda4)/rho);
                 %keyboard;  % see value of p and q
                 step=1/(4*I*J-2*I-2*J)/2;
-                lambda_p1=max(0,lambda_p1+step*( p-u));
-                lambda_p2=max(0,lambda_p2+step*(-p-u));
-                lambda_q1=max(0,lambda_q1+step*( q-u));
-                lambda_q2=max(0,lambda_q2+step*(-q-u));
+                lambda1=max(0,lambda1+step*( p-u));
+                lambda2=max(0,lambda2+step*(-p-u));
+                lambda3=max(0,lambda3+step*( q-u));
+                lambda4=max(0,lambda4+step*(-q-u));
                 y=y+rho*(A(p)+B(q)+g);
                 fprintf('lambda: %g %g step=%g, u=%g %g\n',...
-                    min([lambda_p1(:); lambda_p2(:); lambda_q1(:); lambda_q2(:)]),...
-                    max([lambda_p1(:); lambda_p2(:); lambda_q1(:); lambda_q2(:)]),...
+                    min([lambda1(:); lambda2(:); lambda3(:); lambda4(:)]),...
+                    max([lambda1(:); lambda2(:); lambda3(:); lambda4(:)]),...
                     step, max(abs([p(:); q(:)])), u);
 
                 %if(cnt>10) % prevent excessive back and forth adjusting
@@ -207,27 +207,31 @@ classdef TV < handle
             cnt=0;
             ii=0;
 
-            while(ii<10000)
+            while(ii<2000)
                 ii=ii+1; cnt=cnt+1;
 
-                preQ=q;
+                preP=p; preQ=q; preU=u;
 
                 p=-inv_AtA(At(B(q)+g/u+y/rho/u));
                 p=min(p,1); p=max(p,-1);
                 q=-inv_BtB(Bt(A(p)+g/u+y/rho/u));
                 q=min(q,1); q=max(q,-1);
+                u=-(1+sum(sum((rho*g+y).*(A(p)+B(q)))))/(1+rho*norm(A(p)+B(q),'fro')^2);
                 y=y+rho*(u*A(p)+u*B(q)+g);
-                u=-(sum(sum((rho*g+y).*(A(p)+B(q)))))/(1+rho*norm(A(p)+B(q),'fro')^2);
 
                 difQ=norm(At(B(q-preQ)),'fro');
+                dif1=abs(preU-u)*norm(Bt(y+rho*preU*(A(p)+B(q))),'fro');
+                dif2=norm((preU-u)*At(y+rho*preU*(A(p)+B(q)))+rho*preU^2*At(B(preQ-q)),'fro');
                 residual=norm(u*A(p)+u*B(q)+g,'fro');
+                gap=y(:)'*reshape(u*A(p)+u*B(q)+g,[],1);
 
-                fprintf('cnt=%g, u=%g %g residual=%g rho=%g dif=%g\n', ii, max(abs([p(:); q(:)])), u, residual, rho, difQ);
+                fprintf('cnt=%g, u=%g %g residual=%g rho=%g dif=%g, dif1=%g dif2=%g gap=%g\n',...
+                    ii, max(abs([p(:); q(:)])), u, residual, rho, difQ,dif1,dif2,gap);
 
                 if(cnt>10) % prevent excessive back and forth adjusting
-                    if(difQ>10*residual)
+                    if(dif2>10*residual)
                         rho=rho/2 ; cnt=0;
-                    elseif(difQ<residual/10)
+                    elseif(dif2<residual/10)
                         rho=rho*2 ; cnt=0;
                     end
                 end
