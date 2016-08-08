@@ -3,8 +3,8 @@ function nestroAnim(func)
     if(~exist('func','var')) func='Poisson'; end
     switch lower(func)
         case lower('poisson')
-            A=[1,0.21;0.5,3];
-            x0=[0.1;0.1];
+            A=[10,0.21;2000.5,5000];
+            x0=[0.4;0.4];
             y=poisson(A*x0*100)/100;
             y=A*x0;
             f=@(a,b) (A(1,1)*a+A(1,2)*b-y(1)+A(2,1)*a+A(2,2)*b-y(2))...
@@ -23,7 +23,7 @@ function nestroAnim(func)
             xInit=[5.5,0.5];
             xInit=[4,5];
             xInit=[3,0];
-            xInit=[1,1]*1e-5;
+            xInit=[1,1]*1e-1;
 
             opt.noiseType='Poisson';
 
@@ -43,44 +43,30 @@ function nestroAnim(func)
     end
 
     Psi=@(x) x;
-    opt.maxItr=5e4; opt.thresh=1e-6; opt.debugLevel=1;
-    opt.u=1e-10;
-    opt.continuation=false; opt.alphaStep='pnpg'; opt.saveXtrace=true;
-    opt.adaptiveStep=true;
+    opt.maxItr=1e4; opt.thresh=1e-5; opt.debugLevel=1; opt.u=1e-10;
+    opt.continuation=false; opt.saveXtrace=true;
+
+    opt.alphaStep='pg'; opt.adaptiveStep=false;  opt.L=opt.L/10;
     out=solver(Phi,Phit,Psi,Psi,y,xInit,opt);
     out.alpha
+    figure; contour(x1,x2,fx,v); hold on; plot(xInit(1),xInit(2),'r.');
+    plot(out.alphaTrace(1,:),out.alphaTrace(2,:),'g');
 
-    figure; contour(x1,x2,fx,v);
-    hold on; plot(xInit(1),xInit(2),'r.');
+    keyboard
 
-    for i=1:out.p
-        plot(out.alphaTrace(1,i),out.alphaTrace(2,i),'r.');
-        pause(0.002);
-    end
+    opt.alphaStep='pnpg'; opt.adaptiveStep=true;
+    out=solver(Phi,Phit,Psi,Psi,y,xInit,opt);
+    out.alpha
+    figure; contour(x1,x2,fx,v); hold on; plot(xInit(1),xInit(2),'r.');
+    plot(out.alphaTrace(1,:),out.alphaTrace(2,:),'r');
 
     keyboard
 
     opt.alphaStep='pnpg'; opt.adaptiveStep=false;
     out=solver(Phi,Phit,Psi,Psi,y,xInit,opt);
     out.alpha
-    figure; contour(x1,x2,fx,v);
-    hold on; plot(xInit(1),xInit(2),'r.');
-    for i=1:out.p
-        plot(out.alphaTrace(1,i),out.alphaTrace(2,i),'r.');
-        pause(0.002);
-    end
-
-    keyboard
-
-    opt.alphaStep='pg'; opt.adaptiveStep=true;
-    out=solver(Phi,Phit,Psi,Psi,y,xInit,opt);
-    out.alpha
-    figure; contour(x1,x2,fx,v);
-    hold on; plot(xInit(1),xInit(2),'r.');
-    for i=1:out.p
-        plot(out.alphaTrace(1,i),out.alphaTrace(2,i),'r.');
-        pause(0.002);
-    end
+    figure; contour(x1,x2,fx,v); hold on; plot(xInit(1),xInit(2),'r.');
+    plot(out.alphaTrace(1,:),out.alphaTrace(2,:),'b');
 
 end
 

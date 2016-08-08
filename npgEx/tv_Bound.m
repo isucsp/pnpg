@@ -38,7 +38,6 @@ switch lower(op)
                 u_maxANI_admm(i,k)=TV.upperBoundU_admm(maskFunc(g,opt.mask));
                 u_maxANI_adm2(i,k)=TV.upperBoundU_admm2(maskFunc(g,opt.mask));
 
-                keyboard
                 continue;
                 initSig=ones(size(opt.trueAlpha))*x0s;
 
