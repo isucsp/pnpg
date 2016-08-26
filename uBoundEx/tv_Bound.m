@@ -31,12 +31,15 @@ switch lower(op)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
 
                 [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
-                u_maxANI(i,k)=TV.upperBoundU(maskFunc(g,opt.mask));
-                u_maxISO(i,k)=sqrt(2)*u_maxANI(i,k);
-                u_maxANI_dual(i,k)=TV.upperBoundU_dual(maskFunc(g,opt.mask));
-                u_maxISO_dual(i,k)=sqrt(2)*u_maxANI_dual(i,k);
-                u_maxANI_admm(i,k)=TV.upperBoundU_admm(maskFunc(g,opt.mask));
-                u_maxANI_adm2(i,k)=TV.upperBoundU_admm2(maskFunc(g,opt.mask));
+                g=reshape(g,sqrt(length(g(:))),[]);
+                %u_maxANI(i,k)=TV.upperBoundU(maskFunc(g,opt.mask));
+                %u_maxISO(i,k)=sqrt(2)*u_maxANI(i,k);
+                %u_maxANI_dual(i,k)=TV.upperBoundU_dual(maskFunc(g,opt.mask));
+                %u_maxISO_dual(i,k)=sqrt(2)*u_maxANI_dual(i,k);
+                %u_maxANI_admm(i,k)=TV.upperBoundU_admm(maskFunc(g,opt.mask));
+                %u_maxANI_adm2(i,k)=TV.upperBoundU_admm2(maskFunc(g,opt.mask));
+                %keyboard
+                u_admm(i,k)=TV.upperBoundU_admm3(g,x0s*ones(size(g)));
 
                 continue;
                 initSig=ones(size(opt.trueAlpha))*x0s;

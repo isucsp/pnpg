@@ -207,10 +207,12 @@ classdef TV < handle
             cnt=0;
             ii=0;
 
+            keyboard
+
             opts.printEvery=inf;
             opts.maxTotalIts=5e5;
             opts.maxIts=1000;
-            opts.factr=1e-8/eps;
+            opts.factr=1e-6/eps;
             normG=norm(g,'fro');
             relDif=1;
 
@@ -268,6 +270,69 @@ classdef TV < handle
                 [I,J]=size(p); I=I+1;
                 [k,i]=meshgrid(1:I-1);
                 matrix=min(k,i).*min(I-k,I-i);
+                invP=matrix*p/I;
+            end
+            function x = B(q)
+                [I,J]=size(q); J=J+1;
+                x=zeros(I,J);
+                x(:,1:J-1)=q;
+                x(:,2:J)=x(:,2:J)-q;
+            end
+            function q = Bt(x)
+                [I,J]=size(x);
+                q=x(:,1:J-1)-x(:,2:J);
+            end
+            function invQ = inv_BtB(q)
+                [I,J]=size(q); J=J+1;
+                [k,j]=meshgrid(1:J-1);
+                matrix=min(k,j).*min(J-k,J-j);
+                invQ=q*matrix/J;
+            end
+
+            function [f,g] = quadbox(x,c,A,At,B,Bt)
+                % Err= z-f(theta)
+                [I,J]=size(c);
+                p=reshape(x(1:(I-1)*J),I-1,J);
+                q=reshape(x((I-1)*J+1:end),I,J-1);
+                r=A(p)+B(q)+c;
+                f=0.5*norm(r,'fro')^2;
+
+                if(nargout>1)
+                    g=[reshape(At(r),[],1); reshape(Bt(r),[],1)];
+                end
+            end
+
+        end
+
+        function o = upperBoundU_admm3(g,xstar)
+            [I,J]=size(g);
+            Psi=@(w) reshape(A(reshape(w(1:(I-1)*J),[],J))...
+                +B(reshape(w(((I-1)*J+1):end),I,[])),[],1);
+            Psit=@(x) [reshape(At(reshape(x,I,J)),[],1);...
+                reshape(Bt(reshape(x,I,J)),[],1)];
+
+            o=uBound(Psi,Psit,@(x)Pncx(x,xstar),xstar(:),g);
+
+            function y = Pncx(x,xstar)
+                y=x;
+                p=xstar>0;  y(p)=0;
+                p=xstar==0; y(p)=min(y(p),0);
+                y=y(:);
+            end
+            function x = A(p)
+                [I,J]=size(p); I=I+1;
+                x=zeros(I,J);
+                x(1:I-1,:)=p;
+                x(2:I,:)=x(2:I,:)-p;
+            end
+            function p = At(x)
+                [I,J]=size(x);
+                p=x(1:I-1,:)-x(2:I,:);
+            end
+            function invP = inv_AtA(p)
+                [I,J]=size(p); I=I+1;
+                [k,ii]=meshgrid(1:I-1);
+                matrix=min(k,ii).*min(I-k,I-ii);
                 invP=matrix*p/I;
             end
             function x = B(q)
