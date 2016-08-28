@@ -34,10 +34,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         ii=ii+1; cnt=cnt+1;
 
         preV=v; preT=t; preW=w; preZ=z; prePsi_w=Psi_w;
-
-        v=(1-rho*g'*(Psi_w+t+z)) / (rho*(g'*g));
-        t=Pncx( -v*g-Psi_w-z );
-
+         
         % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
         % subject to the [-1,1] box
         opts.x0=w;
@@ -46,6 +43,10 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         numItr=info.iterations;
 
         Psi_w=Psi(w);
+
+
+        v=(1-rho*g'*(Psi_w+t+z)) / (rho*(g'*g));
+        t=Pncx( -v*g-Psi_w-z );
 
         z=z+Psi_w+v*g+t;
 
