@@ -22,7 +22,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
     opts.maxIts=1000;
     opts.factr=1e-6/eps;
 
-    normG=norm(g,2)^2;
+    normG=norm(g,2);
     relDif=1;
 
     lb=-ones(size(w)); ub=ones(size(w));
@@ -50,17 +50,20 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
 
         z=z+Psi_w+v*g+t;
 
-        pRes=norm(v*g+Psi_w+t,2)^2;
-        dRes1=g'*(prePsi_w-Psi_w+preT-t);
-        dRes2=norm(prePsi_w-Psi_w,2)^2;
+        pRes=norm(v*g+Psi_w+t,2);
+        %dRes1=g'*(prePsi_w-Psi_w+preT-t);
+        %dRes2=norm(prePsi_w-Psi_w,2)^2;
+        dRes1=normG*abs(preV-v);
+        dRes2=norm(preT-t);
+        dRes3=norm(prePsi_w-Psi_w);
         gap=z'*(v*g+Psi_w+t);
 
         %relDif=max(abs([pRes, dRes1, dRes2]))/normG;
         relDif=1;
 
         if(mod(ii,100)==0 || (ii<100 && mod(ii,10)==0) || ii<10)
-            fprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g gap=%g normG=%g\n',ii, 1/v, pRes,...
-                dRes1, dRes2, gap, normG);
+            fprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g dRes3=%g gap=%g normG=%g\n',ii, 1/v, pRes,...
+                dRes1, dRes2, dRes3, gap, normG);
         end
         %fprintf('itr=%d, u=%g %g residual=%g rho=%g difPQ=%g, gap=%g numItr=%d normG=%g\n',...
         %   ii, max(abs([p(:); q(:)])), u, residual, rho, difPQ,gap, numItr, normG);
