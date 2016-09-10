@@ -12,7 +12,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
     z=zeros(size(t));
     Psi_w=Psi(w);
 
-    rho=0.5;
+    rho=0.05;
 
     cnt=0;
     ii=0;
@@ -53,7 +53,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         pRes=norm(v*g+Psi_w+t,2);
         %dRes1=g'*(prePsi_w-Psi_w+preT-t);
         %dRes2=norm(prePsi_w-Psi_w,2)^2;
-        dRes1=normG*abs(preV-v);
+        dRes1=norm(g*(preV-v)+preT-t);
         dRes2=norm(preT-t);
         dRes3=norm(prePsi_w-Psi_w);
         gap=z'*(v*g+Psi_w+t);
@@ -63,16 +63,16 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
 
         if(mod(ii,100)==0 || (ii<100 && mod(ii,10)==0) || ii<10)
             fprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g dRes3=%g gap=%g normG=%g\n',ii, 1/v, pRes,...
-                dRes1, dRes2, dRes3, gap, normG);
+                dRes1, dRes2, dRes3, gap, rho);
         end
         %fprintf('itr=%d, u=%g %g residual=%g rho=%g difPQ=%g, gap=%g numItr=%d normG=%g\n',...
         %   ii, max(abs([p(:); q(:)])), u, residual, rho, difPQ,gap, numItr, normG);
 
-        %if(cnt>10) % prevent excessive back and forth adjusting
-        %    if(difPQ>10*residual)
-        %        rho=rho/2 ; cnt=0;
-        %    elseif(difPQ<residual/10)
-        %        rho=rho*2 ; cnt=0;
+        %if(cnt>100) % prevent excessive back and forth adjusting
+        %    if(dRes1>10*pRes)
+        %        rho=rho/2; z=z*2; cnt=0;
+        %    elseif(dRes1<pRes/10)
+        %        rho=rho*2; z=z/2; cnt=0;
         %    end
         %end
     end
