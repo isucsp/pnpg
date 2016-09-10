@@ -41,9 +41,9 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         [w,cost,info]=lbfgsb(@(x) quadbox(x,v*g+t+z,Psi,Psit),...
             lb,ub,opts);
         numItr=info.iterations;
+        disp(info);
 
         Psi_w=Psi(w);
-
 
         v=(1-rho*g'*(Psi_w+t+z)) / (rho*(g'*g));
         t=Pncx( -v*g-Psi_w-z );
