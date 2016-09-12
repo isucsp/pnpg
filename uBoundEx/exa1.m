@@ -10,5 +10,7 @@ Psit=Psi;
 Pncx=@(x) min(0,mean(x))*ones(2,1);
 g=[1;0];
 
+uTrue=Inf
+
 u=uBound(Psi,Psit,Pncx,xstar,g);
 

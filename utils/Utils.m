@@ -263,7 +263,7 @@ classdef Utils < handle
                 end
             end
         end
-        function [a,b] = poissonModelConstEst(Phi,Phit,y,b)
+        function [a,b] = poissonModelConstEst(Phi,Phit,y,b,epsilon)
             % Estimate the MLE given the signal is a constant
             if(~exist('b','var') || isempty(b)) b=0; end
             b=b(:);
@@ -287,7 +287,7 @@ classdef Utils < handle
             else
                 low=high;
             end
-            while(high-low>1e-15)
+            while(high-low>epsilon)
                 mid=(high+low)/2;
                 if(g(mid)>0)
                     high=mid;

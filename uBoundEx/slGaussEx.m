@@ -21,7 +21,7 @@ switch lower(op)
         OPT.maxItr=5e4; OPT.thresh=1e-6; OPT.debugLevel=1;
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
-        for k=1:5
+        for k=1:1
             for i=1:length(m); if(any(i==[2:2:7]))
                 OPT.m=m(i); OPT.snr=inf;
                 [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100+i);

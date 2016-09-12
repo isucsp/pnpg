@@ -26,12 +26,13 @@ switch lower(op)
         K=1;
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
         for k=1:K
-            for i=1:length(count)
+            for i=4:length(count)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
                 [y,Phi,Phit,Psi,Psit,fbpfunc,opt]=loadPET(count(i),opt);
 
-                [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb);
+                [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb,1e-16);
                 g=reshape(g,sqrt(length(g(:))),[]);
+
                 %u_maxANI(i,k)=TV.upperBoundU(maskFunc(g,opt.mask));
                 %u_maxISO(i,k)=sqrt(2)*u_maxANI(i,k);
                 %u_maxANI_dual(i,k)=TV.upperBoundU_dual(maskFunc(g,opt.mask));
