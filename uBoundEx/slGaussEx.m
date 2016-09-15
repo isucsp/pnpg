@@ -40,15 +40,15 @@ switch lower(op)
                 u_1(i)=cvx_optval;
                 
                 Pncx=@(x) min(x,0);
-                u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(y));
+                %u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(y));
 
                 opt=OPT;
                 initSig=zeros(size(opt.trueAlpha)); ur=u_1(i)*100; ul=0;
-                while(ur-ul>1e-9)
+                while(ur-ul>1e-5)
                     opt.u=(ur+ul)/2;
                     fprintf('u=%g\n',opt.u);
-                    out=Wrapper.PNPG(Phi,Phit,[],[],y,initSig,opt);
-                    rmse=norm(out.alpha-initSig);
+                    out=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+                    rmse=norm(out.alpha)
                     if(rmse==0)
                         ur=opt.u;
                     else
