@@ -5,19 +5,31 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
     %
 
     g=g(:);
+
+    if(norm(g+Pncx(-g))==0) 
+        u=0;
+        return;
+    end
+
+    % it is sure that normG!=0
+    normG=norm(g,2);
+    g=g/normG;
+
     xstar=xstar(:);
-    v=0;
+    v=1;
+    vg=v*g;
     t=zeros(size(xstar));
     w=zeros(size(Psit(xstar)));
     z=zeros(size(t));
     Psi_w=Psi(w);
 
-    rho=1e-3;
+    rho=1;
 
     cnt=0;
     ii=0;
+    EndCnt=0;
 
-    dRes=1e-6;
+    dRes=1e-4;
 
     opts.printEvery=inf;
     opts.maxTotalIts=5e3;
@@ -26,19 +38,11 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
 
     strlen=0;
 
-    normG=max(1,norm(g,2))
-    relDif=1;
-
     lb=-ones(size(w)); ub=ones(size(w));
     ww=sign(Psit(xstar)); A=(ww~=0);
     lb(A)=ww(A); ub(A)=ww(A);
 
-    if(norm(g+Pncx(-g))==0) 
-        u=0;
-        return;
-    end
-
-    while(relDif>=1e-9 || ii<12)
+    while(EndCnt<3)
 
         ii=ii+1; cnt=cnt+1;
 
@@ -50,41 +54,35 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
             % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
             % subject to the [-1,1] box
             opts.x0=w;
-            [w,cost,info]=lbfgsb(@(x) quadbox(x,v*g+t+z,Psi,Psit),...
+            [w,cost,info]=lbfgsb(@(x) quadbox(x,vg+t+z,Psi,Psit),...
                 lb,ub,opts);
             %numItr=info.iterations; %disp(info); strlen=0;
             Psi_w=Psi(w);
 
-            v=(1-rho*g'*(Psi_w+t+z)) / (rho*(g'*g));
-            t=Pncx( -v*g-Psi_w-z );
+            % Since ||g||=1, v=(1-rho*g'*(Psi_w+t+z)) / (rho*(g'*g))
+            % reduces to
+            v=1/rho-g'*(Psi_w+t+z); vg=v*g;
+            t=Pncx( -vg-Psi_w-z );
         end
 
-        keyboard
+        z=z+Psi_w+vg+t;
 
-        z=z+Psi_w+v*g+t;
-
-        pRes=norm(v*g+Psi_w+t,2);
+        pRes=norm(vg+Psi_w+t,2);
         %dRes1=g'*(prePsi_w-Psi_w+preT-t);
         %dRes2=norm(prePsi_w-Psi_w,2)^2;
-        dRes1=norm(g*(preV-v));
+        dRes1=abs(preV-v);  %norm(g*(preV-v));
         dRes2=norm(preT-t);
         dRes=[max(dRes1,dRes2)];
-        gap=z'*(v*g+Psi_w+t);
+        gap=z'*(vg+Psi_w+t);
 
-        relDif=max(pRes, dRes)/normG;
-        %relDif=1;
-
-        str=sprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g relDif=%g gap=%g rho=%g       ',ii, 1/v, pRes,...
-                dRes1, dRes2, relDif, gap, rho);
+        str=sprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g gap=%g rho=%g       ',ii, normG/v, pRes,...
+                dRes1, dRes2, gap, rho);
         if(strlen==0 || (mod(ii-1,100)==0 || (ii<=100 && mod(ii-1,10)==0) || ii-1<10))
             fprintf('\n%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);
         end
         strlen = length(str);
-
-        %fprintf('itr=%d, u=%g %g residual=%g rho=%g difPQ=%g, gap=%g numItr=%d normG=%g\n',...
-        %   ii, max(abs([p(:); q(:)])), u, residual, rho, difPQ,gap, numItr, normG);
 
         if(cnt>10) % prevent excessive back and forth adjusting
             if(dRes>10*pRes)
@@ -93,8 +91,14 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
                 rho=rho*2; z=z/2; cnt=0;
             end
         end
+
+        if(max(pRes,dRes)<1e-9)
+            EndCnt=EndCnt+1;
+        else
+            EndCnt=0;
+        end
     end
-    u=1/v;
+    u=normG/v;
     fprintf('\n\n');
 
     function [f,g] = quadbox(x,y,Psi,Psit)
