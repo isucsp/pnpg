@@ -84,7 +84,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         end
         strlen = length(str);
 
-        if(cnt>10) % prevent excessive back and forth adjusting
+        if(cnt>100) % prevent excessive back and forth adjusting
             if(dRes>10*pRes)
                 rho=rho/2; z=z*2; cnt=0;
             elseif(dRes<pRes/10)

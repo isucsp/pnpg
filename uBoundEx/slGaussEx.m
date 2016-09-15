@@ -22,6 +22,8 @@ switch lower(op)
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
         for k=1:1
             for i=1:length(m);
+                fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
+
                 OPT.m=m(i); OPT.snr=inf;
                 [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100+i);
                 initSig = Phit(invEAAt*y);
@@ -40,22 +42,31 @@ switch lower(op)
                 u_1(i)=cvx_optval;
                 
                 Pncx=@(x) min(x,0);
-                %u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(y));
+                u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(y));
 
                 opt=OPT;
                 initSig=zeros(size(opt.trueAlpha)); ur=u_1(i)*100; ul=0;
+                ur_rmse=0; ul_rmse=0;
+
+                keyboard
                 while(ur-ul>1e-5)
-                    opt.u=(ur+ul)/2;
+                    fprintf('%10g <-> %10g\n',ul,ur);
+                    fprintf('%10g <-> %10g\n',ul_rmse,ur_rmse);
+                    opt.u=(ur+ul)/2; opt.thresh=1e-9;
                     fprintf('u=%g\n',opt.u);
                     out=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
                     rmse=norm(out.alpha)
-                    if(rmse==0)
-                        ur=opt.u;
+                    if(rmse<=eps)
+                        ur=opt.u; ur_rmse=rmse;
                     else
-                        ul=opt.u;
+                        ul=opt.u; ul_rmse=rmse;
                     end
+                    pause(2);
                 end
+                u_rmse(i)=ur_rmse;
                 u_3(i)=ur;
+
+                mysave;
             end;
         end
 

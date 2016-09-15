@@ -134,7 +134,6 @@ switch lower(opt.alphaStep)
             case lower('wvltFADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u,...
                     innerThresh,maxInnerItr,false,varargin{:});
-                % remember to find what I wrote on the paper in office
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
