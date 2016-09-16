@@ -45,7 +45,7 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
 
         if(pppp>maxItr) break; end
         if(difS<=relativeTol*sNorm && residual<=relativeTol*sNorm) break; end
-        if(cnt>10) % prevent excessive back and forth adjusting
+        if(cnt>20) % prevent excessive back and forth adjusting
             if(difS>10*residual)
                 rho = rho/2 ; nu=nu*2; cnt=0;
             elseif(difS<residual/10)
