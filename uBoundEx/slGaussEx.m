@@ -108,7 +108,21 @@ switch lower(op)
         load([mfilename '.mat']);
 
         m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
-        K = 1;
+
+        forSave=[m; u_1; u_2; u_3; u_4; u_5; u_6]';
+
+        figure;
+        plot(m,u_1,'b^-'); hold on;
+        plot(m,u_2,'gh-'); hold on;
+        plot(m,u_3,'bs--');
+        plot(m,u_4,'r*-');
+        plot(m,u_5,'gp-');
+        plot(m,u_6,'ro--');
+
+        rowLabels={'$N$','theoretical','empirical','theoretical','empirical'};
+        matrix2latex(forSave(:,[1 2 4 5 7]), 'slBound.tex', 'columnLabels', rowLabels,...
+            'alignment', 'r', 'format', '%-6.2f', 'size', 'small');
+        save('slBound.data','forSave','-ascii');
 end
 end
 

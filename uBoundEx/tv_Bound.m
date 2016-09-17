@@ -33,7 +33,9 @@ switch lower(op)
                 [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,opt.bb,1e-16);
                 g=reshape(g,sqrt(length(g(:))),[]);
 
-                %u_1(i)=TV.upperBoundU_admm3(g,x0s*ones(size(g)));
+                u_1(i)=TV.upperBoundU_admm3(g,x0s*ones(size(g)));
+
+                keyboard
 
                 initSig=ones(size(opt.trueAlpha))*x0s;
 
@@ -80,20 +82,20 @@ switch lower(op)
         end
 
     case 'plot'
+        load([mfilename '.mat']);
+
+        count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
         figure;
-        loglog(count,u_maxANI,'b^-'); hold on;
-        loglog(count,u_maxANI_dual,'gh-'); hold on;
-        loglog(count,u_trueANI,'bs--');
-        loglog(count,u_maxISO,'r*-');
-        loglog(count,u_maxISO_dual,'gp-');
-        loglog(count,u_trueISO,'ro--');
-        h=legend('U_0','empirical anisotropic U','sqrt(2)U_0','empirical isotropic U');
+        loglog(count,u_1,'b^-'); hold on;
+        loglog(count,u_2,'bs--');
+        loglog(count,u_1*sqrt(2),'gh-'); hold on;
+        loglog(count,u_3,'r*-');
+        h=legend('$U_0$','empirical anisotropic $U$','$\sqrt{2}U_0$','empirical isotropic $U$');
         set(h,'interpreter','latex');
 
-        forSave=[count(:) u_maxANI, u_trueANI, u_maxISO, u_trueISO];
+        forSave=[count(:), u_1', u_2', u_3'];
         save('bound4U.data','forSave','-ascii');
-
         save(filename);
 end
 end
