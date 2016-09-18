@@ -129,7 +129,7 @@ classdef PNPG < Methods
                             fprintf('\n decrease admmTol to %g',obj.admmTol);
                             strlen=0;
                             pp=pp-1; continue;
-                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e4)
                             obj.maxInnerItr=obj.maxInnerItr*10;
                             global strlen
                             fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);

@@ -42,7 +42,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
     ww=sign(Psit(xstar)); A=(ww~=0);
     lb(A)=ww(A); ub(A)=ww(A);
 
-    while(EndCnt<3)
+    while(EndCnt<3 && ii<=5e3)
 
         ii=ii+1; cnt=cnt+1;
 
