@@ -137,7 +137,7 @@ switch lower(opt.alphaStep)
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,false,varargin{:});
+                    innerThresh,maxInnerItr,true,varargin{:});
                 % remember to find what I wrote on the paper in office
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltLagrangian')
