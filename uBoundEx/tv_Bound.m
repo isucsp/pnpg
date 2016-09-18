@@ -35,8 +35,6 @@ switch lower(op)
 
                 u_1(i)=TV.upperBoundU_admm3(g,x0s*ones(size(g)));
 
-                keyboard
-
                 initSig=ones(size(opt.trueAlpha))*x0s;
 
                 ur=u_1(i)*100; ul=0; ur_rmse=0; ul_rmse=0;
