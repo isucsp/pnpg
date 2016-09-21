@@ -238,6 +238,10 @@ if(any(strcmp(properties(alphaStep),'admmAbsTol'))...
         && isfield(opt,'admmAbsTol'))
     alphaStep.admmAbsTol=opt.admmAbsTol;
 end
+if(any(strcmp(properties(alphaStep),'debugLevel'))...
+        && isfield(opt,'debugLevel'))
+    alphaStep.debugLevel=opt.debugLevel;
+end
 if(any(strcmp(properties(alphaStep),'admmTol'))...
         && isfield(opt,'admmTol'))
     alphaStep.admmTol=opt.admmTol;
@@ -518,7 +522,7 @@ while(true)
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
         convThresh=convThresh+1;
     end
-    if(p >= opt.maxItr || convThresh>2) && (p>opt.minItr)
+    if(p >= opt.maxItr || (convThresh>2 && p>opt.minItr))
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end

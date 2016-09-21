@@ -103,15 +103,19 @@ classdef PG < Methods
                     end
                     if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
                         obj.admmTol=obj.admmTol/10;
-                        global strlen
-                        fprintf('\n decrease admmTol to %g',obj.admmTol);
-                        strlen=0;
+                        if(obj.debugLevel>0)
+                            global strlen
+                            fprintf('\n decrease admmTol to %g',obj.admmTol);
+                            strlen=0;
+                        end
                         pp=pp-1; continue;
                     elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
                         obj.maxInnerItr=obj.maxInnerItr*10;
-                        global strlen
-                        fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
-                        strlen=0;
+                        if(obj.debugLevel>0)
+                            global strlen
+                            fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
+                            strlen=0;
+                        end
                         pp=pp-1; continue;
                     end
                     % give up and force it to converge

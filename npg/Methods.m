@@ -15,6 +15,7 @@ classdef Methods < handle
         stepSize=0;
         converged = false;
         debug;
+        debugLevel=0;
         % steps at the beginning with BB stepsize and then backtracking
         preSteps=10;
         % for NCG_PR
