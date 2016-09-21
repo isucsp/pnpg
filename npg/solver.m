@@ -137,7 +137,7 @@ switch lower(opt.alphaStep)
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltADMM')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,true,varargin{:});
+                    innerThresh,maxInnerItr,false,varargin{:});
                 % remember to find what I wrote on the paper in office
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('wvltLagrangian')
@@ -266,6 +266,11 @@ end
 if(any(strcmp(properties(alphaStep),'forcePositive'))...
         && isfield(opt,'forcePositive'))
     alphaStep.forcePositive=opt.forcePositive;
+end
+
+if(any(strcmp(properties(alphaStep),'maxPossibleInnerItr'))...
+        && isfield(opt,'maxPossibleInnerItr'))
+    alphaStep.maxPossibleInnerItr=opt.maxPossibleInnerItr;
 end
 
 if(any(strcmp(properties(alphaStep),'gamma'))...

@@ -21,6 +21,7 @@ classdef NPG < Methods
         adaptiveStep=true;
 
         maxInnerItr=100;
+        maxPossibleInnerItr=1e3;
 
         proxmapping
     end
@@ -119,7 +120,7 @@ classdef NPG < Methods
                             fprintf('\n decrease admmTol to %g',obj.admmTol);
                             strlen=0;
                             pp=pp-1; continue;
-                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<1e3)
+                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
                             obj.maxInnerItr=obj.maxInnerItr*10;
                             global strlen
                             fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
