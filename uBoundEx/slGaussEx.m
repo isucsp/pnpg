@@ -33,6 +33,7 @@ switch lower(op)
                 yy = Phi(OPT.trueAlpha)+v*(norm(y)/sqrt(snr(i)*OPT.m));
 
                 Phity=Phit(yy);
+
                 cvx_begin
                     variable a(p)
                     minimize( norm( PsiM'*(Phity+a), inf) )
@@ -42,7 +43,7 @@ switch lower(op)
                 u_1(i)=cvx_optval;
                 
                 Pncx=@(x) min(x,0);
-                u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(yy));
+                u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
 
                 opt=OPT; opt.maxPossibleInnerItr=1e4;
                 func=@(init,optt) Wrapper.PG(Phi,Phit,Psi,Psit,yy,init,optt);
@@ -60,11 +61,14 @@ switch lower(op)
                 u_4(i)=norm( PsiM'*(Phity), inf);
                 
                 Pncx=@(x) x*0;
-                u_5(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phit(yy));
+                u_5(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
 
                 opt=OPT;
                 func=@(init,optt) Wrapper.NPGs(Phi,Phit,Psi,Psit,yy,init,optt);
                 u_6(i)=bisection(opt,zeros(p,1),func,0,u_4(i)*100);
+
+                % following is the 1d TV regularization
+                u_7(i)=norm(cumsum(Phity),inf);
 
                 mysave;
             end;
