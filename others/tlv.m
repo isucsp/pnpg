@@ -10,7 +10,7 @@ function out=tlv(X,type)
 % OUTPUT
 % out ....................... The total variation of X.
 [m,n]=size(X);
-if(min(m,n)==1)
+if(min(m,n)==1 && ~strcmpi(type,'1d'))
     global strlen
     fprintf('warning from tlv: using 1-d TV\n');
     strlen=0;
@@ -23,7 +23,7 @@ switch type
         D(1:m-1,:)=P1.^2;
         D(:,1:n-1)=D(:,1:n-1)+P2.^2;
         out=sum(sum(sqrt(D)));
-    case 'l1'
+    case {'l1', '1d'}
         out=sum(sum(abs(P1)))+sum(sum(abs(P2)));
     otherwise
         error('Invalid total variation type. Should be either "iso" or "l1"');

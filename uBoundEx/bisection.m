@@ -1,11 +1,14 @@
 
-function [ur,ur_rmse]=bisection(opt,initSig,func,ul,ur)
+function [ur,ur_rmse]=bisection(opt,func,cond,ul,ur)
     ur_rmse=0; ul_rmse=0;
     while(ur-ul>1e-5*ur)
         fprintf('%10g(%g) <-> %10g(%g)\n',ul,ul_rmse,ur,ur_rmse);
         opt.u=(ur+ul)/2;
-        out=func(initSig,opt);
-        rmse=norm(out.alpha-initSig);
+        out=func(opt);
+        if(isstruct(out))
+            out=out.alpha;
+        end
+        rmse=cond(out);
         if(rmse<=eps)
             ur=opt.u; ur_rmse=rmse;
         else

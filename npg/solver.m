@@ -152,6 +152,10 @@ switch lower(opt.alphaStep)
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
                     innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
+            case lower('tv1d')
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'l1',0,inf,length(alpha),1);
+                penalty = @(x) tlv(x,'1d');
         end
 
         switch lower(opt.alphaStep)

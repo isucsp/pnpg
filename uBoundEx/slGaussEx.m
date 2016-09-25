@@ -34,43 +34,66 @@ switch lower(op)
 
                 Phity=Phit(yy);
 
-                cvx_begin
-                    variable a(p)
-                    minimize( norm( PsiM'*(Phity+a), inf) )
-                    subject to
-                        a>=0
-                cvx_end
-                u_1(i)=cvx_optval;
-                
-                Pncx=@(x) min(x,0);
-                u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
+     %          cvx_begin
+     %              variable a(p)
+     %              minimize( norm( PsiM'*(Phity+a), inf) )
+     %              subject to
+     %                  a>=0
+     %          cvx_end
+     %          u_1(i)=cvx_optval;
+     %          
+     %          Pncx=@(x) min(x,0);
+     %          u_2(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
 
-                opt=OPT; opt.maxPossibleInnerItr=1e4;
-                func=@(init,optt) Wrapper.PG(Phi,Phit,Psi,Psit,yy,init,optt);
-                u_3(i)=bisection(opt,zeros(p,1),func,0,u_1(i)*100)
+     %          opt=OPT; opt.maxPossibleInnerItr=1e4;
+     %          func=@(init,optt) Wrapper.PG(Phi,Phit,Psi,Psit,yy,init,optt);
+     %          u_3(i)=bisection(opt,zeros(p,1),func,0,u_1(i)*100)
 
-                % the following are under sparsity regularization only
-                %
-                cvx_begin
-                    variable a(p)
-                    minimize( norm( PsiM'*(Phity+a), inf) )
-                    subject to
-                        a>=0
-                cvx_end
+     %          % the following are under sparsity regularization only
+     %          %
+     %          cvx_begin
+     %              variable a(p)
+     %              minimize( norm( PsiM'*(Phity+a), inf) )
+     %              subject to
+     %                  a>=0
+     %          cvx_end
 
-                u_4(i)=norm( PsiM'*(Phity), inf);
-                
-                Pncx=@(x) x*0;
-                u_5(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
+     %          u_4(i)=norm( PsiM'*(Phity), inf);
+     %          
+     %          Pncx=@(x) x*0;
+     %          u_5(i)=uBound(Psi,Psit,Pncx,zeros(p,1),-Phity));
 
-                opt=OPT;
-                func=@(init,optt) Wrapper.NPGs(Phi,Phit,Psi,Psit,yy,init,optt);
-                u_6(i)=bisection(opt,zeros(p,1),func,0,u_4(i)*100);
+     %          opt=OPT;
+     %          func=@(init,optt) Wrapper.NPGs(Phi,Phit,Psi,Psit,yy,init,optt);
+     %          u_6(i)=bisection(opt,zeros(p,1),func,0,u_4(i)*100);
 
                 % following is the 1d TV regularization
-                u_7(i)=norm(cumsum(Phity),inf);
+                x_0=sum(Phity)/sqrNorm(Phi(ones(p,1)));
+                x0=x_0*ones(p,1);
+                g=Phit(Phi(x0)-yy);
+                u_7(i)=norm(cumsum(g),inf);
+                 
+                Pncx=@(x) min(x,0);
+                u_8(i)=uBound(@A,@At,Pncx,x0,g);
+
+                opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=1e4;
+                opt.admmTol=1e-8;
+
+                %opt.u=100;
+                opt.debugLevel=1; opt.maxItr=1e2;
+
+                func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
+                % pars.print = 0;
+                % pars.tv ='l1';
+                % pars.MAXITER = 1e4;
+                % pars.epsilon = 1e-9; 
+                % func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
+                cond=@(x) norm(x-x0);
+
+                %u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.1);
 
                 mysave;
+                keyboard
             end;
         end
 
@@ -95,5 +118,16 @@ switch lower(op)
             'alignment', 'r', 'format', '%-6.2f', 'size', 'small');
         save('slBound.data','forSave','-ascii');
 end
+end
+
+function x = A(p)
+    [I,J]=size(p); I=I+1;
+    x=zeros(I,J);
+    x(1:I-1,:)=p;
+    x(2:I,:)=x(2:I,:)-p;
+end
+function p = At(x)
+    [I,J]=size(x);
+    p=x(1:I-1,:)-x(2:I,:);
 end
 

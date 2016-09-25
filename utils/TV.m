@@ -53,10 +53,12 @@ classdef TV < handle
         end
     end
     methods(Static)
-        function [newX,innerSearch]=denoise(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub)
+        function [newX,innerSearch]=denoise(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub,nRow,nCol)
             if(~exist('tvType','var')) tvType='iso'; end
             if(~exist('lb','var')) lb=0; end
             if(~exist('ub','var')) ub=inf; end
+            if(~exist('nRow','var')) nRow=sqrt(length(x(:))); end
+            if(~exist('nCol','var')) nCol=length(x(:))/nRow; end
             pars.print = 0;
             pars.tv = tvType;
             pars.MAXITER = maxInnerItr;
@@ -64,7 +66,7 @@ classdef TV < handle
 
             if(~exist('maskmt','var') || isempty(maskmt))
                 mask.a=@(xx) xx(:);
-                mask.b=@(xx) reshape(xx,sqrt(length(xx(:))),[]);
+                mask.b=@(xx) reshape(xx,nRow,nCol);
             else
                 maskIdx=find(maskmt~=0);
                 n=size(maskmt);
