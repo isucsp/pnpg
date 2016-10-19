@@ -78,6 +78,33 @@ classdef TV < handle
             newX=mask.a(newX);
         end
 
+        function [newX,innerSearch]=denoise_PNPG(x,u,innerThresh,maxInnerItr,maskmt,tvType,lb,ub,nRow,nCol)
+
+            if(~exist('tvType','var')) tvType='iso'; end
+            if(~exist('lb','var')) lb=0; end
+            if(~exist('ub','var')) ub=inf; end
+            if(~exist('nRow','var')) nRow=size(x,1); end
+            if(~exist('nCol','var')) nCol=size(x,2); end
+
+            pars.print = 0;
+            pars.tv = tvType;
+            pars.MAXITER = maxInnerItr;
+            pars.epsilon = innerThresh; 
+
+            if(~exist('maskmt','var') || isempty(maskmt))
+                mask.a=@(xx) xx(:);
+                mask.b=@(xx) reshape(xx,nRow,nCol);
+            else
+                maskIdx=find(maskmt~=0);
+                n=size(maskmt);
+                mask.a=@(xx) maskFunc(xx,maskIdx);
+                mask.b=@(xx) maskFunc(xx,maskIdx,n);
+            end
+
+            [newX,innerSearch]=denoise_bound_mod(mask.b(x),u,lb,ub,pars);
+            newX=mask.a(newX);
+        end
+
         function o = upperBoundU_admm3(g,xstar)
             [I,J]=size(g);
             Psi=@(w) reshape(A(reshape(w(1:(I-1)*J),[],J))...
