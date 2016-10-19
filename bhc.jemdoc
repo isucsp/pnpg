@@ -24,16 +24,17 @@ and [http://home.eng.iastate.edu/~ald Aleksandar Dogandžić]
 
 === Summary
 
-We propose a method for sparse image reconstruction from polychromatic
-computed tomography (CT) measurements under the blind scenario where the
-material of the inspected object and the incident-energy spectrum are
-unknown.  Our framework is general and applies for both the Poisson and lognormal noise assumption.
+We propose a method for sparse image reconstruction from polychromatic 
+computed tomography (CT) measurements under the blind scenario where the 
+material of the inspected object and the incident-energy spectrum are 
+unknown.  Our framework is general and applies for both the Poisson and 
+lognormal noise assumption.
 
-This is the first model that expresses noiseless CT measurements in a form
-of Laplace transform. This new representation may open a new gate to handle
-the beam hardening artifacts and lead to a new framework for signal
-reconstruction and material characterization from polychromatic
-measurements.
+This is the first *reconstruction* model that expresses noiseless CT 
+measurements in a form of Laplace transform. This new representation may 
+open a new gate to handle the beam hardening artifacts and lead to a new 
+framework for signal reconstruction and material characterization from 
+polychromatic measurements.
 
 In many scenarios, knowing the incident spectrum and the inspected material
 may be challenging.  Our method, requiring /no more/ information than the
