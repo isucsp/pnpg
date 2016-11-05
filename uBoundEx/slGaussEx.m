@@ -90,10 +90,9 @@ switch lower(op)
                 % func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
                 cond=@(x) norm(x-x0);
 
-                %u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.1);
+                u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.1);
 
                 mysave;
-                keyboard
             end;
         end
 

@@ -75,7 +75,7 @@ function u=uBound(Psi,Psit,Pncx,xstar,g)
         dRes=[max(dRes1,dRes2)];
         gap=z'*(vg+Psi_w+t);
 
-        str=sprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g gap=%g rho=%g       ',ii, normG/v, pRes,...
+        str=sprintf('itr=%d, u=%g pRes=%g dRes1=%g dRes2=%g gap=%g rho=%g                 ',ii, normG/v, pRes,...
                 dRes1, dRes2, gap, rho);
         if(strlen==0 || (mod(ii-1,100)==0 || (ii<=100 && mod(ii-1,10)==0) || ii-1<10))
             fprintf('\n%s',str);
