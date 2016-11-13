@@ -146,15 +146,15 @@ switch lower(opt.alphaStep)
                 penalty = @(x) pNorm(Psit(x),1);
             case lower('tvl1')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1');
+                    innerThresh,maxInnerItr,opt.mask,'l1',init);
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
             case lower('tviso')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'iso');
+                    innerThresh,maxInnerItr,opt.mask,'iso',init);
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
             case lower('tv1d')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1',0,inf,length(alpha),1);
+                    innerThresh,maxInnerItr,opt.mask,'l1',init,0,inf,length(alpha),1);
                 penalty = @(x) tlv(x,'1d');
             case lower('other')
                 proximalProj=opt.proximalProj;

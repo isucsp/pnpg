@@ -1,4 +1,4 @@
-1. remove LInk in the setupPath file
+1. remove Link in the setupPath file
 2. handle the find nothing problem in preprocess
 3. handle projection size larger than 28888
 4. change models, e.g., poissAlpha, poissLI and something inside class Utils to object
@@ -37,19 +37,14 @@ make better structure for class Method and its subclasses
 
 todo for denoise_bound_mod
      use more agressive step size
-     use restart
      use C implementation
      use a better mask implementation
 
+todo for inner iterations
+  use better initialization by packing the inner iterations to objects
+  maybe need to provide some interface to implement here.
 
-
-
-
-
-
-
-
-
-
-
+write a c++ version of the algorithm
+  multi threads?
+  gpu?
 
