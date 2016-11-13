@@ -78,12 +78,12 @@ switch lower(op)
 %       u_8(i)=uBound(@A,@At,Pncx,x0,g);
 
 
-        opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
-        opt.admmTol=1e-9; opt.debugLevel=1; opt.maxItr=1e2;
-        %opt.u=100;
-        func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
-        cond=@(x) norm(x-x0);
-        u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
+%       opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
+%       opt.admmTol=1e-9; opt.debugLevel=1; opt.maxItr=1e2;
+%       %opt.u=100;
+%       func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
+%       cond=@(x) norm(x-x0);
+%       u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
 
         pars.print = false;
         pars.tv ='1d';

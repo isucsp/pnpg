@@ -1,4 +1,4 @@
-function [X_den,iter,fun_all]=denoise_bound_mod(Xobs,lambda,l,u,pars)
+function [D,iter,fun_all]=denoise_bound_mod(Xobs,lambda,l,u,pars)
 % optimized by renliang gu
 %
 %This function implements the FISTA method for TV-based denoising problems
@@ -39,7 +39,7 @@ function [X_den,iter,fun_all]=denoise_bound_mod(Xobs,lambda,l,u,pars)
 %                                                      and 'l1' for nonisotropic
 %  
 % OUTPUT
-% X_den ........................... The solution of the problem 
+% D ........................... The solution of the problem 
 %                                            min{||X-Xobs||^2+2*lambda*TV(X
 %                                            ) : l <= X_{i,j} <=u} 
 % iter .............................  Number of iterations required to get
@@ -140,7 +140,8 @@ while((i<MAXITER)&&(count<5))
   Pold1=P1;
   Pold2=P2;
   tk=tkp1;
-  D=project(Xobs-lambda*Lforward(R1,R2));
+  C=Xobs-lambda*Lforward(R1,R2)
+  D=project(C);
   [Q1,Q2]=Ltrans(D);
 
   %%%%%%%%%%
@@ -179,23 +180,19 @@ while((i<MAXITER)&&(count<5))
     count=0;
   end
 
+  fval=-norm(C-D,'fro')^2+norm(C,'fro')^2;
+  if (fval>fold)
+    tkp1=1;
+  end
+
   if(nargout==3)
-    C=Xobs-lambda*Lforward(P1,P2);
-    PC=project(C);
-    fval=-norm(C-PC,'fro')^2+norm(C,'fro')^2;
     fun_all=[fun_all;fval];
     if(prnt)
       fprintf('%7d %10.10f %10.10f  %19g %12g',i,fval,norm(D-Dold,'fro')/norm(D,'fro'),f(D,lambda), f(pars.init,lambda));
-      if (fval>fold)
-        fprintf('  *\n');
-        tkp1=1;
-      else
-        fprintf('   \n');
-      end
+      if (fval>fold) fprintf('  *\n'); else fprintf('   \n'); end
     end
   end
 end
-X_den=D;
 iter=i;
 end
 
