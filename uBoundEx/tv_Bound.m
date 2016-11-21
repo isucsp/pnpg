@@ -31,7 +31,7 @@ switch lower(op)
         %       [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
         %       g=reshape(g,sqrt(length(g(:))),[]);
 
-        %       u_1(i)=TV.upperBoundU_admm3(g,x0s*ones(size(g)));
+        %       u_1(i)=TV.upperBoundU_admm(g,x0s*ones(size(g)));
 
         %       initSig=ones(size(OPT.trueAlpha))*x0s;
         %       ur=u_1(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;

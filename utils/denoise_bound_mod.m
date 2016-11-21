@@ -140,7 +140,7 @@ while((i<MAXITER)&&(count<5))
   Pold1=P1;
   Pold2=P2;
   tk=tkp1;
-  C=Xobs-lambda*Lforward(R1,R2)
+  C=Xobs-lambda*Lforward(R1,R2);
   D=project(C);
   [Q1,Q2]=Ltrans(D);
 
@@ -180,7 +180,7 @@ while((i<MAXITER)&&(count<5))
     count=0;
   end
 
-  fval=-norm(C-D,'fro')^2+norm(C,'fro')^2;
+  fval=(-norm(C-D,'fro')^2+norm(C,'fro')^2)/2;
   if (fval>fold)
     tkp1=1;
   end

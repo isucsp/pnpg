@@ -14,7 +14,6 @@ classdef PG < Methods
         nonInc=0;
         innerSearch=0;
 
-        forcePositive=false;
         adaptiveStep=true;
 
         maxInnerItr=100;

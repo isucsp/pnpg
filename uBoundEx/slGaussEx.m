@@ -85,16 +85,30 @@ switch lower(op)
 %       cond=@(x) norm(x-x0);
 %       u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
 
-        pars.print = false;
-        pars.tv ='1d';
-        pars.MAXITER = 4e4;
-        pars.epsilon = 1e-13; 
-        beta=1e-2*pNorm(x0)/pNorm(g);
-        pars.init=x0;
-        func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
-        cond=@(x) norm(x-x0);
-        u_A(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
+%       pars.print = false;
+%       pars.tv ='1d';
+%       pars.MAXITER = 4e4;
+%       pars.epsilon = 1e-13; 
+%       beta=1e-2*pNorm(x0)/pNorm(g);
+%       pars.init=x0;
+%       func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
+%       cond=@(x) norm(x-x0);
+%       u_A(i)=bisection([],func,cond,0,u_7(i)*1.2, 1e-5);
 
+%       iso=ProximalTV('iso',@(x)max(x,0));
+%       iso.maxItr=4e4; iso.thresh=1e-13;
+%       func=@(optt) iso.denoise(x0-g,optt.u);
+%       cond=@(x) norm(x-x0);
+%       u_B(i)=bisection([],func,cond,0,u_7(i)*1.2, 1e-5);
+
+        opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
+        opt.prj_C=@(x)max(x,0);
+        opt.admmTol=1e-9; opt.debugLevel=1; opt.maxItr=1e2;
+        %opt.u=100;
+        func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
+        cond=@(x) norm(x-x0);
+        u_C(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
+ 
         mysave;
         keyboard
       end;
@@ -124,10 +138,13 @@ end
 end
 
 function x = A(p)
-  x=[p(1,:); p(2:end,:)-p(1:end-1,:)];
+  [I,J]=size(p);
+  p(I,0)=0;
+  x=[p(1,:); p(2:I,:)-p(1:I-1,:)];
 end
 
 function p = At(x)
-  p=[x(1:end-1,:)-x(2:end,:);zeros(1,size(x,2))];
+  [I,J]=size(x);
+  p=[x(1:I-1,:)-x(2:I,:);zeros(1,J)];
 end
 

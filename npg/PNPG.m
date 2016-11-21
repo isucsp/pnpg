@@ -16,15 +16,13 @@ classdef PNPG < Methods
         nonInc=0;
         innerSearch=0;
 
-        forcePositive=true;
-
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
 
         maxInnerItr=100;
         maxPossibleInnerItr=1e3;
 
-        proxmapping
+        proximal
 
         % The following two controls the growth of theta
         gamma=2;
@@ -36,7 +34,7 @@ classdef PNPG < Methods
             obj.maxItr = maxAlphaSteps;
             obj.stepShrnk = stepShrnk;
             obj.nonInc=0;
-            obj.proxmapping=pm;
+            obj.proximal=pm;
             obj.setAlpha(alpha);
         end
         function setAlpha(obj,alpha)
@@ -71,15 +69,17 @@ classdef PNPG < Methods
                         newTheta=1/obj.gamma+sqrt(obj.a+B*obj.theta^2);
                     end
                     xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
-                    if(obj.forcePositive)
-                        xbar=max(xbar,0);
-                    end
+                    xbar=obj.prj_C(xbar);
+
                     [oldCost,obj.grad] = obj.func(xbar);
-                    [newX,obj.innerSearch]=obj.proxmapping(...
-                        xbar-obj.grad/obj.t,...
-                        obj.u/obj.t,...
-                        obj.admmTol*obj.difAlpha,...
-                        obj.maxInnerItr,obj.alpha);
+
+                    if(obj.proximal.iterative)
+                        obj.proximal.thresh = obj.admmTol*obj.difAlpha;
+                        obj.proximal.maxItr = obj.maxInnerItr;
+                    end
+
+                    newX=obj.proximal.denoise(xbar-obj.grad/obj.t, obj.u/obj.t);
+
                     newCost=obj.func(newX);
                     %if(obj.p<15) keyboard; end
                     if(Utils.majorizationHolds(newX-xbar,newCost,oldCost,[],obj.grad,obj.t))
@@ -107,9 +107,9 @@ classdef PNPG < Methods
                     end
                 end
                 obj.stepSize = 1/obj.t;
-                obj.fVal(3) = obj.fArray{3}(newX);
+                obj.fVal(3) = obj.proximal.getPenalty();
                 newObj = newCost+obj.u*obj.fVal(3);
-                objBar = oldCost+obj.u*obj.fArray{3}(xbar);
+                objBar = oldCost+obj.u*obj.proximal.getPenalty(xbar);
 
                 if((newObj-obj.cost)>0)
                     if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
@@ -126,29 +126,36 @@ classdef PNPG < Methods
                             obj.debug=[obj.debug '_Reset'];
                             obj.reset();
                         end
-                        if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
-                            obj.admmTol=obj.admmTol/10;
-                            if(obj.debugLevel>0)
-                                global strlen
-                                fprintf('\n decrease admmTol to %g',obj.admmTol);
-                                strlen=0;
+                        if(obj.proximal.iterative)
+                            if(obj.proximal.steps<obj.maxInnerItr && obj.admmTol>1e-6)
+                                obj.admmTol=obj.admmTol/10;
+                                if(obj.debugLevel>0)
+                                    global strlen
+                                    fprintf('\n decrease admmTol to %g',obj.admmTol);
+                                    strlen=0;
+                                end
+                                pp=pp-1; continue;
+                                %% IMPORTANT! if not requir too high accuracy
+                                %% use 1e3 for maxInnerItr
+                            elseif(obj.proximal.steps>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
+                                obj.maxInnerItr=obj.maxInnerItr*10;
+                                if(obj.debugLevel>0)
+                                    global strlen
+                                    fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
+                                    strlen=0;
+                                end
+                                pp=pp-1; continue;
                             end
-                            pp=pp-1; continue;
-                            %% IMPORTANT! if not requir too high accuracy
-                            %% use 1e3 for maxInnerItr
-                        elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
-                            obj.maxInnerItr=obj.maxInnerItr*10;
-                            if(obj.debugLevel>0)
-                                global strlen
-                                fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
-                                strlen=0;
-                            end
-                            pp=pp-1; continue;
                         end
+
                         % give up and force it to converge
                         obj.debug=[obj.debug '_ForceConverge'];
                         newObj=obj.cost;  newX=obj.alpha;
+                        obj.innerSearch=0;
                     end
+                else
+                    obj.proximal.setInit();
+                    obj.innerSearch=obj.proximal.steps;
                 end
                 obj.theta = newTheta; obj.preAlpha = obj.alpha;
                 obj.cost = newObj;

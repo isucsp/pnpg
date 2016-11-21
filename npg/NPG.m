@@ -1,6 +1,7 @@
 classdef NPG < Methods
     properties
         stepShrnk = 0.5;
+        stepIncre = 0.9;
         preAlpha=0;
         preG=[];
         preY=[];
@@ -14,8 +15,6 @@ classdef NPG < Methods
         incCumuTol=true;
         nonInc=0;
         innerSearch=0;
-
-        forcePositive=true;
 
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
@@ -49,15 +48,12 @@ classdef NPG < Methods
                 obj.p = obj.p+1; pp=pp+1;
                 newTheta=(1+sqrt(1+4*obj.theta^2))/2;
                 xbar=obj.alpha+(obj.theta -1)/newTheta*(obj.alpha-obj.preAlpha);
-                if(obj.forcePositive)
-                    xbar=max(xbar,0);
-                end
                 [oldCost,obj.grad] = obj.func(xbar);
 
                 obj.ppp=0; goodStep=true; incStep=false; goodMM=true;
                 if(obj.adaptiveStep && obj.cumu>=obj.cumuTol)
                     % adaptively increase the step size
-                    obj.t=obj.t*obj.stepShrnk;
+                    obj.t=obj.t*obj.stepIncre;
                     obj.cumu=0;
                     incStep=true;
                 end
@@ -105,9 +101,11 @@ classdef NPG < Methods
                     if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
                         obj.theta=1;
                         obj.debug=[obj.debug '_Restart'];
-                        global strlen
-                        fprintf('\t restart');
-                        strlen=0;
+                        if(obj.debugLevel>0)
+                            global strlen
+                            fprintf('\t restart');
+                            strlen=0;
+                        end
                         pp=pp-1; continue;
                     elseif((~goodMM) || (objBar<newObj))
                         if(~goodMM)
@@ -116,15 +114,19 @@ classdef NPG < Methods
                         end
                         if(obj.innerSearch<obj.maxInnerItr && obj.admmTol>1e-6)
                             obj.admmTol=obj.admmTol/10;
-                            global strlen
-                            fprintf('\n decrease admmTol to %g',obj.admmTol);
-                            strlen=0;
+                            if(obj.debugLevel>0)
+                                global strlen
+                                fprintf('\n decrease admmTol to %g',obj.admmTol);
+                                strlen=0;
+                            end
                             pp=pp-1; continue;
                         elseif(obj.innerSearch>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
                             obj.maxInnerItr=obj.maxInnerItr*10;
-                            global strlen
-                            fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
-                            strlen=0;
+                            if(obj.debugLevel>0)
+                                global strlen
+                                fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
+                                strlen=0;
+                            end
                             pp=pp-1; continue;
                         end
                         % give up and force it to converge

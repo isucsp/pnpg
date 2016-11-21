@@ -44,7 +44,9 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %
 %   Reference:
 %   Author: Renliang Gu (renliang@iastate.edu)
-%
+
+% default to not use any constraints.
+if(~isfield(opt,'prj_C')) opt.prj_C=@(x)x; end
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
 if(~isfield(opt,'proximal' )) opt.proximal='wvltADMM'; end
@@ -57,8 +59,7 @@ if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive α
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
-if(~isfield(opt,'minItr')) opt.minItr=10; end   % currently not used
-% default to not use nonnegative constraints.
+if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'nu')) opt.nu=0; end
 if(~isfield(opt,'u')) opt.u=1e-4; end
 if(~isfield(opt,'uMode')) opt.uMode='abs'; end
@@ -83,13 +84,13 @@ if(opt.fullcont)
     opt.continuation=false;
 end
 
-alpha=double(xInit(:));
+alpha=double(xInit);
 
 if(isfield(opt,'trueAlpha'))
     switch opt.errorType
         case 0
             trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
-            computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+            computError= @(xxx) 1-(realInnerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
         case 1
             trueAlphaNorm=sqrNorm(opt.trueAlpha);
             if(trueAlphaNorm==0) trueAlphaNorm=eps; end
@@ -105,15 +106,84 @@ if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
 if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
 if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
 
-if(size(Phi,1)==length(y(:)) && size(Phi,2)==length(alpha(:))) matPhi=Phi; Phi=@(xx) matPhi*xx; end
-if(size(Phit,1)==length(alpha(:)) && size(Phit,2)==length(y(:))) matPhit=Phit; Phit=@(xx) matPhit*xx; end
-if(size(Psi,1)==length(alpha(:))) matPsi=Psi; Psi=@(xx) matPsi*xx; end
-if(size(Psit,2)==length(alpha(:))) matPsit=Psit; Psit=@(xx) matPsit*xx; end
-
-temp=randn(size(alpha));
-if((~strcmpi(opt.proximal(1:2),'tv')) && norm(Psi(Psit(temp))-temp)>1e-10) 
-    error('rows of Psi need to be orthogonal, that is ΨΨ''=I');
+% in case Phi and Psi are matrices instead of function handles.
+if(~isa(Phi,'function_handle'))
+    if(size(Phi,1)==length(y(:)) && size(Phi,2)==length(alpha(:))) matPhi=Phi; Phi=@(xx) matPhi*xx; end
+    if(size(Phit,1)==length(alpha(:)) && size(Phit,2)==length(y(:))) matPhit=Phit; Phit=@(xx) matPhit*xx; end
 end
+if(~isa(Psi,'function_handle'))
+    if(size(Psi,1)==length(alpha(:))) matPsi=Psi; Psi=@(xx) matPsi*xx; end
+    if(size(Psit,2)==length(alpha(:))) matPsit=Psit; Psit=@(xx) matPsit*xx; end
+end
+
+% determin whether to have convex set C constraints
+
+
+% determin the proximal, whose constraints must be more strict than C
+if(isfield(opt,'proximalOp') && isa(opt.proximalOp,'function_handle'))
+    switch(nargin(opt.proximalOp))
+        case 1
+            penalty = @(x) 0;
+        otherwise
+            if(isfield(opt,'penalty'))
+                penalty = opt.penalty;
+            else
+                error('For non-indicator regularization, %s, specific penalty is needed via opt!',...
+                    func2str(opt.proximalOp));
+            end
+    end
+    proximal=Proximal(opt.proximalOp, penalty);
+else
+
+    temp=randn(size(alpha));
+    if((strcmpi(opt.proximal(1:4),'wvlt')) && norm(Psi(Psit(temp))-temp)>1e-10) 
+        error('rows of Psi need to be orthogonal, that is ΨΨ^T=I');
+    end
+
+    switch(lower(opt.proximal))
+        case lower('wvltFADMM')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u,...
+                innerThresh,maxInnerItr,false,varargin{:});
+            penalty = @(x) pNorm(Psit(x),1);
+            proximal=ProximalFADMM();
+        case lower('wvltADMM')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
+                innerThresh,maxInnerItr,false,varargin{:});
+            penalty = @(x) pNorm(Psit(x),1);
+            proximal=ProximalADMM(Psi,Psit);
+        case lower('wvltLagrangian')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
+                x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
+            penalty = @(x) pNorm(Psit(x),1);
+        case lower('tvl1')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                innerThresh,maxInnerItr,opt.mask,'l1',init);
+            penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
+            proximal=ProximalTV(opt.mask,'l1');
+        case lower('tviso')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                innerThresh,maxInnerItr,opt.mask,'iso',init);
+            penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
+            proximal=ProximalTV(opt.mask,'iso');
+        case lower('tv1d')
+            proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                innerThresh,maxInnerItr,opt.mask,'l1',init,0,inf,length(alpha),1);
+            penalty = @(x) tlv(x,'1d');
+            proximal=ProximalTV('l1',opt.prj_C);
+            proximal.opt.debugLevel=-1;
+        case lower('other')
+            proximalOp=opt.proximalOp;
+            penalty = @(x) 0;
+            proximal=Proximal(opt.proximalOp, penalty);
+    end
+end
+
+
+% determin the Method to use
+
+
+% determin the data fedelity term
+
 
 switch lower(opt.alphaStep)
     case lower('NCG_PR')
@@ -126,78 +196,43 @@ switch lower(opt.alphaStep)
             fprintf('use lustig approximation for l1 norm\n');
             alphaStep.fArray{3} = @(aaa) lustigL1(aaa,opt.muLustig,Psi,Psit);
         end
-    case {lower('SpaRSA')}
-        alphaStep=SpaRSA(2,alpha,1,opt.stepShrnk,Psi,Psit,opt.M);
-    case {lower('NPGs'),lower('NPG'),lower('AT'),lower('ATs'),...
-            lower('GFB'),lower('Condat'),lower('PNPG'),lower('PG')}
-        switch(lower(opt.proximal))
-            case lower('wvltFADMM')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,false,varargin{:});
-                penalty = @(x) pNorm(Psit(x),1);
-            case lower('wvltADMM')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
-                    innerThresh,maxInnerItr,false,varargin{:});
-                % remember to find what I wrote on the paper in office
-                penalty = @(x) pNorm(Psit(x),1);
-            case lower('wvltLagrangian')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
-                    x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
-                penalty = @(x) pNorm(Psit(x),1);
-            case lower('tvl1')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1',init);
-                penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
-            case lower('tviso')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'iso',init);
-                penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
-            case lower('tv1d')
-                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1',init,0,inf,length(alpha),1);
-                penalty = @(x) tlv(x,'1d');
-            case lower('other')
-                proximalProj=opt.proximalProj;
-                penalty = @(x) 0;
+    case {lower('NPGs')}
+        alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep.fArray{3} = penalty;
+    case lower('PG')
+        alphaStep=PG(1,alpha,1,opt.stepShrnk,proximalOp);
+        alphaStep.fArray{3} = penalty;
+    case {lower('NPG')}
+        alpha=max(alpha,0);
+        alphaStep=NPG(1,alpha,1,opt.stepShrnk,proximal);
+        alphaStep.fArray{3} = penalty;
+        if(strcmpi(opt.noiseType,'poisson'))
+            if(~isfield(opt,'prj_C' )) opt.prj_C=@(x)max(x,0); end
+            % opt.alphaStep='PG';
+            % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
         end
-
-        switch lower(opt.alphaStep)
-            case {lower('NPGs')}
-                alphaStep=NPGs(1,alpha,1,opt.stepShrnk,Psi,Psit);
-                alphaStep.fArray{3} = penalty;
-            case lower('PG')
-                alphaStep=PG(1,alpha,1,opt.stepShrnk,proximalProj);
-                alphaStep.fArray{3} = penalty;
-            case {lower('NPG')}
-                alpha=max(alpha,0);
-                alphaStep=NPG(1,alpha,1,opt.stepShrnk,proximalProj);
-                alphaStep.fArray{3} = penalty;
-                if(strcmpi(opt.noiseType,'poisson'))
-                    if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
-                    % opt.alphaStep='PG';
-                    % alphaStep=PG(1,alpha,1,opt.stepShrnk,Psi,Psit);
-                end
-            case {lower('PNPG')}
-                alpha=max(alpha,0);
-                alphaStep=PNPG(1,alpha,1,opt.stepShrnk,proximalProj);
-                alphaStep.fArray{3} = penalty;
-                if(strcmpi(opt.noiseType,'poisson'))
-                    if(~isfield(opt,'forcePositive' )) opt.forcePositive=true; end
-                end
-            case lower('ATs')
-                alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
-                alphaStep.fArray{3} = penalty;
-            case lower('AT')
-                alpha=max(alpha,0);
-                alphaStep=AT(1,alpha,1,opt.stepShrnk,proximalProj);
-                alphaStep.fArray{3} = penalty;
-            case lower('GFB')
-                alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
-                alphaStep.fArray{3} = penalty;
-            case lower('Condat')
-                alphaStep=Condat(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
-                alphaStep.fArray{3} = penalty;
+    case {lower('PNPG')}
+        if(strcmpi(opt.noiseType,'poisson'))
+            if(~isfield(opt,'prj_C' )) opt.prj_C=@(x)max(x,0); end
         end
+        if(isfield(opt,'prj_C'))
+            alphaStep=PNPG(1,opt.prj_C(alpha),1,opt.stepShrnk,proximal);
+        else
+            alphaStep=PNPG(1,alpha,1,opt.stepShrnk,proximal);
+        end
+    case lower('ATs')
+        alphaStep=ATs(1,alpha,1,opt.stepShrnk,Psi,Psit);
+        alphaStep.fArray{3} = penalty;
+    case lower('AT')
+        alpha=max(alpha,0);
+        alphaStep=AT(1,alpha,1,opt.stepShrnk,proximalOp);
+        alphaStep.fArray{3} = penalty;
+    case lower('GFB')
+        alphaStep=GFB(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
+        alphaStep.fArray{3} = penalty;
+    case lower('Condat')
+        alphaStep=Condat(1,alpha,1,opt.stepShrnk,Psi,Psit,opt.L);
+        alphaStep.fArray{3} = penalty;
     case lower('FISTA_NN')
         alphaStep=FISTA_NN(2,alpha,1,opt.stepShrnk);
     case lower('FISTA_NNL1')
@@ -210,26 +245,35 @@ switch lower(opt.alphaStep)
     case {lower('ADMM_NN')}
         alphaStep = ADMM_NN(2,alpha,1,opt.stepShrnk,Psi,Psit);
 end
-switch lower(opt.noiseType)
-    case lower('poissonLogLink')
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
-    case lower('poissonLogLink0')
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink0(aaa,Phi,Phit,y,opt.I0);
-    case 'poisson'
-        if(isfield(opt,'bb'))
-            temp=reshape(opt.bb,size(y));
-        else
-            temp=0;
-        end
-        alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y,temp);
-        constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,temp);
-    case 'gaussian'
-        alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
-    case 'logistic'
-        alphaStep.fArray{1} = @(alpha) Utils.logisticModel(alpha,Phi,Phit,y);
-    case 'other'
-        alphaStep.fArray{1} = opt.f;
+
+if(isfield(opt,'NLL') && isa(opt.NLL,'function_handle'))
+    alphaStep.fArray{1} = opt.NLL;
+else
+    switch lower(opt.noiseType)
+        case lower('poissonLogLink')
+            alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink(aaa,Phi,Phit,y);
+        case lower('poissonLogLink0')
+            alphaStep.fArray{1} = @(aaa) Utils.poissonModelLogLink0(aaa,Phi,Phit,y,opt.I0);
+        case 'poisson'
+            if(isfield(opt,'bb'))
+                temp=reshape(opt.bb,size(y));
+            else
+                temp=0;
+            end
+            alphaStep.fArray{1} = @(aaa) Utils.poissonModel(aaa,Phi,Phit,y,temp);
+            constEst=@(y) Utils.poissonModelConstEst(Phi,Phit,y,temp);
+        case 'gaussian'
+            alphaStep.fArray{1} = @(aaa) Utils.linearModel(aaa,Phi,Phit,y);
+        case 'logistic'
+            alphaStep.fArray{1} = @(alpha) Utils.logisticModel(alpha,Phi,Phit,y);
+        case 'other'
+            alphaStep.fArray{1} = opt.f;
+    end
 end
+
+% specify the domain of the NLL via a projection operator
+alphaStep.prj_C=opt.prj_C;
+
 alphaStep.fArray{2} = @Utils.nonnegPen;
 alphaStep.coef(1:2) = [1; opt.nu;];
 if(any(strcmp(properties(alphaStep),'restart')))
@@ -272,11 +316,6 @@ end
 if(any(strcmp(properties(alphaStep),'restartEvery'))...
         && isfield(opt,'restartEvery'))
     alphaStep.restartEvery=opt.restartEvery(:);
-end
-
-if(any(strcmp(properties(alphaStep),'forcePositive'))...
-        && isfield(opt,'forcePositive'))
-    alphaStep.forcePositive=opt.forcePositive;
 end
 
 if(any(strcmp(properties(alphaStep),'maxPossibleInnerItr'))...
@@ -324,8 +363,11 @@ if(opt.continuation || opt.fullcont)
         qThresh = opt.contCrtrn/opt.thresh;
         lnQU = log(alphaStep.u/opt.u(end));
     end
-else alphaStep.u = opt.u;
-    fprintf('opt.u=%g\n',opt.u);
+else
+    alphaStep.u = opt.u;
+    if(opt.debugLevel>=0)
+        fprintf('opt.u=%g\n',opt.u);
+    end
 end
 
 if(strcmpi(opt.initStep,'fixed'))
@@ -342,7 +384,7 @@ if(any(strcmp(properties(alphaStep),'incCumuTol'))...
     alphaStep.incCumuTol=opt.incCumuTol;
 end
 
-if(any(strcmp(properties(alphaStep),'innerSearch')))
+if(alphaStep.proximal.iterative && any(strcmp(properties(alphaStep),'innerSearch')))
     collectInnerSearch=true;
 else
     collectInnerSearch=false;
@@ -401,7 +443,7 @@ tic; p=0; strlen=0; convThresh=0;
 while(true)
     p=p+1;
     str=sprintf(' %5d',p);
-    
+
     alphaStep.main();
 
     out.fVal(p,:) = (alphaStep.fVal(:))';
@@ -421,9 +463,8 @@ while(true)
     if(opt.debugLevel>1)
         out.BB(p,1)=alphaStep.stepSizeInit('BB');
         out.BB(p,2)=alphaStep.stepSizeInit('hessian');
-        % alphaStep.stepSizeInit('hessian',alpha);
     end
-    
+
     out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
     if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
 
@@ -485,7 +526,7 @@ while(true)
     else
         str=sprintf([str ' %12s'], ' ');
     end
-    
+
     if(p>1 && opt.debugLevel>=3)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
@@ -526,9 +567,11 @@ while(true)
         strlen = length(str);
     end
     out.time(p)=toc;
+
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
         convThresh=convThresh+1;
     end
+
     if(p >= opt.maxItr || (convThresh>2 && p>opt.minItr))
         if(opt.debugLevel==0) fprintf('%s',str); end
         break;
@@ -537,20 +580,22 @@ end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
-if(isfield(opt,'trueAlpha'))
-    if(opt.fullcont)
-        idx = min(find(out.contRMSE==min(out.contRMSE)));
-        if(out.contRMSE(idx)<out.RMSE(end))
-            fprintf(', u=%g, RMSE=%g\n',opt.u(idx),out.contRMSE(idx));
+if(opt.debugLevel>=0)
+    fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
+    if(isfield(opt,'trueAlpha'))
+        if(opt.fullcont)
+            idx = min(find(out.contRMSE==min(out.contRMSE)));
+            if(out.contRMSE(idx)<out.RMSE(end))
+                fprintf(', u=%g, RMSE=%g\n',opt.u(idx),out.contRMSE(idx));
+            else
+                fprintf(', RMSE=%g\n',out.RMSE(end));
+            end
         else
             fprintf(', RMSE=%g\n',out.RMSE(end));
         end
     else
-        fprintf(', RMSE=%g\n',out.RMSE(end));
+        fprintf('\n');
     end
-else
-    fprintf('\n');
 end
 
 end

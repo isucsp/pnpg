@@ -473,9 +473,9 @@ classdef Utils < handle
             % holds.
 
             if(exist('dfx','var') && ~isempty(dfx) && abs(fx-fy)/max(max(fx,fy),1) < 1e-10)
-                test=(innerProd(x_minus_y,dfx-dfy) <= 0.5*L*sqrNorm(x_minus_y));
+                test=(realInnerProd(x_minus_y,dfx-dfy) <= 0.5*L*sqrNorm(x_minus_y));
             else
-                test=(fx-fy<=innerProd(x_minus_y,dfy)+0.5*L*sqrNorm(x_minus_y));
+                test=(fx-fy<=realInnerProd(x_minus_y,dfy)+0.5*L*sqrNorm(x_minus_y));
             end
         end
     end

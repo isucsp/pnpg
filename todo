@@ -44,6 +44,8 @@ todo for inner iterations
   use better initialization by packing the inner iterations to objects
   maybe need to provide some interface to implement here.
 
+  make solver to support complex number
+
 write a c++ version of the algorithm
   multi threads?
   gpu?

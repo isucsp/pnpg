@@ -14,8 +14,6 @@ classdef GFB < Methods
         nonInc=0;
         innerSearch=0;
 
-        forcePositive=false;
-
         restart=0;   % make this value negative to disable restart
         adaptiveStep=true;
 

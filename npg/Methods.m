@@ -16,6 +16,10 @@ classdef Methods < handle
         converged = false;
         debug;
         debugLevel=0;
+
+       % for convex set C projection
+        prj_C=@(x)x;
+
         % steps at the beginning with BB stepsize and then backtracking
         preSteps=10;
         % for NCG_PR
@@ -39,11 +43,6 @@ classdef Methods < handle
         isInDebugMode=false;
     end
     methods (Access = protected)
-        % this method can be redefined in the subclasses for an indicator
-        % of a constraints.
-        function res=indicate(obj)
-            res=0;
-        end
     end
     methods
         function obj = Methods(n,alpha)
@@ -64,9 +63,10 @@ classdef Methods < handle
                 for i = 1:obj.n
                     [obj.fVal(i),gtemp,obj.hArray{i}] = obj.fArray{i}(aaa);
                     g = g+gtemp*obj.coef(i);
+                    if(isempty(obj.hArray{i})) h=[]; end
                 end
                 f = innerProd(obj.fVal(1:obj.n),obj.coef(1:obj.n));
-                h = @(xxx,opt) hessian(xxx,opt);
+                if(~exist('h','var')) h = @(xxx,opt) hessian(xxx,opt); end
             elseif(nargout==2)
                 g = 0;
                 for i = 1:obj.n
@@ -103,15 +103,19 @@ classdef Methods < handle
                     end
                     [~,grad1] = obj.func(obj.alpha);
                     temp = opt*grad1/pNorm(grad1);
+                    temp = obj.alpha-obj.prj_C(obj.alpha-temp);
                     [~,grad2] = obj.func(obj.alpha-temp);
-                    t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
+                    t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
                 case 'hessian'
-                    if(exist('opt','var'))
-                        [~,~,hessian] = obj.func(obj.alpha);
-                        t = hessian(opt-obj.alpha,2)/sqrNorm(opt-obj.alpha);
+                    [~,grad1,hessian] = obj.func(obj.alpha);
+                    if(isempty(hessian))
+                        if(~exist('opt','var')) opt=1e-5; end
+                        temp = opt*grad1/pNorm(grad1);
+                        temp = obj.alpha-obj.prj_C(obj.alpha-temp);
+                        [~,grad2] = obj.func(obj.alpha-temp);
+                        t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
                     else
-                        [~,gradient,hessian] = obj.func(obj.alpha);
-                        t = hessian(gradient,2)/sqrNorm(gradient);
+                        t = hessian(grad1,2)/sqrNorm(grad1);
                     end
                 case 'fixed'
                     t = opt;
@@ -135,7 +139,7 @@ classdef Methods < handle
             else
                 obj.coef(obj.n+1)=u;
             end
-            obj.cost = obj.func(obj.alpha)+obj.u*obj.fArray{3}(obj.alpha)+obj.indicate();
+            obj.cost = obj.func(obj.alpha)+obj.u*obj.proximal.getPenalty(obj.alpha);
         end
         function x= cg(c,hessianA,atHessianA,maxItr)
             % This function solve the problem 

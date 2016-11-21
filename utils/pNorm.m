@@ -7,7 +7,7 @@ function out=pNorm(x,p)
         case 1
             out = sum(abs(x(:)));
         case 2
-            out = x.*x;
+            out = conj(x).*x;
             out = sqrt(sum(out(:)));
         case inf
             out = max(abs(x(:)));

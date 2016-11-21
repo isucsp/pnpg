@@ -93,9 +93,11 @@ classdef NPGs < Methods
                     if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
                         obj.theta=1;
                         obj.debug=[obj.debug '_Restart'];
-                        global strlen
-                        fprintf('\t restart');
-                        strlen=0;
+                        if(obj.debugLevel>0)
+                          global strlen
+                          fprintf('\t restart');
+                          strlen=0;
+                        end
                         pp=pp-1; continue;
                     elseif((~goodMM) || (objBar<newObj))
                         % give up and force it to converge

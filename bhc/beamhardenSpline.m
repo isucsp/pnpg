@@ -398,7 +398,6 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         if(opt.debugLevel>1)
             out.BB(p,1)=alphaStep.stepSizeInit('BB');
             out.BB(p,2)=alphaStep.stepSizeInit('hessian');
-            % alphaStep.stepSizeInit('hessian',alpha);
         end
 
         out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);

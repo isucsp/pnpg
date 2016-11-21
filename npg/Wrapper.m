@@ -159,11 +159,11 @@ classdef Wrapper < handle
                 f=Phit(x);
             end
         end
-        function [f,xx] = tfocs_projectorF(penalty,proximalProj,x,thresh,maxItr,u)
+        function [f,xx] = tfocs_projectorF(penalty,proximalOp,x,thresh,maxItr,u)
             if(~exist('u','var') || isempty(u))
                 f=penalty(x);
             else
-                xx=proximalProj(x,u,thresh,maxItr);
+                xx=proximalOp(x,u,thresh,maxItr);
                 f=penalty(xx);
             end
         end
@@ -197,23 +197,23 @@ classdef Wrapper < handle
             end
             switch(lower(opt.proximal))
                 case lower('wvltFADMM')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u*opt.u,...
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
                     penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('wvltADMM')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
                     penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('wvltLagrangian')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                         x,Psi,Psit,u*opt.u,0,1,maxInnerItr,2,innerThresh,false);
                     penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
                 case lower('tvl1')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'l1');
                     penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'l1')+infdicator(x<0);
                 case lower('tviso')
-                    proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'iso');
                     penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'iso')+infdicator(x<0);
             end
@@ -232,7 +232,7 @@ classdef Wrapper < handle
                         computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
                 end
             end
-            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalProj,x,opt.innerThresh,opt.maxInnerItr,varargin{:});
+            projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalOp,x,opt.innerThresh,opt.maxInnerItr,varargin{:});
             if(isfield(opt,'restartEvery')) opts.restart=opt.restartEvery; end
             if(isfield(opt,'alg')) opts.alg=opt.alg; end
             opts.tol=opt.thresh;
