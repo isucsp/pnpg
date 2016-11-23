@@ -102,9 +102,11 @@ if(isfield(opt,'trueAlpha'))
     end
 end
 
-if(opt.debugLevel>=3) figCost=1000; figure(figCost); end
-if(opt.debugLevel>=4) figRes=1001; figure(figRes); end
-if(opt.debugLevel>=6) figAlpha=1002; figure(figAlpha); end
+debug=Debug(opt.debugLevel);
+
+if(debug.level>=3) figCost=1000; figure(figCost); end
+if(debug.level>=4) figRes=1001; figure(figRes); end
+if(debug.level>=6) figAlpha=1002; figure(figAlpha); end
 
 % in case Phi and Psi are matrices instead of function handles.
 if(~isa(Phi,'function_handle'))
@@ -170,7 +172,7 @@ else
                 innerThresh,maxInnerItr,opt.mask,'l1',init,0,inf,length(alpha),1);
             penalty = @(x) tlv(x,'1d');
             proximal=ProximalTV('l1',opt.prj_C);
-            proximal.opt.debugLevel=-1;
+            debug.level=-1;
         case lower('other')
             proximalOp=opt.proximalOp;
             penalty = @(x) 0;
@@ -289,9 +291,8 @@ if(any(strcmp(properties(alphaStep),'admmAbsTol'))...
         && isfield(opt,'admmAbsTol'))
     alphaStep.admmAbsTol=opt.admmAbsTol;
 end
-if(any(strcmp(properties(alphaStep),'debugLevel'))...
-        && isfield(opt,'debugLevel'))
-    alphaStep.debugLevel=opt.debugLevel;
+if(any(strcmp(properties(alphaStep),'debug')))
+    alphaStep.debug=debug;
 end
 if(any(strcmp(properties(alphaStep),'admmTol'))...
         && isfield(opt,'admmTol'))
@@ -365,9 +366,6 @@ if(opt.continuation || opt.fullcont)
     end
 else
     alphaStep.u = opt.u;
-    if(opt.debugLevel>=0)
-        fprintf('opt.u=%g\n',opt.u);
-    end
 end
 
 if(strcmpi(opt.initStep,'fixed'))
@@ -390,7 +388,7 @@ else
     collectInnerSearch=false;
 end
 
-if(any(strcmp(properties(alphaStep),'debug')))
+if(any(strcmp(properties(alphaStep),'debug')) && alphaStep.hasLog)
     collectDebug=true;
     out.debug={};
 else
@@ -419,7 +417,8 @@ else
     collectNbt=false;
 end
 
-if(opt.debugLevel>=1)
+% print start information
+if(debug.level>=1)
     fprintf('%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Nestrov''s Proximal Gradient Method (%s) %s_%s',opt.proximal,opt.alphaStep,opt.noiseType);
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
@@ -434,15 +433,15 @@ if(opt.debugLevel>=1)
     end
     str=sprintf([str ' %12s %4s'], '|d α|/|α|', 'αSrh');
     str=sprintf([str ' %12s'], '|d Obj/Obj|');
+    str=sprintf([str '\t u=%g'],opt.u);
     fprintf('%s\n%s',str,repmat( '-', 1, 80 ) );
 end
 
-global strlen
-tic; p=0; strlen=0; convThresh=0;
+tic; p=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
-    str=sprintf(' %5d',p);
+    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
 
     alphaStep.main();
 
@@ -458,9 +457,9 @@ while(true)
     if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
     if(collectDebug && ~isempty(alphaStep.debug))
         out.debug{size(out.debug,1)+1,1}=p;
-        out.debug{size(out.debug,1),2}=alphaStep.debug;
+        out.debug{size(out.debug,1),2}=alphaStep.debug.log;
     end;
-    if(opt.debugLevel>1)
+    if(debug.level>1)
         out.BB(p,1)=alphaStep.stepSizeInit('BB');
         out.BB(p,2)=alphaStep.stepSizeInit('hessian');
     end
@@ -470,16 +469,18 @@ while(true)
 
     alpha = alphaStep.alpha;
 
-    str=sprintf([str ' %12g'],out.cost(p));
+    if(mod(p,opt.verbose)==1) debug.println(1); else debug.clear(1); end
+    debug.print(1,sprintf(' %5d',p));
+    debug.print(1,sprintf(' %12g',out.cost(p)));
 
     if(isfield(opt,'trueAlpha'))
         out.RMSE(p)=computError(alpha);
-        str=sprintf([str ' %12g'],out.RMSE(p));
+        debug.print(1,sprintf(' %12g',out.RMSE(p)));
     end
 
     if(opt.continuation || opt.fullcont)
         out.uRecord(p,:)=[opt.u(end),alphaStep.u];
-        str=sprintf([str ' %12g'],alphaStep.u);
+        debug.print(1,sprintf(' %12g',alphaStep.u));
         temp=alphaStep.u/opt.u(end);
         if(opt.continuation)
             temp1=(opt.thresh*qThresh^(log(temp)/lnQU));
@@ -497,7 +498,8 @@ while(true)
             else
                 alphaStep.u = max(alphaStep.u*opt.contShrnk,opt.u);
             end
-            strlen=0; fprintf('\tu=%g',alphaStep.u);
+            debug.println(1);
+            debug.println(1,sprintf('\tu=%g',alphaStep.u));
             alphaStep.reset();
 
             if any(strcmp(properties(alphaStep),'admmTol'))
@@ -520,14 +522,14 @@ while(true)
     end
     if(opt.saveXtrace) out.alphaTrace(:,p)=alpha; end
 
-    str=sprintf([str ' %12g %4d'],out.difAlpha(p),alphaStep.ppp);
+    debug.print(1,sprintf(' %12g %4d',out.difAlpha(p),alphaStep.ppp));
     if(p>1)
-        str=sprintf([str ' %12g'], out.difCost(p));
+        debug.print(1,sprintf(' %12g', out.difCost(p)));
     else
-        str=sprintf([str ' %12s'], ' ');
+        debug.print(1,sprintf(' %12s', ' '));
     end
 
-    if(p>1 && opt.debugLevel>=3)
+    if(p>1 && debug.level>=3)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
         if(out.cost(p)>0)
@@ -543,7 +545,7 @@ while(true)
         drawnow;
     end
 
-    if(length(out.fVal(p,:))>=1 && p>1 && opt.debugLevel>=4)
+    if(length(out.fVal(p,:))>=1 && p>1 && debug.level>=4)
         set(0,'CurrentFigure',figRes);
         style={'r','g','b'};
         for i=1:length(out.fVal(p,:))
@@ -553,19 +555,11 @@ while(true)
         drawnow;
     end
 
-    if(opt.debugLevel>=6)
+    if(debug.level>=6)
         set(0,'CurrentFigure',figAlpha); showImgMask(alpha,opt.mask);
         drawnow;
     end
-    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
-    if(opt.debugLevel>=1)
-        if(strlen==0 || mod(p-1,opt.verbose)==0)
-            fprintf('\n%s',str);
-        else
-            fprintf([repmat('\b',1,strlen) '%s'],str);
-        end
-        strlen = length(str);
-    end
+
     out.time(p)=toc;
 
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
@@ -573,15 +567,14 @@ while(true)
     end
 
     if(p >= opt.maxItr || (convThresh>2 && p>opt.minItr))
-        if(opt.debugLevel==0) fprintf('%s',str); end
         break;
     end
 end
 out.alpha=alpha; out.p=p; out.opt = opt;
 out.grad=alphaStep.grad;
 out.date=datestr(now);
-if(opt.debugLevel>=0)
-    fprintf('\nTime used: %d, cost=%g',out.time(end),out.cost(end));
+if(debug.level>=0)
+    fprintf('\nCPU Time: %g, objective=%g',out.time(end),out.cost(end));
     if(isfield(opt,'trueAlpha'))
         if(opt.fullcont)
             idx = min(find(out.contRMSE==min(out.contRMSE)));

@@ -1,6 +1,6 @@
 clear all; close all;
 
-u=100;
+uArray={100,100,1000};
 
 maxItr=1e3; thresh=1e-13;
 tvTypeArray={'l1'; 'iso'};
@@ -11,6 +11,7 @@ for i=length(tvTypeArray)
 
         tvType=tvTypeArray{i};
         a=aArray{j};
+        u=uArray{j};
 
         tic;
         pars.print = false;

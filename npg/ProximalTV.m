@@ -1,4 +1,6 @@
 classdef ProximalTV < Proximal
+    % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
+    % TV and C are specified via constructor see denoise for a and u
     properties
         opt
         prj_C=@(x)x;
@@ -14,8 +16,6 @@ classdef ProximalTV < Proximal
         tvType
     end
     methods
-        % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
-        % TV and C are specified via constructor see denoise for a and u
         function obj = ProximalTV(tvType,prj_C)
             obj.tvType=tvType;
             if(exist('prj_C','var'))

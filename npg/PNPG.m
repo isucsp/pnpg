@@ -36,6 +36,7 @@ classdef PNPG < Methods
             obj.nonInc=0;
             obj.proximal=pm;
             obj.setAlpha(alpha);
+            obj.hasLog=true;
         end
         function setAlpha(obj,alpha)
             obj.alpha=alpha;
@@ -46,7 +47,7 @@ classdef PNPG < Methods
         % solves L(α) + I(α>=0) + u*||Ψ'*α||_1
         % method No.4 with ADMM inside FISTA for NNL1
         function out = main(obj)
-            pp=0; obj.debug='';
+            pp=0; obj.debug.clearLog();
 
             while(pp<obj.maxItr)
                 obj.p = obj.p+1; pp=pp+1;
@@ -95,13 +96,10 @@ classdef PNPG < Methods
                             end
                         else  % don't know what to do, mark on debug and break
                             if(obj.t<0)
-                                global strlen
-                                fprintf('\n PNPG is having a negative step size, do nothing and return!!');
-                                strlen=0;
-                                return;
+                                error('\n PNPG is having a negative step size, do nothing and return!!');
                             end
                             goodMM=false;
-                            obj.debug=[obj.debug '_FalseMM'];
+                            obj.debug.appendLog('_FalseMM');
                             break;
                         end
                     end
@@ -114,48 +112,42 @@ classdef PNPG < Methods
                 if((newObj-obj.cost)>0)
                     if(goodMM && pNorm(xbar-obj.alpha,1)~=0 && obj.restart>=0) % if has monmentum term, restart
                         obj.theta=1;
-                        obj.debug=[obj.debug '_Restart'];
-                        if(obj.debugLevel>0)
-                            global strlen
-                            fprintf('\t restart');
-                            strlen=0;
-                        end
+                        obj.debug.appendLog('_Restart');
+                        obj.debug.printWithoutDel(1,'\t restart');
                         pp=pp-1; continue;
                     elseif((~goodMM) || (objBar<newObj))
                         if(~goodMM)
-                            obj.debug=[obj.debug '_Reset'];
+                            obj.debug.appendLog('_Reset');
                             obj.reset();
                         end
                         if(obj.proximal.iterative)
                             if(obj.proximal.steps<obj.maxInnerItr && obj.admmTol>1e-6)
                                 obj.admmTol=obj.admmTol/10;
-                                if(obj.debugLevel>0)
-                                    global strlen
-                                    fprintf('\n decrease admmTol to %g',obj.admmTol);
-                                    strlen=0;
-                                end
+                                obj.debug.printWithoutDel(1,...
+                                    sprintf('\n decrease admmTol to %g',obj.admmTol));
                                 pp=pp-1; continue;
                                 %% IMPORTANT! if not requir too high accuracy
                                 %% use 1e3 for maxInnerItr
                             elseif(obj.proximal.steps>=obj.maxInnerItr && obj.maxInnerItr<obj.maxPossibleInnerItr)
                                 obj.maxInnerItr=obj.maxInnerItr*10;
-                                if(obj.debugLevel>0)
-                                    global strlen
-                                    fprintf('\n increase maxInnerItr to %g',obj.maxInnerItr);
-                                    strlen=0;
-                                end
+                                obj.debug.printWithoutDel(1,...
+                                    sprintf('\n increase maxInnerItr to %g',obj.maxInnerItr));
                                 pp=pp-1; continue;
                             end
                         end
 
                         % give up and force it to converge
-                        obj.debug=[obj.debug '_ForceConverge'];
+                        obj.debug.appendLog('_ForceConverge');
                         newObj=obj.cost;  newX=obj.alpha;
                         obj.innerSearch=0;
                     end
                 else
-                    obj.proximal.setInit();
-                    obj.innerSearch=obj.proximal.steps;
+                    if(obj.proximal.iterative)
+                        obj.proximal.setInit();
+                        obj.innerSearch=obj.proximal.steps;
+                    else
+                        obj.innerSearch=0;
+                    end
                 end
                 obj.theta = newTheta; obj.preAlpha = obj.alpha;
                 obj.cost = newObj;

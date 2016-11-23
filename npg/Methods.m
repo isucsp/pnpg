@@ -15,7 +15,6 @@ classdef Methods < handle
         stepSize=0;
         converged = false;
         debug;
-        debugLevel=0;
 
        % for convex set C projection
         prj_C=@(x)x;
@@ -40,7 +39,7 @@ classdef Methods < handle
         ppp = 0;
 
         % for debug
-        isInDebugMode=false;
+        hasLog = false;
     end
     methods (Access = protected)
     end
@@ -89,8 +88,7 @@ classdef Methods < handle
                     warning(['\n%s: obj function is non-convex over alpha, '...
                         'x''*H*x=%g, replace it by 1'],class(obj),hh);
                     keyboard
-                    global strlen
-                    strlen=0;
+                    obj.debug.println(-inf);
                     hh=1;
                 end
             end

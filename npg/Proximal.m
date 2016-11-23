@@ -4,13 +4,13 @@ classdef Proximal < handle
     % where a and u are given when calling denoise function
     properties
         regFunc;    % penalty function handle r(x)
-        init
         iterative=false;
         steps;          % number of iteration have run
         maxItr=100;
         thresh=1e-9;
     end
     properties (Access = protected)
+        init
         proximalOp;
         x
     end
