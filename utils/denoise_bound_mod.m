@@ -140,7 +140,7 @@ while((i<MAXITER)&&(count<5))
   Pold1=P1;
   Pold2=P2;
   tk=tkp1;
-  C=Xobs-lambda*Lforward(R1,R2)
+  C=Xobs-lambda*Lforward(R1,R2);
   D=project(C);
   [Q1,Q2]=Ltrans(D);
 
