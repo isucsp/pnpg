@@ -198,28 +198,28 @@ switch lower(opt.alphaStep)
     case {lower('NPGs'), lower('NPG'), lower('PG')}
         switch(lower(opt.proximal))
             case lower('nonneg')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr) customMax(x,0);
+                proximalProj=@(x,u,innerThresh,maxInnerItr) customMax(x,0);
                 penalty = @(x) 0;
                 fprintf('Use apply nonnegativity only\n');
             case lower('wvltADMM')
                 % varargin is for the initialization
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
+                proximalProj=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u,...
                     innerThresh,maxInnerItr,false,varargin{:});
                 penalty = @(x) pNorm(Psit(x),1);
                 fprintf('Use l1 norm of wavelet coeff, ADMM\n');
             case lower('wvltLagrangian')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                     x,Psi,Psit,u,0,1,maxInnerItr,2,innerThresh,false);
                 penalty = @(x) pNorm(Psit(x),1);
                 fprintf('Use l1 norm of wavelet coeff, SPIRAL\n');
             case lower('tvl1')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1');
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'l1',init);
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
                 fprintf('Use l1 TV\n');
             case lower('tviso')
-                proxmalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'iso');
+                proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
+                    innerThresh,maxInnerItr,opt.mask,'iso',init);
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
                 fprintf('Use ISO TV\n');
         end
@@ -230,11 +230,11 @@ switch lower(opt.alphaStep)
                 alphaStep.fArray{3} = penalty;
             case 'npg'
                 alpha=max(alpha,0);
-                alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+                alphaStep=NPG (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
             case 'pg'
                 alpha=max(alpha,0);
-                alphaStep=PG  (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proxmalProj);
+                alphaStep=PG  (1,alpha,opt.maxAlphaSteps,opt.stepShrnk,proximalProj);
                 alphaStep.fArray{3} = penalty;
         end
 end
@@ -548,7 +548,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
     end
     
     if(opt.debugLevel>=1)
-        if(alphaStep.warned || IeStep.warned)
+        if(IeStep.warned)
             fprintf('%s',str);
         else
             fprintf([repmat('\b',1,strlen) '%s'],str);

@@ -87,7 +87,10 @@ if(~exist(['lbfgsb_wrapper.' mexext],'file'))
     end
 end
 cd(pathstr)
+
+slCharacterEncoding('UTF-8');
 end
+
 
 function o = isOlder(f1, f2)
     if(~iscell(f2))
