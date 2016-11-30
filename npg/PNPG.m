@@ -32,7 +32,9 @@ classdef PNPG < Methods
         function obj = PNPG(n,alpha,maxAlphaSteps,stepShrnk,pm)
             obj = obj@Methods(n,alpha);
             obj.maxItr = maxAlphaSteps;
-            obj.stepShrnk = stepShrnk;
+            if(exist('stepShrnk','var') && ~isempty(stepShrnk))
+                obj.stepShrnk = stepShrnk;
+            end
             obj.nonInc=0;
             obj.proximal=pm;
             obj.setAlpha(alpha);

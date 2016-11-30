@@ -437,6 +437,8 @@ if(debug.level>=1)
     fprintf('%s\n%s',str,repmat( '-', 1, 80 ) );
 end
 
+keyboard
+
 tic; p=0; convThresh=0;
 %figure(123); figure(386);
 while(true)

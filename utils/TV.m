@@ -147,6 +147,7 @@ classdef TV < handle
       end
     end
 
+    % if edit the following, update sparseProximal
     function x = A(p)
       [I,J]=size(p);
       p(I,:)=0;

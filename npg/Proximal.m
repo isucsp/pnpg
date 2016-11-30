@@ -4,7 +4,6 @@ classdef Proximal < handle
     % where a and u are given when calling denoise function
     properties
         regFunc;    % penalty function handle r(x)
-        iterative=false;
         steps;          % number of iteration have run
         maxItr=100;
         thresh=1e-9;
@@ -15,6 +14,7 @@ classdef Proximal < handle
         x
     end
     properties (Dependent)
+        iterative=false;
     end
     methods
         function obj = Proximal(op,regf)
@@ -49,6 +49,9 @@ classdef Proximal < handle
                     [x,obj.steps]=obj.proximalOp(a,u,obj.thresh,obj.maxItr,obj.init);
             end
             obj.x=x;
+        end
+        function o=get.iterative(obj)
+            o=false;
         end
         function y=getPenalty(obj,x)
             if(~exist('x','var'))

@@ -1,4 +1,4 @@
-classdef Test < handle
+classdef TestObj < handle
     % the result shows that reading from obj is 10 times slower than from
     % normal variable, and writing is even slower.
     %
