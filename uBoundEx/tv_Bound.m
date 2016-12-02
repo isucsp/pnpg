@@ -4,7 +4,7 @@ function tv_Bound(op)
 %                      Proximal-Gradient Algorithms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 %
 %
 %                  PET example, with background noise b

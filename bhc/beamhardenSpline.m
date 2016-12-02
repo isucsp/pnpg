@@ -14,7 +14,7 @@ function out = beamhardenSpline(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               the code for detail)
 %
 %   Reference:
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 %
 %   v_0.5:      use the Poisson measurement model as the default;
 %               switch the order of alpha and I step;

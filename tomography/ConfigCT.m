@@ -3,7 +3,7 @@
 % domain, if the length of every projection is N, then the reconstructed image 
 % should have a size of NxN.
 
-% Author: Renliang Gu (renliang@iastate.edu)
+% Author: Renliang Gu (gurenliang@gmail.com)
 % $Revision: 0.2 $ $Date: Wed 06 Jan 2016 11:07:48 PM CST
 % v_0.3:        change the structure to make ConfigCT generate operators only.
 % v_0.2:        change the structure to class for easy control;

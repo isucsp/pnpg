@@ -3,7 +3,7 @@
  *   and their corresponding back projection.
  *
  *   Reference:
- *   Author: Renliang Gu (renliang@iastate.edu)
+ *   Author: Renliang Gu (gurenliang@gmail.com)
  *   $Revision: 0.1 $ $Date: Sun 10 Nov 2013 01:23:32 AM CST
  *
  *   v_0.1:     first draft

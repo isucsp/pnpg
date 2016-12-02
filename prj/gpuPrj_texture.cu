@@ -11,7 +11,7 @@
  *       Revision:  1.0
  *       Compiler:  nvcc
  *
- *         Author:  Renliang Gu (), renliang@iastate.edu
+ *         Author: Renliang Gu (gurenliang@gmail.com)
  *   Organization:  Iowa State University
  *
  * ====================================================================

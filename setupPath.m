@@ -1,6 +1,6 @@
 function setupPath
 %
-% Author: Renliang Gu (renliang@iastate.edu)
+% Author: Renliang Gu (gurenliang@gmail.com)
 % $Revision: 0.3 $ $Date: Sun 10 Jan 2016 11:04:48 PM CST
 %
 % 0.4: add variable cleaning statements

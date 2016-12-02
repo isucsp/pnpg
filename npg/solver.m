@@ -43,7 +43,7 @@ function out = solver(Phi,Phit,Psi,Psit,y,xInit,opt)
 %               the code for detail)
 %
 %   Reference:
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 
 % default to not use any constraints.
 if(~isfield(opt,'prj_C')) opt.prj_C=@(x)x; end

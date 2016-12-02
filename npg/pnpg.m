@@ -43,7 +43,7 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %               the code for detail)
 %
 %   Reference:
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 
 % default to not use any constraints.
 if(~isfield(opt,'prj_C')) opt.prj_C=@(x)x; end
@@ -135,8 +135,8 @@ debug=Debug(opt.debugLevel);
 % determin the data fedelity term
 
 if(strcmpi(opt.initStep,'fixed'))
-    alphaStep.stepSizeInit(opt.initStep,opt.L);
-else alphaStep.stepSizeInit(opt.initStep);
+    stepSizeInit(opt.initStep,opt.Lip);
+else stepSizeInit(opt.initStep);
 end
 
 if(proximal.iterative && nargout(proximal.op)>1)
@@ -390,6 +390,37 @@ function pnpgStep
     end
 end
 
+    function t=stepSizeInit(select,delta)
+        switch (lower(select))
+            case 'bb'   % use BB method to guess the initial stepSize
+                if(~exist('delta','var'))
+                    delta=1e-5;
+                end
+                [~,grad1] = func(alpha);
+                temp = delta*grad1/pNorm(grad1);
+                temp = alpha-prj_C(alpha-temp);
+                [~,grad2] = func(alpha-temp);
+                t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+            case 'hessian'
+                [~,grad1,hessian] = func(alpha);
+                if(isempty(hessian))
+                    if(~exist('delta','var')) delta=1e-5; end
+                    temp = delta*grad1/pNorm(grad1);
+                    temp = alpha-prj_C(alpha-temp);
+                    [~,grad2] = func(alpha-temp);
+                    t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+                else
+                    t = hessian(grad1,2)/sqrNorm(grad1);
+                end
+            case 'fixed'
+                t = delta;
+            otherwise
+                error('unkown selection for initial step');
+        end
+        if(isnan(t)) t=ones(size(t)); end
+        if(min(t)==0) keyboard;  t=eps; end;
+        if(nargout==0)  keyboard; t=min(t); end
+    end
 
 function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
     % This function tests whether

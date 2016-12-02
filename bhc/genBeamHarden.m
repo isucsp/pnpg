@@ -6,7 +6,7 @@ function [CTdata, args] = genBeamHarden(symbol, densityMap, ops, varargin)
 %   'showImg'
 %   'voltage'
 %
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 %   $Revision: 0.1 $ $Date: Thu 14 May 2015 08:23:37 PM CDT
 
     args = parseInputs(varargin{:});

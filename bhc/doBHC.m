@@ -4,7 +4,7 @@ function doBHC(y,distance,filename,opt)
 %            Estimation via B-Spline Basis Function Expansion
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 %   v_0.2:  Changed to class oriented for easy configuration
 
 [a,b]=regexpi(filename,'\.mat$');

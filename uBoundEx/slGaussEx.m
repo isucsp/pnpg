@@ -4,7 +4,7 @@ function slGaussEx(op)
 %                      Proximal-Gradient Algorithms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-%   Author: Renliang Gu (renliang@iastate.edu)
+%   Author: Renliang Gu (gurenliang@gmail.com)
 %
 %          Skyline Gaussian Linear example, no background noise
 %           Vary the number of measurements, with continuation

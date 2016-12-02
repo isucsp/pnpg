@@ -8,18 +8,21 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
             Psit=@(x) Psi_vt(x)-1i*Psi_ht(x);
             prj.op=@(p) p./max(1,abs(p));
             zeroInitSize=@(x) size(x);
+            initStep='fixed';
             initStepSize=@(u) 1/16/u^2;
         case 'l1'
             Psi=@(p) Psi_v(p(1:end/2,:,:,:))+Psi_h(p(end/2+1:end,:,:,:));
             Psit=@(x) [Psi_vt(x); Psi_ht(x)];
             prj.op=@(p) min(max(p,-1),1);
             zeroInitSize=@(x) [size(x,1)*2, size(x,2)];
+            initStep='fixed';
             initStepSize=@(u) 1/16/u^2;
         case 'realCustom'
             Psi=opt.Psi;
             Psit=opt.Psit;
             prj.op=@(p) min(max(p,-1),1);
             zeroInitSize=@(x) size(Psit(x));
+            initStep='bb';
             initStepSize=@(u) 1;
         otherwise
             error('error sparseType: %s\n',sparseType);
@@ -44,7 +47,8 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
         option.thresh=thresh; option.maxItr=maxItr;
         option.sol='PNPG'; option.adaptiveStep=true;
         option.debug=Debug(0);
-        option.initStepSize=initStepSize(u);
+        option.initStep='fixed';
+        option.Lip=1/initStepSize(u);
 
         NLL=@(p) dualFunc(p,a,Psi,Psit,u,prj_C);
 
