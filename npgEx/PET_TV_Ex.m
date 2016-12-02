@@ -48,19 +48,19 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
                 if(k==1 && any(i==[4 5]))
-                    opt=OPT; opt.gamma=5; opt.a=0;
+                    opt=OPT; opt.gamma=5; opt.b=0;
                     pnpgG5A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=5; opt.a=1/4;
+                    opt=OPT; opt.gamma=5; opt.b=1/4;
                     pnpgG5Aq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=15; opt.a=0;
+                    opt=OPT; opt.gamma=15; opt.b=0;
                     pnpgGfA0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=15; opt.a=1/4;
+                    opt=OPT; opt.gamma=15; opt.b=1/4;
                     pnpgGfAq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                     mysave;
                     continue;
 
-                    opt=OPT; opt.a=0;
+                    opt=OPT; opt.b=0;
                     pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 end
                 continue;

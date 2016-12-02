@@ -36,7 +36,7 @@ switch lower(op)
                     OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
                     if any(i==[6 4]) && any(j==[2 3 4])
-                        opt=OPT; opt.a=0;
+                        opt=OPT; opt.b=0;
                         pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                         mysave;
                         continue;

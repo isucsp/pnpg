@@ -46,30 +46,30 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
                 if any(i==[4 5]) && k==1
-                    opt=OPT; opt.gamma=5; opt.a=1/4;
+                    opt=OPT; opt.gamma=5; opt.b=1/4;
                     pnpgG5Aq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=15; opt.a=1/4;
+                    opt=OPT; opt.gamma=15; opt.b=1/4;
                     pnpgGfAq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                     mysave;
                     continue;
 
                     opt=OPT;
                     pnpg   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.a=0;
+                    opt=OPT; opt.b=0;
                     pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=3; opt.a=0;
+                    opt=OPT; opt.gamma=3; opt.b=0;
                     pnpgG3A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=4; opt.a=0;
+                    opt=OPT; opt.gamma=4; opt.b=0;
                     pnpgG4A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=5; opt.a=0;
+                    opt=OPT; opt.gamma=5; opt.b=0;
                     pnpgG5A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=6; opt.a=0;
+                    opt=OPT; opt.gamma=6; opt.b=0;
                     pnpgG6A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=9; opt.a=0;
+                    opt=OPT; opt.gamma=9; opt.b=0;
                     pnpgG9A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=15; opt.a=0;
+                    opt=OPT; opt.gamma=15; opt.b=0;
                     pnpgGfA0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.gamma=20; opt.a=0;
+                    opt=OPT; opt.gamma=20; opt.b=0;
                     pnpgG20A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
 

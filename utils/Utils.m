@@ -467,17 +467,6 @@ classdef Utils < handle
             Psi =@(z) mask.a(midwt(maskk.b(z),wav,dwt_L));
             Psit=@(z) maskk.a(mdwt(mask.b(z),wav,dwt_L));
         end
-        function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
-            % This function tests whether
-            %      f(x) ≤ f(y)+(x-y)'*∇f(y)+ 0.5*L*||x-y||^2
-            % holds.
-
-            if(exist('dfx','var') && ~isempty(dfx) && abs(fx-fy)/max(max(fx,fy),1) < 1e-10)
-                test=(realInnerProd(x_minus_y,dfx-dfy) <= 0.5*L*sqrNorm(x_minus_y));
-            else
-                test=(fx-fy<=realInnerProd(x_minus_y,dfy)+0.5*L*sqrNorm(x_minus_y));
-            end
-        end
     end
 end
 

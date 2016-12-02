@@ -1,7 +1,8 @@
-function [sp,penalty]=sparseProximal(sparseType, prj_C, opt)
+function proximal=sparseProximal(sparseType, prj_C, opt)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
+    proximal.iterative=true;
     switch(lower(sparseType))
         case 'iso'
             Psi=@(p) Psi_v(real(p))-Psi_h(imag(p));
@@ -24,12 +25,12 @@ function [sp,penalty]=sparseProximal(sparseType, prj_C, opt)
         otherwise
             error('error sparseType: %s\n',sparseType);
         end
-        penalty = @(x) pNorm(Psit(x),1);
+        proximal.penalty = @(x) pNorm(Psit(x),1);
     end
 
     if(exist('prj_C','var')) prj_C=prj_C; else prj_C=@(x) x; end
 
-    sp=@denoise;
+    proximal.op=@denoise;
 
     function [x,itr,p]=denoise(a,u,thresh,maxItr,p)
         % Set default value for maxItr, thresh, and p, if needed.
@@ -46,6 +47,7 @@ function [sp,penalty]=sparseProximal(sparseType, prj_C, opt)
 
         initStepSize(u);
 
+        pnpg(NLL,
         %call npg here
         % No need to set u
         %sol=NPG(1,init,maxItr,[],proximalOp);
