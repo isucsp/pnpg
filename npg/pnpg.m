@@ -1,4 +1,4 @@
-function out = pnpg(NLL,penalty,proximal,xInit,opt)
+function out = pnpg(NLL,proximal,xInit,opt)
 %solver    Solve a sparse regularized problem
 %
 %                           L(x) + u*||Ψ'x||_1                        (1)
@@ -172,7 +172,7 @@ if(debug.level>=1)
     fprintf('%s\n%s',str,repmat( '-', 1, 80 ) );
 end
 
-tic; p=0; convThresh=0; ??? newTheta=1; should be theta
+tic; p=0; convThresh=0; theta=1;
 %figure(123); figure(386);
 while(true)
     p=p+1;
@@ -297,7 +297,11 @@ function pnpgStep
 
         B=t/preT;
         %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-        newTheta=1/gamma+sqrt(b+B*theta^2);
+        if(p==1)
+            newTheta=1;
+        else
+            newTheta=1/gamma+sqrt(b+B*theta^2);
+        end
         xbar=alpha+(theta -1)/newTheta*(alpha-preAlpha);
         xbar=prj_C(xbar);
 

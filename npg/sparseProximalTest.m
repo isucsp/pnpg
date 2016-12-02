@@ -24,15 +24,14 @@ for i=length(tvTypeArray)
         fprintf('objective=%g\n', 0.5*sqrNorm(D-a)+u*tlv(D,tvType));
 
         tic;
-        tv=ProximalTV(tvType);
-        tv.maxItr=maxItr;
-        tv.opt.debugLevel=1;
-        tv.thresh=thresh;
-        dtv=tv.denoise(a,u);
+        tv=sparseProximal(tvType);
+        [dtv,itr]=tv.op(a,u,thresh,maxItr);
         t2=toc;
         fprintf('objective=%g\n', 0.5*sqrNorm(dtv-a)+u*tlv(dtv,tvType));
 
         fprintf('results: diff=%g, t1=%g, t2=%g\n', norm(D-dtv,'fro'), t1, t2);
+
+        pause;
     end
 end
 
