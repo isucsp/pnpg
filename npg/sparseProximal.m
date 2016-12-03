@@ -22,6 +22,8 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
             Psit=opt.Psit;
             prj.op=@(p) min(max(p,-1),1);
             zeroInitSize=@(x) size(Psit(x));
+            % Note that in special cases, such as DWT, initial step can
+            % have better values to start from.
             initStep='bb';
             initStepSize=@(u) 1;
         otherwise

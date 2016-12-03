@@ -46,7 +46,11 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %   Author: Renliang Gu (gurenliang@gmail.com)
 
 % default to not use any constraints.
-if(~isfield(opt,'prj_C')) opt.prj_C=@(x)x; end
+if(~isfield(opt,'prj_C') || isempty(opt.prj_C))
+    prj_C=@(x)x;
+else
+    prj_C=opt.prj_C;
+end
 if(~isfield(opt,'u')) opt.u=1e-4; end
 
 if(~isfield(opt,'alphaStep')) opt.alphaStep='NPGs'; end
@@ -123,8 +127,6 @@ switch lower(opt.alphaStep)
 
 end
 
-% specify the domain of the NLL via a projection operator
-alphaStep.prj_C=opt.prj_C;
 alpha=double(xInit);
 debug=Debug(opt.debugLevel);
 
@@ -145,12 +147,8 @@ else
     collectInnerSearch=false;
 end
 
-if(any(strcmp(properties(alphaStep),'debug')) && alphaStep.hasLog)
-    collectDebug=true;
-    out.debug={};
-else
-    collectDebug=false;
-end
+collectDebug=true;
+out.debug={};
 
 % print start information
 if(debug.level>=1)
@@ -172,75 +170,82 @@ if(debug.level>=1)
     fprintf('%s\n%s',str,repmat( '-', 1, 80 ) );
 end
 
-tic; p=0; convThresh=0; theta=1;
+tic; itr=0; convThresh=0; theta=1;
 %figure(123); figure(386);
+% The variables that will be use in oneStep
+cost=[];
+if(outDetail)
+    innerItr=[]; stepSize=[]; restart=[];
+    nonInc=[]; theta;
+    grad=[];
+end
 while(true)
-    p=p+1;
-    %if(mod(p,100)==1 && p>100) save('snapshotFST.mat'); end
+    itr=itr+1;
+    %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
     oneStep;
 
-    out.cost(p) = alphaStep.cost;
-    out.alphaSearch(p) = alphaStep.ppp;
-    out.stepSize(p) = alphaStep.stepSize;
-    if(opt.restart) out.restart(p)=alphaStep.restart; end
-    if(collectNonInc) out.nonInc(p)=alphaStep.nonInc; end
-    if(collectTheta) out.theta(p)=alphaStep.theta; end
-    if(collectInnerSearch) out.innerSearch(p)=alphaStep.innerSearch; end;
-    if(collectDebug && ~isempty(alphaStep.debug))
-        out.debug{size(out.debug,1)+1,1}=p;
-        out.debug{size(out.debug,1),2}=alphaStep.debug.log;
+    out.cost(itr) = cost;
+    out.alphaSearch(itr) = nLineSearch;
+    out.stepSize(itr) = stepSize;
+    if(opt.restart) out.restart(itr)=restart; end
+    if(collectNonInc) out.nonInc(itr)=nonInc; end
+    if(collectTheta) out.theta(itr)=theta; end
+    if(collectInnerSearch) out.innerItr(itr)=innerItr; end;
+    if(collectDebug && ~isempty(debug))
+        out.debug{size(out.debug,1)+1,1}=itr;
+        out.debug{size(out.debug,1),2}=debug.log;
     end;
     if(debug.level>1)
-        out.BB(p,1)=alphaStep.stepSizeInit('BB');
-        out.BB(p,2)=alphaStep.stepSizeInit('hessian');
+        out.BB(itr,1)=stepSizeInit('BB');
+        out.BB(itr,2)=stepSizeInit('hessian');
     end
 
-    out.difAlpha(p)=relativeDif(alphaStep.alpha,alpha);
-    if(p>1) out.difCost(p)=abs(out.cost(p)-out.cost(p-1))/out.cost(p); end
+    out.difAlpha(itr)=relativeDif(???alpha,alpha);
+    if(itr>1) out.difCost(itr)=abs(out.cost(itr)-out.cost(itr-1))/out.cost(itr); end
 
     alpha = alphaStep.alpha;
 
-    if(mod(p,opt.verbose)==1) debug.println(1); else debug.clear(1); end
-    debug.print(1,sprintf(' %5d',p));
-    debug.print(1,sprintf(' %12g',out.cost(p)));
+    if(mod(itr,opt.verbose)==1) debug.println(1); else debug.clear(1); end
+    debug.print(1,sprintf(' %5d',itr));
+    debug.print(1,sprintf(' %12g',out.cost(itr)));
 
     if(isfield(opt,'trueAlpha'))
-        out.RMSE(p)=computError(alpha);
-        debug.print(1,sprintf(' %12g',out.RMSE(p)));
+        out.RMSE(itr)=computError(alpha);
+        debug.print(1,sprintf(' %12g',out.RMSE(itr)));
     end
 
-    if(opt.saveXtrace) out.alphaTrace(:,p)=alpha; end
+    if(opt.saveXtrace) out.alphaTrace(:,itr)=alpha; end
 
-    debug.print(1,sprintf(' %12g %4d',out.difAlpha(p),alphaStep.ppp));
-    if(p>1)
-        debug.print(1,sprintf(' %12g', out.difCost(p)));
+    debug.print(1,sprintf(' %12g %4d',out.difAlpha(itr),nLineSearch));
+    if(itr>1)
+        debug.print(1,sprintf(' %12g', out.difCost(itr)));
     else
         debug.print(1,sprintf(' %12s', ' '));
     end
 
-    if(p>1 && debug.level>=4)
+    if(itr>1 && debug.level>=4)
         set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueAlpha')) subplot(2,1,1); end
-        if(out.cost(p)>0)
-            semilogy(p-1:p,out.cost(p-1:p),'k'); hold on;
-            title(sprintf('cost(%d)=%g',p,out.cost(p)));
+        if(out.cost(itr)>0)
+            semilogy(itr-1:itr,out.cost(itr-1:itr),'k'); hold on;
+            title(sprintf('cost(%d)=%g',itr,out.cost(itr)));
         end
 
         if(isfield(opt,'trueAlpha'))
             subplot(2,1,2);
-            semilogy(p-1:p,out.RMSE(p-1:p)); hold on;
-            title(sprintf('RMSE(%d)=%g',p,out.RMSE(p)));
+            semilogy(itr-1:itr,out.RMSE(itr-1:itr)); hold on;
+            title(sprintf('RMSE(%d)=%g',itr,out.RMSE(itr)));
         end
         drawnow;
     end
 
-    if(length(out.fVal(p,:))>=1 && p>1 && debug.level>=5)
+    if(length(out.fVal(itr,:))>=1 && itr>1 && debug.level>=5)
         set(0,'CurrentFigure',figRes);
         style={'r','g','b'};
-        for i=1:length(out.fVal(p,:))
+        for i=1:length(out.fVal(itr,:))
             subplot(3,1,i);
-            semilogy(p-1:p,out.fVal(p-1:p,i),style{i}); hold on;
+            semilogy(itr-1:itr,out.fVal(itr-1:itr,i),style{i}); hold on;
         end
         drawnow;
     end
@@ -250,18 +255,20 @@ while(true)
         drawnow;
     end
 
-    out.time(p)=toc;
+    out.time(itr)=toc;
 
-    if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
+    if(itr>1 && out.difAlpha(itr)<=opt.thresh )
         convThresh=convThresh+1;
     end
 
-    if(p >= opt.maxItr || (convThresh>2 && p>opt.minItr))
+    if(itr >= opt.maxItr || (convThresh>2 && itr>opt.minItr))
         break;
     end
 end
-out.alpha=alpha; out.p=p; out.opt = opt;
-out.grad=alphaStep.grad;
+out.alpha=alpha; out.itr=itr; out.opt = opt;
+if(outDetail)
+    out.grad=grad;
+end
 out.date=datestr(now);
 if(debug.level>=0)
     fprintf('\nCPU Time: %g, objective=%g',out.time(end),out.cost(end));
@@ -284,7 +291,7 @@ end
 function pnpgStep
     debug.clearLog();
 
-    ppp=0; incStep=false; goodMM=true;
+    nLineSearch=0; incStep=false; goodMM=true;
     if(adaptiveStep && cumu>=cumuTol)
         % adaptively increase the step size
         t=t*stepIncre;
@@ -293,11 +300,11 @@ function pnpgStep
     end
     % start of line Search
     while(true)
-        ppp = ppp+1;
+        nLineSearch = nLineSearch+1;
 
         B=t/preT;
         %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-        if(p==1)
+        if(itr==1)
             newTheta=1;
         else
             newTheta=1/gamma+sqrt(b+B*theta^2);
@@ -314,7 +321,7 @@ function pnpgStep
         if(majorizationHolds(newX-xbar,newCost,oldCost,[],grad,t))
             break;
         else
-            if(ppp<=20 && t>0)
+            if(nLineSearch<=20 && t>0)
                 t=t/stepShrnk;
                 % Penalize if there is a step size increase just now
                 if(incStep)
@@ -367,14 +374,14 @@ function pnpgStep
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
             newObj=cost;  newX=alpha;
-            innerSearch=0;
+            innerItr=0;
         end
     else
         if(proximal.iterative)
             proximal.setInit();
-            innerSearch=proximal.steps;
+            innerItr=proximal.steps;
         else
-            innerSearch=0;
+            innerItr=0;
         end
     end
     theta = newTheta; preAlpha = alpha;
@@ -383,7 +390,7 @@ function pnpgStep
     alpha = newX;
     preT=t;
 
-    if(ppp==1 && adaptiveStep)
+    if(nLineSearch==1 && adaptiveStep)
         cumu=cumu+1;
     else
         cumu=0;
@@ -421,6 +428,7 @@ end
         if(min(t)==0) keyboard;  t=eps; end;
         if(nargout==0)  keyboard; t=min(t); end
     end
+end
 
 function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
     % This function tests whether
