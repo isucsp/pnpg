@@ -13,7 +13,7 @@ CFLAGS := -std=c99 -fPIC
  
 all: cpu gpu
 
-cpu: mCPUPrj cpuPrj solveTriDiag parPrj.$(EXT) 
+cpu: mCPUPrj cpuPrj msolveTridiag parPrj.$(EXT) 
 
 gpu: mGPUPrj gpuPrj
 
@@ -49,10 +49,10 @@ mParPrj: $(addsuffix .$(EXT),parPrj)
 $(addsuffix .$(EXT),parPrj) : %.$(EXT) : mParPrj.c parPrj.c parPrj.h common/thread.h
 	$(MEX) CFLAGS="$(CFLAGS)" -output $* $(filter-out %.h,$^)
 
-solveTriDiag: $(solveTriDiag .$(EXT),solveTriDiag)
+msolveTridiag: $(addsuffix .$(EXT),solveTridiag)
 
-$(solveTriDiag .$(EXT),solveTriDiag) : solveTriDiag.c
-	$(MEX) $^
+$(addsuffix .$(EXT),solveTridiag) : %.$(EXT) : solveTridiag.c
+	$(MEX) CFLAGS="$(CFLAGS)" $^
 
 .PHONY : clean
 clean:

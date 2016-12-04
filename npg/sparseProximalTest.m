@@ -14,7 +14,7 @@ for i=length(tvTypeArray)
         u=uArray{j};
 
         tic;
-        pars.print = false;
+        pars.print = true;
         pars.tv =tvType;
         pars.MAXITER = maxItr;
         pars.epsilon = thresh; 
