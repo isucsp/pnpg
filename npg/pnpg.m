@@ -115,27 +115,16 @@ if(debug.level>=4)
 end
 
 switch lower(opt.alphaStep)
-    case lower('NCG_PR')
     case {lower('NPGs')}
     case lower('PG')
     case {lower('NPG')}
     case {lower('PNPG')}
-        if(opt.adaptiveStep)
-            oneStep=@pnpgAdaptiveStep;
-        else
-            oneStep=@pnpgNonAdaptiveStep;
-        end
+        oneStep=@pnpgStep;
     case lower('ATs')
     case lower('AT')
     case lower('GFB')
     case lower('Condat')
-    case lower('FISTA_NN')
-    case lower('FISTA_NNL1')
-    case {lower('ADMM_NNL1')}
-    case {lower('ADMM_L1')}
-    case {lower('ADMM_NN')}
     otherwise
-
 end
 
 % determin whether to have convex set C constraints
@@ -304,32 +293,49 @@ if(debug.level>=0)
     end
 end
 
-function pnpgAdaptiveStep
+function pnpgStep
     debug.clearLog();
 
     while(true)
-        nLineSearch=0; incStep=false; goodMM=true;
-        if(cumu>=opt.cumuTol)
-            % adaptively increase the step size
-            t=t*opt.stepIncre;
-            cumu=0;
-            incStep=true;
-        end
-        % start of line Search
-        while(true)
-            nLineSearch = nLineSearch+1;
+        nLineSearch=0; goodMM=true;
 
-            B=t/preT;
+        if(opt.adaptiveStep)
+            incStep=false;
+            if(cumu>=opt.cumuTol)
+                % adaptively increase the step size
+                t=t*opt.stepIncre;
+                cumu=0;
+                incStep=true;
+            end
+        else
             %newTheta=(1+sqrt(1+4*B*theta^2))/2;
             if(itr==1)
                 newTheta=1;
             else
-                newTheta=1/gamma+sqrt(b+B*theta^2);
+                newTheta=1/gamma+sqrt(b+theta^2);
             end
             xbar=x+(theta-1)/newTheta*(x-preX);
             xbar=opt.prj_C(xbar);
-
             [oldCost,grad] = NLL(xbar);
+        end
+
+        % start of line Search
+        while(true)
+            nLineSearch = nLineSearch+1;
+
+            if(opt.adaptiveStep)
+                B=t/preT;
+                %newTheta=(1+sqrt(1+4*B*theta^2))/2;
+                if(itr==1)
+                    newTheta=1;
+                else
+                    newTheta=1/gamma+sqrt(b+B*theta^2);
+                end
+                xbar=x+(theta-1)/newTheta*(x-preX);
+                xbar=opt.prj_C(xbar);
+
+                [oldCost,grad] = NLL(xbar);
+            end
 
             if(proximal.iterative)
                 [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
@@ -345,7 +351,7 @@ function pnpgAdaptiveStep
                 if(nLineSearch<=20 && t>0)
                     t=t/opt.stepShrnk;
                     % Penalize if there is a step size increase just now
-                    if(incStep)
+                    if(opt.adaptiveStep && incStep)
                         if(opt.incCumuTol)
                             opt.cumuTol=opt.cumuTol+4;
                         end
@@ -413,120 +419,18 @@ function pnpgAdaptiveStep
         cost = newObj;
         difX = relativeDif(x,newX);
         x = newX;
-        preT=t;
         penVal=newPen;
         NLLVal=newCost;
 
-        if(nLineSearch==1)
-            cumu=cumu+1;
-        else
-            cumu=0;
-        end
-
-        break;
-    end
-    function reset()
-        theta=1; t=min([t;max(stepSizeInit('hessian'))]);
-    end
-end
-
-function pnpgNonAdaptiveStep
-    debug.clearLog();
-
-    while(true)
-        nLineSearch=0; goodMM=true;
-
-        %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-        if(itr==1)
-            newTheta=1;
-        else
-            newTheta=1/gamma+sqrt(b+theta^2);
-        end
-        xbar=x+(theta-1)/newTheta*(x-preX);
-        xbar=opt.prj_C(xbar);
-        [oldCost,grad] = NLL(xbar);
-
-        % start of line Search
-        while(true)
-            nLineSearch = nLineSearch+1;
-
-            if(proximal.iterative)
-                [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
-                    pInit);
+        if(opt.adaptiveStep)
+            preT=t;
+            if(nLineSearch==1)
+                cumu=cumu+1;
             else
-                newX=proximal.op(xbar-grad/t,opt.u/t);
-            end
-
-            newCost=NLL(newX);
-            if(majorizationHolds(newX-xbar,newCost,oldCost,[],grad,t))
-                break;
-            else
-                if(nLineSearch<=20 && t>0)
-                    t=t/opt.stepShrnk;
-                else  % don't know what to do, mark on debug and break
-                    if(t<0)
-                        error('\n PNPG is having a negative step size, do nothing and return!!');
-                    end
-                    goodMM=false;
-                    debug.appendLog('_FalseMM');
-                    break;
-                end
+                cumu=0;
             end
         end
-        stepSize = 1/t;
-        newPen = proximal.penalty();
-        newObj = newCost+opt.u*newPen;
 
-        if((newObj-cost)>0)
-            oldPen = proximal.penalty(xbar);
-            objBar = oldCost+opt.u*oldPen;
-            if(goodMM && pNorm(xbar-x,1)~=0 && restart>=0) % if has monmentum term, restart
-                theta=1;
-                debug.appendLog('_Restart');
-                debug.printWithoutDel(1,'\t restart');
-                continue;
-            elseif((~goodMM) || (objBar<newObj))
-                if(~goodMM)
-                    debug.appendLog('_Reset');
-                    reset();
-                end
-                if(proximal.iterative)
-                    if(proximal.steps<opt.maxInnerItr && opt.relInnerThresh>1e-6)
-                        opt.relInnerThresh=opt.relInnerThresh/10;
-                        debug.printWithoutDel(1,...
-                            sprintf('\n decrease relInnerThresh to %g',...
-                            opt.relInnerThresh));
-                        continue;
-                        %% IMPORTANT! if not requir too high accuracy
-                        %% use 1e3 for maxInnerItr
-                    elseif(proximal.steps>=opt.maxInnerItr &&...
-                            opt.maxInnerItr<opt.maxPossibleInnerItr)
-                        opt.maxInnerItr=opt.maxInnerItr*10;
-                        debug.printWithoutDel(1,...
-                            sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
-                        continue;
-                    end
-                end
-
-                % give up and force it to converge
-                debug.appendLog('_ForceConverge');
-                newObj=cost;  newX=x;
-                innerItr=0;
-            end
-        else
-            if(proximal.iterative)
-                pInit=pInit_;
-                innerItr=innerItr_;
-            else
-                innerItr=0;
-            end
-        end
-        theta = newTheta; preX = x;
-        cost = newObj;
-        difX = relativeDif(x,newX);
-        x = newX;
-        penVal=newPen;
-        NLLVal=newCost;
         break;
     end
     function reset()
