@@ -88,9 +88,10 @@ if(~exist(['lbfgsb_wrapper.' mexext],'file'))
 end
 cd(pathstr)
 
-slCharacterEncoding('UTF-8');
+%slCharacterEncoding('UTF-8');
+disp('INFO: if your editor does not show (α,β) as $(\alpha,\beta)$, please run the following command:');
+disp('    slCharacterEncoding(''UTF-8'');');
 end
-
 
 function o = isOlder(f1, f2)
     if(~iscell(f2))

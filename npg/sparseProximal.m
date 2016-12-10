@@ -1,4 +1,4 @@
-function proximal=sparseProximal(sparseType, prj_C, opt)
+function proximal=sparseProximal(sparseType, prj_C, opt, option)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
@@ -9,14 +9,14 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
             prj.op=@(p) p./max(1,abs(p));
             zeroInit=@(x) zeros(size(x));
             initStep='fixed';
-            initStepSize=@(u) 1/16/u^2;
+            Lipschitz=@(u) 8*u^2;
         case 'l1'
             Psi=@(p) Psi_v(p(1:end/2,:,:,:))+Psi_h(p(end/2+1:end,:,:,:));
             Psit=@(x) [Psi_vt(x); Psi_ht(x)];
             prj.op=@(p) min(max(p,-1),1);
             zeroInit=@(x) zeros([size(x,1)*2, size(x,2)]);
             initStep='fixed';
-            initStepSize=@(u) 1/16/u^2;
+            Lipschitz=@(u) 8*u^2;
         case 'realCustom'
             Psi=opt.Psi;
             Psit=opt.Psit;
@@ -25,7 +25,7 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
             % Note that in special cases, such as DWT, initial step can
             % have better values to start from.
             initStep='bb';
-            initStepSize=@(u) 1;
+            Lipschitz=@(u) 1;
         otherwise
             error('error sparseType: %s\n',sparseType);
     end
@@ -38,11 +38,16 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
     proximal.op=@denoise;
     proximal.iterative=true;
 
-    option.sol='PNPG'; option.adaptiveStep=false;
-    option.debugLevel=1;
-    option.initStep='fixed';
+    if(~exist('option','var') || ~isfield(option,'adaptiveStep')) option.adaptiveStep=true; end
+    if(~isfield(option,'debugLevel')) option.debugLevel=-1; end
+    if(~isfield(option,'initStep')) option.initStep=initStep; end
+    option.sol='PNPG';
 
-    Psip=[]; x=[];
+    % start of debug
+%   option.debugLevel=1;
+%   option.outDetail=true;
+%   option.NLL_Pen=true;
+    % end of debug
 
     function [x,itr,p]=denoise(a,u,thresh,maxItr,pInit)
         % Set default value for maxItr, thresh, and pInit, if needed.
@@ -51,26 +56,18 @@ function proximal=sparseProximal(sparseType, prj_C, opt)
         if(~exist('pInit','var') || isempty(pInit)) pInit=zeroInit(a); end
 
         option.thresh=thresh; option.maxItr=maxItr;
-        option.Lip=1/initStepSize(u);
+        option.Lip=Lipschitz(u);
 
         NLL=@(p) dualFunc(p,a,Psi,Psit,u,prj_C);
 
         out=pnpg(NLL,prj,pInit,option);
 
-        keyboard
-
-        p=out.x;
-        Psip=Psi(p);
         itr=out.itr;
-        x=prj_C(a-u*Psip);
+        p=out.x;
+        x=prj_C(a-u*Psi(p));
     end
     function pen=penalty(z)
-        if(nargin==0)
-            % Psi(p) is real
-            pen=innerProd(x,Psip);
-        else
-            pen=pNorm(Psit(z),1);
-        end
+        pen=pNorm(Psit(z),1);
     end
 end
 

@@ -1,56 +1,58 @@
-classdef Debug < handle
-    properties
-        level
-        strlen
-        log
-    end
-    properties (Access = protected)
-    end
-    properties (Dependent)
-    end
-    methods
-        function obj = Debug(level)
-            obj.level=level;
-            obj.strlen=0;
-            obj.clearLog();
-        end
-        function printWithoutDel(obj,l,str)
-            if(obj.level>=l)
-                fprintf(str);
-                obj.strlen=0;
-            end
-        end
-        function print(obj,l,str)
-            if(obj.level>=l)
-                fprintf(str);
-                obj.strlen=obj.strlen+length(str);
-            end
-        end
-        function println(obj,l,str)
-            if(obj.level>=l)
-                if(exist('str','var'))
-                    fprintf(str);
-                end
-                fprintf('\n');
-                obj.strlen=0;
-            end
-        end
-        function clear(obj,l)
-            if(obj.level>=l)
-                if(obj.strlen>0)
-                    fprintf(repmat('\b',1,obj.strlen));
-                    obj.strlen=0;
-                else
-                    fprintf('\n');
-                end
-            end
-        end
+function deb=Debug(level)
+    strlen=0;
+    log='';
+    add='';
+    str='';
 
-        function clearLog(obj)
-            obj.log='';
+    deb.level=@levelGE;
+    deb.log=@getLog;
+    deb.clearLog=@clearLog;
+    deb.print=@print;
+    deb.printWithoutDel=@printWithoutDel;
+    deb.println=@println;
+    deb.clear_print=@clear_print;
+    deb.appendLog=@appendLog;
+
+    function res=levelGE(l)
+        res=(level>=l);
+    end
+    function res=getLog()
+        res=log;
+    end
+    function clearLog()
+        log='';
+    end
+    function printWithoutDel(l,str)
+        if(level>=l)
+            add=[add str];
         end
-        function appendLog(obj,str)
-            obj.log=[obj.log str];
+    end
+    function print(l,s)
+        if(level>=l)
+            str=[str s];
         end
+    end
+    function println(l)
+        if(level>=l)
+            fprintf('\n');
+            strlen=0;
+        end
+    end
+    function clear_print(l)
+        if(level>=l)
+            fprintf([repmat('\b',1,strlen),str]);
+            if(isempty(add))
+                strlen=length(str);
+            else
+                fprintf([add '\n']);
+                add='';
+                strlen=0;
+            end
+            str='';
+        end
+    end
+
+    function appendLog(str)
+        log=[log str];
     end
 end
