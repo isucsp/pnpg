@@ -44,6 +44,8 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %
 %   opt         The optional structure for the configuration of this algorithm (refer to
 %               the code for detail)
+%       prj_C           A function handle to project signal x to a convex set
+%                       C;
 %       u               Regularization parameter;
 %       initStep        Method for the initial step size, can be one of
 %                       "hessian", "bb", and "fixed".  When "fixed" is set,
