@@ -10,7 +10,12 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
     if((~exist('init','var')) || isempty(init)) init=a;  end
     if((~exist('isInDebugMode','var')) || isempty(isInDebugMode)) isInDebugMode=false;  end
     % this makes sure the convergence criteria is nontrival
-    relativeTol=min(1e-3,relativeTol);
+    relativeTol=min(1e-3,relativeTol); scale=1; strlen=0;
+
+    % scale the input to prevent numerical problem
+    scale=pNorm(a); if(scale==0) alpha=zeros(size(a)); pppp=0; return; end
+    init=init/scale;  a=a/scale;  u=u/scale;
+
     nu=0; rho=1; cnt=0; preS=Psit(init); s=preS;
     r=1.7;
 
@@ -26,27 +31,23 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
 
         difS=pNorm(s-preS); preS=s;
         residual = pNorm(s-Psit_alpha);
-        sNorm = max(pNorm(s),eps);
 
         if(isInDebugMode)
-            cost(pppp)=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
-            cost1(pppp)=0.5*sqrNorm(alpha-a)+u*pNorm(Psit_alpha,1);
-            cost2(pppp)=0.5*sqrNorm(alpha-a)+u*pNorm(s,1);
+            cost=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
+            gap=rho*nu'*(s-Psit_alpha);
 
-            rhoRec(pppp)=rho;
-
-            if(pppp>1)
-                difAlpha = pNorm(preAlpha-alpha);
-                difAlphaRec(pppp-1)=difAlpha/sNorm;
-                difSRec(pppp-1)=difS/sNorm;
-                residualRec(pppp-1)=residual/sNorm;
+            str=sprintf('itr=%d, cost=%g pRes=%g dRes=%g gap=%g rho=%g       ',pppp,...
+               cost,residual,difS,gap,rho);
+            if(strlen==0 || (mod(pppp-1,100)==0 || (pppp<=100 && mod(pppp-1,10)==0) || pppp-1<10))
+                fprintf('\n%s',str);
+            else
+                fprintf([repmat('\b',1,strlen) '%s'],str);
             end
-
-            preAlpha=alpha;
+            strlen = length(str);
         end
 
         if(pppp>maxItr) break; end
-        if(difS<=relativeTol*sNorm && residual<=relativeTol*sNorm) break; end
+        if(difS<=relativeTol && residual<=relativeTol) break; end
         if(cnt>10) % prevent excessive back and forth adjusting
             if(difS>10*residual)
                 rho = rho/2 ; nu=nu*2; cnt=0;
@@ -55,30 +56,31 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
             end
         end
     end 
-    alpha = max((a+rho*Psi(s+nu))/(1+rho),0);
+    alpha = max((a+rho*Psi(s+nu))/(1+rho),0)*scale;
 
-    if(isInDebugMode)
-        costRef=0.5*sqrNorm(max(init,0)-a)+u*pNorm(Psit(max(init,0)),1);
-        figure;
-        semilogy(rhoRec,'r'); title('rho');
-        figure;
-        semilogy(difAlphaRec,'r'); hold on;
-        semilogy(difSRec,'g');
-        semilogy(residualRec,'b');
-        legend('difAlpha','difS','residual');
-        title('covnergence criteria');
-        figure;
-        semilogy(cost1-min([cost,cost1,cost2]),'r-.'); hold on;
-        semilogy(cost -min([cost,cost1,cost2]),'g-'); hold on;
-        semilogy(cost2 -min([cost,cost1,cost2]),'b-'); hold on;
-        title('admm centered obj');
-        legend('alpha','s','alpha,s');
-        figure;
-        semilogy(cost1,'r'); hold on;
-        semilogy(cost,'g'); hold on;
-        semilogy(ones(size(cost))*costRef,'k');
-        title('admm obj');
-        legend('alpha','s','ref');
-    end
     % end of the ADMM inside the NPG
 end
+
+% if(isInDebugMode)
+%     costRef=0.5*sqrNorm(max(init,0)-a)+u*pNorm(Psit(max(init,0)),1);
+%     figure;
+%     semilogy(rhoRec,'r'); title('rho');
+%     figure;
+%     semilogy(difAlphaRec,'r'); hold on;
+%     semilogy(difSRec,'g');
+%     semilogy(residualRec,'b');
+%     legend('difAlpha','difS','residual');
+%     title('covnergence criteria');
+%     figure;
+%     semilogy(cost1-min([cost,cost1,cost2]),'r-.'); hold on;
+%     semilogy(cost -min([cost,cost1,cost2]),'g-'); hold on;
+%     semilogy(cost2 -min([cost,cost1,cost2]),'b-'); hold on;
+%     title('admm centered obj');
+%     legend('alpha','s','alpha,s');
+%     figure;
+%     semilogy(cost1,'r'); hold on;
+%     semilogy(cost,'g'); hold on;
+%     semilogy(ones(size(cost))*costRef,'k');
+%     title('admm obj');
+%     legend('alpha','s','ref');
+% end

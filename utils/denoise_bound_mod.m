@@ -188,7 +188,7 @@ while((i<MAXITER)&&(count<5))
   if(nargout==3)
     fun_all=[fun_all;fval];
     if(prnt)
-      fprintf('%7d %10.10f %10.10f  %19g %12g',i,fval,norm(D-Dold,'fro')/norm(D,'fro'),f(D,lambda), f(pars.init,lambda));
+      fprintf('%7d %10.10g %10.10g  %19g',i,fval,norm(D-Dold,'fro')/norm(D,'fro'),f(D,lambda));
       if (fval>fold) fprintf('  *\n'); else fprintf('   \n'); end
     end
   end

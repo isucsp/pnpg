@@ -6,7 +6,7 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
         case 'iso'
             Psi=@(p) Psi_v(real(p))-Psi_h(imag(p));
             Psit=@(x) Psi_vt(x)-1i*Psi_ht(x);
-            prj.op=@(p) p./max(1,abs(p));
+            prj.op=@(p) p./sqrt(max(1,real(p).^2+imag(p).^2));
             zeroInit=@(x) zeros(size(x));
             initStep='fixed';
             Lipschitz=@(u) 8*u^2;
@@ -39,17 +39,11 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
     proximal.iterative=true;
 
     if(~exist('option','var') || ~isfield(option,'adaptiveStep')) option.adaptiveStep=true; end
-    if(~isfield(option,'debugLevel')) option.debugLevel=-1; end
+    if(~isfield(option,'debugLevel')) option.debugLevel=0; end
+    if(~isfield(option,'debugLevel')) option.outLevel=0; end
     if(~isfield(option,'initStep')) option.initStep=initStep; end
-    option.sol='PNPG';
 
-    % start of debug
-%   option.debugLevel=1;
-%   option.outDetail=true;
-%   option.NLL_Pen=true;
-    % end of debug
-
-    function [x,itr,p]=denoise(a,u,thresh,maxItr,pInit)
+    function [x,itr,p,out]=denoise(a,u,thresh,maxItr,pInit)
         % Set default value for maxItr, thresh, and pInit, if needed.
         if(~exist('thresh','var')) thresh=1e-13; end
         if(~exist('maxItr','var')) maxItr=1e3; end
@@ -86,7 +80,7 @@ function [f,g,h] = dualFunc(p,a,Psi,Psit,u,prj_C)
     end
 end
 
-% if edit the following, update TV.[A,B]t\=
+% If edit the following, update TV.[A,B]t\=
 function x = Psi_v(p)
     [I,~]=size(p);
     p(I,:)=0;

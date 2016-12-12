@@ -1,20 +1,22 @@
 clear all; close all;
+if(~exist('seed','var')) seed=0; end
+RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
 
 uArray={100,100,1000};
 
 maxItr=2e3; thresh=1e-13;
 tvTypeArray={'l1'; 'iso'};
-aArray={(1:12)', (1:12), rand(100,100)};
+aArray={rand(1,120)', (1:12), rand(100,100)};
 
-for i=length(tvTypeArray)
-    for j=length(aArray)
+for i=1:length(tvTypeArray)
+    for j=1:length(aArray)
 
         tvType=tvTypeArray{i};
         a=aArray{j};
         u=uArray{j};
 
         tic;
-        pars.print = true;
+        pars.print = false;
         pars.tv =tvType;
         pars.MAXITER = maxItr;
         pars.epsilon = thresh; 
@@ -24,7 +26,7 @@ for i=length(tvTypeArray)
 
         tic;
         tv=sparseProximal(tvType);
-        [dtv,itr,pInit]=tv.op(a,u,thresh,maxItr);
+        [dtv,itr,pInit,out]=tv.op(a,u,thresh,maxItr);
         t2=toc;
         fprintf('objective=%g\n', 0.5*sqrNorm(D-a)+u*tv.penalty(D));
 

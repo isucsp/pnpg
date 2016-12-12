@@ -1,5 +1,5 @@
-function out = pnpg(NLL,proximal,xInit,opt)
-%   pnpg solves a sparse regularized problem
+function out = pg(NLL,proximal,xInit,opt)
+%   pg solves a sparse regularized problem
 %
 %                           NLL(x) + u*r(x)                           (1)
 %
@@ -69,6 +69,9 @@ if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 if(~isfield(opt,'preSteps')) opt.preSteps=5; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
+if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
+if(~isfield(opt,'saveXtrace')) opt.saveXtrace=false; end
+if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'Lip')) opt.Lip=nan; end
@@ -85,24 +88,10 @@ if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
 if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
 if(~isfield(opt,'maxPossibleInnerItr')) opt.maxPossibleInnerItr=1e3; end
 
-% Debug output information
-% >=0: no print,
-% >=1: only report results,
-% >=2: detail output report, 
-% >=4: plot real time cost and RMSE,
-if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-% print iterations every opt.verbose lines.
-if(~isfield(opt,'verbose')) opt.verbose=100; end
-
 % Output options and debug information
-% >=0: minimum output with only results,
-% >=1: some cheap output,
-% >=2: more detail output and expansive (impairs CPU time, only for debug)
+% 0: minimum output, 1: some output, 2: more detail output
 if(~isfield(opt,'outLevel')) opt.outLevel=0; end
-if(~isfield(opt,'saveXtrace') || opt.outLevel<2) opt.saveXtrace=false; end
-if(~isfield(opt,'collectOtherStepSize') || opt.outLevel<2)
-    opt.collectOtherStepSize=false;
-end
+if(~isfield(opt,'NLL_Pen') || opt.outLevel<=1) opt.NLL_Pen=false; end
 
 if(isfield(opt,'trueX'))
     switch opt.errorType
@@ -121,8 +110,20 @@ if(isfield(opt,'trueX'))
 end
 
 debug=Debug(opt.debugLevel);
-if(debug.level(4))
-    figCostRMSE=1000; figure(figCostRMSE);
+if(opt.outLevel>=4)
+    figCost=1000; figure(figCost);
+end
+if(opt.outLevel>=5)
+    figRes=1001; figure(figRes);
+end
+if(opt.outLevel>=6)
+    figX=1002; figure(figX);
+end
+
+if(proximal.iterative && abs(nargout(proximal.op))>1 && opt.outLevel>0)
+    collectInnerItr=true;
+else
+    collectInnerItr=false;
 end
 
 % In case of projection as proximal
@@ -132,9 +133,9 @@ if(nargin(proximal.op)==1)
 end
 
 % print start information
-if(debug.level(2))
+if(debug.level(1))
     fprintf('%s\n', repmat( '=', 1, 80 ) );
-    str=sprintf('Projected Nestrov''s Proximal-Gradient (PNPG) Method');
+    str=sprintf('Proximal-Gradient (PG) Method');
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
     str=sprintf( ' %5s','Itr');
@@ -152,20 +153,13 @@ t=stepSizeInit(opt.initStep,opt.Lip);
 
 tic;
 
-itr=0; convThresh=0; theta=1; preX=0; x=xInit;
-NLLVal=NLL(x);
-penVal=proximal.penalty(x);
-cost=NLLVal+opt.u*penVal;
+itr=0; convThresh=0;
+x=xInit; difX=1;
+cost=NLL(x)+opt.u*proximal.penalty(x);
 goodStep=true;
-if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
-    RMSE=computError(x);
-end
 
 if(opt.outLevel>=1) out.debug={}; end
-if(proximal.iterative)
-    pInit=[];
-    difX=1;
-end
+if(proximal.iterative) pInit=[]; end
 if(opt.adaptiveStep) cumu=0; end
 
 while(true)
@@ -173,56 +167,32 @@ while(true)
     %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %  start of one PNPG step  %
+    %  start of one PG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     numLineSearch=0; goodMM=true; incStep=false;
-    if(opt.adaptiveStep)
-        if(cumu>=opt.cumuTol)
-            % adaptively increase the step size
-            t=t*opt.stepIncre;
-            cumu=0;
-            incStep=true;
-        end
-    else
-        %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-        if(itr==1)
-            newTheta=1;
-        else
-            newTheta=1/gamma+sqrt(b+theta^2);
-        end
-        xbar=x+(theta-1)/newTheta*(x-preX);
-        xbar=opt.prj_C(xbar);
-        [oldCost,grad] = NLL(xbar);
+    [oldCost,grad] = NLL(x);
+    if(opt.adaptiveStep && cumu>=opt.cumuTol)
+        % adaptively increase the step size
+        t=t*opt.stepIncre;
+        cumu=0;
+        incStep=true;
     end
 
     % start of line Search
     while(true)
         numLineSearch = numLineSearch+1;
 
-        if(opt.adaptiveStep)
-            if(itr==1)
-                newTheta=1;
-            else
-                B=t/preT;
-                newTheta=1/gamma+sqrt(b+B*theta^2);
-                %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-            end
-            xbar=x+(theta-1)/newTheta*(x-preX);
-            xbar=opt.prj_C(xbar);
-            [oldCost,grad] = NLL(xbar);
-        end
-
         if(proximal.iterative)
-            [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
+            [newX,innerItr_,pInit_]=proximal.op(x-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
                 pInit);
         else
-            newX=proximal.op(xbar-grad/t,opt.u/t);
+            newX=proximal.op(x-grad/t,opt.u/t);
         end
 
         newCost=NLL(newX);
-        if(majorizationHolds(newX-xbar,newCost,oldCost,[],grad,t))
-            if(itr<=opt.preSteps && opt.adaptiveStep && goodStep)
+        if(majorizationHolds(newX-x,newCost,oldCost,[],grad,t))
+            if(itr<=opt.preSteps && goodStep)
                 cumu=opt.cumuTol;
             end
             break;
@@ -246,20 +216,16 @@ while(true)
     newPen = proximal.penalty(newX);
     newObj = newCost+opt.u*newPen;
 
-    % using eps reduces numerical issue around the point of convergence
-    if((newObj-cost)/max([abs(newCost),abs(cost),1])>eps)
+    if(newObj>cost)
         if(~goodMM)
             reset(); % both theta and step size;
-        else
-            if(restart()) itr=itr-1; continue; end
         end
-        if(runMore()) itr=itr-1; continue; end
+        if(runMore()) continue; end
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
         innerItr=0;
-        preX=x; difX=0;
-        preCost=cost;
+        difX=0;
     else
         if(proximal.iterative)
             pInit=pInit_;
@@ -268,17 +234,13 @@ while(true)
             innerItr=0;
         end
         difX = relativeDif(x,newX);
-        preX = x;
         x = newX;
-        theta = newTheta;
-        preCost=cost;
         cost = newObj;
         NLLVal=newCost;
         penVal=newPen;
     end
 
     if(opt.adaptiveStep)
-        preT=t;
         if(numLineSearch==1)
             cumu=cumu+1;
         else
@@ -287,31 +249,17 @@ while(true)
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%
-    %  end of one PNPG step  %
+    %  end of one PG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if(opt.outLevel>=1 || debug.level(2))
-        difCost=abs(cost-preCost)/max(1,abs(cost));
-        if(isfield(opt,'trueX'))
-            preRMSE=RMSE; RMSE=computError(x);
-        end
+    out.cost(itr) = cost;
+    if(itr>1)
+        difCost=abs(cost-out.cost(itr-1))/cost;
     end
     if(opt.outLevel>=1)
         out.time(itr)=toc;
-        out.cost(itr)=cost;
         out.difX(itr)=difX;
-        out.difCost(itr)=difCost;
-        out.theta(itr)=theta;
-        out.numLineSearch(itr) = numLineSearch;
-        out.stepSize(itr) = 1/t;
-        out.NLLVal(itr)=NLLVal;
-        out.penVal(itr)=penVal;
-        if(proximal.iterative)
-            out.innerItr(itr)=innerItr;
-        end;
-        if(isfield(opt,'trueX'))
-            out.RMSE(itr)=RMSE;
-        end
+        if(itr>1) out.difCost(itr)=difCost; end
         if(~isempty(debug.log()))
             out.debug{size(out.debug,1)+1,1}=itr;
             out.debug{size(out.debug,1),2}=debug.log();
@@ -320,38 +268,62 @@ while(true)
     end
 
     if(opt.outLevel>=2)
-        if(opt.saveXtrace) out.xTrace(:,itr)=x; end
-        if(opt.collectOtherStepSize)
+        out.numLineSearch(itr) = numLineSearch;
+        out.stepSize(itr) = 1/t;
+        if(opt.NLL_Pen)
+            out.NLLVal(itr)=NLLVal;
+            out.penVal(itr)=penVal;
+        end
+        if(collectInnerItr) out.innerItr(itr)=innerItr; end;
+        if(debug.level(2))
             out.BB(itr,1)=stepSizeInit('BB');
             out.BB(itr,2)=stepSizeInit('hessian');
         end
+        if(opt.saveXtrace) out.xTrace(:,itr)=x; end
     end
 
-    if(debug.level(2))
-        debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.12g',cost));
-        if(isfield(opt,'trueX'))
-            debug.print(2,sprintf(' %12g',RMSE));
-        end
-        debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
-        debug.print(2,sprintf(' %12g', difCost));
-        debug.clear_print(2);
-        if(mod(itr,opt.verbose)==0) debug.println(2); end
+    debug.print(1,sprintf(' %5d',itr));
+    debug.print(1,sprintf(' %14.12g',cost));
+    if(isfield(opt,'trueX'))
+        out.RMSE(itr)=computError(x);
+        debug.print(1,sprintf(' %12g',out.RMSE(itr)));
     end
+    debug.print(1,sprintf(' %12g %4d',difX,numLineSearch));
+    if(itr>1)
+        debug.print(1,sprintf(' %12g', difCost));
+    else
+        debug.print(1,sprintf(' %12s', ' '));
+    end
+    debug.clear_print(1);
+    if(mod(itr,opt.verbose)==0) debug.println(1); end
 
-    if(debug.level(4) && itr>1)
-        set(0,'CurrentFigure',figCostRMSE);
+    if(itr>1 && opt.outLevel>=4)
+        set(0,'CurrentFigure',figCost);
         if(isfield(opt,'trueX')) subplot(2,1,1); end
-        if(cost>0)
-            semilogy(itr-1:itr,[preCost,cost],'k'); hold on;
-            title(sprintf('cost(%d)=%g',itr,cost));
+        if(out.cost(itr)>0)
+            semilogy(itr-1:itr,out.cost(itr-1:itr),'k'); hold on;
+            title(sprintf('cost(%d)=%g',itr,out.cost(itr)));
         end
 
         if(isfield(opt,'trueX'))
             subplot(2,1,2);
-            semilogy(itr-1:itr,[preRMSE, RMSE]); hold on;
-            title(sprintf('RMSE(%d)=%g',itr,RMSE));
+            semilogy(itr-1:itr,out.RMSE(itr-1:itr)); hold on;
+            title(sprintf('RMSE(%d)=%g',itr,out.RMSE(itr)));
         end
+        drawnow;
+    end
+
+    if(opt.NLL_Pen && itr>1 && opt.outLevel>=5)
+        set(0,'CurrentFigure',figRes);
+        subplot(2,1,1);
+        semilogy(itr-1:itr,out.NLLVal(itr-1:itr),'r'); hold on;
+        subplot(2,1,2);
+        semilogy(itr-1:itr,out.penVal(itr-1:itr),'b'); hold on;
+        drawnow;
+    end
+
+    if(opt.outLevel>=6)
+        set(0,'CurrentFigure',figX); showImgMask(x,opt.mask);
         drawnow;
     end
 
@@ -367,48 +339,38 @@ out.x=x; out.itr=itr; out.opt = opt; out.date=datestr(now);
 if(opt.outLevel>=2)
     out.grad=grad;
 end
-if(debug.level(1))
-    fprintf('\nCPU Time: %g, objective=%g',toc,cost);
+if(debug.level(0))
+    fprintf('\nCPU Time: %g, objective=%g',toc,out.cost(end));
     if(isfield(opt,'trueX'))
-        if(debug.level(2))
-            fprintf(', RMSE=%g\n',RMSE);
-        else
-            fprintf(', RMSE=%g\n',computError(x));
-        end
+        fprintf(', RMSE=%g\n',out.RMSE(end));
     else
         fprintf('\n');
     end
 end
 
 function reset()
-    theta=1;
     t=min([t;max(stepSizeInit('hessian'))]);
     debug.appendLog('_Reset');
-    debug.printWithoutDel(2,'\t reset');
-end
-function res=restart()
-    % if has monmentum term, restart
-    res=pNorm(xbar-x,1)~=0;
-    if(res)
-        theta=1;
-        debug.appendLog('_Restart');
-        debug.printWithoutDel(2,'\t restart');
-    end
+    debug.printWithoutDel(1,'\t reset');
 end
 function res=runMore()
     res=false;
     if(~proximal.iterative) return; end
     if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-6)
         opt.relInnerThresh=opt.relInnerThresh/10;
-        debug.printWithoutDel(2,...
+        debug.printWithoutDel(1,...
             sprintf('\n decrease relInnerThresh to %g',...
             opt.relInnerThresh));
+        itr=itr-1;
         res=true;
+        %% IMPORTANT! if not requir too high accuracy
+        %% use 1e3 for maxInnerItr
     elseif(innerItr_>=opt.maxInnerItr &&...
             opt.maxInnerItr<opt.maxPossibleInnerItr)
         opt.maxInnerItr=opt.maxInnerItr*10;
-        debug.printWithoutDel(2,...
+        debug.printWithoutDel(1,...
             sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
+        itr=itr-1;
         res=true;
     end
 end
@@ -439,7 +401,7 @@ function t=stepSizeInit(select,Lip,delta)
             error('unkown selection for initial step');
     end
     if(isnan(t) || t<=0)
-        error('\n PNPG is having a negative or NaN step size, do nothing and return!!\n');
+        error('\n PG is having a negative or NaN step size, do nothing and return!!\n');
     end
 end
 
@@ -454,7 +416,7 @@ function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
     %     % In this case, use stronger condition to avoid numerical issue
     %     test=(realInnerProd(x_minus_y,dfx-dfy) <= L*sqrNorm(x_minus_y)/2);
     % else
-    test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
+        test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
     % end
 end
 
