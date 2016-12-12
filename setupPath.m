@@ -1,7 +1,7 @@
 function setupPath
 %
 % Author: Renliang Gu (gurenliang@gmail.com)
-% $Revision: 0.3 $ $Date: Sun 10 Jan 2016 11:04:48 PM CST
+% $Revision: 0.3 $ $Date: Mon 12 Dec 2016 02:21:44 AM CST
 %
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
@@ -89,7 +89,7 @@ end
 cd(pathstr)
 
 %slCharacterEncoding('UTF-8');
-disp('INFO: if your editor does not show (α,β) as $(\alpha,\beta)$, please run the following command:');
+disp('INFO: if your editor does not show (α,β) properly as $(\alpha,\beta)$ rendered with tex, please run the following command:');
 disp('    slCharacterEncoding(''UTF-8'');');
 end
 
