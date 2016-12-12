@@ -152,7 +152,7 @@ t=stepSizeInit(opt.initStep,opt.Lip);
 
 tic;
 
-itr=0; convThresh=0; theta=1; preX=0; x=xInit;
+itr=0; convThresh=0; x=xInit; theta=1; preX=0;
 NLLVal=NLL(x);
 penVal=proximal.penalty(x);
 cost=NLLVal+opt.u*penVal;
@@ -247,7 +247,7 @@ while(true)
     newObj = newCost+opt.u*newPen;
 
     % using eps reduces numerical issue around the point of convergence
-    if((newObj-cost)/max([abs(newCost),abs(cost),1])>eps)
+    if((newObj-cost)>eps*max(abs(newCost),abs(cost)))
         if(~goodMM)
             reset(); % both theta and step size;
         else
@@ -454,7 +454,7 @@ function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
     %     % In this case, use stronger condition to avoid numerical issue
     %     test=(realInnerProd(x_minus_y,dfx-dfy) <= L*sqrNorm(x_minus_y)/2);
     % else
-    test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
+        test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
     % end
 end
 
