@@ -359,7 +359,7 @@ while(true)
         convThresh=convThresh+1;
     end
 
-    if(itr >= opt.maxItr || (convThresh>2 && itr>opt.minItr))
+    if(itr >= opt.maxItr || (convThresh>2 && itr>=opt.minItr))
         break;
     end
 end

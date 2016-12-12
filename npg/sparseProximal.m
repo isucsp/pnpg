@@ -42,6 +42,7 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
     if(~isfield(option,'debugLevel')) option.debugLevel=0; end
     if(~isfield(option,'debugLevel')) option.outLevel=0; end
     if(~isfield(option,'initStep')) option.initStep=initStep; end
+    if(~isfield(option,'initStep')) option.minItr=1; end
 
     function [x,itr,p,out]=denoise(a,u,thresh,maxItr,pInit)
         % Set default value for maxItr, thresh, and pInit, if needed.
