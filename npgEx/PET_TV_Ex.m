@@ -49,18 +49,6 @@ switch lower(op)
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-        forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields); %  1- 4
-        forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); %  5- 8
-        forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
-        forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
-        forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields); % 17-20
-        forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
-        forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields); % 25-28
-        forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields); % 29-32
-        forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields); % 33-26
-        forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields); % 37-40
-        forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields); % 41-44
-
                 if(k==1 && any(i==[4 6]))
                     opt=OPT;
                     pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -173,18 +161,18 @@ switch lower(op)
          
         % mIdx=6 is also good
         mIdx=4; as=1; k=1;
-        fields={'stepSize','RMSE','time','cost'};
-        forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields); %  1- 4
-        forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); %  5- 8
-        forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
-        forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
-        forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields); % 17-20
-        forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
-        forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields); % 25-28
-        forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields); % 29-32
-        forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields); % 33-26
-        forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields); % 37-40
-        forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields); % 41-44
+        fields_={'stepSize','RMSE','time','cost'};
+        forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields_); %  1- 4
+        forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_); %  5- 8
+        forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_); %  9-12
+        forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields_); % 13-16
+        forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields_); % 17-20
+        forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields_); % 21-24
+        forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields_); % 25-28
+        forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields_); % 29-32
+        forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields_); % 33-26
+        forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields_); % 37-40
+        forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields_); % 41-44
         save('cost_itrPET_TV.data','forSave','-ascii');
 
         nn=128;
