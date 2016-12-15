@@ -99,12 +99,12 @@ D=zeros(m,n);
 fval=inf;
 fun_all=[];
 if(prnt)
-        fprintf('***********************************\n');
-        fprintf('*Solving with FGP/FISTA**\n');
-        fprintf('***********************************\n');
-        fprintf('#iteration  function-value  relative-difference\n');
-        fprintf('---------------------------------------------------------------------------------------\n');
-    end
+    fprintf('***********************************\n');
+    fprintf('*Solving with FGP/FISTA**\n');
+    fprintf('***********************************\n');
+    fprintf('#iteration  function-value  relative-difference\n');
+    fprintf('---------------------------------------------------------------------------------------\n');
+end
 while((i<MAXITER)&(count<5))
     fold=fval;
     %%%%%%%%%
@@ -124,7 +124,7 @@ while((i<MAXITER)&(count<5))
     % Taking a step towards minus of the gradient
     P{1}=R{1}+1/(8*lambda)*Q{1};
     P{2}=R{2}+1/(8*lambda)*Q{2};
-    
+
     %%%%%%%%%%
     % Peforming the projection step
     switch tv
@@ -143,17 +143,17 @@ while((i<MAXITER)&(count<5))
     %%%%%%%%%%
     %Updating R and t
     tkp1=(1+sqrt(1+4*tk^2))/2;
-    
+
     R{1}=P{1}+(tk-1)/(tkp1)*(P{1}-Pold{1});
     R{2}=P{2}+(tk-1)/tkp1*(P{2}-Pold{2});
-    
+
     re=norm(D-Dold,'fro')/norm(D,'fro');
     if (re<epsilon)
         count=count+1;
     else
         count=0;
     end
-    
+
     C=Xobs-lambda*Lforward(P);
     PC=project(C);
     fval=-norm(C-PC,'fro')^2+norm(C,'fro')^2;

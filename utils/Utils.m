@@ -196,10 +196,9 @@ classdef Utils < handle
             if(~exist('b','var')) b=0; end
 
             PhiAlpha=Phi(alpha)+b;
-            PhiAlpha=PhiAlpha(:);
             nzy=(y~=0);
             nzpx=(PhiAlpha~=0);
-            f=sum(PhiAlpha-y)-innerProd(y(nzy),log(PhiAlpha(nzy)./y(nzy)));
+            f=sum(PhiAlpha(:)-y(:))-innerProd(y(nzy),log(PhiAlpha(nzy)./y(nzy)));
 
             if(nargout>=2)
                 t=ones(size(y));

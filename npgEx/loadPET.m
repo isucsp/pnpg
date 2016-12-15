@@ -64,7 +64,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
     end
     yi = poisson(ytrue + ri);
 
-    y=yi(:);
+    y=yi;
 
     % FBP reconstruction
     xfbp = em_fbp(sg, ig, yi, ci, ri);
@@ -72,8 +72,8 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
 
     x=xtrue;
 
-    Phif = @(xx) ci(:).*(G*xx(:));
-    Phitf = @(xx) G'*(ci(:).*xx);
+    Phif = @(xx) ci.*(G*xx);
+    Phitf = @(xx) G'*(ci.*xx);
 
     % caution: don't use the wavelet tools from matlab, it is slow
     wav=daubcqf(daub);
@@ -85,11 +85,11 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
         wvltIdx = find(maskk~=0);
         Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,ig.nx)),maskIdx);
         Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,ig.nx)),wvltIdx);
-        opt.trueAlpha=x(maskIdx);
+        opt.trueX=x(maskIdx);
     else
-        Psi = @(s) maskFunc(W (maskFunc(s,[])),[]);
-        Psit= @(x) maskFunc(Wt(maskFunc(x,[])),[]);
-        opt.trueAlpha=x(:);
+        Psi = W;
+        Psit= Wt;
+        opt.trueX=xtrue;
     end
 
     opt.bb=ri;

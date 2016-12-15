@@ -148,8 +148,6 @@ if(debug.level(2))
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
-t=stepSizeInit(opt.initStep,opt.Lip);
-
 tic;
 
 itr=0; convThresh=0; x=xInit; theta=1; preX=0;
@@ -157,6 +155,8 @@ NLLVal=NLL(x);
 penVal=proximal.penalty(x);
 cost=NLLVal+opt.u*penVal;
 goodStep=true;
+t=stepSizeInit(opt.initStep,opt.Lip);
+
 if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
     RMSE=computError(x);
 end

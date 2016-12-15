@@ -19,88 +19,100 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear -regexp '(?i)opt'
         filename = [mfilename '.mat'];
-        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson';
+        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson'; OPT.mask=[];
+        OPT.maxItr=10;
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
-        K=5;
+        K=1;
 
         as = [ 0.5, 0.5,0.5, 0.5, 0.5,   1];
         a  = [-0.5,   0,  0, 0.5, 0.5, 0.5];
         atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
-        OPT.mask=[];
         for k=1:K
             for i=length(count):-1:1
                 j=1;
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
+                NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
+                proximal=sparseProximal('iso',@(x)max(0,x));
 
-                fbp{i,1,k}.alpha=maskFunc(fbpfunc(y),OPT.mask~=0);
-                fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.alpha-OPT.trueAlpha)/sqrNorm(OPT.trueAlpha);
+                fbp{i,1,k}.x=fbpfunc(y);
+                fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX);
 
-                fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.alpha-OPT.trueAlpha)/sqrNorm(OPT.trueAlpha));
+                fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX));
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
                 u_max=1;
                 OPT.u = 10^atv(i)*u_max; OPT.proximal='tviso';
                 OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
 
-                initSig=max(fbp{i,1,k}.alpha,0);
+                initSig=max(fbp{i,1,k}.x,0);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-                if(k==1 && any(i==[4 5]))
+        forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields); %  1- 4
+        forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); %  5- 8
+        forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
+        forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
+        forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields); % 17-20
+        forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
+        forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields); % 25-28
+        forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields); % 29-32
+        forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields); % 33-26
+        forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields); % 37-40
+        forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields); % 41-44
+
+                if(k==1 && any(i==[4 6]))
+                    opt=OPT;
+                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=5; opt.b=0;
-                    pnpgG5A0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=5; opt.b=1/4;
-                    pnpgG5Aq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=15; opt.b=0;
-                    pnpgGfA0{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgGfA0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=15; opt.b=1/4;
-                    pnpgGfAq{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-                    mysave;
-                    continue;
-
+                    pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.b=0;
-                    pnpgA0  {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    opt=OPT; opt.cumuTol=0;
+                    pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+                    pnpg_n0m0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    opt=OPT; opt.adaptiveStep=false;
+                    pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.innerThresh=1e-5;
+                    spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    mysave;
                 end
-                continue;
+                continue
 
                 if(k==1) continue; end
-                opt=OPT; opt.cumuTol=0;
-                pnpg_n0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT;
-                pnpg      {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
                 tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.innerThresh=1e-5;
-                spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 mysave;
                 continue
 
-                opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-                pnpg_n0m0   {i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.adaptiveStep=false;
-                pnpg_nInf{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
+                opt=OPT;
+                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
-                pnpgTV_noAdpStpLong{i,j,k}=Wrapper.PNPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                pnpgTV_noAdpStpLong{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 opt=OPT; opt.thresh=1e-10;
                 spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.innerThresh=1e-6;
                 spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
                 tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
                 tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
 
 %               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
 %               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 
                 mysave;
 
@@ -116,7 +128,7 @@ switch lower(op)
 %                   if(j==1)
 %                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
 %                   else
-%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.alpha,opt);
+%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.x,opt);
 %                   end
 %               end; end
 
@@ -152,7 +164,7 @@ switch lower(op)
 
         % time cost RMSE
         forSave=[count(:),meanOverK(   fbp,'RMSE'),...
-            meanOverK(     pnpg),...
+            meanOverK(     pnpg_),...
             meanOverK(  pnpg_n0),...
             meanOverK(   spiral),...
             meanOverK(    tfocs),...
@@ -162,7 +174,7 @@ switch lower(op)
         % mIdx=6 is also good
         mIdx=4; as=1; k=1;
         fields={'stepSize','RMSE','time','cost'};
-        forSave=addTrace(        pnpg{mIdx,as,k},     [],fields); %  1- 4
+        forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields); %  1- 4
         forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); %  5- 8
         forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
         forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
@@ -178,26 +190,26 @@ switch lower(op)
         nn=128;
         xtrue = read_zubal_emis('nx', nn, 'ny', nn);
         idx=5;
-        fprintf('  PNPG: %g%%\n',  pnpg{idx}.RMSE(end)*100);
+        fprintf('  PNPG: %g%%\n',  pnpg_{idx}.RMSE(end)*100);
         fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
         fprintf(' tfocs: %g%%\n', tfocs{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg{idx}.opt.trueAlpha)*100);
-        img=pnpg{idx}.alpha; mask=pnpg{idx}.opt.mask;
-        img=showImgMask(  pnpg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV_pet.png')
-        img=showImgMask( tfocs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV_pet.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV_pet.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV_pet.png')
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
+        img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
+        img=showImgMask(  pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV_pet.png')
+        img=showImgMask( tfocs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV_pet.png')
+        img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV_pet.png')
+        img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV_pet.png')
 
         idx=4;
-        fprintf('  PNPG: %g%%\n',  pnpg{idx}.RMSE(end)*100);
+        fprintf('  PNPG: %g%%\n', pnpg_{idx}.RMSE(end)*100);
         fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
         fprintf(' tfocs: %g%%\n', tfocs{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg{idx}.opt.trueAlpha)*100);
-        img=pnpg{idx}.alpha; mask=pnpg{idx}.opt.mask;
-        img=showImgMask(  pnpg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV4_pet.png')
-        img=showImgMask( tfocs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV4_pet.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV4_pet.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV4_pet.png')
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
+        img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
+        img=showImgMask( pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV4_pet.png')
+        img=showImgMask( tfocs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV4_pet.png')
+        img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV4_pet.png')
+        img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV4_pet.png')
 
     case lower('plotTV')
         filename = [mfilename '.mat']; load(filename);
@@ -284,12 +296,12 @@ switch lower(op)
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        t=t+1; forSave(1:length(out.difAlpha),t)=out.difAlpha;
+        t=t+1; forSave(1:length(out.difX),t)=out.difX;
         out=  spiralTV_Long;
         t=t+1; forSave(1:length(out.cost),t)=out.cost;
         t=t+1; forSave(1:length(out.RMSE),t)=out.RMSE;
         t=t+1; forSave(1:length(out.time),t)=out.time;
-        t=t+1; forSave(1:length(out.difAlpha),t)=out.difAlpha;
+        t=t+1; forSave(1:length(out.difX),t)=out.difX;
 
         save('cost_itrPETTV.data','forSave','-ascii');
         mincost=reshape(forSave(:,[1,4,7,11]),[],1); 
@@ -328,24 +340,24 @@ switch lower(op)
         idx=5;
         fprintf('   NPGTV: %g%%\n',   npgTV{idx}.RMSE(end)*100);
         fprintf('SPIRALTV: %g%%\n',spiralTV{idx}.RMSE(end)*100);
-        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueX)*100);
         fprintf('    NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
-        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npgTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet.png')
-        img=showImgMask(spiralTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet.png')
-        img=showImgMask(     fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet.png')
-        img=showImgMask(    npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet.png')
+        img=npg{idx}.x; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npgTV{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet.png')
+        img=showImgMask(spiralTV{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet.png')
+        img=showImgMask(     fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet.png')
+        img=showImgMask(    npgs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet.png')
 
         idx=4;
         fprintf('   NPGTV: %g%%\n',   npgTV{idx}.RMSE(end)*100);
         fprintf('SPIRALTV: %g%%\n',spiralTV{idx}.RMSE(end)*100);
-        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('     FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueX)*100);
         fprintf('    NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
-        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npgTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet2.png')
-        img=showImgMask(spiralTV{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet2.png')
-        img=showImgMask(     fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet2.png')
-        img=showImgMask(    npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet2.png')
+        img=npg{idx}.x; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npgTV{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPGTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPGTV_pet2.png')
+        img=showImgMask(spiralTV{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRALTV_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRALTV_pet2.png')
+        img=showImgMask(     fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet2.png')
+        img=showImgMask(    npgs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet2.png')
 
         paperDir='~/research/myPaper/asilomar2015/';
         decide=input(sprintf('start to copy to %s [y/N]?',paperDir));
@@ -459,33 +471,33 @@ switch lower(op)
         fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
         fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
         fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueX)*100);
         fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
         fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
         fprintf('NPGscS: (%g%%, %g%%)\n',    npgsc_s.RMSE(end)*100,rmseTruncate(npgsc_s   )*100);
-        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet.png')
-        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
-        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
-        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
-        img=showImgMask( npgsc_s.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGscS_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGscS_pet.png')
+        img=npg{idx}.x; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npg{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet.png')
+        img=showImgMask(  npgc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet.png')
+        img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet.png')
+        img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
+        img=showImgMask(  npgs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet.png')
+        img=showImgMask( npgsc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet.png')
+        img=showImgMask( npgsc_s.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGscS_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGscS_pet.png')
 
         idx=4;
         fprintf('   NPG: %g%%\n',   npg{idx}.RMSE(end)*100);
         fprintf('  NPGc: %g%%\n',  npgc{idx}.RMSE(end)*100);
         fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
-        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueAlpha)*100);
+        fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},npg{idx}.opt.trueX)*100);
         fprintf('  NPGs: (%g%%, %g%%)\n',  npgs{idx}.RMSE(end)*100,rmseTruncate( npgs{idx})*100);
         fprintf(' NPGsc: (%g%%, %g%%)\n', npgsc{idx}.RMSE(end)*100,rmseTruncate(npgsc{idx})*100);
-        img=npg{idx}.alpha; mask=npg{idx}.opt.mask;
-        img=showImgMask(   npg{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet2.png')
-        img=showImgMask(  npgc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet2.png')
-        img=showImgMask(spiral{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
-        img=showImgMask(   fbp{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
-        img=showImgMask(  npgs{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet2.png')
-        img=showImgMask( npgsc{idx}.alpha,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
+        img=npg{idx}.x; mask=npg{idx}.opt.mask;
+        img=showImgMask(   npg{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'NPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'NPG_pet2.png')
+        img=showImgMask(  npgc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGc_pet2.png')
+        img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
+        img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
+        img=showImgMask(  npgs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'NPGs_pet2.png')
+        img=showImgMask( npgsc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'NPGsc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'NPGsc_pet2.png')
 
         keyboard
         paperDir='~/research/myPaper/asilomar2014/'
