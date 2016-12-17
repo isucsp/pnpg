@@ -32,7 +32,7 @@ switch lower(op)
         for k=1:K
             for i=length(count):-1:1
                 j=1;
-                [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
+                [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
                 NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
                 proximal=sparseProximal('iso',@(x)max(0,x));
 
@@ -51,9 +51,9 @@ switch lower(op)
 
                 if(k==1 && any(i==[4 6]))
                     opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
                     opt=OPT; opt.innerThresh=1e-5;
-                    spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,[],[],y,initSig,opt);
                     mysave;
                 end
                 if(k==1 && any(i==[4 6]))
@@ -81,29 +81,29 @@ switch lower(op)
 
                 if(k==1) continue; end
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
 
                 mysave;
                 continue
 
 
                 opt=OPT;
-                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 
                 opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
                 pnpgTV_noAdpStpLong{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 opt=OPT; opt.thresh=1e-10;
-                spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+                spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
                 opt=OPT; opt.innerThresh=1e-6;
-                spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,[],[],y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
-                tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
                 opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
-                tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
 
 
-%               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,Psi,Psit,y,initSig,opt);
-%               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgTV {i,j,k}=Wrapper.NPG    (Phi,Phit,[],[],y,initSig,opt);
+%               npgTVc{i,j,k}=Wrapper.NPGc   (Phi,Phit,[],[],y,initSig,opt);
 
                 mysave;
 
@@ -113,13 +113,13 @@ switch lower(op)
 %               aa =(3:-0.5:-6);
 %               opt.u=(10.^aa)*u_max; opt.proximal='tviso';
 %               if(i<5) continue; end
-%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,Psi,Psit,y,initSig,opt);
+%               npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
 %               for j=1:length(aa); if(aa(j)>-2)
 %                   opt.u=10^aa(j)*u_max; opt.proximal='tviso';
 %                   if(j==1)
-%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
+%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 %                   else
-%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralTVFull{i,j-1,k}.x,opt);
+%                       spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,spiralTVFull{i,j-1,k}.x,opt);
 %                   end
 %               end; end
 
@@ -128,20 +128,20 @@ switch lower(op)
 %               wPhi=@(xx) Phi(xx)./ty;
 %               wPhit=@(xx) Phit(xx./ty);
 %               wy=(y-opt.bb(:))./ty;
-%               wu_max=pNorm(Psit(wPhit(wy)),inf);
+%               wu_max=pNorm([](wPhit(wy)),inf);
 %               opt.noiseType='gaussian';
 
 %               opt.fullcont=true;
 %               opt.u=(10.^aa)*wu_max; opt.maxItr=1e4; opt.thresh=1e-12;
-%               wnpgFull {i,k}=Wrapper.NPG(wPhi,wPhit,Psi,Psit,wy,initSig,opt); out=wnpgFull{i,k};
+%               wnpgFull {i,k}=Wrapper.NPG(wPhi,wPhit,[],[],wy,initSig,opt); out=wnpgFull{i,k};
 %               fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
 %               opt.fullcont=false;
 
 %               opt.u = 10^a(i)*u_max;
 %               fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,1,k);
-%               wnpg{i,k}=Wrapper.NPG         (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
-%               wspiral{i,k}=Wrapper.SPIRAL (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
-%               % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
+%               wnpg{i,k}=Wrapper.NPG         (wPhi,wPhit,[],[],wy,initSig,opt);
+%               wspiral{i,k}=Wrapper.SPIRAL (wPhi,wPhit,[],[],wy,initSig,opt);
+%               % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,[],[],wy,initSig,opt);
             end
         end
 

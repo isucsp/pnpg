@@ -167,9 +167,14 @@ classdef Wrapper < handle
                 f=penalty(xx);
             end
         end
-        function out = tfocs(Phi,Phit,Psi,Psit,y,xInit,opt)
+        function out = tfocs(Phi_,Phit_,Psi,Psit,y,xInit,opt)
             % it is better to have affineF as {affineF, b} when b is non-zero
+            [x1,x2]=size(xInit); [y1,y2]=size(y); xInit=xInit(:); y=y(:);
+            Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
+            Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
             affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
+
+            keyboard
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
             if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
@@ -218,6 +223,7 @@ classdef Wrapper < handle
                     penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'iso');
             end
             if(isfield(opt,'trueX'))
+                opt.trueX=opt.trueX(:);
                 switch opt.errorType
                     case 0
                         trueX = opt.trueX/pNorm(opt.trueX);
