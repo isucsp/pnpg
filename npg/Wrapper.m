@@ -69,9 +69,9 @@ classdef Wrapper < handle
             opt.continuation=false; opt.alphaStep='NPGs';
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             B = @(xx) xx;
-            opt.trueAlpha=Psit(opt.trueAlpha);
+            opt.trueX=Psit(opt.trueX);
             out=solver(A,At,B,B,y,Psit(xInit),opt);
-            out.alpha=Psi(out.alpha);
+            out.x=Psi(out.x);
         end
         function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPGs'; opt.adaptiveStep=false;
@@ -80,9 +80,9 @@ classdef Wrapper < handle
             % opt.initStep='fixed'; % 'BB'; %
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             B = @(xx) xx;
-            opt.trueAlpha=Psit(opt.trueAlpha);
+            opt.trueX=Psit(opt.trueX);
             out=solver(A,At,B,B,y,Psit(xInit),opt);
-            out.alpha=Psi(out.alpha);
+            out.x=Psi(out.x);
         end
         function out = FPC(Phi,Phit,Psi,Psit,y,xInit,opt)
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
@@ -90,18 +90,18 @@ classdef Wrapper < handle
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
             AO= @(xx,mode) AA(xx,mode,A,At);
             option.x0=Psit(xInit);
-            if(isfield(opt,'trueAlpha'))
-                option.xs=Psit(opt.trueAlpha);
+            if(isfield(opt,'trueX'))
+                option.xs=Psit(opt.trueX);
             end
             option.xtol=opt.thresh;
             option.mxitr=opt.maxItr;
             option.scale=false;
             out = fpc_bb_mod(length(option.x0),AO,y,1/opt.u,[],option);
-            out.alpha = Psi(out.x);
-            out.difAlpha = out.step;
-            if(isfield(opt,'trueAlpha'))
+            out.x = Psi(out.x);
+            out.difX = out.step;
+            if(isfield(opt,'trueX'))
                 out.RMSE=out.n2re.^2;
-                %sqrNorm(out.alpha-opt.trueAlpha)/sqrNorm(opt.trueAlpha);
+                %sqrNorm(out.x-opt.trueX)/sqrNorm(opt.trueX);
             end
             out.date=datestr(now);
             out.opt = opt;
@@ -114,7 +114,7 @@ classdef Wrapper < handle
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
             if(~isfield(opt,'errorType')) opt.errorType=1; end
-            if(isfield(opt,'trueAlpha')) option.trueAlpha=Psit(opt.trueAlpha); end
+            if(isfield(opt,'trueX')) option.trueX=Psit(opt.trueX); end
             if(isfield(opt,'minK')) option.minK=opt.minK; end
             if(isfield(opt,'maxK')) option.maxK=opt.maxK; end
             A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
@@ -124,25 +124,25 @@ classdef Wrapper < handle
             option.gtol = 0;
             option.gtol_scale_x = opt.thresh;
             [s, out] = FPC_AS_mod(length(option.x0),AO,y,opt.u,[],option);
-            out.alpha = Psi(s);
-            out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
-                sqrNorm(out.alpha.*(out.alpha<0));...
-                pNorm(Psit(out.alpha),1)];
-            if(isfield(opt,'trueAlpha') && ~isfield(out,'RMSE'))
+            out.x = Psi(s);
+            out.fVal=[0.5*sqrNorm(Phi(out.x)-y);...
+                sqrNorm(out.x.*(out.x<0));...
+                pNorm(Psit(out.x),1)];
+            if(isfield(opt,'trueX') && ~isfield(out,'RMSE'))
                 switch opt.errorType
                     case 0
-                        trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
-                        computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+                        trueX = opt.trueX/pNorm(opt.trueX);
+                        computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
                     case 1
-                        trueAlphaNorm=sqrNorm(opt.trueAlpha);
-                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
-                        computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                        trueXNorm=sqrNorm(opt.trueX);
+                        if(trueXNorm==0) trueXNorm=eps; end
+                        computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
                     case 2
-                        trueAlphaNorm=pNorm(opt.trueAlpha);
-                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
-                        computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                        trueXNorm=pNorm(opt.trueX);
+                        if(trueXNorm==0) trueXNorm=eps; end
+                        computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
                 end
-                out.RMSE=computError(out.alpha);
+                out.RMSE=computError(out.x);
             end
             if(~isfield(out,'cost')) out.cost=out.f; end
             if(~isfield(out,'time')) out.time=out.cpu; end
@@ -199,37 +199,37 @@ classdef Wrapper < handle
                 case lower('wvltFADMM')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) fadmm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
-                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1);
                 case lower('wvltADMM')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
-                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1);
                 case lower('wvltLagrangian')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
                         x,Psi,Psit,u*opt.u,0,1,maxInnerItr,2,innerThresh,false);
-                    penalty = @(x) opt.u*pNorm(Psit(x),1)+infdicator(x<0);
+                    penalty = @(x) opt.u*pNorm(Psit(x),1);
                 case lower('tvl1')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'l1');
-                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'l1')+infdicator(x<0);
+                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'l1');
                 case lower('tviso')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u*opt.u,...
                         innerThresh,maxInnerItr,opt.mask,'iso');
-                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'iso')+infdicator(x<0);
+                    penalty = @(x) opt.u*tlv(maskFunc(x,opt.mask),'iso');
             end
-            if(isfield(opt,'trueAlpha'))
+            if(isfield(opt,'trueX'))
                 switch opt.errorType
                     case 0
-                        trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
-                        computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
+                        trueX = opt.trueX/pNorm(opt.trueX);
+                        computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
                     case 1
-                        trueAlphaNorm=sqrNorm(opt.trueAlpha);
-                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
-                        computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                        trueXNorm=sqrNorm(opt.trueX);
+                        if(trueXNorm==0) trueXNorm=eps; end
+                        computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
                     case 2
-                        trueAlphaNorm=pNorm(opt.trueAlpha);
-                        if(trueAlphaNorm==0) trueAlphaNorm=eps; end
-                        computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+                        trueXNorm=pNorm(opt.trueX);
+                        if(trueXNorm==0) trueXNorm=eps; end
+                        computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
                 end
             end
             projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalOp,x,opt.innerThresh,opt.maxInnerItr,varargin{:});
@@ -244,10 +244,10 @@ classdef Wrapper < handle
             tic;
             [x,out1,opts] = tfocs(L,affineF,projectorF, xInit,opts);
             out.time=linspace(0,toc,out1.niter);
-            out.alpha=x;
+            out.x=x;
             out.cost=out1.f;
             out.stepSize=out1.stepsize;
-            out.difAlpha=out1.normGrad;
+            out.difX=out1.normGrad;
             out.theta=1./out1.theta;
             out.p=out1.niter;
             out.opt=opts;
@@ -255,7 +255,7 @@ classdef Wrapper < handle
             if(isfield(out1,'err')) out.RMSE=out1.err; end
 
             fprintf('\nTFOCS: Time used: %d, cost=%g',out.time(end),out.cost(end));
-            if(isfield(opt,'trueAlpha'))
+            if(isfield(opt,'trueX'))
                 fprintf(', RMSE=%g\n',out.RMSE(end));
             else
                 fprintf('\n');
@@ -263,10 +263,10 @@ classdef Wrapper < handle
         end
         function out = gaussStabProxite(Phi,Phit,Psi,Psit,y,xInit,opt)
             tic;
-            out.alpha=gauss_stab_proxite_mod(y,Phi,Phit,opt.u,0.01,Psi,Psit,10);
+            out.x=gauss_stab_proxite_mod(y,Phi,Phit,opt.u,0.01,Psi,Psit,10);
             out.time =toc;
-            trueAlphaNorm=sqrNorm(opt.trueAlpha);
-            out.RMSE=sqrNorm(out.alpha-opt.trueAlpha)/trueAlphaNorm;
+            trueXNorm=sqrNorm(opt.trueX);
+            out.RMSE=sqrNorm(out.x-opt.trueX)/trueXNorm;
             out.date=datestr(now);
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
@@ -300,23 +300,23 @@ classdef Wrapper < handle
                 case lower('tviso')
                     penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
             end
-            [alpha,p,cost,reconerror,time,out] = ...
+            [x,p,cost,reconerror,time,out] = ...
                 SPIRALTAP_mod(y,Phi,opt.u,'penalty',opt.proximal,...
                 'AT',Phit,'W',Psi,'WT',Psit,'noisetype',opt.noiseType,...
                 'initialization',xInit,'maxiter',opt.maxItr,...
                 'miniter',0,'stopcriterion',3,...
-                'tolerance',opt.thresh,'truth',opt.trueAlpha,...
+                'tolerance',opt.thresh,'truth',opt.trueX,...
                 'bb',opt.bb,'savetruecost',opt.saveTrueCost,...
                 'submaxiter',opt.maxInnerItr,...
                 'substopcriterion',2,'subtolerance',opt.innerThresh,'monotone',1,...
                 'saveobjective',1,'savereconerror',1,'savecputime',1,...
                 'reconerrortype',3,'savedifalpha',1,'savestepsize',true,...
                 'savesolutionpath',0,'verbose',opt.verbose,'mask',opt.mask);
-            out.alpha=alpha; out.p=p; out.cost=cost; out.RMSE=reconerror;
+            out.x=x; out.p=p; out.cost=cost; out.RMSE=reconerror;
             out.time=time;
-            out.fVal=[0.5*sqrNorm(Phi(out.alpha)-y);...
-                sqrNorm(out.alpha.*(out.alpha<0));...
-                penalty(out.alpha)];
+            out.fVal=[0.5*sqrNorm(Phi(out.x)-y);...
+                sqrNorm(out.x.*(out.x<0));...
+                penalty(out.x)];
             out.opt=opt;
             out.date=datestr(now);
             fprintf('SPIRAL cost=%g, RMSE=%g, cpu time=%g\n',out.cost(end),out.RMSE(end),out.time(end));
@@ -335,15 +335,15 @@ classdef Wrapper < handle
                 'Initialization',xInit,...
                 'StopCriterion',5,...
                 'ToleranceA',opt.thresh, ...
-                'True_x',opt.trueAlpha,...
+                'True_x',opt.trueX,...
                 'BB_variant',1,...
                 'Safeguard',1,...
                 'Monotone',0,...
                 'Continuation',1,...
                 'Verbose',opt.debugLevel>0,...
                 'MaxiterA',opt.maxItr);
-            out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
-            out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
+            out.x=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
+            out.RMSE=out.mses/sqrNorm(opt.trueX)*length(opt.trueX);
             out.p=length(out.cost);
             out.date=datestr(now);
             fprintf('SpaRSA cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
@@ -365,15 +365,15 @@ classdef Wrapper < handle
                 'Initialization',xInit,...
                 'StopCriterion',5,...
                 'ToleranceA',opt.thresh, ...
-                'True_x',opt.trueAlpha,...
+                'True_x',opt.trueX,...
                 'BB_variant',1,...
                 'Safeguard',1,...
                 'Monotone',0,...
                 'Continuation',1,...
                 'Verbose',opt.debugLevel>0,...
                 'MaxiterA',opt.maxItr);
-            out.alpha=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
-            out.RMSE=out.mses/sqrNorm(opt.trueAlpha)*length(opt.trueAlpha);
+            out.x=x_SpaRSA; out.cost=obj_SpaRSA; out.time=times_SpaRSA;
+            out.RMSE=out.mses/sqrNorm(opt.trueX)*length(opt.trueX);
             out.p=length(out.cost);
             out.date=datestr(now);
             fprintf('SpaRSA nonnegative cost=%g, RMSE=%g\n',out.cost(end),out.RMSE(end));
@@ -427,17 +427,17 @@ classdef Wrapper < handle
             out.opt = opt;
             out.date=datestr(now);
 
-            trueAlphaNorm=sqrNorm(opt.trueAlpha);
+            trueXNorm=sqrNorm(opt.trueX);
             for i=1:length(out.lambda)
-                out.alpha(:,i) = Psi*out.beta(:,i);
+                out.x(:,i) = Psi*out.beta(:,i);
                 out.u(i)=out.lambda(i)*length(y);
                 out.a(i)=log10(out.u(i)/u_max);
-                if(isfield(opt,'trueAlpha'))
-                    out.RMSE(i)=sqrNorm(out.alpha(:,i)-opt.trueAlpha)/trueAlphaNorm;
+                if(isfield(opt,'trueX'))
+                    out.RMSE(i)=sqrNorm(out.x(:,i)-opt.trueX)/trueXNorm;
                 end
-                out.fVal(:,i)=[L(out.alpha(:,i));...
-                    sqrNorm(out.alpha.*(out.alpha<0));...
-                    pNorm(Psi'*(out.alpha),1)];
+                out.fVal(:,i)=[L(out.x(:,i));...
+                    sqrNorm(out.x.*(out.x<0));...
+                    pNorm(Psi'*(out.x),1)];
                 out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
             end
             fprintf('glmnet cost=%g, RMSE=%g, time=%f\n',out.cost(end),min(out.RMSE()),out.time);

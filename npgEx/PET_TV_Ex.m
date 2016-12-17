@@ -50,6 +50,13 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
                 if(k==1 && any(i==[4 6]))
+                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    opt=OPT; opt.innerThresh=1e-5;
+                    spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
+                    mysave;
+                end
+                if(k==1 && any(i==[4 6]))
                     opt=OPT;
                     pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=5; opt.b=0;
@@ -68,10 +75,6 @@ switch lower(op)
                     pnpg_n0m0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.adaptiveStep=false;
                     pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-                    opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                    tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-                    opt=OPT; opt.innerThresh=1e-5;
-                    spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,Psi,Psit,y,initSig,opt);
                     mysave;
                 end
                 continue
