@@ -439,7 +439,7 @@ end
 
 keyboard
 
-tic; p=0; convThresh=0;
+tStart=tic; p=0; convThresh=0;
 %figure(123); figure(386);
 while(true)
     p=p+1;
@@ -562,7 +562,7 @@ while(true)
         drawnow;
     end
 
-    out.time(p)=toc;
+    out.time(p)=toc(tStart);
 
     if(p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)))
         convThresh=convThresh+1;

@@ -15,20 +15,21 @@ for i=1:length(tvTypeArray)
         a=aArray{j};
         u=uArray{j};
 
-        tic;
-        pars.print = false;
+        tStart=tic;
+        pars.print = true;
         pars.tv =tvType;
         pars.MAXITER = maxItr;
         pars.epsilon = thresh; 
         pars.init=zeros(size(a));
         [D,iter,fun_all]=denoise_bound_mod(a,u,-inf,inf,pars);
-        t1=toc;
+        t1=toc(tStart);
 
-        tic;
-        opt.debugLevel=2; opt=[];
+        tStart=tic;
+        opt=[];
+        opt.debugLevel=2;
         tv=sparseProximal(tvType,[],[],opt);
-        [dtv,itr,pInit,out]=tv.op(a,u,thresh,maxItr);
-        t2=toc;
+        [dtv,itr,pInit,out]=tv.op(a,u,thresh,maxItr,[]);
+        t2=toc(tStart);
         fprintf('objective=%g\n', 0.5*sqrNorm(D-a)+u*tv.penalty(D));
 
         fprintf('objective=%g\n', 0.5*sqrNorm(dtv-a)+u*tv.penalty(dtv));

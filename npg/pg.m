@@ -150,7 +150,7 @@ end
 
 t=stepSizeInit(opt.initStep,opt.Lip);
 
-tic;
+tStart=tic;
 
 itr=0; convThresh=0; x=xInit;
 NLLVal=NLL(x);
@@ -269,7 +269,7 @@ while(true)
         end
     end
     if(opt.outLevel>=1)
-        out.time(itr)=toc;
+        out.time(itr)=toc(tStart);
         out.cost(itr)=cost;
         out.difX(itr)=difX;
         out.difCost(itr)=difCost;
@@ -339,7 +339,7 @@ if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\nCPU Time: %g, objective=%g',toc,cost);
+    fprintf('\nCPU Time: %g, objective=%g',toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);

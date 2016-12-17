@@ -70,8 +70,6 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
     xfbp = em_fbp(sg, ig, yi, ci, ri);
     fbpfunc = @(yyy) double(em_fbp(sg, ig, reshape(yyy,size(ci)), ci, ri));
 
-    x=xtrue;
-
     Phif = @(xx) ci.*(G*xx);
     Phitf = @(xx) G'*(ci.*xx);
 
@@ -85,7 +83,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
         wvltIdx = find(maskk~=0);
         Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,ig.nx)),maskIdx);
         Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,ig.nx)),wvltIdx);
-        opt.trueX=x(maskIdx);
+        opt.trueX=xtrue(maskIdx);
     else
         Psi = W;
         Psit= Wt;

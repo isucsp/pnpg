@@ -135,7 +135,7 @@ if(debug.level(1))
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
-tic;
+tStart=tic;
 
 itr=0; convThresh=0; x=xInit; difX=1;
 cost=NLL(x)+opt.u*proximal.penalty(x);
@@ -179,7 +179,7 @@ while(true)
         difCost=abs(cost-out.cost(itr-1))/cost;
     end
     if(opt.outLevel>=1)
-        out.time(itr)=toc;
+        out.time(itr)=toc(tStart);
         out.difX(itr)=difX;
         if(itr>1) out.difCost(itr)=difCost; end
         if(~isempty(debug.log()))

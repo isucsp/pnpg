@@ -17,7 +17,7 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
             zeroInit=@(x) zeros([size(x,1)*2, size(x,2)]);
             initStep='fixed';
             Lipschitz=@(u) 8*u^2;
-        case 'realCustom'
+        case 'custom'
             Psi=opt.Psi;
             Psit=opt.Psit;
             prj.op=@(p) min(max(p,-1),1);
@@ -40,15 +40,15 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
 
     if(~exist('option','var') || ~isfield(option,'adaptiveStep')) option.adaptiveStep=true; end
     if(~isfield(option,'debugLevel')) option.debugLevel=0; end
-    if(~isfield(option,'debugLevel')) option.outLevel=0; end
+    if(~isfield(option,'outLevel')) option.outLevel=0; end
     if(~isfield(option,'initStep')) option.initStep=initStep; end
-    if(~isfield(option,'initStep')) option.minItr=1; end
+    if(~isfield(option,'minItr')) option.minItr=1; end
 
     function [x,itr,p,out]=denoise(a,u,thresh,maxItr,pInit)
         % Set default value for maxItr, thresh, and pInit, if needed.
-        if(~exist('thresh','var')) thresh=1e-13; end
-        if(~exist('maxItr','var')) maxItr=1e3; end
-        if(~exist('pInit','var') || isempty(pInit)) pInit=zeroInit(a); end
+        if(isempty(thresh)) thresh=1e-13; end
+        if(isempty(maxItr)) maxItr=1e3; end
+        if(isempty(pInit)) pInit=zeroInit(a); end
 
         option.thresh=thresh; option.maxItr=maxItr;
         option.Lip=Lipschitz(u);

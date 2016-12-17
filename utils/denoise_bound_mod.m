@@ -85,11 +85,7 @@ else
 end
 
 [m,n]=size(Xobs);
-if(isfield(pars,'init'))
-    D=pars.init;
-else
-    D=zeros(m,n);
-end
+D=zeros(m,n);
 if(isfield(pars,'P1') && isfield(pars,'P2'))
     P1=pars.P1; P2=pars.P2;
 else

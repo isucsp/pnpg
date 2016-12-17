@@ -133,7 +133,7 @@ end
 
 % print start information
 if(debug.level(2))
-    fprintf('%s\n', repmat( '=', 1, 80 ) );
+    fprintf('\n%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Projected Nestrov''s Proximal-Gradient (PNPG) Method');
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
@@ -148,7 +148,7 @@ if(debug.level(2))
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
 
-tic;
+tStart=tic;
 
 itr=0; convThresh=0; x=xInit; theta=1; preX=0;
 NLLVal=NLL(x);
@@ -297,7 +297,7 @@ while(true)
         end
     end
     if(opt.outLevel>=1)
-        out.time(itr)=toc;
+        out.time(itr)=toc(tStart);
         out.cost(itr)=cost;
         out.difX(itr)=difX;
         out.difCost(itr)=difCost;
@@ -368,7 +368,7 @@ if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\nCPU Time: %g, objective=%g',toc,cost);
+    fprintf('\nCPU Time: %g, objective=%g',toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);

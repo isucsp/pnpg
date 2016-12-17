@@ -214,12 +214,12 @@ switch lower(opt.alphaStep)
                 fprintf('Use l1 norm of wavelet coeff, SPIRAL\n');
             case lower('tvl1')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'l1',init);
+                    innerThresh,maxInnerItr,opt.mask,'l1');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'l1');
                 fprintf('Use l1 TV\n');
             case lower('tviso')
                 proximalProj=@(x,u,innerThresh,maxInnerItr,init) TV.denoise(x,u,...
-                    innerThresh,maxInnerItr,opt.mask,'iso',init);
+                    innerThresh,maxInnerItr,opt.mask,'iso');
                 penalty = @(x) tlv(maskFunc(x,opt.mask),'iso');
                 fprintf('Use ISO TV\n');
         end
@@ -336,7 +336,7 @@ if(opt.debugLevel>=1)
 end
 
 global strlen
-tic; p=0; strlen=0; convThresh=0;
+tStart=tic; p=0; strlen=0; convThresh=0;
 while( ~(opt.skipAlpha && opt.skipIe) )
     if(opt.saveAnimate && (p<10 || (p>=10 && p<100 && mod(p,10)==0) || (p>=100 && mod(p,100)==0)))
         img=showImgMask(alpha,opt.mask);
@@ -558,7 +558,7 @@ while( ~(opt.skipAlpha && opt.skipIe) )
         else strlen = length(str);
         end
     end
-    out.time(p)=toc;
+    out.time(p)=toc(tStart);
     if( p>1 && out.difAlpha(p)<=opt.thresh && (alphaStep.u==opt.u(end)) )
         convThresh=convThresh+1;
     end

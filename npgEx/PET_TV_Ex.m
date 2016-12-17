@@ -19,8 +19,9 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear -regexp '(?i)opt'
         filename = [mfilename '.mat'];
-        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson'; OPT.mask=[];
-        OPT.maxItr=10;
+        OPT.mask=[]; OPT.outLevel=1;
+        OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
+        %OPT.maxItr=10;
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
         K=1;

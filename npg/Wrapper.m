@@ -174,7 +174,6 @@ classdef Wrapper < handle
             Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
             affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
 
-            keyboard
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
             if(~isfield(opt,'errorType')) opt.errorType=1; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltADMM'; end
@@ -247,9 +246,9 @@ classdef Wrapper < handle
             opts.printEvery=10;
             opts.alpha=opt.stepIncre;
             opts.beta=opt.stepShrnk;
-            tic;
+            tStart=tic;
             [x,out1,opts] = tfocs(L,affineF,projectorF, xInit,opts);
-            out.time=linspace(0,toc,out1.niter);
+            out.time=linspace(0,toc(tStart),out1.niter);
             out.x=x;
             out.cost=out1.f;
             out.stepSize=out1.stepsize;
@@ -268,15 +267,20 @@ classdef Wrapper < handle
             end
         end
         function out = gaussStabProxite(Phi,Phit,Psi,Psit,y,xInit,opt)
-            tic;
+            tStart=tic;
             out.x=gauss_stab_proxite_mod(y,Phi,Phit,opt.u,0.01,Psi,Psit,10);
-            out.time =toc;
+            out.time =toc(tStart);
             trueXNorm=sqrNorm(opt.trueX);
             out.RMSE=sqrNorm(out.x-opt.trueX)/trueXNorm;
             out.date=datestr(now);
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
-        function out = SPIRAL(Phi,Phit,Psi,Psit,y,xInit,opt,varargin)
+        function out = SPIRAL(Phi_,Phit_,Psi,Psit,y,xInit,opt,varargin)
+            [x1,x2]=size(xInit); [y1,y2]=size(y); xInit=xInit(:); y=y(:);
+            opt.trueX=opt.trueX(:);
+            Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
+            Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
+            
             % use the default value for SPIRAL
             if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-5; end
             if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=50; end
@@ -388,7 +392,7 @@ classdef Wrapper < handle
             if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
             if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 
-            tic;
+            tStart=tic;
             A = Phi*Psi;
             options=glmnetSet;
             % The following suggests that to get to the same RMSE, glmnet needs
@@ -429,7 +433,7 @@ classdef Wrapper < handle
             end
             out=glmnet(A,y,model,options);
 
-            out.time=toc;
+            out.time=toc(tStart);
             out.opt = opt;
             out.date=datestr(now);
 

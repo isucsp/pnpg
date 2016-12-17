@@ -58,7 +58,7 @@ function [Ie,out] = testIeStep()
     IeStep=NPG_ind(Ie,true,[],1,1,opt.stepShrnk,opt.thresh);
     IeStep.func=@(III) IeStepFunc(trueA,III);
 
-    tic
+    tStart=tic;
     opts.x0=Ie;
     opts.maxIts=1e3;
     opts.maxTotalIts=5e5;
@@ -66,9 +66,9 @@ function [Ie,out] = testIeStep()
     opts.printEvery=10;
     opts.errFcn=@(III) sqrNorm(III-opt.trueIe)/sqrNorm(opt.trueIe);
     [x,f,info]=lbfgsb(IeStep.func,zeros(size(Ie)),inf*ones(size(Ie)),opts);
-    toc
+    toc(tStart);
 
-    tic;
+    tStart=tic;
     strlen=0;
 
     s=linspace(min(PhiAlpha),max(PhiAlpha),1000);
@@ -94,7 +94,7 @@ function [Ie,out] = testIeStep()
         if(i>1)
             out.difCost(i)=abs((out.cost(i)-out.cost(i-1)))/out.cost(i);
         end
-        out.time(i)=toc;
+        out.time(i)=toc(tStart);
 
         if(mod(i,10)==0)
             str=sprintf('i=%d, time=%.2g, cost=%.10g, difIe=%g, stepSize=%g',i,out.time(i),IeStep.cost,IeStep.difIe,out.stepSize(i));

@@ -639,7 +639,7 @@ if (verbose > 0)
         noisetype,penalty,tau,maxiter)      
 end
 
-tic; % Start clock for calculating computation time.
+tStart=tic; % Start clock for calculating computation time.
 % =============================
 % = Begin Main Algorithm Loop =
 % =============================
@@ -733,7 +733,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     
     % ---- Calculate Output Quantities ----
     if savecputime
-        cputime(iter+1) = toc;
+        cputime(iter+1) = toc(tStart);
     end
     if savereconerror
         reconerror(iter+1) = computereconerror(x);
