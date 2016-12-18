@@ -1,77 +1,6 @@
 classdef Wrapper < handle
     methods(Static)
-        function out = NPG(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='NPG';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out =PNPG(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='PNPG';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out =PNPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='PNPG';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out =PNPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='PNPG'; opt.adaptiveStep=false;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = AT(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='AT';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = GFB(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='GFB';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = Condat(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='Condat';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=true;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = PG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=false;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = ADMM(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='ADMM_NNL1'; opt.adaptiveStep=true;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='NPG';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPGc_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='NPG'; opt.adaptiveStep=false;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = PGc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='PG'; opt.adaptiveStep=true;
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPGsc(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=true; opt.alphaStep='NPGs';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        function out = NPGs(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='NPGs';
-            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
-        end
-        % Synthesis version of NPGs
-        function out = NPGs_syn(Phi,Phit,Psi,Psit,y,xInit,opt)
-            opt.continuation=false; opt.alphaStep='NPGs';
-            A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
-            B = @(xx) xx;
-            opt.trueX=Psit(opt.trueX);
-            out=solver(A,At,B,B,y,Psit(xInit),opt);
-            out.x=Psi(out.x);
+        function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
         end
         function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPGs'; opt.adaptiveStep=false;
@@ -451,6 +380,84 @@ classdef Wrapper < handle
                 out.cost(i)= out.fVal(1,i)+out.u(i)*out.fVal(3,i);
             end
             fprintf('glmnet cost=%g, RMSE=%g, time=%f\n',out.cost(end),min(out.RMSE()),out.time);
+        end
+
+        %
+        % Legacy wrappers, deprecated!
+        %
+
+        function out = NPG(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out =PNPG(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PNPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out =PNPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='PNPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out =PNPG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PNPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = AT(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='AT';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = GFB(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='GFB';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = Condat(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='Condat';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = PG(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = PG_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='PG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = ADMM(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='ADMM_NNL1'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='NPG';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGc_nads(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='NPG'; opt.adaptiveStep=false;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = PGc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='PG'; opt.adaptiveStep=true;
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGsc(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=true; opt.alphaStep='NPGs';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        function out = NPGs(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPGs';
+            out=solver(Phi,Phit,Psi,Psit,y,xInit,opt);
+        end
+        % Synthesis version of NPGs
+        function out = NPGs_syn(Phi,Phit,Psi,Psit,y,xInit,opt)
+            opt.continuation=false; opt.alphaStep='NPGs';
+            A = @(xx) Phi(Psi(xx)); At = @(yy) Psit(Phit(yy));
+            B = @(xx) xx;
+            opt.trueX=Psit(opt.trueX);
+            out=solver(A,At,B,B,y,Psit(xInit),opt);
+            out.x=Psi(out.x);
         end
     end
 end
