@@ -49,7 +49,12 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.x,0);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
+                if(k==1 && any(i==[4 6]))
+                    opt=OPT;
+                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                end
 
+                    continue;
                 if(k==1 && any(i==[4 6]))
                     opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
                     tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
