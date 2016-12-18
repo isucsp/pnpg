@@ -56,6 +56,13 @@ switch lower(op)
 
                     continue;
                 if(k==1 && any(i==[4 6]))
+                    opt=OPT;
+                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                end
+
+                continue;
+
+                if(k==1 && any(i==[4 6]))
                     opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
                     tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
                     opt=OPT; opt.innerThresh=1e-5;
@@ -63,8 +70,6 @@ switch lower(op)
                     mysave;
                 end
                 if(k==1 && any(i==[4 6]))
-                    opt=OPT;
-                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=5; opt.b=0;
                     pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
                     opt=OPT; opt.gamma=5; opt.b=1/4;

@@ -6,7 +6,8 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
         case 'iso'
             Psi=@(p) Psi_v(real(p))-Psi_h(imag(p));
             Psit=@(x) Psi_vt(x)-1i*Psi_ht(x);
-            prj.op=@(p) p./sqrt(max(1,real(p).^2+imag(p).^2));
+            %prj.op=@(p) p./sqrt(max(1,real(p).^2+imag(p).^2));
+            prj.op=@(p) p./max(1,abs(p));
             zeroInit=@(x) zeros(size(x));
             initStep='fixed';
             Lipschitz=@(u) 8*u^2;
@@ -42,6 +43,8 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
     if(~isfield(option,'debugLevel')) option.debugLevel=0; end
     if(~isfield(option,'outLevel')) option.outLevel=0; end
     if(~isfield(option,'initStep')) option.initStep=initStep; end
+    if(~isfield(option,'preSteps')) option.preSteps=0; end
+    if(~isfield(option,'maxLineSearch')) option.maxLineSearch=5; end
     if(~isfield(option,'minItr')) option.minItr=1; end
 
     function [x,itr,p,out]=denoise(a,u,thresh,maxItr,pInit)

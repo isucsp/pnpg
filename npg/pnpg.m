@@ -74,6 +74,7 @@ if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'Lip')) opt.Lip=nan; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
+if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
 if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
@@ -169,6 +170,11 @@ end
 if(opt.adaptiveStep) cumu=0; end
 
 while(true)
+
+    if(itr >= opt.maxItr || (convThresh>2 && itr>=opt.minItr))
+        break;
+    end
+
     itr=itr+1;
     %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
@@ -227,7 +233,7 @@ while(true)
             end
             break;
         else
-            if(numLineSearch<=20)
+            if(numLineSearch<=opt.maxLineSearch)
                 t=t/opt.stepShrnk; goodStep=false;
                 % Penalize if there is a step size increase just now
                 if(incStep)
@@ -290,12 +296,19 @@ while(true)
     %  end of one PNPG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if(opt.outLevel>=1 || debug.level(2))
-        difCost=abs(cost-preCost)/max(1,abs(cost));
-        if(isfield(opt,'trueX'))
-            preRMSE=RMSE; RMSE=computError(x);
-        end
+    if(itr>1 && difX<=opt.thresh )
+        convThresh=convThresh+1;
     end
+
+    if(opt.outLevel<1 && opt.debugLevel<2)
+        continue;
+    end
+
+    difCost=abs(cost-preCost)/max(1,abs(cost));
+    if(isfield(opt,'trueX'))
+        preRMSE=RMSE; RMSE=computError(x);
+    end
+
     if(opt.outLevel>=1)
         out.time(itr)=toc(tStart);
         out.cost(itr)=cost;
@@ -353,14 +366,6 @@ while(true)
             title(sprintf('RMSE(%d)=%g',itr,RMSE));
         end
         drawnow;
-    end
-
-    if(itr>1 && difX<=opt.thresh )
-        convThresh=convThresh+1;
-    end
-
-    if(itr >= opt.maxItr || (convThresh>2 && itr>=opt.minItr))
-        break;
     end
 end
 out.x=x; out.itr=itr; out.opt = opt; out.date=datestr(now);
