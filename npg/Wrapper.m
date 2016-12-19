@@ -1,7 +1,7 @@
 classdef Wrapper < handle
     methods(Static)
-        function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
-        end
+%        function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
+%        end
         function out = FISTA(Phi,Phit,Psi,Psit,y,xInit,opt)
             opt.continuation=false; opt.alphaStep='NPGs'; opt.adaptiveStep=false;
             % to call FISTA, user need to specify the choice for the initial step size to be either 'fixed' or 'BB'

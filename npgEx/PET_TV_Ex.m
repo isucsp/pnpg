@@ -53,6 +53,7 @@ switch lower(op)
                 if(k==1 && any(i==[4 6]))
                     opt=OPT;
                     pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    mysave;
                 end
 
                 continue;
