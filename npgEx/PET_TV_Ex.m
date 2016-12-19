@@ -35,7 +35,7 @@ switch lower(op)
                 j=1;
                 [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
                 NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
-                proximal=sparseProximal('iso',@(x)max(0,x));
+                proximal=tvProximal('iso',@(x)max(0,x));
 
                 fbp{i,1,k}.x=fbpfunc(y);
                 fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX);
@@ -50,14 +50,9 @@ switch lower(op)
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
                 if(k==1 && any(i==[4 6]))
-                    opt=OPT;
-                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-                end
-
-                    continue;
-                if(k==1 && any(i==[4 6]))
-                    opt=OPT;
-                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    opt=OPT; opt.relInnerThresh=1e-1;
+                    pnpg__  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    mysave
                 end
 
                 continue;
