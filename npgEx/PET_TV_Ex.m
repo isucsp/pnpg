@@ -50,9 +50,9 @@ switch lower(op)
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
                 if(k==1 && any(i==[4 6]))
-                    opt=OPT; opt.relInnerThresh=1e-1;
-                    pnpg__  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-                    mysave
+                    opt=OPT;
+                    pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                    mysave;
                 end
 
                 continue;
