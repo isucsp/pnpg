@@ -3,17 +3,17 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %
 %                           NLL(x) + u*r(x)                           (1)
 %
-%   where NLL(x) is the likelihood function and r(x) is the regularization
-%   term with u as the regularization parameter.   For the input, we
-%   require NLL to be a function handle that can be used in the following
-%   form:
+%   where x is a real vector value to optimize over, NLL(x) is the
+%   likelihood function, and r(x) is the regularization term with u as the
+%   regularization parameter.   For the input, we require NLL to be a
+%   function handle that can be used in the following form:
 %                       [f,grad,hessian] = NLL(x);
 %
 %   where f and grad are the value and gradient of NLL at x, respectively.
 %   "hessian" is a function handle that can be use to calculate H*x and
 %   x'*H*x with hessian(x,1) and hessian(x,2), respectively.  If Hessian
-%   matrix is not available, simply return hessian as empty: [];
-%   (See npg/sparseProximal.m and utils/Utils.m for examples)
+%   matrix is not available, simply return hessian as empty: []; (See
+%   npg/sparseProximal.m and utils/Utils.m for examples)
 %
 %   The "proximal" parameter is served as a structure with "iterative",
 %   "op" and "penalty" to solve the following subproblem:
@@ -67,7 +67,9 @@ if(~isfield(opt,'u')) opt.u=1e-4; end
 
 if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
-if(~isfield(opt,'preSteps')) opt.preSteps=5; end
+% By default disabled.  Remember to use a value around 5 for the Poisson model
+% with poor initialization.
+if(~isfield(opt,'preSteps')) opt.preSteps=0; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
@@ -151,7 +153,7 @@ end
 
 tStart=tic;
 
-itr=0; convThresh=0; x=xInit; theta=1; preX=0;
+itr=0; convThresh=0; x=xInit; theta=1; preX=x;
 NLLVal=NLL(x);
 penVal=proximal.penalty(x);
 cost=NLLVal+opt.u*penVal;
@@ -227,7 +229,7 @@ while(true)
         end
 
         newCost=NLL(newX);
-        if(majorizationHolds(newX-xbar,newCost,oldCost,[],grad,t))
+        if((newCost-oldCost)<=realInnerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2)
             if(itr<=opt.preSteps && opt.adaptiveStep && goodStep)
                 cumu=opt.cumuTol;
             end
@@ -448,18 +450,5 @@ function t=stepSizeInit(select,Lip,delta)
     end
 end
 
-end
-
-function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
-    % This function tests whether
-    %      f(x) ≤ f(y)+(x-y)'*∇f(y)+ 0.5*L*||x-y||^2
-    % holds.
-
-    % if(~isempty(dfx) && abs(fx-fy)/max(max(fx,fy),1) < 1e-10)
-    %     % In this case, use stronger condition to avoid numerical issue
-    %     test=(realInnerProd(x_minus_y,dfx-dfy) <= L*sqrNorm(x_minus_y)/2);
-    % else
-        test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
-    % end
 end
 

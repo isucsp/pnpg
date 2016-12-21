@@ -17,8 +17,10 @@ for i=2:length(tvTypeArray)
 
         tv1=tvProximal(tvType);
         tStart=tic;
-        [x1,itr1,pOut1,out2]=tv1.op(a,u,thresh,maxItr,[]);
+        [x1,itr1,pOut1,out1]=tv1.op(a,u,thresh,maxItr,[]);
         t1=toc(tStart);
+
+        continue
 
         tStart=tic;
         pars.print = false;
@@ -47,7 +49,7 @@ for i=2:length(tvTypeArray)
 
         fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
 
-        %pause;
+        pause;
     end
 end
 
