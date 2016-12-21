@@ -1,4 +1,4 @@
 function out=sqrNorm(x)
-    out = conj(x).*x;
+    out = x.*x;
     out = sum(out(:));
 end

@@ -12,7 +12,7 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
     relativeTol=min(1e-3,relativeTol); scale=1; strlen=0;
 
     % scale the input to prevent numerical problem
-    scale=pNorm(a); if(scale==0) alpha=zeros(size(a)); pppp=0; return; end
+    scale=pNorm(a,2); if(scale==0) alpha=zeros(size(a)); pppp=0; return; end
     init=init/scale;  a=a/scale;  u=u/scale;
 
     nu=0; rho=1; cnt=0; preS=Psit(init); s=preS;
@@ -27,8 +27,8 @@ function [alpha,pppp] = admm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
         s = Utils.softThresh(Psit_alpha-nu,u/rho);
         nu=nu+s-Psit_alpha;
 
-        difS=pNorm(s-preS); preS=s;
-        residual = pNorm(s-Psit_alpha);
+        difS=pNorm(s-preS,2); preS=s;
+        residual = pNorm(s-Psit_alpha,2);
 
         if(isInDebugMode)
             cost=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);
@@ -65,7 +65,7 @@ end
 %     rhoRec(pppp)=rho;
 % 
 %     if(pppp>1)
-%         difAlpha = pNorm(preAlpha-alpha);
+%         difAlpha = pNorm(preAlpha-alpha,2);
 %         difAlphaRec(pppp-1)=difAlpha/sNorm;
 %         difSRec(pppp-1)=difS/sNorm;
 %         residualRec(pppp-1)=residual/sNorm;

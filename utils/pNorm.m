@@ -1,14 +1,12 @@
 function out=pNorm(x,p)
-    if(nargin==1) p=2; end
     switch (p)
         case 0
-            out = (p~=0);
+            out = (x~=0);
             out = sum(out(:));
         case 1
             out = sum(abs(x(:)));
         case 2
-            out = conj(x).*x;
-            out = sqrt(sum(out(:)));
+            out = norm(x,'fro');
         case inf
             out = max(abs(x(:)));
         otherwise

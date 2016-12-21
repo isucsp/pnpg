@@ -30,7 +30,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
         temp=abs(W(theta));
         cost(iter)=0.5*sqrNorm(temp-W(y))+tau*pNorm(WT(temp),1);
         if(iter>1)
-            difTheta(iter) = pNorm(preTheta-theta)/max(eps,pNorm(theta));
+            difTheta(iter) = pNorm(preTheta-theta,2)/max(eps,pNorm(theta,2));
         end
     end
 
@@ -54,7 +54,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                     converged = 1;
                 end
             case 2
-                if(iter>1 && pNorm(preTheta-theta)<=tolerance*max(eps,pNorm(theta)))
+                if(iter>1 && pNorm(preTheta-theta,2)<=tolerance*max(eps,pNorm(theta,2)))
                     converged = 1;
                 end
                 preTheta=theta;

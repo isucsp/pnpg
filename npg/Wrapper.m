@@ -60,16 +60,16 @@ classdef Wrapper < handle
             if(isfield(opt,'trueX') && ~isfield(out,'RMSE'))
                 switch opt.errorType
                     case 0
-                        trueX = opt.trueX/pNorm(opt.trueX);
+                        trueX = opt.trueX/pNorm(opt.trueX,2);
                         computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
                     case 1
                         trueXNorm=sqrNorm(opt.trueX);
                         if(trueXNorm==0) trueXNorm=eps; end
                         computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
                     case 2
-                        trueXNorm=pNorm(opt.trueX);
+                        trueXNorm=pNorm(opt.trueX,2);
                         if(trueXNorm==0) trueXNorm=eps; end
-                        computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
+                        computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
                 end
                 out.RMSE=computError(out.x);
             end
@@ -154,16 +154,16 @@ classdef Wrapper < handle
                 opt.trueX=opt.trueX(:);
                 switch opt.errorType
                     case 0
-                        trueX = opt.trueX/pNorm(opt.trueX);
+                        trueX = opt.trueX/pNorm(opt.trueX,2);
                         computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
                     case 1
                         trueXNorm=sqrNorm(opt.trueX);
                         if(trueXNorm==0) trueXNorm=eps; end
                         computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
                     case 2
-                        trueXNorm=pNorm(opt.trueX);
+                        trueXNorm=pNorm(opt.trueX,2);
                         if(trueXNorm==0) trueXNorm=eps; end
-                        computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
+                        computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
                 end
             end
             projectorF=@(x,varargin) Wrapper.tfocs_projectorF(penalty,proximalOp,x,opt.innerThresh,opt.maxInnerItr,varargin{:});

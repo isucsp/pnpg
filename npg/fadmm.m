@@ -13,7 +13,7 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
     relativeTol=min(1e-3,relativeTol); scale=1; strlen=0;
 
     % scale the input to prevent numerical problem
-    scale=pNorm(a); if(scale==0) alpha=zeros(size(a)); pppp=0; return; end
+    scale=pNorm(a,2); if(scale==0) alpha=zeros(size(a)); pppp=0; return; end
     init=init/scale;  a=a/scale;  u=u/scale;
 
     nu=0; rho=1; cnt=0; preS=Psit(init); s=preS;
@@ -29,8 +29,8 @@ function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init
         s = Utils.softThresh(r*Psit_alpha+(1-r)*preS-nu,u/rho);
         nu=nu+s-Psit_alpha*r-(1-r)*preS;
 
-        difS=pNorm(s-preS); preS=s;
-        residual = pNorm(s-Psit_alpha);
+        difS=pNorm(s-preS,2); preS=s;
+        residual = pNorm(s-Psit_alpha,2);
 
         if(isInDebugMode)
             cost=0.5*sqrNorm(max(Psi(s),0)-a)+u*pNorm(Psit(max(Psi(s),0)),1);

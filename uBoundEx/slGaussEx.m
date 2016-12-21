@@ -89,7 +89,7 @@ switch lower(op)
 %       pars.tv ='1d';
 %       pars.MAXITER = 4e4;
 %       pars.epsilon = 1e-13; 
-%       beta=1e-2*pNorm(x0)/pNorm(g);
+%       beta=1e-2*pNorm(x,2)/pNorm(g,2);
 %       pars.init=x0;
 %       func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
 %       cond=@(x) norm(x-x0);

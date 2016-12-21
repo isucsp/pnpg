@@ -110,16 +110,16 @@ end
 if(isfield(opt,'trueX'))
     switch opt.errorType
         case 0
-            trueX = opt.trueX/pNorm(opt.trueX);
-            computError= @(xxx) 1-(realInnerProd(xxx,trueX)^2)/sqrNorm(xxx);
+            trueX = opt.trueX/pNorm(opt.trueX,2);
+            computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
         case 1
             trueXNorm=sqrNorm(opt.trueX);
             if(trueXNorm==0) trueXNorm=eps; end
             computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
         case 2
-            trueXNorm=pNorm(opt.trueX);
+            trueXNorm=pNorm(opt.trueX,2);
             if(trueXNorm==0) trueXNorm=eps; end
-            computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
+            computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
     end
 end
 
@@ -229,7 +229,7 @@ while(true)
         end
 
         newCost=NLL(newX);
-        if((newCost-oldCost)<=realInnerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2)
+        if((newCost-oldCost)<=innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2)
             if(itr<=opt.preSteps && opt.adaptiveStep && goodStep)
                 cumu=opt.cumuTol;
             end
@@ -425,18 +425,18 @@ function t=stepSizeInit(select,Lip,delta)
         case 'bb'   % use BB method to guess the initial stepSize
             if(~exist('delta','var')) delta=1e-5; end
             [~,grad1] = NLL(x);
-            temp = delta*grad1/pNorm(grad1);
+            temp = delta*grad1/pNorm(grad1,2);
             temp = x-opt.prj_C(x-temp);
             [~,grad2] = NLL(x-temp);
-            t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+            t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
         case 'hessian'
             [~,grad1,hessian] = NLL(x);
             if(isempty(hessian))
                 if(~exist('delta','var')) delta=1e-5; end
-                temp = delta*grad1/pNorm(grad1);
+                temp = delta*grad1/pNorm(grad1,2);
                 temp = x-opt.prj_C(x-temp);
                 [~,grad2] = NLL(x-temp);
-                t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+                t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
             else
                 t = hessian(grad1,2)/sqrNorm(grad1);
             end

@@ -84,16 +84,16 @@ if(~isfield(opt,'NLL_Pen') || opt.outLevel<=1) opt.NLL_Pen=false; end
 if(isfield(opt,'trueX'))
     switch opt.errorType
         case 0
-            trueX = opt.trueX/pNorm(opt.trueX);
-            computError= @(xxx) 1-(realInnerProd(xxx,trueX)^2)/sqrNorm(xxx);
+            trueX = opt.trueX/pNorm(opt.trueX,2);
+            computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
         case 1
             trueXNorm=sqrNorm(opt.trueX);
             if(trueXNorm==0) trueXNorm=eps; end
             computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
         case 2
-            trueXNorm=pNorm(opt.trueX);
+            trueXNorm=pNorm(opt.trueX,2);
             if(trueXNorm==0) trueXNorm=eps; end
-            computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
+            computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
     end
 end
 

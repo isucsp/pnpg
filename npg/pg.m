@@ -107,16 +107,16 @@ end
 if(isfield(opt,'trueX'))
     switch opt.errorType
         case 0
-            trueX = opt.trueX/pNorm(opt.trueX);
-            computError= @(xxx) 1-(realInnerProd(xxx,trueX)^2)/sqrNorm(xxx);
+            trueX = opt.trueX/pNorm(opt.trueX,2);
+            computError= @(xxx) 1-(innerProd(xxx,trueX)^2)/sqrNorm(xxx);
         case 1
             trueXNorm=sqrNorm(opt.trueX);
             if(trueXNorm==0) trueXNorm=eps; end
             computError = @(xxx) sqrNorm(xxx-opt.trueX)/trueXNorm;
         case 2
-            trueXNorm=pNorm(opt.trueX);
+            trueXNorm=pNorm(opt.trueX,2);
             if(trueXNorm==0) trueXNorm=eps; end
-            computError = @(xxx) pNorm(xxx-opt.trueX)/trueXNorm;
+            computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
     end
 end
 
@@ -379,18 +379,18 @@ function t=stepSizeInit(select,Lip,delta)
         case 'bb'   % use BB method to guess the initial stepSize
             if(~exist('delta','var')) delta=1e-5; end
             [~,grad1] = NLL(x);
-            temp = delta*grad1/pNorm(grad1);
+            temp = delta*grad1/pNorm(grad1,2);
             temp = x-opt.prj_C(x-temp);
             [~,grad2] = NLL(x-temp);
-            t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+            t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
         case 'hessian'
             [~,grad1,hessian] = NLL(x);
             if(isempty(hessian))
                 if(~exist('delta','var')) delta=1e-5; end
-                temp = delta*grad1/pNorm(grad1);
+                temp = delta*grad1/pNorm(grad1,2);
                 temp = x-opt.prj_C(x-temp);
                 [~,grad2] = NLL(x-temp);
-                t = abs(realInnerProd(grad1-grad2,temp))/sqrNorm(temp);
+                t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
             else
                 t = hessian(grad1,2)/sqrNorm(grad1);
             end
@@ -413,9 +413,9 @@ function test = majorizationHolds(x_minus_y,fx,fy,dfx,dfy,L)
 
     % if(~isempty(dfx) && abs(fx-fy)/max(max(fx,fy),1) < 1e-10)
     %     % In this case, use stronger condition to avoid numerical issue
-    %     test=(realInnerProd(x_minus_y,dfx-dfy) <= L*sqrNorm(x_minus_y)/2);
+    %     test=(innerProd(x_minus_y,dfx-dfy) <= L*sqrNorm(x_minus_y)/2);
     % else
-        test=((fx-fy)<=realInnerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
+        test=((fx-fy)<=innerProd(x_minus_y,dfy)+L*sqrNorm(x_minus_y)/2);
     % end
 end
 

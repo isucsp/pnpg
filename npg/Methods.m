@@ -125,7 +125,7 @@ classdef Methods < handle
         function oldJunk()
             if(t1==0 && p==1)
                 if(interiorPointAlpha)
-                    t1=min([1, abs(diff0'*difphi/pNorm(difphi)), abs(costA/costB)]);
+                    t1=min([1, abs(diff0'*difphi/pNorm(difphi,2)), abs(costA/costB)]);
                 else t1=1;
                 end
             end

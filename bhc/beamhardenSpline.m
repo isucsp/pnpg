@@ -94,7 +94,7 @@ Imea=exp(-y); alpha=xInit(:);
 if(isfield(opt,'trueAlpha'))
     switch opt.errorType
         case 0
-            trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha);
+            trueAlpha = opt.trueAlpha/pNorm(opt.trueAlpha,2);
             computError= @(xxx) 1-(innerProd(xxx,trueAlpha)^2)/sqrNorm(xxx);
             clear 'trueAlpha'
         case 1
@@ -103,9 +103,9 @@ if(isfield(opt,'trueAlpha'))
             computError = @(xxx) sqrNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
             clear 'trueAlphaNorm'
         case 2
-            trueAlphaNorm=pNorm(opt.trueAlpha);
+            trueAlphaNorm=pNorm(opt.trueAlpha,2);
             if(trueAlphaNorm==0) trueAlphaNorm=eps; end
-            computError = @(xxx) pNorm(xxx-opt.trueAlpha)/trueAlphaNorm;
+            computError = @(xxx) pNorm(xxx-opt.trueAlpha,2)/trueAlphaNorm;
             clear 'trueAlphaNorm'
     end
 end
