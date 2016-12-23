@@ -1,4 +1,4 @@
-function proximalOut=tvProximal(tv, prj_C)
+function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
@@ -17,18 +17,15 @@ function proximalOut=tvProximal(tv, prj_C)
 
     proximalOut.penalty = @(z) tlv(z,tv);
     proximalOut.iterative=true;
-    if(true)
+    if(exist('usePnpg') && usePnpg)
         proximalOut.op=@denoisePNPG;
     else
         proximalOut.op=@denoise;
         prnt = 0;
     end
 
-    if(~exist('opt','var') || ~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
-    if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
-    if(~isfield(opt,'outLevel')) opt.outLevel=0; end
+    if(~exist('opt','var') || ~isfield(opt,'debugLevel')) opt.debugLevel=0; end
     if(~isfield(opt,'initStep')) opt.initStep='fixed'; end
-    if(~isfield(opt,'preSteps')) opt.preSteps=0; end
     if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
     if(~isfield(opt,'minItr')) opt.minItr=1; end
 
@@ -58,7 +55,7 @@ function proximalOut=tvProximal(tv, prj_C)
 
         % default to not use any constraints.
 
-        if(~exist('opt','var') || ~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+        if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
         if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
         % By default disabled.  Remember to use a value around 5 for the Poisson model
         % with poor initialization.
@@ -111,7 +108,7 @@ function proximalOut=tvProximal(tv, prj_C)
         itr=0; convThresh=0; theta=1; preP=p; preQ=q;
         cost=dualFunc(p,q);
         goodStep=true;
-        t=stepSizeInit(opt.initStep,opt.Lip);
+        t=opt.Lip;
 
         if(opt.outLevel>=1) out.debug={}; end
         if(opt.adaptiveStep) cumu=0; end
@@ -137,7 +134,7 @@ function proximalOut=tvProximal(tv, prj_C)
                     cumu=0;
                     incStep=true;
                 end
-            %else
+             else
                 %newTheta=(1+sqrt(1+4*B*theta^2))/2;
                 if(itr==1)
                     newTheta=1;
@@ -153,18 +150,18 @@ function proximalOut=tvProximal(tv, prj_C)
             while(true)
                 numLineSearch = numLineSearch+1;
 
-            %   if(opt.adaptiveStep)
-            %       if(itr==1)
-            %           newTheta=1;
-            %       else
-            %           B=t/preT;
-            %           newTheta=1/gamma+sqrt(b+B*theta^2);
-            %           %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-            %       end
-            %       pbar=p+(theta-1)/newTheta*(p-preP);
-            %       qbar=q+(theta-1)/newTheta*(q-preQ);
-            %       [oldCost,gradp,gradq] = dualFunc(pbar,qbar);
-            %   end
+                if(opt.adaptiveStep)
+                    if(itr==1)
+                        newTheta=1;
+                    else
+                        B=t/preT;
+                        newTheta=1/gamma+sqrt(b+B*theta^2);
+                        %newTheta=(1+sqrt(1+4*B*theta^2))/2;
+                    end
+                    pbar=p+(theta-1)/newTheta*(p-preP);
+                    qbar=q+(theta-1)/newTheta*(q-preQ);
+                    [oldCost,gradp,gradq] = dualFunc(pbar,qbar);
+                end
 
                 [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
 
@@ -177,7 +174,7 @@ function proximalOut=tvProximal(tv, prj_C)
                     end
                     break;
                 else
-                    if(numLineSearch<=opt.maxLineSearch)
+                    if(numLineSearch<=opt.maxLineSearch && t<opt.Lip)
                         t=t/opt.stepShrnk; goodStep=false;
                         % Penalize if there is a step size increase just now
                         if(incStep)
@@ -193,7 +190,6 @@ function proximalOut=tvProximal(tv, prj_C)
                 end
             end
 
-            % using eps reduces numerical issue around the point of convergence
             if(newCost>cost && restart())
                 itr=itr-1; continue;
             else
@@ -265,34 +261,13 @@ function proximalOut=tvProximal(tv, prj_C)
 
         function res=restart()
             % if has monmentum term, restart
-            res=((pNorm(pbar-p,1)+pNorm(qbar-q,1))~=0);
+            res=((pNorm(pbar-p,0)+pNorm(qbar-q,0))~=0);
             if(res)
                 theta=1;
                 debug.appendLog('_Restart');
                 debug.printWithoutDel(2,'\t restart');
             end
         end
-
-        function t=stepSizeInit(select,Lip,delta)
-            switch (lower(select))
-                case {'bb','hessian'}   % use BB method to guess the initial stepSize
-                    if(~exist('delta','var')) delta=1e-5; end
-                    [~,gradp1,gradq1] = dualFunc(p,q);
-                    tt=sqrt(sqrNorm(gradp1)+sqrNorm(gradq1));
-                    tempp= delta*gradp1/tt;
-                    tempq= delta*gradq1/tt;
-                    [~,gradp2,gradq2] = dualFunc(p-tempp,q-tempq);
-                    t = abs(innerProd(gradp1-gradp2,tempp)+innerProd(gradq1-gradq2,tempq))/delta^2;
-                case 'fixed'
-                    t = Lip;
-                otherwise
-                    error('unkown selection for initial step');
-            end
-            if(isnan(t) || t<=0)
-                error('\n PNPG is having a negative or NaN step size, do nothing and return!!\n');
-            end
-        end
-
     end
     function [D,iter,pOut,out]=denoise(Xobs,lambda,epsilon,MAXITER,pInit)
         % modified by renliang gu

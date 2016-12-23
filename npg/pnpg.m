@@ -73,7 +73,7 @@ if(~isfield(opt,'preSteps')) opt.preSteps=0; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
-if(~isfield(opt,'Lip')) opt.Lip=nan; end
+if(~isfield(opt,'Lip')) opt.Lip=inf; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
@@ -87,6 +87,9 @@ if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
 if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
 if(~isfield(opt,'maxPossibleInnerItr')) opt.maxPossibleInnerItr=1e3; end
+if(strcmpi(opt.initStep,'fixed') && isinf(opt.Lip))
+    error('The "fixed" for opt.initStep can not be used together with infinite opt.Lip');
+end
 
 % Debug output information
 % >=0: no print,
@@ -235,7 +238,7 @@ while(true)
             end
             break;
         else
-            if(numLineSearch<=opt.maxLineSearch)
+            if(numLineSearch<=opt.maxLineSearch && t<opt.Lip)
                 t=t/opt.stepShrnk; goodStep=false;
                 % Penalize if there is a step size increase just now
                 if(incStep)
@@ -389,13 +392,13 @@ end
 
 function reset()
     theta=1;
-    t=min([t;max(stepSizeInit('hessian'))]);
+    t=min([t;stepSizeInit(opt.initStep,opt.Lip)]);
     debug.appendLog('_Reset');
     debug.printWithoutDel(2,'\t reset');
 end
 function res=restart()
     % if has monmentum term, restart
-    res=pNorm(xbar-x,1)~=0;
+    res=pNorm(xbar-x,0)~=0;
     if(res)
         theta=1;
         debug.appendLog('_Restart');
@@ -420,7 +423,7 @@ function res=runMore()
     end
 end
 
-function t=stepSizeInit(select,Lip,delta)
+function t_=stepSizeInit(select,Lip,delta)
     switch (lower(select))
         case 'bb'   % use BB method to guess the initial stepSize
             if(~exist('delta','var')) delta=1e-5; end
@@ -428,7 +431,7 @@ function t=stepSizeInit(select,Lip,delta)
             temp = delta*grad1/pNorm(grad1,2);
             temp = x-opt.prj_C(x-temp);
             [~,grad2] = NLL(x-temp);
-            t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
+            t_ = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
         case 'hessian'
             [~,grad1,hessian] = NLL(x);
             if(isempty(hessian))
@@ -436,16 +439,16 @@ function t=stepSizeInit(select,Lip,delta)
                 temp = delta*grad1/pNorm(grad1,2);
                 temp = x-opt.prj_C(x-temp);
                 [~,grad2] = NLL(x-temp);
-                t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
+                t_ = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
             else
-                t = hessian(grad1,2)/sqrNorm(grad1);
+                t_ = hessian(grad1,2)/sqrNorm(grad1);
             end
         case 'fixed'
-            t = Lip;
+            t_ = Lip;
         otherwise
             error('unkown selection for initial step');
     end
-    if(isnan(t) || t<=0)
+    if(isnan(t_) || t_<=0)
         error('\n PNPG is having a negative or NaN step size, do nothing and return!!\n');
     end
 end

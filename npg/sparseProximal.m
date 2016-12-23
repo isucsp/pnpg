@@ -4,11 +4,11 @@ function proximal=sparseProximal(sparseType, prj_C, opt, option)
 
     switch(lower(sparseType))
         case 'iso'
-            Psi=@(p) Psi_v(real(p))-Psi_h(imag(p));
-            Psit=@(x) Psi_vt(x)-1i*Psi_ht(x);
+            Psi=@(p) Psi_v(p(1:end/2,:,:,:))+Psi_h(p(end/2+1:end,:,:,:));
+            Psit=@(x) [Psi_vt(x); Psi_ht(x)];
             %prj.op=@(p) p./sqrt(max(1,real(p).^2+imag(p).^2));
-            prj.op=@(p) p./max(1,abs(p));
-            zeroInit=@(x) zeros(size(x));
+            prj.op=@isoPrj;
+            zeroInit=@(x) zeros([size(x,1)*2, size(x,2)]);
             initStep='fixed';
             Lipschitz=@(u) 8*u^2;
         case 'l1'
@@ -102,5 +102,13 @@ end
 function q = Psi_ht(x)
     [I,J]=size(x);
     q=[x(:,1:J-1)-x(:,2:J), zeros(I,1)];
+end
+
+function [pq]=isoPrj(pq)
+    p=pq(1:end/2,:,:,:); q=pq(end/2+1:end,:,:,:);
+    mag=sqrt(max(1,p.^2+q.^2));
+    p=p./mag;
+    q=q./mag;
+    pq=[p;q];
 end
 
