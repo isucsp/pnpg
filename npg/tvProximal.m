@@ -24,28 +24,42 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
         prnt = 0;
     end
 
-    if(~exist('opt','var') || ~isfield(opt,'debugLevel')) opt.debugLevel=0; end
-    if(~isfield(opt,'initStep')) opt.initStep='fixed'; end
+    if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='fixed'; end
     if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
     if(~isfield(opt,'minItr')) opt.minItr=1; end
 
-    function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
-        function [f,gp,gq,h] = dualFunc(p,q)
-            % minimize 0.5*||a-u*real(Psi(p))||_2^2-0.5*||X-a+u*real(Psi(p))||_2^2
-            % subject to ||p||_infty <= 1
-            % where X=prj_C( a-u*real(Psi(p)) ), p and Psi may be complex.
-            Qp=a-u*(Psi_v(p)+Psi_h(q)); % is real
-            x=prj_C(Qp);   % is real
-            f=(sqrNorm(Qp)-sqrNorm(x-Qp))/2;
-            if(nargout>1)
-                gp=-u*Psi_vt(x);
-                gq=-u*Psi_ht(x);
-                if(nargout>3)
-                    h=[];
-                end
-            end
-        end
+    if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+    if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
+    % By default disabled.  Remember to use a value around 5 for the Poisson model
+    % with poor initialization.
+    if(~isfield(opt,'preSteps')) opt.preSteps=0; end
+    % Threshold for relative difference between two consecutive x
+    if(~isfield(opt,'minItr')) opt.minItr=10; end
+    if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
+    if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
+    if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
+    if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
+    if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
+
+    % Debug output information
+    % >=0: no print,
+    % >=1: only report results,
+    % >=2: detail output report, 
+    % >=4: plot real time cost and RMSE,
+    if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
+    % print iterations every opt.verbose lines.
+    if(~isfield(opt,'verbose')) opt.verbose=100; end
+
+    % Output options and debug information
+    % >=0: minimum output with only results,
+    % >=1: some cheap output,
+    % >=2: more detail output and expansive (impairs CPU time, only for debug)
+    if(~isfield(opt,'outLevel')) opt.outLevel=0; end
+
+    debug=Debug(opt.debugLevel);
+
+    function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         opt.Lip=8*u^2;
 
         if(isempty(pInit) || ~iscell(pInit))
@@ -54,39 +68,6 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
         end
 
         % default to not use any constraints.
-
-        if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
-        if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
-        % By default disabled.  Remember to use a value around 5 for the Poisson model
-        % with poor initialization.
-        if(~isfield(opt,'preSteps')) opt.preSteps=0; end
-        if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
-        % Threshold for relative difference between two consecutive x
-        if(~isfield(opt,'minItr')) opt.minItr=10; end
-        if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
-        if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
-        if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
-
-        if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
-        if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
-        if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
-
-        % Debug output information
-        % >=0: no print,
-        % >=1: only report results,
-        % >=2: detail output report, 
-        % >=4: plot real time cost and RMSE,
-        if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-        % print iterations every opt.verbose lines.
-        if(~isfield(opt,'verbose')) opt.verbose=100; end
-
-        % Output options and debug information
-        % >=0: minimum output with only results,
-        % >=1: some cheap output,
-        % >=2: more detail output and expansive (impairs CPU time, only for debug)
-        if(~isfield(opt,'outLevel')) opt.outLevel=0; end
-
-        debug=Debug(opt.debugLevel);
 
         % print start information
         if(debug.level(2))
@@ -192,14 +173,14 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
 
             if(newCost>cost && restart())
                 itr=itr-1; continue;
-            else
-                difX = relativeDif([p(:);q(:)],[newP(:);newQ(:)]);
-                preP = p; preQ = q;
-                p = newP; q = newQ;
-                theta = newTheta;
-                preCost=cost;
-                cost = newCost;
             end
+
+            difX = relativeDif([p(:);q(:)],[newP(:);newQ(:)]);
+            preP = p; preQ = q;
+            p = newP; q = newQ;
+            theta = newTheta;
+            preCost=cost;
+            cost = newCost;
 
             if(opt.adaptiveStep)
                 preT=t;
@@ -257,6 +238,22 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
         end
         if(debug.level(1))
             fprintf('\nCPU Time: %g, objective=%g\n',toc(tStart),cost);
+        end
+
+        function [f,gp,gq,h] = dualFunc(p,q)
+            % minimize 0.5*||a-u*real(Psi(p))||_2^2-0.5*||X-a+u*real(Psi(p))||_2^2
+            % subject to ||p||_infty <= 1
+            % where X=prj_C( a-u*real(Psi(p)) ), p and Psi may be complex.
+            Qp=a-u*(Psi_v(p)+Psi_h(q)); % is real
+            x=prj_C(Qp);   % is real
+            f=(sqrNorm(Qp)-sqrNorm(x-Qp))/2;
+            if(nargout>1)
+                gp=-u*Psi_vt(x);
+                gq=-u*Psi_ht(x);
+                if(nargout>3)
+                    h=[];
+                end
+            end
         end
 
         function res=restart()

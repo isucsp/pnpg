@@ -15,8 +15,9 @@ for i=2:length(tvTypeArray)
         a=aArray{j};
         u=uArray{j};
 
-        opt.outLevel=1;
         opt.debugLevel=2;
+        opt.outLevel=1;
+        opt.adaptiveStep=false;
         opt=[];
         tv1=tvProximal(tvType,[],true,opt);
         tStart=tic;
@@ -35,8 +36,8 @@ for i=2:length(tvTypeArray)
         opt.debugLevel=1;
         opt.debugLevel=0;
         opt.adaptiveStep=false;
-        opt.outLevel=1;
         opt.debugLevel=2;
+        opt.outLevel=1;
         opt=[];
         tv3=sparseProximal(tvType,[],[],opt);
         tStart=tic;
@@ -49,8 +50,6 @@ for i=2:length(tvTypeArray)
         fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*tv3.penalty(x3));
 
         fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
-
-        pause;
     end
 end
 
