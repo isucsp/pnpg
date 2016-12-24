@@ -184,27 +184,19 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, usePNPG, opt)
                 end
             end
 
-            if(newCost>cost)
-                if(restart())
-                    itr=itr-1; continue;
-                end
-                % give up and force it to converge
-                debug.appendLog('_ForceConverge');
-                difX=0;
-                preP=p;
-                preCost=cost;
-            else
-                difX = relativeDif(x,newX);
-                x=newX;
-                preP = p;
-                p = newP;
-                theta = newTheta;
-                preCost=cost;
-                cost = newCost;
+            if(newCost>cost && restart())
+                itr=itr-1; continue;
             end
+            difX = relativeDif(x,newX);
+            x=newX;
+            preP = p;
+            p = newP;
+            theta = newTheta;
+            preCost=cost;
+            cost = newCost;
+            preT=t;
 
             if(opt.adaptiveStep)
-                preT=t;
                 if(numLineSearch==1)
                     cumu=cumu+1;
                 else

@@ -1,4 +1,4 @@
-function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
+function proximalOut=tvProximal(tv, prj_C, method , opt)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
@@ -6,6 +6,7 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
     if(~exist('tv','var') || isempty(tv))
         tv='iso';
     end
+    if(~exist('method','var') || isempty(method)) method='beck'; end
     switch(lower(tv))
         case 'iso'
             proxOp=@isoPrj;
@@ -15,11 +16,13 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
 
     proximalOut.penalty = @(z) tlv(z,tv);
     proximalOut.iterative=true;
-    if(exist('usePNPG','var') && usePNPG)
-        proximalOut.op=@denoisePNPG;
-    else
-        proximalOut.op=@denoise;
-        prnt = 0;
+    switch(lower(method))
+        case 'beck'
+            proximalOut.op=@denoise;
+        case 'pnpg'
+            proximalOut.op=@denoisePNPG;
+        case 'npg'
+            proximalOut.op=@denoiseNPG;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
@@ -183,27 +186,19 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
                 end
             end
 
-            if(newCost>cost)
-                if(restart())
-                    itr=itr-1; continue;
-                end
-                % give up and force it to converge
-                debug.appendLog('_ForceConverge');
-                difX=0;
-                preP=p; preQ=q;
-                preCost=cost;
-            else
-                difX = relativeDif(x,newX);
-                x=newX;
-                preP = p; preQ = q;
-                p = newP; q = newQ;
-                theta = newTheta;
-                preCost=cost;
-                cost = newCost;
+            if(newCost>cost && restart())
+                itr=itr-1; continue;
             end
+            difX = relativeDif(x,newX);
+            x=newX;
+            preP = p; preQ = q;
+            p = newP; q = newQ;
+            theta = newTheta;
+            preCost=cost;
+            cost = newCost;
+            preT=t;
 
             if(opt.adaptiveStep)
-                preT=t;
                 if(numLineSearch==1)
                     cumu=cumu+1;
                 else
@@ -349,7 +344,7 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
         i=0;
 
         fval=inf;
-        if(prnt)
+        if(debug.level(2))
             fprintf('***********************************\n');
             fprintf('*Solving with FGP/FISTA**\n');
             fprintf('***********************************\n');
@@ -416,7 +411,7 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
 
             if(nargout==4)
                 out.cost(i)=fval;
-                if(prnt)
+                if(debug.level(2))
                     fprintf('%7d %10.10g %10.10g  %19g',i,fval,re,f(D,lambda));
                     if (fval>fold) fprintf('  *\n'); else fprintf('   \n'); end
                 end
@@ -425,6 +420,151 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
         iter=i;
         pOut={P1, P2};
     end
+
+    function [x,itr,pOut,out]=denoiseNPG(a,u,thresh,maxItr,pInit)
+
+        Lip=8*u^2;
+        if(nargout<4)
+            opt.outLevel=0;
+        end
+
+        % print start information
+        if(debug.level(2))
+            fprintf('\n%s\n', repmat( '=', 1, 80 ) );
+            str=sprintf('Projected Nestrov''s Proximal-Gradient (PNPG) Method');
+            fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
+            fprintf('%s\n', repmat('=',1,80));
+            str=sprintf( ' %5s','Itr');
+            str=sprintf([str ' %14s'],'Objective');
+            str=sprintf([str ' %12s'], '|dx|/|x|');
+            str=sprintf([str ' %12s'], '|d Obj/Obj|');
+            str=sprintf([str '\t u=%g'],u);
+            fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
+        end
+
+        tStart=tic;
+
+        if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
+            p=pInit{1}; q=pInit{2};
+        else
+            [I,J]=size(a);
+            p=zeros(I-1,J); q=zeros(I,J-1);
+        end
+
+        itr=0; convThresh=0; theta=1; preP=p; preQ=q;
+        y=a-u*(Psi_v(p)+Psi_h(q)); % is real
+        x=prj_C(y);   % is real
+        cost=(sqrNorm(y)-sqrNorm(x-y))/2;
+        goodStep=true;
+        t=Lip;
+
+        if(opt.outLevel>=1) out.debug={}; end
+
+        while(true)
+
+            if(itr >= maxItr || (convThresh>2 && itr>=opt.minItr))
+                break;
+            end
+
+            itr=itr+1;
+            %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
+
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %  start of one PNPG step  %
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            if(itr==1)
+                newTheta=1;
+            else
+                B=1;
+                newTheta=1/gamma+sqrt(b+B*theta^2);
+                %newTheta=(1+sqrt(1+4*B*theta^2))/2;
+            end
+            pbar=p+(theta-1)/newTheta*(p-preP);
+            qbar=q+(theta-1)/newTheta*(q-preQ);
+            ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
+            xbar=prj_C(ybar);   % is real
+            gradp=-u*Psi_vt(xbar);
+            gradq=-u*Psi_ht(xbar);
+
+            [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
+            newY=a-u*(Psi_v(newP)+Psi_h(newQ)); % is real
+            newX=prj_C(newY);   % is real
+            newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
+
+            if(newCost>cost && restart())
+                itr=itr-1; continue;
+            end
+            difX = relativeDif(x,newX);
+            x=newX;
+            preP = p; preQ = q;
+            p = newP; q = newQ;
+            theta = newTheta;
+            preCost=cost;
+            cost = newCost;
+
+            %%%%%%%%%%%%%%%%%%%%%%%%%%
+            %  end of one PNPG step  %
+            %%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            if(itr>1 && difX<=thresh )
+                convThresh=convThresh+1;
+            end
+
+            if(opt.outLevel<1 && opt.debugLevel<2)
+                continue;
+            end
+
+            difCost=abs(cost-preCost)/max(1,abs(cost));
+            if(opt.outLevel>=1)
+                out.time(itr)=toc(tStart);
+                out.cost(itr)=cost;
+                out.difX(itr)=difX;
+                out.difCost(itr)=difCost;
+                out.theta(itr)=theta;
+                out.stepSize(itr) = 1/t;
+                if(~isempty(debug.log()))
+                    out.debug{size(out.debug,1)+1,1}=itr;
+                    out.debug{size(out.debug,1),2}=debug.log();
+                    debug.clearLog();
+                end;
+            end
+
+            if(debug.level(2))
+                debug.print(2,sprintf(' %5d',itr));
+                debug.print(2,sprintf(' %14.12g',cost));
+                debug.print(2,sprintf(' %12g %4d',difX,1));
+                debug.print(2,sprintf(' %12g', difCost));
+                debug.clear_print(2);
+                if(mod(itr,opt.verbose)==0) debug.println(2); end
+            end
+        end
+        if(nargout>=3)
+            pOut={p,q};
+        end
+        if(nargout>=4)
+            out.opt = opt; out.date=datestr(now);
+        end
+        if(opt.outLevel>=2)
+            out.gradp=gradp;
+            out.gradq=gradq;
+        end
+        if(debug.level(1))
+            fprintf('\nCPU Time: %g, objective=%g\n',toc(tStart),cost);
+        end
+
+        function res=restart()
+            % if has monmentum term, restart
+            res=((pNorm(pbar-p,0)+pNorm(qbar-q,0))~=0);
+            if(~res) return; end
+
+            theta=1;
+            debug.appendLog('_Restart');
+            debug.printWithoutDel(2,'\t restart');
+        end
+    end
+
+
 
 end
 

@@ -53,6 +53,15 @@ switch lower(op)
                 % BEGIN experiment region,  to delete in the end
 
                 opt=OPT;
+                option.adaptiveStep=false;
+                proximal=tvProximal('iso',@(x)max(0,x),'pnpg',option);
+                pnpg_6   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                proximal=tvProximal('iso',@(x)max(0,x),'npg');
+                pnpg_7   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                mysave
+                continue;
+
+                opt=OPT;
                 usePNPG=true;
                 proximal=tvProximal('iso',@(x)max(0,x),usePNPG);
                 pnpg_1   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
