@@ -49,6 +49,27 @@ switch lower(op)
                 initSig=max(fbp{i,1,k}.x,0);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
+
+                % BEGIN experiment region,  to delete in the end
+
+                opt=OPT;
+                usePNPG=true;
+                proximal=tvProximal('iso',@(x)max(0,x),usePNPG);
+                pnpg_1   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                opt=OPT;
+                usePNPG=false;
+                proximal=tvProximal('iso',@(x)max(0,x),usePNPG);
+                pnpg_2   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                opt=OPT;
+                usePNPG=true;
+                option.usePInit=false;
+                pnpg_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+                mysave
+
+                continue;
+
+                % END experiment region,  to delete in the end
+
                 if(k==1 && any(i==[4 6]))
                     opt=OPT;
                     pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);

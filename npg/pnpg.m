@@ -225,8 +225,8 @@ while(true)
         end
 
         if(proximal.iterative)
-            [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
-                pInit);
+            [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,...
+                opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
         else
             newX=proximal.op(xbar-grad/t,opt.u/t);
         end
@@ -398,12 +398,12 @@ function reset()
 end
 function res=restart()
     % if has monmentum term, restart
-    res=pNorm(xbar-x,0)~=0;
-    if(res)
-        theta=1;
-        debug.appendLog('_Restart');
-        debug.printWithoutDel(2,'\t restart');
-    end
+    res=(pNorm(xbar-x,0)~=0);
+    if(~res) return; end
+
+    theta=1;
+    debug.appendLog('_Restart');
+    debug.printWithoutDel(2,'\t restart');
 end
 function res=runMore()
     res=false;

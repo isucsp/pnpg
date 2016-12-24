@@ -169,7 +169,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt,seed)
     % Psi = @(xx) midwt(xx(1:end/2),daub_H,dwt_L)/sqrt(2)+midwt(xx(end/2+1:end),daubcqf(6),4)/sqrt(2);
     % Psit= @(xx) [mdwt(xx,daub_H,dwt_L)/sqrt(2); mdwt(xx,daubcqf(6),4)/sqrt(2)];
 
-    opt.trueAlpha=x0;
+    opt.trueX=x0;
     opt.L = max(svd(Phi))^2;
 
 end

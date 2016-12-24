@@ -1,12 +1,10 @@
-function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
+function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
+    if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x)x; end
     if(~exist('tv','var') || isempty(tv))
         tv='iso';
-    end
-    if(~exist('prj_C','var') || isempty(prj_C))
-        prj_C=@(x)x;
     end
     switch(lower(tv))
         case 'iso'
@@ -17,15 +15,14 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
 
     proximalOut.penalty = @(z) tlv(z,tv);
     proximalOut.iterative=true;
-    if(exist('usePnpg') && usePnpg)
+    if(exist('usePNPG','var') && usePNPG)
         proximalOut.op=@denoisePNPG;
     else
         proximalOut.op=@denoise;
         prnt = 0;
     end
 
-    if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='fixed'; end
-    if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
+    if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
     if(~isfield(opt,'minItr')) opt.minItr=1; end
 
     if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
@@ -33,14 +30,13 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
     % By default disabled.  Remember to use a value around 5 for the Poisson model
     % with poor initialization.
     if(~isfield(opt,'preSteps')) opt.preSteps=0; end
-    % Threshold for relative difference between two consecutive x
-    if(~isfield(opt,'minItr')) opt.minItr=10; end
     if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
     if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
     if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
     if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
     if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
+    if(~isfield(opt,'usePInit')) opt.usePInit=true; end
 
     % Debug output information
     % >=0: no print,
@@ -60,14 +56,11 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
     debug=Debug(opt.debugLevel);
 
     function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
-        opt.Lip=8*u^2;
 
-        if(isempty(pInit) || ~iscell(pInit))
-            [I,J]=size(a);
-            pInit={zeros(I-1,J); zeros(I,J-1)};
+        Lip=8*u^2;
+        if(nargout<4)
+            opt.outLevel=0;
         end
-
-        % default to not use any constraints.
 
         % print start information
         if(debug.level(2))
@@ -85,11 +78,19 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
 
         tStart=tic;
 
-        p=pInit{1}; q=pInit{2};
+        if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
+            p=pInit{1}; q=pInit{2};
+        else
+            [I,J]=size(a);
+            p=zeros(I-1,J); q=zeros(I,J-1);
+        end
+
         itr=0; convThresh=0; theta=1; preP=p; preQ=q;
-        cost=dualFunc(p,q);
+        y=a-u*(Psi_v(p)+Psi_h(q)); % is real
+        x=prj_C(y);   % is real
+        cost=(sqrNorm(y)-sqrNorm(x-y))/2;
         goodStep=true;
-        t=opt.Lip;
+        t=Lip;
 
         if(opt.outLevel>=1) out.debug={}; end
         if(opt.adaptiveStep) cumu=0; end
@@ -107,7 +108,7 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
             %  start of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            numLineSearch=0; incStep=false;
+            numLineSearch=0; incStep=false; goodMM=true;
             if(opt.adaptiveStep)
                 if(cumu>=opt.cumuTol)
                     % adaptively increase the step size
@@ -115,7 +116,7 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                     cumu=0;
                     incStep=true;
                 end
-             else
+            else
                 %newTheta=(1+sqrt(1+4*B*theta^2))/2;
                 if(itr==1)
                     newTheta=1;
@@ -124,7 +125,11 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                 end
                 pbar=p+(theta-1)/newTheta*(p-preP);
                 qbar=q+(theta-1)/newTheta*(q-preQ);
-                [oldCost,gradp,gradq] = dualFunc(pbar,qbar);
+                ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
+                xbar=prj_C(ybar);   % is real
+                oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                gradp=-u*Psi_vt(xbar);
+                gradq=-u*Psi_ht(xbar);
             end
 
             % start of line Search
@@ -141,12 +146,17 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                     end
                     pbar=p+(theta-1)/newTheta*(p-preP);
                     qbar=q+(theta-1)/newTheta*(q-preQ);
-                    [oldCost,gradp,gradq] = dualFunc(pbar,qbar);
+                    ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
+                    xbar=prj_C(ybar);   % is real
+                    oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                    gradp=-u*Psi_vt(xbar);
+                    gradq=-u*Psi_ht(xbar);
                 end
 
                 [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-
-                newCost=dualFunc(newP,newQ);
+                newY=a-u*(Psi_v(newP)+Psi_h(newQ)); % is real
+                newX=prj_C(newY);   % is real
+                newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
                 if((newCost-oldCost)<=...
                         innerProd(newP-pbar,gradp)+innerProd(newQ-qbar,gradq)...
                         +t*(sqrNorm(newP-pbar)+sqrNorm(newQ-qbar))/2)
@@ -155,7 +165,7 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                     end
                     break;
                 else
-                    if(numLineSearch<=opt.maxLineSearch && t<opt.Lip)
+                    if(numLineSearch<=opt.maxLineSearch && t<Lip)
                         t=t/opt.stepShrnk; goodStep=false;
                         % Penalize if there is a step size increase just now
                         if(incStep)
@@ -165,22 +175,31 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                             end
                         end
                     else  % don't know what to do, mark on debug and break
+                        goodMM=false;
                         debug.appendLog('_FalseMM');
                         break;
                     end
                 end
             end
 
-            if(newCost>cost && restart())
-                itr=itr-1; continue;
+            if(newCost>cost)
+                if(restart())
+                    itr=itr-1; continue;
+                end
+                % give up and force it to converge
+                debug.appendLog('_ForceConverge');
+                difX=0;
+                preP=p; preQ=q;
+                preCost=cost;
+            else
+                difX = relativeDif(x,newX);
+                x=newX;
+                preP = p; preQ = q;
+                p = newP; q = newQ;
+                theta = newTheta;
+                preCost=cost;
+                cost = newCost;
             end
-
-            difX = relativeDif([p(:);q(:)],[newP(:);newQ(:)]);
-            preP = p; preQ = q;
-            p = newP; q = newQ;
-            theta = newTheta;
-            preCost=cost;
-            cost = newCost;
 
             if(opt.adaptiveStep)
                 preT=t;
@@ -228,10 +247,12 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
                 if(mod(itr,opt.verbose)==0) debug.println(2); end
             end
         end
-        Qp=a-u*(Psi_v(p)+Psi_h(q)); % is real
-        x=prj_C(Qp);   % is real
-        pOut={p,q};
-        out.opt = opt; out.date=datestr(now);
+        if(nargout>=3)
+            pOut={p,q};
+        end
+        if(opt.outLevel>=1)
+            out.opt = opt; out.date=datestr(now);
+        end
         if(opt.outLevel>=2)
             out.gradp=gradp;
             out.gradq=gradq;
@@ -240,30 +261,14 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
             fprintf('\nCPU Time: %g, objective=%g\n',toc(tStart),cost);
         end
 
-        function [f,gp,gq,h] = dualFunc(p,q)
-            % minimize 0.5*||a-u*real(Psi(p))||_2^2-0.5*||X-a+u*real(Psi(p))||_2^2
-            % subject to ||p||_infty <= 1
-            % where X=prj_C( a-u*real(Psi(p)) ), p and Psi may be complex.
-            Qp=a-u*(Psi_v(p)+Psi_h(q)); % is real
-            x=prj_C(Qp);   % is real
-            f=(sqrNorm(Qp)-sqrNorm(x-Qp))/2;
-            if(nargout>1)
-                gp=-u*Psi_vt(x);
-                gq=-u*Psi_ht(x);
-                if(nargout>3)
-                    h=[];
-                end
-            end
-        end
-
         function res=restart()
             % if has monmentum term, restart
             res=((pNorm(pbar-p,0)+pNorm(qbar-q,0))~=0);
-            if(res)
-                theta=1;
-                debug.appendLog('_Restart');
-                debug.printWithoutDel(2,'\t restart');
-            end
+            if(~res) return; end
+
+            theta=1;
+            debug.appendLog('_Restart');
+            debug.printWithoutDel(2,'\t restart');
         end
     end
     function [D,iter,pOut,out]=denoise(Xobs,lambda,epsilon,MAXITER,pInit)
@@ -338,13 +343,11 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
         % debug=true;
         f=@(x,u) 0.5*norm(x-Xobs,'fro')^2+u*tlv(x,tv);
 
-        tk=1;
         tkp1=1;
         count=0;
         i=0;
 
         fval=inf;
-        fun_all=[];
         if(prnt)
             fprintf('***********************************\n');
             fprintf('*Solving with FGP/FISTA**\n');
@@ -411,16 +414,15 @@ function proximalOut=tvProximal(tv, prj_C, usePnpg, opt)
             end
 
             if(nargout==4)
-                fun_all=[fun_all;fval];
+                out.cost(i)=fval;
                 if(prnt)
-                    fprintf('%7d %10.10g %10.10g  %19g',i,fval,norm(D-Dold,'fro')/norm(D,'fro'),f(D,lambda));
+                    fprintf('%7d %10.10g %10.10g  %19g',i,fval,re,f(D,lambda));
                     if (fval>fold) fprintf('  *\n'); else fprintf('   \n'); end
                 end
             end
         end
         iter=i;
         pOut={P1, P2};
-        out.cost=fun_all;
     end
 
 end

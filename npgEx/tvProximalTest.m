@@ -15,12 +15,14 @@ for i=2:length(tvTypeArray)
         a=aArray{j};
         u=uArray{j};
 
-        tv1=tvProximal(tvType);
+        opt.debugLevel=2;
+        opt.adaptiveStep=false;
+        opt.outLevel=1;
+        opt=[];
+        tv1=tvProximal(tvType,[],true,opt);
         tStart=tic;
         [x1,itr1,pOut1,out1]=tv1.op(a,u,thresh,maxItr,[]);
         t1=toc(tStart);
-
-        continue
 
         tStart=tic;
         pars.print = false;
@@ -34,23 +36,19 @@ for i=2:length(tvTypeArray)
         opt.debugLevel=1;
         opt.debugLevel=0;
         opt.adaptiveStep=false;
-        opt=[];
-        opt.outLevel=1;
         opt.debugLevel=2;
-        tv3=sparseProximal(tvType,[],[],opt);
+        opt.outLevel=1;
+        opt=[];
+        tv3=tvProximal(tvType,[],false,opt);
         tStart=tic;
         [x3,itr3,pOut3,out3]=tv3.op(a,u,thresh,maxItr,[]);
         t3=toc(tStart);
-
 
         fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*tv3.penalty(x1));
         fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*tv3.penalty(x2));
         fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*tv3.penalty(x3));
 
         fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
-
-        pause;
     end
 end
-
 
