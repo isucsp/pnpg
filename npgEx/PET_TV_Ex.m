@@ -63,6 +63,7 @@ switch lower(op)
                 opt=OPT;
                 usePNPG=true;
                 option.usePInit=false;
+                proximal=tvProximal('iso',@(x)max(0,x),usePNPG,option);
                 pnpg_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 mysave
 
