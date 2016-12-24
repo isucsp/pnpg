@@ -117,11 +117,12 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
                     incStep=true;
                 end
             else
-                %newTheta=(1+sqrt(1+4*B*theta^2))/2;
                 if(itr==1)
                     newTheta=1;
                 else
-                    newTheta=1/gamma+sqrt(b+theta^2);
+                    B=t/preT;
+                    newTheta=1/gamma+sqrt(b+B*theta^2);
+                    %newTheta=(1+sqrt(1+4*B*theta^2))/2;
                 end
                 pbar=p+(theta-1)/newTheta*(p-preP);
                 qbar=q+(theta-1)/newTheta*(q-preQ);
@@ -250,7 +251,7 @@ function proximalOut=tvProximal(tv, prj_C, usePNPG, opt)
         if(nargout>=3)
             pOut={p,q};
         end
-        if(opt.outLevel>=1)
+        if(nargout>=4)
             out.opt = opt; out.date=datestr(now);
         end
         if(opt.outLevel>=2)

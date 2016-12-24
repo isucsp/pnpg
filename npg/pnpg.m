@@ -148,7 +148,10 @@ if(debug.level(2))
     if(isfield(opt,'trueX'))
         str=sprintf([str ' %12s'], 'Error');
     end
-    str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'αSrh');
+    str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'lSrh');
+    if(proximal.iterative)
+        str=sprintf([str ' %4s'], 'iItr');
+    end
     str=sprintf([str ' %12s'], '|d Obj/Obj|');
     str=sprintf([str '\t u=%g'],opt.u);
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
@@ -352,6 +355,9 @@ while(true)
             debug.print(2,sprintf(' %12g',RMSE));
         end
         debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
+        if(proximal.iterative)
+            debug.print(2,sprintf(' %4d',innerItr));
+        end
         debug.print(2,sprintf(' %12g', difCost));
         debug.clear_print(2);
         if(mod(itr,opt.verbose)==0) debug.println(2); end
