@@ -413,12 +413,14 @@ function res=runMore()
         debug.printWithoutDel(2,...
             sprintf('\n decrease relInnerThresh to %g',...
             opt.relInnerThresh));
+        debug.appendLog('_DecInnerThresh');
         res=true;
     elseif(innerItr_>=opt.maxInnerItr &&...
             opt.maxInnerItr<opt.maxPossibleInnerItr)
         opt.maxInnerItr=opt.maxInnerItr*10;
         debug.printWithoutDel(2,...
             sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
+        debug.appendLog('_IncInnerMaxItr');
         res=true;
     end
 end
