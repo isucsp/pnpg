@@ -100,7 +100,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
 
         while(true)
 
-            if(itr >= maxItr || (convThresh>2 && itr>=opt.minItr))
+            if(itr >= maxItr || (convThresh>=5 && itr>=opt.minItr))
                 break;
             end
 
@@ -210,8 +210,10 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             %  end of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(itr>1 && difX<=thresh )
+            if(difX<=thresh )
                 convThresh=convThresh+1;
+            else
+                convThresh=0;
             end
 
             if(opt.outLevel<1 && opt.debugLevel<2)
@@ -267,7 +269,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             debug.printWithoutDel(2,'\t restart');
         end
     end
-    function [D,iter,pOut,out]=denoise(Xobs,lambda,epsilon,MAXITER,pInit)
+    function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,epsilon,MAXITER,pInit)
         % modified by renliang gu
         %
         %This function implements the FISTA method for TV-based denoising problems
@@ -324,7 +326,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
 
         switch tv
             case 'iso'
-                A=[P1;zeros(1,n)].^2+[P2,zeros(m,1)].^2;
+                A=[P1.^2;zeros(1,n)]+[P2.^2,zeros(m,1)];
                 A=sqrt(max(A,1));
                 P1=P1./A(1:m-1,:);
                 P2=P2./A(:,1:n-1);
@@ -421,29 +423,14 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         pOut={P1, P2};
     end
 
-    function [x,itr,pOut,out]=denoiseNPG(a,u,thresh,maxItr,pInit)
+    function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
 
         Lip=8*u^2;
         if(nargout<4)
             opt.outLevel=0;
         end
 
-        % print start information
-        if(debug.level(2))
-            fprintf('\n%s\n', repmat( '=', 1, 80 ) );
-            str=sprintf('Projected Nestrov''s Proximal-Gradient (PNPG) Method');
-            fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
-            fprintf('%s\n', repmat('=',1,80));
-            str=sprintf( ' %5s','Itr');
-            str=sprintf([str ' %14s'],'Objective');
-            str=sprintf([str ' %12s'], '|dx|/|x|');
-            str=sprintf([str ' %12s'], '|d Obj/Obj|');
-            str=sprintf([str '\t u=%g'],u);
-            fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
-        end
-
         tStart=tic;
-
         if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
             p=pInit{1}; q=pInit{2};
         else
@@ -455,19 +442,17 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         y=a-u*(Psi_v(p)+Psi_h(q)); % is real
         x=prj_C(y);   % is real
         cost=(sqrNorm(y)-sqrNorm(x-y))/2;
-        goodStep=true;
         t=Lip;
 
         if(opt.outLevel>=1) out.debug={}; end
 
         while(true)
 
-            if(itr >= maxItr || (convThresh>2 && itr>=opt.minItr))
+            if(itr >= maxItr || (convThresh>=5 && itr>=opt.minItr))
                 break;
             end
 
             itr=itr+1;
-            %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %  start of one PNPG step  %
@@ -507,36 +492,10 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             %  end of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(itr>1 && difX<=thresh )
+            if(difX<=thresh )
                 convThresh=convThresh+1;
-            end
-
-            if(opt.outLevel<1 && opt.debugLevel<2)
-                continue;
-            end
-
-            difCost=abs(cost-preCost)/max(1,abs(cost));
-            if(opt.outLevel>=1)
-                out.time(itr)=toc(tStart);
-                out.cost(itr)=cost;
-                out.difX(itr)=difX;
-                out.difCost(itr)=difCost;
-                out.theta(itr)=theta;
-                out.stepSize(itr) = 1/t;
-                if(~isempty(debug.log()))
-                    out.debug{size(out.debug,1)+1,1}=itr;
-                    out.debug{size(out.debug,1),2}=debug.log();
-                    debug.clearLog();
-                end;
-            end
-
-            if(debug.level(2))
-                debug.print(2,sprintf(' %5d',itr));
-                debug.print(2,sprintf(' %14.12g',cost));
-                debug.print(2,sprintf(' %12g %4d',difX,1));
-                debug.print(2,sprintf(' %12g', difCost));
-                debug.clear_print(2);
-                if(mod(itr,opt.verbose)==0) debug.println(2); end
+            else
+                convThresh=0;
             end
         end
         if(nargout>=3)
@@ -545,14 +504,6 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         if(nargout>=4)
             out.opt = opt; out.date=datestr(now);
         end
-        if(opt.outLevel>=2)
-            out.gradp=gradp;
-            out.gradq=gradq;
-        end
-        if(debug.level(1))
-            fprintf('\nCPU Time: %g, objective=%g\n',toc(tStart),cost);
-        end
-
         function res=restart()
             % if has monmentum term, restart
             res=((pNorm(pbar-p,0)+pNorm(qbar-q,0))~=0);
@@ -563,8 +514,6 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             debug.printWithoutDel(2,'\t restart');
         end
     end
-
-
 
 end
 
