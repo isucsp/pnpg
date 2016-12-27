@@ -1,8 +1,9 @@
-function proximalOut=sparseProximal(Psi, Psit, prj_C, usePNPG, opt)
+function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
     % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
     % TV and C are specified via constructor see denoise for a and u
 
     if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x) x; end
+    if(~exist('method','var') || isempty(method)) method='admm'; end
     proxOp=@(p) min(max(p,-1),1);
 
     % Note that in special cases, such as DWT, initial step can
@@ -12,10 +13,13 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, usePNPG, opt)
 
     proximalOut.penalty = @(x) pNorm(Psit(x),1);
     proximalOut.iterative=true;
-    if(exist('usePNPG','var') && usePNPG)
-        proximalOut.op=@denoise;
-    else
-        proximalOut.op=@denoiseADMM;
+    switch(lower(method))
+        case 'pnpg'
+            proximalOut.op=@denoisePNPG;
+        case 'admm'
+            proximalOut.op=@denoiseADMM;
+        otherwise
+            proximalOut.op=@denoiseADMM;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='bb'; end
@@ -53,11 +57,11 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, usePNPG, opt)
 
     debug=Debug(opt.debugLevel);
 
-    function [x,itr,p,out]=denoise(a,u,thresh,maxItr,pInit)
+    function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         % For Psi and Psit that are from wavelet transform, set
         % opt.Lip=@(u)u^2;
         %
-        if(isempty(opt.Lip))
+        if(isempty(opt.Lip) || ~isa(opt.Lip, 'function_handle'))
             Lip=inf;
         else
             Lip=opt.Lip(u);
@@ -184,16 +188,24 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, usePNPG, opt)
                 end
             end
 
-            if(newCost>cost && restart())
-                itr=itr-1; continue;
+            if(newCost>cost)
+                if(goodMM)
+                    if(restart()) itr=itr-1; continue; end
+                end
+
+                % give up and force it to converge
+                debug.appendLog('_ForceConverge');
+                preP=p; difX=0;
+                preCost=cost;
+            else
+                difX = relativeDif(x,newX);
+                x=newX;
+                preP = p;
+                p = newP;
+                theta = newTheta;
+                preCost=cost;
+                cost = newCost;
             end
-            difX = relativeDif(x,newX);
-            x=newX;
-            preP = p;
-            p = newP;
-            theta = newTheta;
-            preCost=cost;
-            cost = newCost;
             preT=t;
 
             if(opt.adaptiveStep)

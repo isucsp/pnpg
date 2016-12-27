@@ -18,11 +18,13 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
     proximalOut.iterative=true;
     switch(lower(method))
         case 'beck'
-            proximalOut.op=@denoise;
+            proximalOut.op=@denoiseBeck;
         case 'pnpg'
             proximalOut.op=@denoisePNPG;
         case 'npg'
-            proximalOut.op=@denoiseNPG;
+            proximalOut.op=@denoisePNPGSkeleton;
+        otherwise
+            proximalOut.op=@denoiseBeck;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
@@ -186,16 +188,24 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
                 end
             end
 
-            if(newCost>cost && restart())
-                itr=itr-1; continue;
+            if(newCost>cost)
+                if(goodMM)
+                    if(restart()) itr=itr-1; continue; end
+                end
+
+                % give up and force it to converge
+                debug.appendLog('_ForceConverge');
+                preP=p; preQ=q; difX=0;
+                preCost=cost;
+            else
+                difX = relativeDif(x,newX);
+                x=newX;
+                preP = p; preQ = q;
+                p = newP; q = newQ;
+                theta = newTheta;
+                preCost=cost;
+                cost = newCost;
             end
-            difX = relativeDif(x,newX);
-            x=newX;
-            preP = p; preQ = q;
-            p = newP; q = newQ;
-            theta = newTheta;
-            preCost=cost;
-            cost = newCost;
             preT=t;
 
             if(opt.adaptiveStep)
@@ -411,7 +421,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
                 tkp1=1;
             end
 
-            if(nargout==4)
+            if(nargout>=4)
                 out.cost(i)=fval;
                 if(debug.level(2))
                     fprintf('%7d %10.10g %10.10g  %19g',i,fval,re,f(D,lambda));
@@ -477,16 +487,24 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
-            if(newCost>cost && restart())
-                itr=itr-1; continue;
+            if(newCost>cost)
+                if(goodMM)
+                    if(restart()) itr=itr-1; continue; end
+                end
+
+                % give up and force it to converge
+                debug.appendLog('_ForceConverge');
+                preP=p; preQ=q; difX=0;
+                preCost=cost;
+            else
+                difX = relativeDif(x,newX);
+                x=newX;
+                preP = p; preQ = q;
+                p = newP; q = newQ;
+                theta = newTheta;
+                preCost=cost;
+                cost = newCost;
             end
-            difX = relativeDif(x,newX);
-            x=newX;
-            preP = p; preQ = q;
-            p = newP; q = newQ;
-            theta = newTheta;
-            preCost=cost;
-            cost = newCost;
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%
             %  end of one PNPG step  %

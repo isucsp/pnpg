@@ -2,7 +2,7 @@ clear all; close all;
 
 [~,~,~,Psi,Psit,OPT,~,~]=loadLinear([],0);
 
-maxItr=2e3; thresh=1e-5;
+maxItr=2e3; thresh=1e-19;
 u=1;
 pOut=[];
 prj_C=@(x) max(x,0);
@@ -11,14 +11,13 @@ for i=1:5
 
     a=randn(size(OPT.trueX))*10^(i-3)+OPT.trueX;
 
-    usePNPG=true;
-    opt=[];
     opt.outLevel=1;
     opt.debugLevel=2;
-    opt.Lip=u^2;
+    opt=[];
+    opt.Lip=@(u)u^2;
     opt.initStep='fixed';
     tStart=tic;
-    sp1=sparseProximal(Psi,Psit,prj_C,usePNPG,opt);
+    sp1=sparseProximal(Psi,Psit,prj_C,'pnpg',opt);
     for j=1:1
         init=[];
         [x1,itr1,pOut,out1]=sp1.op(a,u,thresh,maxItr,init);
@@ -38,9 +37,8 @@ for i=1:5
     opt.debugLevel=2;
     opt=[];
     opt.outLevel=1;
-    usePNPG=false;
     tStart=tic;
-    sp3=sparseProximal(Psi,Psit,prj_C,usePNPG,opt);
+    sp3=sparseProximal(Psi,Psit,prj_C,'admm',opt);
     for j=1:1
         init=[];
         [x3,itr3,pOut3]=sp3.op(a,u,thresh,maxItr,init);

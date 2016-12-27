@@ -266,8 +266,8 @@ while(true)
             reset(); % both theta and step size;
         else
             if(restart()) itr=itr-1; continue; end
+            if(runMore()) itr=itr-1; continue; end
         end
-        if(runMore()) itr=itr-1; continue; end
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
