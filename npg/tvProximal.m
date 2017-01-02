@@ -21,8 +21,8 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             proximalOut.op=@denoise;
         case 'pnpg'
             proximalOut.op=@denoisePNPG;
-        case 'npg'
-            proximalOut.op=@denoiseNPG;
+        case 'skeleton'
+            proximalOut.op=@denoisePNPGSkeleton;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
