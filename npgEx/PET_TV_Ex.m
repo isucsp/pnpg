@@ -55,17 +55,15 @@ switch lower(op)
 
                 % BEGIN experiment region,  to delete in the end
 
-                OPT=rmfield(OPT,'trueX');
-                OPT.u=1; %OPT.noiseType='gaussian';
-                OPT.thresh=1e-13; OPT.maxItr=15e3;
-                Phi=@(x)x; Phit=Phi; initSig=(y-OPT.bb)/2;
-                OPT.bb=0;
+                %OPT=rmfield(OPT,'trueX');
+                OPT.thresh=1e-13; OPT.maxItr=5e3;
+                %Phi=@(x)x; Phit=Phi; initSig=(y-OPT.bb)/2;
                 NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
                 NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
 
                 opt=OPT;
 		opt.tau=1e-6; opt.sigma=1e-6;
-                opt.sigma=1; opt.tau=1;
+                opt.sigma=1e-5; opt.tau=opt.sigma;
                 cptv  {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
                 opt=OPT;
