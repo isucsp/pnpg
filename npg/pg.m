@@ -400,7 +400,7 @@ function t=stepSizeInit(select,Lip,delta)
             error('unkown selection for initial step');
     end
     if(isnan(t) || t<=0)
-        error('\n PG is having a negative or NaN step size, do nothing and return!!\n');
+        error('PG is having a negative or NaN step size, do nothing and return!!');
     end
 end
 
