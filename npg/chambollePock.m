@@ -239,7 +239,7 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14g',cost));
+        debug.print(2,sprintf(' %14.8g',cost));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end

@@ -200,7 +200,7 @@ while(true)
     end
 
     debug.print(1,sprintf(' %5d',itr));
-    debug.print(1,sprintf(' %14.12g',cost));
+    debug.print(1,sprintf(' %14.8g',cost));
     if(isfield(opt,'trueX'))
         out.RMSE(itr)=computError(x);
         debug.print(1,sprintf(' %12g',out.RMSE(itr)));

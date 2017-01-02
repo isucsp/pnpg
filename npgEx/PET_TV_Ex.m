@@ -62,7 +62,10 @@ switch lower(op)
                 NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
 
                 opt=OPT;
-		opt.tau=1e-6; opt.sigma=1e-6;
+                opt.sigma=1e-5; opt.tau=opt.sigma;
+                cptv  {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+
+                opt=OPT;
                 opt.sigma=1e-5; opt.tau=opt.sigma;
                 cptv  {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
