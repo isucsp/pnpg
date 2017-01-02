@@ -40,22 +40,21 @@ classdef Utils < handle
             PhiAlpha=Phi(alpha);
             if(exist('b','var')) PhiAlpha=PhiAlpha+b; end
             switch(nargout)
-                case 1
-                   varargout{1}=Utils.augLag(PhiAlpha,y);
                 case 2
                    [varargout{1},g]=Utils.augLag(PhiAlpha,y);
                    varargout{2}=Phit(g);
                 case 3
-                   [varargout{1},g,h]=Utils.augLag(PhiAlpha,y);
+                   [varargout{1},g]=Utils.augLag(PhiAlpha,y);
                    varargout{2}= Phit(g);
-                   varargout{3}= @(x,opt) hessian(x,opt,h);
+                   varargout{3}= @(x,opt) hessian(x,opt);
+               otherwise
+                   varargout{1}=Utils.augLag(PhiAlpha,y);
             end
             function hh = hessian(x,opt,h)
-                yy = Phi(x);
                 if(opt==1)
-                    hh = Phit(h.*yy);
+                    hh = Phit(Phi(x));
                 else
-                    hh = yy'*(h.*yy);
+                    hh = sqrNorm(Phi(x));
                 end
             end
         end

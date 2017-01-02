@@ -21,6 +21,9 @@ switch lower(op)
         filename = [mfilename '.mat'];
         OPT.mask=[]; OPT.outLevel=1;
         OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
+        C.iterative=false; C.penalty=@(x)0; C.op=@(x,u)max(0,x);
+        tvType='l1';
+        tvType='iso';
         %OPT.maxItr=10;
 
         count = [1e4 1e5 1e6 1e7 1e8 1e9];
@@ -35,7 +38,6 @@ switch lower(op)
                 j=1;
                 [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
                 NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
-                proximal=tvProximal('iso',@(x)max(0,x));
 
                 fbp{i,1,k}.x=fbpfunc(y);
                 fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX);
@@ -43,36 +45,62 @@ switch lower(op)
                 fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX));
                 fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
                 u_max=1;
-                OPT.u = 10^atv(i)*u_max; OPT.proximal='tviso';
+                OPT.u = 10^atv(i)*u_max; OPT.proximal=['tv' tvType];
                 OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
+                proximal=tvProximal(tvType,C.op);
 
-                initSig=max(fbp{i,1,k}.x,0);
+                initSig=C.op(fbp{i,1,k}.x);
 
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
                 % BEGIN experiment region,  to delete in the end
 
+                OPT=rmfield(OPT,'trueX');
+                OPT.u=1; %OPT.noiseType='gaussian';
+                OPT.thresh=1e-13; OPT.maxItr=15e3;
+                Phi=@(x)x; Phit=Phi; initSig=(y-OPT.bb)/2;
+                OPT.bb=0;
+                NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
+                NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
+
+                opt=OPT;
+		opt.tau=1e-6; opt.sigma=1e-6;
+                opt.sigma=1; opt.tau=1;
+                cptv  {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
+
+                opt=OPT;
+                pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+
+
+                keyboard
+                opt=OPT;
+		opt.tau=1e-9;
+		opt.sigma=1e-9; opt.thresh=0;
+                cptvbt{i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+
+                keyboard;
+
                 opt=OPT;
                 option.adaptiveStep=false;
-                proximal=tvProximal('iso',@(x)max(0,x),'pnpg',option);
+                proximal=tvProximal('iso',C.op,'pnpg',option);
                 pnpg_6   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-                proximal=tvProximal('iso',@(x)max(0,x),'npg');
+                proximal=tvProximal('iso',C.op,'npg');
                 pnpg_7   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 mysave
                 continue;
 
                 opt=OPT;
                 usePNPG=true;
-                proximal=tvProximal('iso',@(x)max(0,x),usePNPG);
+                proximal=tvProximal('iso',C.op,usePNPG);
                 pnpg_1   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 opt=OPT;
                 usePNPG=false;
-                proximal=tvProximal('iso',@(x)max(0,x),usePNPG);
+                proximal=tvProximal('iso',C.op,usePNPG);
                 pnpg_2   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 opt=OPT;
                 usePNPG=true;
                 option.usePInit=false;
-                proximal=tvProximal('iso',@(x)max(0,x),usePNPG,option);
+                proximal=tvProximal('iso',C.op,usePNPG,option);
                 pnpg_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
                 mysave
 

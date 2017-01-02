@@ -35,7 +35,7 @@ function [D,iter,fun_all]=denoise_bound_mod(Xobs,lambda,l,u,pars)
 % pars.print ..........................  1 if a report on the iterations is
 %                                                       given, 0 if the  report is silenced
 % pars.tv .................................. type of total variation
-%                                                      penatly.  'iso' for isotropic (default)
+%                                                      penalty.  'iso' for isotropic (default)
 %                                                      and 'l1' for nonisotropic
 %  
 % OUTPUT

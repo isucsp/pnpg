@@ -31,7 +31,7 @@ function loadPhantom(obj,snr,noiseType)
     obj.mask = mask; obj.maskk= maskk;
 
     if(obj.beamharden)
-        error('\nPhantom with beamhardening is not implementaed\n');
+        error('Phantom with beamhardening is not implementaed');
     else
         switch lower(noiseType)
             case lower('poissonLogLink')

@@ -9,9 +9,9 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
     if(~exist('method','var') || isempty(method)) method='beck'; end
     switch(lower(tv))
         case 'iso'
-            proxOp=@isoPrj;
+            proxOp=@TV.isoPrj;
         case 'l1'
-            proxOp=@l1Prj;
+            proxOp=@TV.l1Prj;
     end
 
     proximalOut.penalty = @(z) tlv(z,tv);
@@ -90,8 +90,8 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             p=zeros(I-1,J); q=zeros(I,J-1);
         end
 
-        itr=0; convThresh=0; theta=1; preP=p; preQ=q;
-        y=a-u*(Psi_v(p)+Psi_h(q)); % is real
+        itr=0; theta=1; preP=p; preQ=q;
+        y=a-u*(TV.Psi_v(p)+TV.Psi_h(q)); % is real
         x=prj_C(y);   % is real
         cost=(sqrNorm(y)-sqrNorm(x-y))/2;
         goodStep=true;
@@ -101,10 +101,6 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         if(opt.adaptiveStep) cumu=0; end
 
         while(true)
-
-            if(itr >= maxItr || (convThresh>=5 && itr>=opt.minItr))
-                break;
-            end
 
             itr=itr+1;
             %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
@@ -131,11 +127,11 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
                 end
                 pbar=p+(theta-1)/newTheta*(p-preP);
                 qbar=q+(theta-1)/newTheta*(q-preQ);
-                ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
+                ybar=a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)); % is real
                 xbar=prj_C(ybar);   % is real
                 oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
-                gradp=-u*Psi_vt(xbar);
-                gradq=-u*Psi_ht(xbar);
+                gradp=-u*TV.Psi_vt(xbar);
+                gradq=-u*TV.Psi_ht(xbar);
             end
 
             % start of line Search
@@ -152,15 +148,15 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
                     end
                     pbar=p+(theta-1)/newTheta*(p-preP);
                     qbar=q+(theta-1)/newTheta*(q-preQ);
-                    ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
+                    ybar=a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)); % is real
                     xbar=prj_C(ybar);   % is real
                     oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
-                    gradp=-u*Psi_vt(xbar);
-                    gradq=-u*Psi_ht(xbar);
+                    gradp=-u*TV.Psi_vt(xbar);
+                    gradq=-u*TV.Psi_ht(xbar);
                 end
 
                 [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-                newY=a-u*(Psi_v(newP)+Psi_h(newQ)); % is real
+                newY=a-u*(TV.Psi_v(newP)+TV.Psi_h(newQ)); % is real
                 newX=prj_C(newY);   % is real
                 newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
                 if((newCost-oldCost)<=...
@@ -220,11 +216,11 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             %  end of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(difX<=thresh )
-                convThresh=convThresh+1;
-            else
-                convThresh=0;
+            if(difX<=thresh && itr>=opt.minItr)
+                break;
             end
+
+            if(itr >= maxItr) break; end
 
             if(opt.outLevel<1 && opt.debugLevel<2)
                 continue;
@@ -435,7 +431,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
 
     function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
 
-        Lip=8*u^2;
+        t=8*u^2;
         if(nargout<4)
             opt.outLevel=0;
         end
@@ -448,49 +444,33 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             p=zeros(I-1,J); q=zeros(I,J-1);
         end
 
-        itr=0; convThresh=0; theta=1; preP=p; preQ=q;
-        y=a-u*(Psi_v(p)+Psi_h(q)); % is real
+        itr=0; theta=1; newTheta=1; preP=p; preQ=q;
+        y=a-u*(TV.Psi_v(p)+TV.Psi_h(q)); % is real
         x=prj_C(y);   % is real
         cost=(sqrNorm(y)-sqrNorm(x-y))/2;
-        t=Lip;
 
         if(opt.outLevel>=1) out.debug={}; end
 
         while(true)
-
-            if(itr >= maxItr || (convThresh>=5 && itr>=opt.minItr))
-                break;
-            end
-
             itr=itr+1;
 
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %  start of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(itr==1)
-                newTheta=1;
-            else
-                B=1;
-                newTheta=1/gamma+sqrt(b+B*theta^2);
-                %newTheta=(1+sqrt(1+4*B*theta^2))/2;
-            end
             pbar=p+(theta-1)/newTheta*(p-preP);
             qbar=q+(theta-1)/newTheta*(q-preQ);
-            ybar=a-u*(Psi_v(pbar)+Psi_h(qbar)); % is real
-            xbar=prj_C(ybar);   % is real
-            gradp=-u*Psi_vt(xbar);
-            gradq=-u*Psi_ht(xbar);
+            xbar=prj_C(a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)));   % is real
+            gradp=-u*TV.Psi_vt(xbar);
+            gradq=-u*TV.Psi_ht(xbar);
 
             [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-            newY=a-u*(Psi_v(newP)+Psi_h(newQ)); % is real
+            newY=a-u*(TV.Psi_v(newP)+TV.Psi_h(newQ)); % is real
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
             if(newCost>cost)
-                if(goodMM)
-                    if(restart()) itr=itr-1; continue; end
-                end
+                if(restart()) itr=itr-1; continue; end
 
                 % give up and force it to converge
                 debug.appendLog('_ForceConverge');
@@ -506,15 +486,14 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
                 cost = newCost;
             end
 
+            newTheta=1/gamma+sqrt(b+theta^2);
+
             %%%%%%%%%%%%%%%%%%%%%%%%%%
             %  end of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(difX<=thresh )
-                convThresh=convThresh+1;
-            else
-                convThresh=0;
-            end
+            if(difX<=thresh && itr>=opt.minItr) break; end
+            if(itr >= maxItr) break; end
         end
         if(nargout>=3)
             pOut={p,q};
@@ -533,39 +512,5 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         end
     end
 
-end
-
-% If edit the following, update TV.[A,B]t\=
-function x = Psi_v(p)
-    [I,J]=size(p);
-    I=I+1;
-    x=[p; zeros(1,J)];
-    x(2:I,:)=x(2:I,:)-p(1:I-1,:);
-end
-function p = Psi_vt(x)
-    [I,~]=size(x);
-    p=x(1:I-1,:)-x(2:I,:);
-end
-function x = Psi_h(q)
-    [I,J]=size(q);
-    J=J+1;
-    x=[q zeros(I,1)];
-    x(:,2:J)=x(:,2:J)-x(:,1:J-1);
-end
-function q = Psi_ht(x)
-    [~,J]=size(x);
-    q=x(:,1:J-1)-x(:,2:J);
-end
-function [p,q]=isoPrj(p,q)
-    [I,J]=size(p);
-    I=I+1;
-    %mag=sqrt(max(1,[p.^2;zeros(1,J)]+[q.^2, zeros(I,1)]));
-    mag=sqrt(max(1,p(:,1:J-1).^2+q(1:I-1,:).^2));
-    p(:,1:J-1)=p(:,1:J-1)./mag; p(:,J)=min(max(p(:,J),-1),1);
-    q(1:I-1,:)=q(1:I-1,:)./mag; q(I,:)=min(max(q(I,:),-1),1);
-end
-function [p,q]=l1Prj(p,q)
-    p=min(max(p,-1),1);
-    q=min(max(q,-1),1);
 end
 

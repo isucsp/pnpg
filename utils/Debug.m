@@ -40,11 +40,11 @@ function deb=Debug(level)
     end
     function clear_print(l)
         if(level>=l)
-            fprintf([repmat('\b',1,strlen),str]);
             if(isempty(add))
-                strlen=length(str);
+                fprintf([repmat('\b',1,strlen),str,'     ']);
+                strlen=length(str)+5;
             else
-                fprintf([add '\n']);
+                fprintf([repmat('\b',1,strlen),str,add,'   \n']);
                 add='';
                 strlen=0;
             end

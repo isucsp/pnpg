@@ -179,7 +179,7 @@ if(opt.adaptiveStep) cumu=0; end
 
 while(true)
 
-    if(itr >= opt.maxItr || (convThresh>2 && itr>=opt.minItr))
+    if(itr >= opt.maxItr || (convThresh>0 && itr>=opt.minItr))
         break;
     end
 
@@ -262,12 +262,11 @@ while(true)
 
     % using eps reduces numerical issue around the point of convergence
     if((newObj-cost)>eps*max(abs(newCost),abs(cost)))
-        if(~goodMM)
-            reset(); % both theta and step size;
-        else
+        if(goodMM)
             if(restart()) itr=itr-1; continue; end
             if(runMore()) itr=itr-1; continue; end
         end
+        %reset(); % both theta and step size;
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
@@ -457,7 +456,7 @@ function t_=stepSizeInit(select,Lip,delta)
             error('unkown selection for initial step');
     end
     if(isnan(t_) || t_<=0)
-        error('\n PNPG is having a negative or NaN step size, do nothing and return!!\n');
+        error('PNPG is having a negative or NaN step size, do nothing and return!!');
     end
 end
 

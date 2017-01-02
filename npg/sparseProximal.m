@@ -93,7 +93,7 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
             p=zeros(size(Psit(a)));
         end
 
-        itr=0; convThresh=0; theta=1; preP=p;
+        itr=0; theta=1; preP=p;
 
         y=a-u*Psi(p); % is real
         x=prj_C(y);   % is real
@@ -105,10 +105,6 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
         if(opt.adaptiveStep) cumu=0; end
 
         while(true)
-
-            if(itr >= maxItr || (convThresh>2 && itr>=opt.minItr))
-                break;
-            end
 
             itr=itr+1;
             %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
@@ -220,9 +216,8 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
             %  end of one PNPG step  %
             %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            if(itr>1 && difX<=thresh )
-                convThresh=convThresh+1;
-            end
+            if(difX<=thresh && itr>=opt.minItr) break; end
+            if(itr >= maxItr) break; end
 
             if(opt.outLevel<1 && opt.debugLevel<2)
                 continue;
@@ -274,7 +269,7 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
             debug.printWithoutDel(2,'\t restart');
         end
 
-        function t_=stepSizeInit(select,Lip_,delta)
+        function t_=stepSizeInit(select,Lip_)
             switch (lower(select))
                 case 'bb'   % use BB method to guess the initial stepSize
                     y_=a-u*Psi(p); % is real
@@ -288,7 +283,7 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
                     error('unkown selection for initial step: %s', select);
             end
             if(isnan(t_) || t_<=0)
-                error('\n PNPG is having a negative or NaN step size, do nothing and return!!\n');
+                error('PNPG is having a negative or NaN step size, do nothing and return!!');
             end
         end
     end
