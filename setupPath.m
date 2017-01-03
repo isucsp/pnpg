@@ -1,8 +1,8 @@
 function setupPath
 %
 % Author: Renliang Gu (gurenliang@gmail.com)
-% $Revision: 0.3 $ $Date: Mon 12 Dec 2016 02:21:44 AM CST
 %
+% 0.5: put path adding to the end
 % 0.4: add variable cleaning statements
 % 0.3: add the current path
 % 0.2: implement by dbstack, so that it can be called from any location
@@ -10,33 +10,6 @@ function setupPath
 [a,~]=dbstack('-completenames');
 a=a(1);
 [pathstr,~,~]=fileparts(a.file);
-addpath([pathstr filesep 'beamharden' filesep 'subfunctions']);
-addpath([pathstr filesep 'beamharden']);
-addpath([pathstr filesep 'tomography']);
-addpath([pathstr filesep 'rwt']);
-addpath([pathstr filesep 'npg']);
-addpath([pathstr filesep 'bhc']);
-addpath([pathstr filesep 'prj']);
-addpath([pathstr filesep 'utils']);
-addpath([pathstr filesep 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab']);
-addpath([pathstr filesep 'irt' filesep 'nufft']);
-addpath([pathstr filesep 'irt' filesep 'systems']);
-addpath([pathstr filesep 'irt']);
-addpath([pathstr filesep 'irt' filesep 'emission']);
-addpath([pathstr filesep 'irt' filesep 'general']);
-addpath([pathstr filesep 'irt' filesep 'transmission']);
-addpath([pathstr filesep 'irt' filesep 'fbp']);
-addpath([pathstr filesep 'irt' filesep 'data']);
-addpath([pathstr filesep 'irt' filesep 'utilities']);
-addpath([pathstr filesep 'others']);
-addpath([pathstr filesep 'others' filesep 'FPC_AS']);
-addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'src']);
-addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen']);
-addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen' filesep 'classes']);
-addpath([pathstr filesep 'others' filesep 'glmnet_matlab']);
-addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers']);
-addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utilities']);
-addpath([pathstr filesep 'others' filesep 'TFOCS']);
 
 cd 'prj'
 if(isunix)
@@ -87,6 +60,36 @@ if(~exist(['lbfgsb_wrapper.' mexext],'file'))
     end
 end
 cd(pathstr)
+
+addpath([pathstr filesep 'beamharden' filesep 'subfunctions']);
+addpath([pathstr filesep 'beamharden']);
+addpath([pathstr filesep 'tomography']);
+addpath([pathstr filesep 'rwt']);
+addpath([pathstr filesep 'npg']);
+addpath([pathstr filesep 'bhc']);
+addpath([pathstr filesep 'prj']);
+addpath([pathstr filesep 'utils']);
+addpath([pathstr filesep 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab']);
+addpath([pathstr filesep 'irt' filesep 'nufft']);
+addpath([pathstr filesep 'irt' filesep 'systems']);
+addpath([pathstr filesep 'irt']);
+addpath([pathstr filesep 'irt' filesep 'emission']);
+addpath([pathstr filesep 'irt' filesep 'general']);
+addpath([pathstr filesep 'irt' filesep 'transmission']);
+addpath([pathstr filesep 'irt' filesep 'fbp']);
+addpath([pathstr filesep 'irt' filesep 'data']);
+addpath([pathstr filesep 'irt' filesep 'utilities']);
+addpath([pathstr filesep 'others']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'src']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen']);
+addpath([pathstr filesep 'others' filesep 'FPC_AS' filesep 'prob_gen' filesep 'classes']);
+addpath([pathstr filesep 'others' filesep 'glmnet_matlab']);
+addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers']);
+addpath([pathstr filesep 'others' filesep 'fpc' filesep 'solvers' filesep 'utilities']);
+if(exist('others/TFOCS','dir'))
+    addpath([pathstr filesep 'others' filesep 'TFOCS']);
+end
 
 %slCharacterEncoding('UTF-8');
 disp('INFO: if your editor does not show (α,β) properly as $(\alpha,\beta)$ rendered with tex, please run the following command:');
