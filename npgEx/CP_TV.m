@@ -60,7 +60,7 @@ function F = poissonProximal(y,b)
         F.penalty=@(x) sum(x(:))+sumB-sumY-y(nzy).'*log((x(nzy)+b(nzy))./y(nzy));
     end
     F.iterative=false;
-    F.op=@(a,u) max(0,0.5*( (a-b-u)+sqrt( (a-b-u).^2+4*u*(y-b)+4*a.*b ) ));
+    F.op=@(a,u) max(0,0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) ));
     %F.opConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a-b*u-1).^2+4*u*(y-b)+4*a.*b ) );
     F.opConj=@(a,u) a-F.op(a/u,1/u)*u;
 
