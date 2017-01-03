@@ -7,6 +7,7 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %   likelihood function, and r(x) is the regularization term with u as the
 %   regularization parameter.   For the input, we require NLL to be a
 %   function handle that can be used in the following form:
+%
 %                       [f,grad,hessian] = NLL(x);
 %
 %   where f and grad are the value and gradient of NLL at x, respectively.
@@ -16,13 +17,13 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %   npg/sparseProximal.m and utils/Utils.m for examples)
 %
 %   The "proximal" parameter is served as a structure with "iterative",
-%   "op" and "penalty" to solve the following subproblem:
+%   "op" and "val" to solve the following subproblem:
 %
 %                         0.5*||x-a||_2^2+u*r(x)                      (2)
 %
-%   1. When proximal.iterative=true, proximal.op is iterative and should be
+%   1. When proximal.iterative=true, proximal.prox is iterative and should be
 %   called in the form of
-%             [x,itr,p]=proximal.op(a,u,thresh,maxItr,pInit);
+%             [x,itr,p]=proximal.prox(a,u,thresh,maxItr,pInit);
 %   where
 %       pInit           initial value of internal variable (e.g., dual
 %                       variable), can be [] if not sure what to give;
@@ -32,12 +33,12 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %       p               value of internal variable when terminates, can be
 %                       used as the initial value (pInit) for the next run.
 %
-%   2. When proximal.iterative=false, proximal.op is exact with no
+%   2. When proximal.iterative=false, proximal.prox is exact with no
 %   iterations, i.e., the proximal operator has analytical solution:
-%                           x=proximal.op(a,u);
+%                           x=proximal.prox(a,u);
 %   where "u" is optional in case r(x) is an indicator function.
 %
-%   proximal.penalty(x) returns the value of r(x).
+%   proximal.val(x) returns the value of r(x).
 %   (See npg/sparseProximal.m for an example)
 %
 %   xInit       Initial value for estimation of x
@@ -54,6 +55,9 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %                       to show during the iterations;
 %       outLevel        An integer value to control how many quantities to
 %                       put in "out".
+%
+%   Usage:
+%
 %
 %   Reference:
 %   Author: Renliang Gu (gurenliang@gmail.com)
@@ -132,9 +136,9 @@ if(debug.level(4))
 end
 
 % In case of projection as proximal
-if(nargin(proximal.op)==1)
-    proximalOp=proximal.op;
-    proximal.op=@(a,u) proximalOp(a);
+if(nargin(proximal.prox)==1)
+    proximalOp=proximal.prox;
+    proximal.prox=@(a,u) proximalOp(a);
 end
 
 % print start information
@@ -161,7 +165,7 @@ tStart=tic;
 
 itr=0; convThresh=0; x=xInit; theta=1; preX=x;
 NLLVal=NLL(x);
-penVal=proximal.penalty(x);
+penVal=proximal.val(x);
 cost=NLLVal+opt.u*penVal;
 goodStep=true;
 t=stepSizeInit(opt.initStep,opt.Lip);
@@ -184,7 +188,6 @@ while(true)
     end
 
     itr=itr+1;
-    %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  start of one PNPG step  %
@@ -228,10 +231,10 @@ while(true)
         end
 
         if(proximal.iterative)
-            [newX,innerItr_,pInit_]=proximal.op(xbar-grad/t,opt.u/t,...
+            [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
                 opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
         else
-            newX=proximal.op(xbar-grad/t,opt.u/t);
+            newX=proximal.prox(xbar-grad/t,opt.u/t);
         end
 
         newCost=NLL(newX);
@@ -257,7 +260,7 @@ while(true)
             end
         end
     end
-    newPen = proximal.penalty(newX);
+    newPen = proximal.val(newX);
     newObj = newCost+opt.u*newPen;
 
     % using eps reduces numerical issue around the point of convergence
@@ -303,10 +306,11 @@ while(true)
     %  end of one PNPG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if(itr>1 && difX<=opt.thresh )
+    if(difX<=opt.thresh )
         convThresh=convThresh+1;
     end
 
+    % skip the rest if not needed
     if(opt.outLevel<1 && opt.debugLevel<2)
         continue;
     end
@@ -362,7 +366,7 @@ while(true)
         if(mod(itr,opt.verbose)==0) debug.println(2); end
     end
 
-    if(debug.level(4) && itr>1)
+    if(debug.level(4))
         set(0,'CurrentFigure',figCostRMSE);
         if(isfield(opt,'trueX')) subplot(2,1,1); end
         if(cost>0)

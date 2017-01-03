@@ -9,17 +9,17 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
     % Note that in special cases, such as DWT, initial step can
     % have better values to start from.
     % In that case, set opt.initStep='fixed' with the approximated
-    % Lipschitz: opt.Lip.
+    % Lipschitz: opt.Lip=@(u)u^2; if Psi(Psit(x))==x.
 
-    proximalOut.penalty = @(x) pNorm(Psit(x),1);
+    proximalOut.val = @(x) pNorm(Psit(x),1);
     proximalOut.iterative=true;
     switch(lower(method))
         case 'pnpg'
-            proximalOut.op=@denoisePNPG;
+            proximalOut.prox=@denoisePNPG;
         case 'admm'
-            proximalOut.op=@denoiseADMM;
+            proximalOut.prox=@denoiseADMM;
         otherwise
-            proximalOut.op=@denoiseADMM;
+            proximalOut.prox=@denoiseADMM;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='bb'; end

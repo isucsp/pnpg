@@ -1,35 +1,35 @@
-function out = gfb(NLL,proximal,xInit,opt)
+function out = gfb(F,Gi,Lip,xInit,opt)
 %   gfb solves a sparse regularized problem using GFB algorithm
 %
-%                        NLL(x) + u*r(x) + I_C(x)                     (1)
+%                        F(x) + u*r(x) + I_C(x)                     (1)
 %
-%   where NLL(x) is the likelihood function, r(x) is the regularization
+%   where F(x) is the likelihood function, r(x) is the regularization
 %   term with u as the regularization parameter, and I_C(x) is an indicator
-%   function.   For the input, we require NLL to be a function handle that
+%   function.   For the input, we require F to be a function handle that
 %   can be used in the following form:
-%                       [f,grad,hessian] = NLL(x);
+%                       [f,grad,hessian] = F(x);
 %
-%   where f and grad are the value and gradient of NLL at x, respectively.
+%   where f and grad are the value and gradient of F at x, respectively.
 %   "hessian" is a function handle that can be use to calculate H*x and
 %   x'*H*x with hessian(x,1) and hessian(x,2), respectively.  If Hessian
 %   matrix is not available, simply return hessian as empty: [];
 %   (See npg/sparseProximal.m and utils/Utils.m for examples)
 %
 %   The "proximal" parameter is served as a structure with "iterative",
-%   "op" and "penalty" to solve the following subproblem:
+%   "op" and "val" to solve the following subproblem:
 %
 %                         0.5*||x-a||_2^2+u*r(x)                      (2)
 %
-%   where proximal.iterative must be false, proximal.op is exact with no
+%   where proximal.iterative must be false, proximal.prox is exact with no
 %   iterations, i.e., the proximal operator has analytical solution:
-%                           x=proximal.op(a,u);
+%                           x=proximal.prox(a,u);
 %   where "u" is optional in case r(x) is an indicator function.
 %   One example for the case when r(x)=||Psit(x)||_1 with orthogonal Psi,
 %   the proximal operator is
 %
-%           proximal.op=@(a,t) Psi(softThresh(Psit(a),t));
+%           proximal.prox=@(a,t) Psi(softThresh(Psit(a),t));
 %
-%   proximal.penalty(x) returns the value of r(x).
+%   proximal.val(x) returns the value of r(x).
 %   (See npg/sparseProximal.m for an example)
 %
 %   xInit       Initial value for estimation of x
@@ -41,7 +41,7 @@ function out = gfb(NLL,proximal,xInit,opt)
 %       u               Regularization parameter;
 %       initStep        Method for the initial step size, can be one of
 %                       "hessian", "bb", and "fixed".  When "fixed" is set,
-%                       provide Lipschitz constant of NLL by opt.Lip;
+%                       provide Lipschitz constant of F by opt.Lip;
 %       debugLevel      An integer value to tune how much debug information
 %                       to show during the iterations;
 %       outLevel        An integer value to control how many quantities to
@@ -55,27 +55,29 @@ function out = gfb(NLL,proximal,xInit,opt)
 %
 %   Author: Renliang Gu (gurenliang@gmail.com)
 
-% default to not use any constraints.
-if(~exist('opt','var') || ~isfield(opt,'prj_C') || isempty(opt.prj_C))
-    opt.prj_C=@(x) x;
+if(~exist('opt','var') || ~isfield(opt,'u') || isempty(opt.u))
+    opt.u=1e-4;
+end
+if(~exist('Lip','var') || isnan(Lip))
+    error('Require Lip as Lipschitz constant of F(x)');
 end
 
-if(~isfield(opt,'u')) opt.u=1e-4; end
-if(~isfield(opt,'Lip')) opt.Lip=nan; end
-
-if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
-if(~isfield(opt,'saveXtrace')) opt.saveXtrace=false; end
-if(~isfield(opt,'verbose')) opt.verbose=100; end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 
+if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
+% print iterations every opt.verbose lines.
+if(~isfield(opt,'verbose')) opt.verbose=100; end
+
 % Output options and debug information
-% 0: minimum output, 1: some output, 2: more detail output
+% >=0: minimum output with only results,
+% >=1: some cheap output,
+% >=2: more detail output and expansive (impairs CPU time, only for debug)
 if(~isfield(opt,'outLevel')) opt.outLevel=0; end
-if(~isfield(opt,'NLL_Pen') || opt.outLevel<=1) opt.NLL_Pen=false; end
+if(~isfield(opt,'saveXtrace') || opt.outLevel<2) opt.saveXtrace=false; end
 
 if(isfield(opt,'trueX'))
     switch opt.errorType
@@ -94,29 +96,13 @@ if(isfield(opt,'trueX'))
 end
 
 debug=Debug(opt.debugLevel);
-if(opt.outLevel>=4)
-    figCost=1000; figure(figCost);
-end
-if(opt.outLevel>=5)
-    figRes=1001; figure(figRes);
-end
-if(opt.outLevel>=6)
-    figX=1002; figure(figX);
-end
-
-if(proximal.iterative)
-    error('proximal.op need to be an analytical solution!');
-end
-
-% In case of projection as proximal
-if(nargin(proximal.op)==1)
-    proximalOp=proximal.op;
-    proximal.op=@(a,u) proximalOp(a);
+if(debug.level(4))
+    figCostRMSE=1000; figure(figCostRMSE);
 end
 
 % print start information
-if(debug.level(1))
-    fprintf('%s\n', repmat( '=', 1, 80 ) );
+if(debug.level(2))
+    fprintf('\n%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Generalized Forward-Backward (GFB) Method');
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
@@ -125,7 +111,7 @@ if(debug.level(1))
     if(isfield(opt,'trueX'))
         str=sprintf([str ' %12s'], 'Error');
     end
-    str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'αSrh');
+    str=sprintf([str ' %12s'], '|dx|/|x|');
     str=sprintf([str ' %12s'], '|d Obj/Obj|');
     str=sprintf([str '\t u=%g'],opt.u);
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
@@ -133,49 +119,84 @@ end
 
 tStart=tic;
 
-itr=0; convThresh=0; x=xInit; difX=1;
-cost=NLL(x)+opt.u*proximal.penalty(x);
-
-z1=x; z2=x;
+% initialization for GFB
+itr=0; convThresh=0; x=xInit;
+w=zeros(length(Gi),1);
 
 % default to be 1.8/Lipschitz
-r=1.8/opt.Lip;
-lambda=1; w=0.5;
+gamma=1.8/Lip; lambda=1;
+
+[cost,grad]=F(x);
+for i=1:length(Gi)
+    cost=cost+Gi{i}.val(x);
+    z{i}=x;
+    w(i)=1/length(Gi);
+end
+
+if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
+    RMSE=computError(x);
+end
 
 if(opt.outLevel>=1) out.debug={}; end
 
 while(true)
+
+    if(itr >= opt.maxItr || (convThresh>0 && itr>=opt.minItr))
+        break;
+    end
+
     itr=itr+1;
-    %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  start of one GFB step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    [oldCost,grad] = NLL(x);
-    z1=z1+lambda*(proximal.op(2*x-z1-r*grad,r*u/w)-x);
-    z2=z2+lambda*(obj.prj_C(2*x-z2-r*grad)-x);
-    newX  =w*z1+(1-w)*z2;
+    for i=1:length(Gi)
+        z{i}=z{i}+lambda*(Gi{i}.prox(2*x-z{i}-gamma*grad, gamma/w(i))-x);
+    end
+    preX=x;
+    x=0;
+    for i=1:length(Gi)
+        x=x+w(i)*z{i};
+    end
+    preCost=cost;
+    [cost, grad]=F(x);
+    for i=1:length(Gi)
+        cost=cost+Gi{i}.val(x);
+    end
 
-    NLLVal=NLL(newX);
-    penVal = proximal.penalty(newX);
-    cost = NLLVal+opt.u*penVal;
-
-    difX = relativeDif(x,newX);
-    x = newX;
+    %z1=z1+lambda*(proximal.prox(2*x-z1-gamma*grad,gamma*u/w)-x);
+    %z2=z2+lambda*(    obj.prj_C(2*x-z2-gamma*grad      )-x);
+    %newX  =w*z1+(1-w)*z2;
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%
     %  end of one GFB step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    out.cost(itr) = cost;
-    if(itr>1)
-        difCost=abs(cost-out.cost(itr-1))/cost;
+    difX = relativeDif(x,preX);
+
+    if(difX<=opt.thresh )
+        convThresh=convThresh+1;
     end
+
+    % skip the rest if not needed
+    if(opt.outLevel<1 && opt.debugLevel<2)
+        continue;
+    end
+
+    difCost=abs(cost-preCost)/max(1,abs(cost));
+    if(isfield(opt,'trueX'))
+        preRMSE=RMSE; RMSE=computError(x);
+    end
+
     if(opt.outLevel>=1)
         out.time(itr)=toc(tStart);
+        out.cost(itr)=cost;
         out.difX(itr)=difX;
-        if(itr>1) out.difCost(itr)=difCost; end
+        out.difCost(itr)=difCost;
+        if(isfield(opt,'trueX'))
+            out.RMSE(itr)=RMSE;
+        end
         if(~isempty(debug.log()))
             out.debug{size(out.debug,1)+1,1}=itr;
             out.debug{size(out.debug,1),2}=debug.log();
@@ -184,76 +205,50 @@ while(true)
     end
 
     if(opt.outLevel>=2)
-        out.numLineSearch(itr) = numLineSearch;
-        out.stepSize(itr) = lambda;
-        if(opt.NLL_Pen)
-            out.NLLVal(itr)=NLLVal;
-            out.penVal(itr)=penVal;
-        end
         if(opt.saveXtrace) out.xTrace(:,itr)=x; end
     end
 
-    debug.print(1,sprintf(' %5d',itr));
-    debug.print(1,sprintf(' %14.8g',cost));
-    if(isfield(opt,'trueX'))
-        out.RMSE(itr)=computError(x);
-        debug.print(1,sprintf(' %12g',out.RMSE(itr)));
+    if(debug.level(2))
+        debug.print(2,sprintf(' %5d',itr));
+        debug.print(2,sprintf(' %14.8g',cost));
+        if(isfield(opt,'trueX'))
+            debug.print(2,sprintf(' %12g',RMSE));
+        end
+        debug.print(2,sprintf(' %12g',difX));
+        debug.print(2,sprintf(' %12g', difCost));
+        debug.clear_print(2);
+        if(mod(itr,opt.verbose)==0) debug.println(2); end
     end
-    debug.print(1,sprintf(' %12g %4d',difX,numLineSearch));
-    if(itr>1)
-        debug.print(1,sprintf(' %12g', difCost));
-    else
-        debug.print(1,sprintf(' %12s', ' '));
-    end
-    debug.clear_print(1);
-    if(mod(itr,opt.verbose)==0) debug.println(1); end
 
-    if(itr>1 && opt.outLevel>=4)
-        set(0,'CurrentFigure',figCost);
+    if(debug.level(4))
+        set(0,'CurrentFigure',figCostRMSE);
         if(isfield(opt,'trueX')) subplot(2,1,1); end
-        if(out.cost(itr)>0)
-            semilogy(itr-1:itr,out.cost(itr-1:itr),'k'); hold on;
-            title(sprintf('cost(%d)=%g',itr,out.cost(itr)));
+        if(cost>0)
+            semilogy(itr-1:itr,[preCost,cost],'k'); hold on;
+            title(sprintf('cost(%d)=%g',itr,cost));
         end
 
         if(isfield(opt,'trueX'))
             subplot(2,1,2);
-            semilogy(itr-1:itr,out.RMSE(itr-1:itr)); hold on;
-            title(sprintf('RMSE(%d)=%g',itr,out.RMSE(itr)));
+            semilogy(itr-1:itr,[preRMSE, RMSE]); hold on;
+            title(sprintf('RMSE(%d)=%g',itr,RMSE));
         end
         drawnow;
     end
-
-    if(opt.NLL_Pen && itr>1 && opt.outLevel>=5)
-        set(0,'CurrentFigure',figRes);
-        subplot(2,1,1);
-        semilogy(itr-1:itr,out.NLLVal(itr-1:itr),'r'); hold on;
-        subplot(2,1,2);
-        semilogy(itr-1:itr,out.penVal(itr-1:itr),'b'); hold on;
-        drawnow;
-    end
-
-    if(opt.outLevel>=6)
-        set(0,'CurrentFigure',figX); showImgMask(x,opt.mask);
-        drawnow;
-    end
-
-    if(itr>1 && difX<=opt.thresh )
-        convThresh=convThresh+1;
-    end
-
-    if(itr >= opt.maxItr || (convThresh>2 && itr>opt.minItr))
-        break;
-    end
 end
 out.x=x; out.itr=itr; out.opt = opt; out.date=datestr(now);
+out.lambda=lambda; out.w=w; out.gamma=gamma;
 if(opt.outLevel>=2)
     out.grad=grad;
 end
-if(debug.level(0))
-    fprintf('\nCPU Time: %g, objective=%g',out.time(end),out.cost(end));
+if(debug.level(1))
+    fprintf('\nCPU Time: %g, objective=%g',toc(tStart),cost);
     if(isfield(opt,'trueX'))
-        fprintf(', RMSE=%g\n',out.RMSE(end));
+        if(debug.level(2))
+            fprintf(', RMSE=%g\n',RMSE);
+        else
+            fprintf(', RMSE=%g\n',computError(x));
+        end
     else
         fprintf('\n');
     end

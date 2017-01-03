@@ -14,17 +14,17 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             proxOp=@TV.l1Prj;
     end
 
-    proximalOut.penalty = @(z) tlv(z,tv);
+    proximalOut.val = @(z) tlv(z,tv);
     proximalOut.iterative=true;
     switch(lower(method))
         case 'beck'
-            proximalOut.op=@denoiseBeck;
+            proximalOut.prox=@denoiseBeck;
         case 'pnpg'
-            proximalOut.op=@denoisePNPG;
+            proximalOut.prox=@denoisePNPG;
         case 'npg'
-            proximalOut.op=@denoisePNPGSkeleton;
+            proximalOut.prox=@denoisePNPGSkeleton;
         otherwise
-            proximalOut.op=@denoiseBeck;
+            proximalOut.prox=@denoiseBeck;
     end
 
     if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end

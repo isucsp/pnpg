@@ -5,10 +5,10 @@ function out = chambollePock(F,G,K,xInit,opt)
 %    min_x  max_y  y'*K(x)-F^*(y)+G(x)
 % where F^*(x) is the conjugate of F(x).
 %
-% Note that F.opConj(a,u) solves 0.5*||x-a||_2^2+u*F^*(x)
-% F.penalty(x) returns F(x);
-% Note that G.op(a,u) solves 0.5*||x-a||_2^2+u*G(x)
-% G.penalty(x) returns G(x);
+% Note that F.proxConj(a,u) solves 0.5*||x-a||_2^2+u*F^*(x)
+% F.val(x) returns F(x);
+% Note that G.prox(a,u) solves 0.5*||x-a||_2^2+u*G(x)
+% G.val(x) returns G(x);
 %
 % Reference:
 %  [1] A. Chambolle and T. Pock, "A first-order primal-dual algorithm for
@@ -89,9 +89,9 @@ if(debug.level(4))
 end
 
 % In case of projection as G
-if(nargin(G.op)==1)
-    proximalOp=G.op;
-    G.op=@(a,u) proximalOp(a);
+if(nargin(G.prox)==1)
+    proximalOp=G.prox;
+    G.prox=@(a,u) proximalOp(a);
 end
 
 % print start information
@@ -119,7 +119,7 @@ tStart=tic;
 itr=0; convThresh=0; x=xInit;
 Kx=K.forward(x); preKx=Kx; Kxbar=Kx;
 
-cost=F.penalty(Kx)+G.penalty(x);
+cost=F.val(Kx)+G.val(x);
 
 if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
     RMSE=computError(x);
@@ -132,7 +132,7 @@ if(G.iterative)
 end
 
 if(F.iterative)
-    error('Iterative F.op is not supported yet!');
+    error('Iterative F.prox is not supported yet!');
 end
 
 tau=opt.tau;
@@ -143,9 +143,9 @@ if(iscell(Kx))
     for i=1:length(Kx)
         y{i}=sigma*Kx{i};
     end
-    y=F.opConj(y,sigma);
+    y=F.proxConj(y,sigma);
 else
-    y=F.opConj(sigma*Kx,sigma);
+    y=F.proxConj(sigma*Kx,sigma);
 end
 
 while(true)
@@ -167,24 +167,24 @@ while(true)
             Kxbar{i}=2*Kx{i}-preKx{i};
             y{i}=y{i}+sigma*Kxbar{i};
         end
-        y=F.opConj(y,sigma);
+        y=F.proxConj(y,sigma);
     else
         Kxbar=2*Kx-preKx;
-        y=F.opConj(y+sigma*Kxbar,sigma);
+        y=F.proxConj(y+sigma*Kxbar,sigma);
     end
 
     preX = x;
     if(G.iterative)
-        [x,innerItr_,pInit_]=G.op(x-tau*K.backward(y),tau,...
+        [x,innerItr_,pInit_]=G.prox(x-tau*K.backward(y),tau,...
             opt.relInnerThresh*difX*0,                    opt.maxInnerItr,pInit);
     else
-        x=G.op(x-tau*K.backward(y),tau);
+        x=G.prox(x-tau*K.backward(y),tau);
     end
     preKx = Kx;
     Kx=K.forward(x);
 
     preCost=cost;
-    cost=F.penalty(Kx)+G.penalty(x);
+    cost=F.val(Kx)+G.val(x);
     difX = relativeDif(x,preX);
 
     if(G.iterative)

@@ -92,8 +92,8 @@ if(exist('others/TFOCS','dir'))
 end
 
 %slCharacterEncoding('UTF-8');
-disp('INFO: if your editor does not show (α,β) properly as $(\alpha,\beta)$ rendered with tex, please run the following command:');
-disp('    slCharacterEncoding(''UTF-8'');');
+%disp('INFO: if your editor does not show (α,β) properly as $(\alpha,\beta)$ rendered with tex, please run the following command:');
+%disp('    slCharacterEncoding(''UTF-8'');');
 end
 
 function o = isOlder(f1, f2)

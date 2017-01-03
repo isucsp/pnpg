@@ -20,7 +20,7 @@ for i=1:5
     sp1=sparseProximal(Psi,Psit,prj_C,'pnpg',opt);
     for j=1:1
         init=[];
-        [x1,itr1,pOut,out1]=sp1.op(a,u,thresh,maxItr,init);
+        [x1,itr1,pOut,out1]=sp1.prox(a,u,thresh,maxItr,init);
     end
     t1=toc(tStart);
 
@@ -41,14 +41,14 @@ for i=1:5
     sp3=sparseProximal(Psi,Psit,prj_C,'admm',opt);
     for j=1:1
         init=[];
-        [x3,itr3,pOut3]=sp3.op(a,u,thresh,maxItr,init);
+        [x3,itr3,pOut3]=sp3.prox(a,u,thresh,maxItr,init);
     end
     t3=toc(tStart);
 
 
-    fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*sp3.penalty(x1));
-    fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*sp3.penalty(x2));
-    fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*sp3.penalty(x3));
+    fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*sp3.val(x1));
+    fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*sp3.val(x2));
+    fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*sp3.val(x3));
 
     fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
 

@@ -21,7 +21,7 @@ for i=2:length(tvTypeArray)
         opt=[];
         tv1=tvProximal(tvType,[],'pnpg',opt);
         tStart=tic;
-        [x1,itr1,pOut1,out1]=tv1.op(a,u,thresh,maxItr,[]);
+        [x1,itr1,pOut1,out1]=tv1.prox(a,u,thresh,maxItr,[]);
         t1=toc(tStart);
 
         tStart=tic;
@@ -41,12 +41,12 @@ for i=2:length(tvTypeArray)
         opt=[];
         tv3=tvProximal(tvType,[],'npg',opt);
         tStart=tic;
-        [x3,itr3,pOut3,out3]=tv3.op(a,u,thresh,maxItr,[]);
+        [x3,itr3,pOut3,out3]=tv3.prox(a,u,thresh,maxItr,[]);
         t3=toc(tStart);
 
-        fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*tv3.penalty(x1));
-        fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*tv3.penalty(x2));
-        fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*tv3.penalty(x3));
+        fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*tv3.val(x1));
+        fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*tv3.val(x2));
+        fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*tv3.val(x3));
 
         fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
     end
