@@ -27,5 +27,13 @@ fi
 # get glmnet_matlab at the following address:
 # http://web.stanford.edu/~hastie/glmnet_matlab/download.html
 
+# other useful tools:
+# GAGA:
+# fpc:
+# cvx:
+# AIRtools:
+# pnopt: 
+# SCOPT
+# YALL1
 
 exit 0;
