@@ -205,7 +205,7 @@ while(true)
     end
 
     if(opt.outLevel>=2)
-        if(opt.saveXtrace) out.xTrace(:,itr)=x; end
+        if(opt.saveXtrace) out.xTrace{itr}=x; end
     end
 
     if(debug.level(2))

@@ -2,9 +2,9 @@ clear all; close all;
 if(~exist('seed','var')) seed=0; end
 RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
 
-uArray={100,100,1000, 1e3};
+uArray={10,10,10, 1e2};
 
-maxItr=2e3; thresh=1e-5;
+maxItr=3e3; thresh=1e-10;
 tvTypeArray={'l1'; 'iso'};
 aArray={rand(1,120)', (1:12), rand(100,100), rand(2e2,2e2)};
 

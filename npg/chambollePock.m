@@ -230,7 +230,7 @@ while(true)
     end
 
     if(opt.outLevel>=2)
-        if(opt.saveXtrace) out.xTrace(:,itr)=x; end
+        if(opt.saveXtrace) out.xTrace{itr}=x; end
         if(opt.collectOtherStepSize)
             out.BB(itr,1)=stepSizeInit('BB');
             out.BB(itr,2)=stepSizeInit('hessian');

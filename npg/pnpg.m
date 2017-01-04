@@ -233,6 +233,8 @@ while(true)
         if(proximal.iterative)
             [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
                 opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
+            %[newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
+            %    t*opt.relInnerThresh/2/itr/newTheta^2/opt.u,opt.maxInnerItr,pInit);
         else
             newX=proximal.prox(xbar-grad/t,opt.u/t);
         end
@@ -344,7 +346,7 @@ while(true)
     end
 
     if(opt.outLevel>=2)
-        if(opt.saveXtrace) out.xTrace(:,itr)=x; end
+        if(opt.saveXtrace) out.xTrace{itr}=x; end
         if(opt.collectOtherStepSize)
             out.BB(itr,1)=stepSizeInit('BB');
             out.BB(itr,2)=stepSizeInit('hessian');

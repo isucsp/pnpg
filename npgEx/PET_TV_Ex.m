@@ -47,13 +47,17 @@ case 'run'
         u_max=1;
         OPT.u = 10^atv(i)*u_max; OPT.proximal=['tv' tvType];
         OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
-        proximal=tvProximal(tvType,C.prox);
+        proximal=tvProximal(tvType,C.prox,'pnpg');
 
         initSig=C.prox(fbp{i,1,k}.x);
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
         % BEGIN experiment region,  to delete in the end
+
+        opt=OPT;
+        opt.thresh=1e-9;
+        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
         opt=OPT;
         opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
@@ -63,20 +67,16 @@ case 'run'
         opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
         opt.inn_ini  = 1;
         opt.eta = 1e-6;
-        [xSGP,TimeCostSGP,PrimalSGP] = VMILA(y, Phi, Phit, opt.bb,...
+        vmila{i,j} = VMILA(y, Phi, Phit, opt.bb,...
             opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
             opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini);
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
 
         opt=OPT; opt.innerThresh=1e-5;
         spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,[],[],y,initSig,opt);
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
         mysave;
-
-        opt=OPT;
-        opt.thresh=1e-9;
-        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
         keyboard
 

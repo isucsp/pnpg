@@ -1,5 +1,6 @@
-function [x,TimeCost,Primal,alpha_vec,err,nit_vec,hsigma_vec,G_vec] = ...
-    VMILA(gn, H, HT, bg, rho, grad1, grad2, div, NIT, verbose, obj,eta,P,p,alpha_min,alpha_max,inn_ini)
+function out = ...
+    VMILA(gn, H, HT, bg, rho, grad1, grad2, div, NIT,init, verbose,...
+        obj,eta,P,p,alpha_min,alpha_max,inn_ini,thresh)
 
 % ***************** * VMILA package * *****************
 % 
@@ -89,7 +90,8 @@ alpha = 1.3;          % initial alpha
 
 % initial point
 %x = max(gn,0);
-x = max(HT(gn),0);              % modified by Renliang Gu
+%x = max(HT(gn),0);              % modified by Renliang Gu
+x = init;              % modified by Renliang Gu
 
 % gradient and objective function at current x
 dx1     = grad1(x);
@@ -141,7 +143,7 @@ for itr = 1:NIT
     a = 2.1;
     gamma_inn = 1/(9*max(X(:)))/alpha;
     [y,v1,v2,v3,hsigma,G,nit,dy1,dy2] = FISTA(v10,v20,v30,gamma_inn,rho,...
-                                              alpha,X,D,grad1,grad2,div,z,rho*TV,g_KL,inNIT,eta,a,max(0,verbose-1));
+        alpha,X,D,grad1,grad2,div,z,rho*TV,g_KL,inNIT,eta,a,max(0,verbose-1));
     hsigma_vec(itr) = hsigma;
     G_vec(itr) = G;
     nit_vec(itr) = nit;
@@ -177,6 +179,7 @@ for itr = 1:NIT
         
         % Armijo condition
         if ( fv <= fr + gamma * lam * gd || lam<1e-12)
+            difX=relativeDif(x,xplus);
             x = xplus; clear xplus;
             sk = lam*d; % difference between iterates            
             g_KL    = HTe - HT(rapp);
@@ -238,6 +241,8 @@ for itr = 1:NIT
     Primal(itr + 1)   = fv;
     TimeCost(itr + 1) = toc(t0);
     alpha_vec(itr + 1) = alpha;
+
+    if(difX<thresh) break; end  % add by Renliang Gu
     
 end
 
@@ -247,6 +252,16 @@ hsigma_vec(itr+1) = [];
 G_vec(itr+1) = [];
 alpha_vec(itr+2:end) = [];
 TimeCost(itr+2:end) = [];
+
+out.x=x;
+out.time=TimeCost;
+out.cost=Primal;
+out.alpha=alpha_vec;
+out.RMSE=err;
+out.innerItr=nit_vec;
+out.hsigma=hsigma_vec;
+out.G=G_vec;
+
 if verbose
     fprintf('\n');
 end
@@ -254,8 +269,9 @@ end
 
 
 
-function [ybar,w1,w2,w3,hsigmaplus,G,iter,g1ybar,g2ybar,normgybar,varargout] = FISTA(v1,v2,v3,...
-                                                               gamma,beta,alpha,X,D,grad1,grad2,div,z,f1k,g,NIT,eta,a,varargin)
+function [ybar,w1,w2,w3,hsigmaplus,G,iter,g1ybar,g2ybar,normgybar,varargout]...
+        = FISTA(v1,v2,v3,...
+        gamma,beta,alpha,X,D,grad1,grad2,div,z,f1k,g,NIT,eta,a,varargin)
 
 psivec = zeros(NIT+1,1);
 hsigmavec = zeros(NIT+1,1);

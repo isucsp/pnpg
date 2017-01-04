@@ -275,7 +275,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             debug.printWithoutDel(2,'\t restart');
         end
     end
-    function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,epsilon,MAXITER,pInit)
+    function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
         % modified by renliang gu
         %
         %This function implements the FISTA method for TV-based denoising problems
@@ -318,8 +318,8 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
         if (~exist('MAXITER','var'))
             MAXITER=100;
         end
-        if (~exist('epsilon','var'))
-            epsilon=1e-4;
+        if (~exist('thresh','var'))
+            thresh=1e-4;
         end
 
         [m,n]=size(Xobs);
@@ -406,7 +406,7 @@ function proximalOut=tvProximal(tv, prj_C, method , opt)
             R2=P2+(tk-1)*(P2-Pold2)/tkp1;
 
             re=norm(D-Dold,'fro')/norm(D,'fro');
-            if (re<epsilon)
+            if (re<thresh)
                 count=count+1;
             else
                 count=0;
