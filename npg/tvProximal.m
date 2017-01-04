@@ -91,7 +91,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     end
 
     itr=0; theta=1; preP=p; preQ=q;
-    y=a-u*(TV.Psi_v(p)+TV.Psi_h(q)); % is real
+    Psi_p=(TV.Psi_v(p)+TV.Psi_h(q)); prePsi_p=Psi_p;
+    y=a-u*Psi_p; % is real
     x=prj_C(y);   % is real
     cost=(sqrNorm(y)-sqrNorm(x-y))/2;
     goodStep=true;
@@ -127,7 +128,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             end
             pbar=p+(theta-1)/newTheta*(p-preP);
             qbar=q+(theta-1)/newTheta*(q-preQ);
-            ybar=a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)); % is real
+            ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
             xbar=prj_C(ybar);   % is real
             oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
             gradp=-u*TV.Psi_vt(xbar);
@@ -148,7 +149,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
                 end
                 pbar=p+(theta-1)/newTheta*(p-preP);
                 qbar=q+(theta-1)/newTheta*(q-preQ);
-                ybar=a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)); % is real
+                ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
                 xbar=prj_C(ybar);   % is real
                 oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
                 gradp=-u*TV.Psi_vt(xbar);
@@ -156,7 +157,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             end
 
             [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-            newY=a-u*(TV.Psi_v(newP)+TV.Psi_h(newQ)); % is real
+            newPsi_p=TV.Psi_v(newP)+TV.Psi_h(newQ);
+            newY=a-u*newPsi_p; % is real
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
             if((newCost-oldCost)<=...
@@ -203,6 +205,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             cost = newCost;
         end
         preT=t;
+        prePsi_p=Psi_p; Psi_p=newPsi_p;
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)
@@ -445,7 +448,8 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
     end
 
     itr=0; theta=1; newTheta=1; preP=p; preQ=q;
-    y=a-u*(TV.Psi_v(p)+TV.Psi_h(q)); % is real
+    Psi_p=(TV.Psi_v(p)+TV.Psi_h(q)); prePsi_p=Psi_p;
+    y=a-u*Psi_p; % is real
     x=prj_C(y);   % is real
     cost=(sqrNorm(y)-sqrNorm(x-y))/2;
 
@@ -460,16 +464,17 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
 
         pbar=p+(theta-1)/newTheta*(p-preP);
         qbar=q+(theta-1)/newTheta*(q-preQ);
-        xbar=prj_C(a-u*(TV.Psi_v(pbar)+TV.Psi_h(qbar)));   % is real
+        xbar=prj_C(a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p)));   % is real
         gradp=-u*TV.Psi_vt(xbar);
         gradq=-u*TV.Psi_ht(xbar);
 
         [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-        newY=a-u*(TV.Psi_v(newP)+TV.Psi_h(newQ)); % is real
+        newPsi_p=TV.Psi_v(newP)+TV.Psi_h(newQ);
+        newY=a-u*newPsi_p; % is real
         newX=prj_C(newY);   % is real
         newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
-        if(newCost>cost)
+        if(newCost-cost > 1e-5*max(newCost,cost))
             if(restart()) itr=itr-1; continue; end
 
             % give up and force it to converge
@@ -485,6 +490,7 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
             preCost=cost;
             cost = newCost;
         end
+        prePsi_p=Psi_p;  Psi_p=newPsi_p;
 
         newTheta=1/gamma+sqrt(b+theta^2);
 
