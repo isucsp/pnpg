@@ -16,12 +16,12 @@ function out = pds(F,H,Psi,Psit,G,Lip,xInit,opt)
 %   matrix is not available, simply return hessian as empty: [];
 %   (See npg/sparseProximal.m and utils/Utils.m for examples)
 %
-%   The "H" parameter is served as a structure with "iterative",
+%   The "H" parameter is served as a structure with "exact",
 %   "op" and "val" to solve the following subproblem:
 %
 %                         0.5*||x-a||_2^2+u*r(x)                      (2)
 %
-%   where H.iterative must be false ??? not true , H.prox is exact with no
+%   where H.exact must be false ??? not true , H.prox is exact with no
 %   iterations, i.e., the H operator has analytical solution:
 %                           x=H.prox(a,u);
 %   where "u" is optional in case r(x) is an indicator function.

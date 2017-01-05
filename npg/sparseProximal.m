@@ -12,7 +12,7 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
     % Lipschitz: opt.Lip=@(u)u^2; if Psi(Psit(x))==x.
 
     proximalOut.val = @(x) pNorm(Psit(x),1);
-    proximalOut.iterative=true;
+    proximalOut.exact=false;
     switch(lower(method))
         case 'pnpg'
             proximalOut.prox=@denoisePNPG;

@@ -15,12 +15,12 @@ function out = pg(NLL,proximal,xInit,opt)
 %   matrix is not available, simply return hessian as empty: [];
 %   (See npg/sparseProximal.m and utils/Utils.m for examples)
 %
-%   The "proximal" parameter is served as a structure with "iterative",
+%   The "proximal" parameter is served as a structure with "exact",
 %   "op" and "val" to solve the following subproblem:
 %
 %                         0.5*||x-a||_2^2+u*r(x)                      (2)
 %
-%   1. When proximal.iterative=true, proximal.prox is iterative and should be
+%   1. When proximal.exact=false, proximal.prox is inexact and should be
 %   called in the form of
 %             [x,itr,p]=proximal.prox(a,u,thresh,maxItr,pInit);
 %   where
@@ -32,8 +32,9 @@ function out = pg(NLL,proximal,xInit,opt)
 %       p               value of internal variable when terminates, can be
 %                       used as the initial value (pInit) for the next run.
 %
-%   2. When proximal.iterative=false, proximal.prox is exact with no
-%   iterations, i.e., the proximal operator has analytical solution:
+%   2. When proximal.exact=true, proximal.prox is exact regardless with or
+%   without  iterations, i.e., the proximal operator has analytical
+%   solution:
 %                           x=proximal.prox(a,u);
 %   where "u" is optional in case r(x) is an indicator function.
 %
@@ -162,7 +163,7 @@ if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
 end
 
 if(opt.outLevel>=1) out.debug={}; end
-if(proximal.iterative)
+if(~proximal.exact)
     pInit=[];
     difX=1;
 end
@@ -189,11 +190,11 @@ while(true)
     while(true)
         numLineSearch = numLineSearch+1;
 
-        if(proximal.iterative)
+        if(proximal.exact)
+            newX=proximal.prox(x-grad/t,opt.u/t);
+        else
             [newX,innerItr_,pInit_]=proximal.prox(x-grad/t,opt.u/t,opt.relInnerThresh*difX,opt.maxInnerItr,...
                 pInit);
-        else
-            newX=proximal.prox(x-grad/t,opt.u/t);
         end
 
         newCost=NLL(newX);
@@ -235,11 +236,11 @@ while(true)
         preX=x; difX=0;
         preCost=cost;
     else
-        if(proximal.iterative)
+        if(proximal.exact)
+            innerItr=0;
+        else
             pInit=pInit_;
             innerItr=innerItr_;
-        else
-            innerItr=0;
         end
         difX = relativeDif(x,newX);
         preX = x;
@@ -277,7 +278,7 @@ while(true)
         out.stepSize(itr) = 1/t;
         out.NLLVal(itr)=NLLVal;
         out.penVal(itr)=penVal;
-        if(proximal.iterative)
+        if(~proximal.exact)
             out.innerItr(itr)=innerItr;
         end;
         if(isfield(opt,'trueX'))
@@ -358,7 +359,7 @@ function reset()
 end
 function res=runMore()
     res=false;
-    if(~proximal.iterative) return; end
+    if(proximal.exact) return; end
     if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-6)
         opt.relInnerThresh=opt.relInnerThresh/10;
         debug.printWithoutDel(2,...

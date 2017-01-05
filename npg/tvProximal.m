@@ -1,21 +1,26 @@
-function proximalOut=tvProximal(tv, prj_C, method , opt)
+function proximalOut=tvProximal(tvType, prj_C, method , opt)
 % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
 % TV and C are specified via constructor see denoise for a and u
 
 if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x)x; end
-if(~exist('tv','var') || isempty(tv))
-    tv='iso';
+if(~exist('tvType','var') || isempty(tvType))
+    tvType='iso';
 end
 if(~exist('method','var') || isempty(method)) method='beck'; end
-switch(lower(tv))
+switch(lower(tvType))
     case 'iso'
         proxOp=@TV.isoPrj;
     case 'l1'
         proxOp=@TV.l1Prj;
 end
 
-proximalOut.val = @(z) tlv(z,tv);
-proximalOut.iterative=true;
+% Psi_v = @(p) diff([zeros(1,size(p,2)); p; zeros(1,size(p,2))],1,1);
+% Psi_vt= @(x)-diff(x,1,1);
+% Psi_h = @(q) diff([zeros(size(q,1),1), q, zeros(size(q,1),1)],1,2);
+% Psi_ht= @(x)-diff(x,1,2);
+
+proximalOut.val = @(z) tlv(z,tvType);
+proximalOut.exact=false;
 switch(lower(method))
     case 'beck'
         proximalOut.prox=@denoiseBeck;
@@ -90,8 +95,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         p=zeros(I-1,J); q=zeros(I,J-1);
     end
 
-    itr=0; theta=1; preP=p; preQ=q;
-    Psi_p=(TV.Psi_v(p)+TV.Psi_h(q)); prePsi_p=Psi_p;
+    itr=0; convThresh=0; theta=1; preP=p; preQ=q;
+    Psi_p=TV.Psi(p,q); prePsi_p=Psi_p;
     y=a-u*Psi_p; % is real
     x=prj_C(y);   % is real
     cost=(sqrNorm(y)-sqrNorm(x-y))/2;
@@ -102,9 +107,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(opt.adaptiveStep) cumu=0; end
 
     while(true)
-
+        if(itr >= maxItr || convThresh>=3) break; end
         itr=itr+1;
-        %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %  start of one PNPG step  %
@@ -131,8 +135,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
             xbar=prj_C(ybar);   % is real
             oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
-            gradp=-u*TV.Psi_vt(xbar);
-            gradq=-u*TV.Psi_ht(xbar);
+            [gradp, gradq]=TV.Psit(xbar);
+            gradp=-gradp*u;  gradq=-gradq*u;
         end
 
         % start of line Search
@@ -152,12 +156,12 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
                 ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
                 xbar=prj_C(ybar);   % is real
                 oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
-                gradp=-u*TV.Psi_vt(xbar);
-                gradq=-u*TV.Psi_ht(xbar);
+                [gradp, gradq]=TV.Psit(xbar);
+                gradp=-gradp*u;  gradq=-gradq*u;
             end
 
             [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-            newPsi_p=TV.Psi_v(newP)+TV.Psi_h(newQ);
+            newPsi_p=TV.Psi(newP,newQ);
             newY=a-u*newPsi_p; % is real
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
@@ -220,10 +224,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         %%%%%%%%%%%%%%%%%%%%%%%%%%
 
         if(difX<=thresh && itr>=opt.minItr)
-            break;
+            convThresh=convThresh+1;
         end
-
-        if(itr >= maxItr) break; end
 
         if(opt.outLevel<1 && opt.debugLevel<2)
             continue;
@@ -259,6 +261,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     end
     if(nargout>=4)
         out.opt = opt; out.date=datestr(now);
+        out.gap=tlv(x,tvType)-x(:)'*Psi_p(:);
     end
     if(opt.outLevel>=2)
         out.gradp=gradp;
@@ -278,7 +281,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         debug.printWithoutDel(2,'\t restart');
     end
 end
-function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
+function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
     % modified by renliang gu
     %
     %This function implements the FISTA method for TV-based denoising problems
@@ -318,8 +321,8 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
 
     %Define the Projection onto the box
 
-    if (~exist('MAXITER','var'))
-        MAXITER=100;
+    if (~exist('maxItr','var'))
+        maxItr=100;
     end
     if (~exist('thresh','var'))
         thresh=1e-4;
@@ -333,7 +336,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
         [P1,P2]=Ltrans(D);
     end
 
-    switch tv
+    switch tvType
         case 'iso'
             A=[P1.^2;zeros(1,n)]+[P2.^2,zeros(m,1)];
             A=sqrt(max(A,1));
@@ -348,10 +351,10 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
     R1=P1; R2=P2;
 
     % debug=true;
-    f=@(x,u) 0.5*norm(x-Xobs,'fro')^2+u*tlv(x,tv);
+    f=@(x,u) 0.5*norm(x-Xobs,'fro')^2+u*tlv(x,tvType);
 
     tkp1=1;
-    count=0;
+    convThresh=0;
     i=0;
 
     fval=inf;
@@ -362,7 +365,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
         fprintf('#iteration  function-value  relative-difference\n');
         fprintf('---------------------------------------------------------------------------------------\n');
     end
-    while((i<MAXITER)&&(count<5))
+    while((i<maxItr)&&(convThresh<3))
         fold=fval;
         %%%%%%%%%
         % updating the iteration counter
@@ -378,6 +381,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
         C=Xobs-lambda*Lforward(R1,R2);
         D=prj_C(C);
         [Q1,Q2]=Ltrans(D);
+        gap=tlv(D,tvType)-sum(reshape(D.*Lforward(R1,R2),[],1));
 
         %%%%%%%%%%
         % Taking a step towards minus of the gradient
@@ -386,7 +390,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
 
         %%%%%%%%%%
         % Peforming the projection step
-        switch tv
+        switch tvType
             case 'iso'
                 A=[P1;zeros(1,n)].^2+[P2,zeros(m,1)].^2;
                 A=sqrt(max(A,1));
@@ -409,10 +413,10 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
         R2=P2+(tk-1)*(P2-Pold2)/tkp1;
 
         re=norm(D-Dold,'fro')/norm(D,'fro');
-        if (re<epsilon)
-            count=count+1;
+        if (re<thresh)
+            convThresh=convThresh+1;
         else
-            count=0;
+            convThresh=0;
         end
 
         fval=(-norm(C-D,'fro')^2+norm(C,'fro')^2)/2;
@@ -430,11 +434,14 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,MAXITER,pInit)
     end
     iter=i;
     pOut={P1, P2};
+    if(nargout>=4)
+        out.gap=gap;
+    end
 end
 
 function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
 
-    t=8*u^2;
+    t=8*u;
     if(nargout<4)
         opt.outLevel=0;
     end
@@ -447,8 +454,8 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         p=zeros(I-1,J); q=zeros(I,J-1);
     end
 
-    itr=0; theta=1; newTheta=1; preP=p; preQ=q;
-    Psi_p=(TV.Psi_v(p)+TV.Psi_h(q)); prePsi_p=Psi_p;
+    itr=0; convThresh=0; theta=1; newTheta=1; preP=p; preQ=q;
+    Psi_p=TV.Psi(p,q); prePsi_p=Psi_p;
     y=a-u*Psi_p; % is real
     x=prj_C(y);   % is real
     cost=(sqrNorm(y)-sqrNorm(x-y))/2;
@@ -456,6 +463,7 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
     if(opt.outLevel>=1) out.debug={}; end
 
     while(true)
+        if(itr >= maxItr || convThresh>=3) break; end
         itr=itr+1;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -465,16 +473,15 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         pbar=p+(theta-1)/newTheta*(p-preP);
         qbar=q+(theta-1)/newTheta*(q-preQ);
         xbar=prj_C(a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p)));   % is real
-        gradp=-u*TV.Psi_vt(xbar);
-        gradq=-u*TV.Psi_ht(xbar);
+        [gradp, gradq]=TV.Psit(xbar);
 
-        [newP,newQ]=proxOp(pbar-gradp/t, qbar-gradq/t);
-        newPsi_p=TV.Psi_v(newP)+TV.Psi_h(newQ);
+        [newP,newQ]=proxOp(pbar+gradp/t, qbar+gradq/t);
+        newPsi_p=TV.Psi(newP,newQ);
         newY=a-u*newPsi_p; % is real
         newX=prj_C(newY);   % is real
         newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
-        if(newCost-cost > 1e-5*max(newCost,cost))
+        if(newCost-cost > eps*max(newCost,cost))
             if(restart()) itr=itr-1; continue; end
 
             % give up and force it to converge
@@ -498,14 +505,16 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         %  end of one PNPG step  %
         %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        if(difX<=thresh && itr>=opt.minItr) break; end
-        if(itr >= maxItr) break; end
+        if(difX<=thresh && itr>=opt.minItr)
+            convThresh=convThresh+1;
+        end
     end
     if(nargout>=3)
         pOut={p,q};
     end
     if(nargout>=4)
         out.opt = opt; out.date=datestr(now);
+        out.gap=tlv(x,tvType)-x(:)'*Psi_p(:);
     end
     function res=restart()
         % if has monmentum term, restart
@@ -518,4 +527,4 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
     end
 end
 
-end % function proximalOut=tvProximal(tv, prj_C, method , opt)
+end % function proximalOut=tvProximal(tvType, prj_C, method , opt)

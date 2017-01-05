@@ -106,7 +106,7 @@ if(debug.level(2))
         str=sprintf([str ' %12s'], 'Error');
     end
     str=sprintf([str ' %12s'], '|dx|/|x|');
-    if(G.iterative)
+    if(~G.exact)
         str=sprintf([str ' %4s'], 'iItr');
     end
     str=sprintf([str ' %12s'], '|d Obj/Obj|');
@@ -126,13 +126,13 @@ if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
 end
 
 if(opt.outLevel>=1) out.debug={}; end
-if(G.iterative)
+if(~G.exact)
     pInit=[];
     difX=1;
 end
 
-if(F.iterative)
-    error('Iterative F.prox is not supported yet!');
+if(~F.exact)
+    error('Inexact F.prox is not supported yet!');
 end
 
 tau=opt.tau;
@@ -174,11 +174,11 @@ while(true)
     end
 
     preX = x;
-    if(G.iterative)
+    if(G.exact)
+        x=G.prox(x-tau*K.backward(y),tau);
+    else
         [x,innerItr_,pInit_]=G.prox(x-tau*K.backward(y),tau,...
             opt.relInnerThresh*difX*0,                    opt.maxInnerItr,pInit);
-    else
-        x=G.prox(x-tau*K.backward(y),tau);
     end
     preKx = Kx;
     Kx=K.forward(x);
@@ -187,11 +187,11 @@ while(true)
     cost=F.val(Kx)+G.val(x);
     difX = relativeDif(x,preX);
 
-    if(G.iterative)
+    if(G.exact)
+        innerItr=0;
+    else
         pInit=pInit_;
         innerItr=innerItr_;
-    else
-        innerItr=0;
     end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -216,7 +216,7 @@ while(true)
         out.cost(itr)=cost;
         out.difX(itr)=difX;
         out.difCost(itr)=difCost;
-        if(G.iterative)
+        if(~G.exact)
             out.innerItr(itr)=innerItr;
         end;
         if(isfield(opt,'trueX'))
@@ -244,7 +244,7 @@ while(true)
             debug.print(2,sprintf(' %12g',RMSE));
         end
         debug.print(2,sprintf(' %12g',difX));
-        if(G.iterative)
+        if(~G.exact)
             debug.print(2,sprintf(' %4d',innerItr));
         end
         debug.print(2,sprintf(' %12g', difCost));

@@ -19,7 +19,7 @@ case 'run'
     filename = [mfilename '.mat'];
 
     OPT.maxItr=5e4; OPT.thresh=1e-6; OPT.debugLevel=2;
-    C.iterative=false; C.val=@(x)0; C.prox=@(x,u)max(0,x);
+    C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
 
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
@@ -43,13 +43,13 @@ case 'run'
             % BEGIN experiment region,  to delete in the end
 
             opt=OPT;
-            G.iterative=false;
+            G.exact=true;
             G.val=@(x) opt.u*norm(Psit(x),1);
             G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
             gfb_   {i,j}=gfb(NLL,{G,C},opt.L,initSig,opt);
 
             opt=OPT; opt.thresh=1e-9;
-            H.iterative=false;
+            H.exact=true;
             H.val=@(s) opt.u*norm(s(:),1);
             H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
             condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);

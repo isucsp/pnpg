@@ -12,11 +12,11 @@ function out=CP_TV(Phi,Phit,y,approach,tvType,G,xInit,opt)
         K.forward=Phi;
         K.backward=Phit;
         proximal=tvProximal(tvType,G.prox);
-        G.iterative=proximal.iterative;
+        G.exact=proximal.exact;
         G.val=@(x)opt.u*proximal.val(x);
         G.prox=@(x,u,varargin) proximal.prox(x,u*opt.u,varargin{:});
     else
-        F.iterative=false;
+        F.exact=true;
         switch(lower(tvType))
             case 'iso'
                 F.val=@(z) F_.val(z{1})+opt.u*isoNorm(z{2},z{3});
@@ -59,7 +59,7 @@ function F = poissonProximal(y,b)
         sumB=sum(b(:));
         F.val=@(x) sum(x(:))+sumB-sumY-y(nzy).'*log((x(nzy)+b(nzy))./y(nzy));
     end
-    F.iterative=false;
+    F.exact=true;
     F.prox=@(a,u) max(0,0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) ));
     %F.proxConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a-b*u-1).^2+4*u*(y-b)+4*a.*b ) );
     F.proxConj=@(a,u) a-F.prox(a/u,1/u)*u;
@@ -73,7 +73,7 @@ function F = gaussianProximal(y)
     % F.val=@f;
     % F.prox solves 0.5*||x-a||_2^2+u*f(x);
 
-    F.iterative=false;
+    F.exact=true;
     F.val=@(x) sum(reshape((x-y).^2,[],1))/2;
     F.prox=@(a,u) (a+u*y)/(1+u);
     F.proxConj=@(a,u) (a-u*y)/(1+u);

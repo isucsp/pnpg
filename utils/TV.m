@@ -193,25 +193,44 @@ function [p,q]=l1Prj(p,q)
     q=min(max(q,-1),1);
 end
 
+function x = Psi(p,q)
+    [I,J]=size(p); I=I+1;
+    x=diff([zeros(1,J); p; zeros(1,J)],1,1) ...
+        + diff([zeros(I,1), q, zeros(I,1)],1,2);
+end
+
+function [p,q] = Psit(x)
+    p=-diff(x,1,1);
+    q=-diff(x,1,2);
+end
+
 function x = Psi_v(p)
-    [I,J]=size(p);
-    I=I+1;
-    x=[p; zeros(1,J)];
-    x(2:I,:)=x(2:I,:)-p(1:I-1,:);
+    %[I,J]=size(p);
+    %I=I+1;
+    %x=[p; zeros(1,J)];
+    %x(2:I,:)=x(2:I,:)-p(1:I-1,:);
+    %x=[p(1,:); diff(p,1,1); -p(end,:)];
+    J=size(p,2);
+    x=diff([zeros(1,J); p; zeros(1,J)],1,1);
 end
 function p = Psi_vt(x)
-    [I,~]=size(x);
-    p=x(1:I-1,:)-x(2:I,:);
+    %[I,~]=size(x);
+    %p=x(1:I-1,:)-x(2:I,:);
+    p=-diff(x,1,1);
 end
+
 function x = Psi_h(q)
-    [I,J]=size(q);
-    J=J+1;
-    x=[q zeros(I,1)];
-    x(:,2:J)=x(:,2:J)-x(:,1:J-1);
+    %[I,J]=size(q);
+    %J=J+1;
+    %x=[q zeros(I,1)];
+    %x(:,2:J)=x(:,2:J)-x(:,1:J-1);
+    I=size(q,1);
+    x=diff([zeros(I,1), q, zeros(I,1)],1,2);
 end
 function q = Psi_ht(x)
-    [~,J]=size(x);
-    q=x(:,1:J-1)-x(:,2:J);
+    %[~,J]=size(x);
+    %q=x(:,1:J-1)-x(:,2:J);
+    q=-diff(x,1,2);
 end
 
 end % methods(Static)

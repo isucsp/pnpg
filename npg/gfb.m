@@ -15,12 +15,12 @@ function out = gfb(F,Gi,Lip,xInit,opt)
 %   matrix is not available, simply return hessian as empty: [];
 %   (See npg/sparseProximal.m and utils/Utils.m for examples)
 %
-%   The "proximal" parameter is served as a structure with "iterative",
+%   The "proximal" parameter is served as a structure with "exact",
 %   "op" and "val" to solve the following subproblem:
 %
 %                         0.5*||x-a||_2^2+u*r(x)                      (2)
 %
-%   where proximal.iterative must be false, proximal.prox is exact with no
+%   where proximal.exact must be false, proximal.prox is exact with no
 %   iterations, i.e., the proximal operator has analytical solution:
 %                           x=proximal.prox(a,u);
 %   where "u" is optional in case r(x) is an indicator function.
