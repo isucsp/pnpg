@@ -2,16 +2,20 @@ function proximalOut=tvProximal(tvType, prj_C, method , opt)
 % make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
 % TV and C are specified via constructor see denoise for a and u
 
+% default to have not convex set contraint C
 if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x)x; end
 if(~exist('tvType','var') || isempty(tvType))
     tvType='iso';
 end
-if(~exist('method','var') || isempty(method)) method='beck'; end
+if(~exist('method','var') || isempty(method)) method='pnpg'; end    %  note that  beck has error
 switch(lower(tvType))
     case 'iso'
         proxOp=@TV.isoPrj;
+        val=@(p,q) sum(reshape(sqrt(p(:,1:end-1).^2+q(1:end-1,:).^2),[],1))+...
+            norm(p(:,end),1)+norm(q(end,:),1);
     case 'l1'
         proxOp=@TV.l1Prj;
+        val=@(p,q) norm(p(:),1)+norm(q(:),1);
 end
 
 % Psi_v = @(p) diff([zeros(1,size(p,2)); p; zeros(1,size(p,2))],1,1);
@@ -29,7 +33,7 @@ switch(lower(method))
     case 'npg'
         proximalOut.prox=@denoisePNPGSkeleton;
     otherwise
-        proximalOut.prox=@denoiseBeck;
+        proximalOut.prox=@denoisePNPG;
 end
 
 if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
@@ -45,8 +49,10 @@ if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
-if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
+if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
+if(~isfield(opt,'backtracking')) opt.backtracking=false; end
 if(~isfield(opt,'usePInit')) opt.usePInit=true; end
+if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 
 % Debug output information
 % >=0: no print,
@@ -80,8 +86,11 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         fprintf('%s\n', repmat('=',1,80));
         str=sprintf( ' %5s','Itr');
         str=sprintf([str ' %14s'],'Objective');
-        str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'αSrh');
+        str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'lSrh');
         str=sprintf([str ' %12s'], '|d Obj/Obj|');
+        if(opt.dualGap)
+            str=sprintf([str ' %12s'], 'dualGap');
+        end
         str=sprintf([str '\t u=%g'],u);
         fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
     end
@@ -107,7 +116,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(opt.adaptiveStep) cumu=0; end
 
     while(true)
-        if(itr >= maxItr || convThresh>=3) break; end
+        if(itr >= maxItr || convThresh>=1) break; end
         itr=itr+1;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -134,7 +143,9 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             qbar=q+(theta-1)/newTheta*(q-preQ);
             ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
             xbar=prj_C(ybar);   % is real
-            oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+            if(opt.backtracking)
+                oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+            end
             [gradp, gradq]=TV.Psit(xbar);
             gradp=-gradp*u;  gradq=-gradq*u;
         end
@@ -155,7 +166,9 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
                 qbar=q+(theta-1)/newTheta*(q-preQ);
                 ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
                 xbar=prj_C(ybar);   % is real
-                oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                if(opt.backtracking)
+                    oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                end
                 [gradp, gradq]=TV.Psit(xbar);
                 gradp=-gradp*u;  gradq=-gradq*u;
             end
@@ -165,6 +178,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             newY=a-u*newPsi_p; % is real
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
+            if(~opt.backtracking) break; end
             if((newCost-oldCost)<=...
                     innerProd(newP-pbar,gradp)+innerProd(newQ-qbar,gradq)...
                     +t*(sqrNorm(newP-pbar)+sqrNorm(newQ-qbar))/2)
@@ -198,18 +212,23 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
             preP=p; preQ=q; difX=0;
+            prePsi_p=Psi_p;
             preCost=cost;
         else
             difX = relativeDif(x,newX);
             x=newX;
-            preP = p; preQ = q;
-            p = newP; q = newQ;
+            preP = p; preQ = q; prePsi_p=Psi_p;
+            p = newP; q = newQ; Psi_p=newPsi_p;
             theta = newTheta;
             preCost=cost;
             cost = newCost;
         end
         preT=t;
-        prePsi_p=Psi_p; Psi_p=newPsi_p;
+
+        if(opt.dualGap)
+            % slightly larger than the exact gap, but saves time
+            dualGap=val(gradp,gradq)-u*sum(reshape(x.*Psi_p,[],1));
+        end
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)
@@ -223,8 +242,14 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         %  end of one PNPG step  %
         %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        if(difX<=thresh && itr>=opt.minItr)
-            convThresh=convThresh+1;
+        if(opt.dualGap)
+            if(dualGap<=thresh && itr>=opt.minItr)
+                convThresh=convThresh+1;
+            end
+        else
+            if(difX<=thresh && itr>=opt.minItr)
+                convThresh=convThresh+1;
+            end
         end
 
         if(opt.outLevel<1 && opt.debugLevel<2)
@@ -236,6 +261,9 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             out.time(itr)=toc(tStart);
             out.cost(itr)=cost;
             out.difX(itr)=difX;
+            if(opt.dualGap)
+                out.dualGap(itr)=dualGap;
+            end
             out.difCost(itr)=difCost;
             out.theta(itr)=theta;
             out.numLineSearch(itr) = numLineSearch;
@@ -252,20 +280,24 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             debug.print(2,sprintf(' %14.8g',cost));
             debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
             debug.print(2,sprintf(' %12g', difCost));
-            debug.clear_print(2);
-            if(mod(itr,opt.verbose)==0) debug.println(2); end
+            if(opt.dualGap)
+                debug.print(2,sprintf(' %12g', dualGap));
+            end
+            if(~debug.clear_print(2))
+                if(mod(itr,opt.verbose)==0) debug.println(2); end
+            end
         end
     end
     if(nargout>=3)
         pOut={p,q};
     end
     if(nargout>=4)
-        out.opt = opt; out.date=datestr(now);
-        out.gap=tlv(x,tvType)-x(:)'*Psi_p(:);
+        out.opt = opt;
+        out.date=datestr(now);
+        out.gap=val(gradp,gradq)-u*sum(reshape(x.*Psi_p,[],1));
     end
     if(opt.outLevel>=2)
-        out.gradp=gradp;
-        out.gradq=gradq;
+        out.gradp=gradp; out.gradq=gradq;
     end
     if(debug.level(1))
         fprintf('\nCPU Time: %g, objective=%g\n',toc(tStart),cost);
@@ -330,7 +362,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
 
     [m,n]=size(Xobs);
     D=zeros(m,n);
-    if(exist('pInit','var') && ~isempty(pInit))
+    if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
         P1=pInit{1}; P2=pInit{2};
     else
         [P1,P2]=Ltrans(D);
@@ -365,7 +397,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
         fprintf('#iteration  function-value  relative-difference\n');
         fprintf('---------------------------------------------------------------------------------------\n');
     end
-    while((i<maxItr)&&(convThresh<3))
+    while((i<maxItr)&&(convThresh<1))
         fold=fval;
         %%%%%%%%%
         % updating the iteration counter
@@ -381,7 +413,10 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
         C=Xobs-lambda*Lforward(R1,R2);
         D=prj_C(C);
         [Q1,Q2]=Ltrans(D);
-        gap=tlv(D,tvType)-sum(reshape(D.*Lforward(R1,R2),[],1));
+        if(opt.dualGap)
+            gap=val(Q1,Q2)-sum(reshape(D.*Lforward(R1,R2),[],1));
+            gap=gap*lambda;
+        end
 
         %%%%%%%%%%
         % Taking a step towards minus of the gradient
@@ -413,10 +448,18 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
         R2=P2+(tk-1)*(P2-Pold2)/tkp1;
 
         re=norm(D-Dold,'fro')/norm(D,'fro');
-        if (re<thresh)
-            convThresh=convThresh+1;
+        if(opt.dualGap)
+            if(gap<=thresh && itr>=opt.minItr)
+                convThresh=convThresh+1;
+            else
+                convThresh=0;
+            end
         else
-            convThresh=0;
+            if (re<thresh && i>=opt.minItr)
+                convThresh=convThresh+1;
+            else
+                convThresh=0;
+            end
         end
 
         fval=(-norm(C-D,'fro')^2+norm(C,'fro')^2)/2;
@@ -425,7 +468,9 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
         end
 
         if(nargout>=4)
-            out.cost(i)=fval;
+            if(opt.outLevel>=1)
+                out.cost(i)=fval;
+            end
             if(debug.level(2))
                 fprintf('%7d %10.10g %10.10g  %19g',i,fval,re,f(D,lambda));
                 if (fval>fold) fprintf('  *\n'); else fprintf('   \n'); end
@@ -435,7 +480,9 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
     iter=i;
     pOut={P1, P2};
     if(nargout>=4)
-        out.gap=gap;
+        out.opt = opt;
+        out.date=datestr(now);
+        out.gap=lambda*(val(Q1,Q2)-sum(reshape(D.*Lforward(R1,R2),[],1)));
     end
 end
 
@@ -463,7 +510,7 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
     if(opt.outLevel>=1) out.debug={}; end
 
     while(true)
-        if(itr >= maxItr || convThresh>=3) break; end
+        if(itr >= maxItr || convThresh>=1) break; end
         itr=itr+1;
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -479,25 +526,27 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         newPsi_p=TV.Psi(newP,newQ);
         newY=a-u*newPsi_p; % is real
         newX=prj_C(newY);   % is real
+
         newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
-        if(newCost-cost > eps*max(newCost,cost))
+        %if(newCost-cost > eps*max(newCost,cost))
+        if(newCost>cost)
             if(restart()) itr=itr-1; continue; end
 
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
-            preP=p; preQ=q; difX=0;
+            difX=0;
+            preP = p; preQ = q; prePsi_p=Psi_p;
             preCost=cost;
         else
             difX = relativeDif(x,newX);
             x=newX;
-            preP = p; preQ = q;
-            p = newP; q = newQ;
+            preP = p; preQ = q; prePsi_p=Psi_p;
+            p = newP; q = newQ; Psi_p=newPsi_p;
             theta = newTheta;
             preCost=cost;
             cost = newCost;
         end
-        prePsi_p=Psi_p;  Psi_p=newPsi_p;
 
         newTheta=1/gamma+sqrt(b+theta^2);
 
@@ -514,7 +563,7 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
     end
     if(nargout>=4)
         out.opt = opt; out.date=datestr(now);
-        out.gap=tlv(x,tvType)-x(:)'*Psi_p(:);
+        out.gap=(tlv(x,tvType)-x(:)'*Psi_p(:))*u;
     end
     function res=restart()
         % if has monmentum term, restart

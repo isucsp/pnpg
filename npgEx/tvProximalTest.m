@@ -1,4 +1,4 @@
-clear all; close all;
+clear all;
 if(~exist('seed','var')) seed=0; end
 RandStream.setGlobalStream(RandStream.create('mt19937ar','seed',seed));
 
@@ -16,9 +16,9 @@ for i=2:length(tvTypeArray)
         u=uArray{j};
 
         opt.debugLevel=2;
+        opt.adaptiveStep=false;
         opt.outLevel=1;
         opt=[];
-        opt.adaptiveStep=false;
         tv1=tvProximal(tvType,[],'pnpg',opt);
         tStart=tic;
         [x1,itr1,pOut1,out1]=tv1.prox(a,u,thresh,maxItr,[]);
@@ -33,27 +33,28 @@ for i=2:length(tvTypeArray)
         pars.MAXITER = maxItr;
         pars.epsilon = thresh; 
         pars.init=zeros(size(a));
-        %[x2,itr2,pOut2,out2]=denoise_bound_mod(a,u,-inf,inf,pars);
+        %[x2,itr2,pOut2]=denoise_bound_mod(a,u,-inf,inf,pars);
+        %out2=out1;
         tv2=tvProximal(tvType,[],'beck',opt);
         [x2,itr2,pOut2,out2]=tv2.prox(a,u,thresh,maxItr,[]);
         t2=toc(tStart); opt=[];
 
         opt.debugLevel=1;
         opt.debugLevel=0;
-        opt=[];
         opt.debugLevel=2;
         opt.outLevel=1;
+        opt=[];
         tv3=tvProximal(tvType,[],'npg',opt);
         tStart=tic;
         [x3,itr3,pOut3,out3]=tv3.prox(a,u,thresh,maxItr,[]);
         t3=toc(tStart); opt=[];
 
         f=@(x)0.5*sqrNorm(x-a)+u*tv3.val(x);
-        fprintf('objective=%14.8g, itr=%d, gap=%10.8g\n',f(x1),itr1,out1.gap);
-        fprintf('objective=%14.8g, itr=%d, gap=%10.8g\n',f(x2),itr2,out2.gap);
-        fprintf('objective=%14.8g, itr=%d, gap=%10.8g\n',f(x3),itr3,out3.gap);
+        fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x1),itr1,out1.gap);
+        fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x2),itr2,out2.gap);
+        fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x3),itr3,out3.gap);
 
-        fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
+        fprintf('results: t1=%g, t2=%g, t3=%g\n\n', t1, t2, t3);
     end
 end
 

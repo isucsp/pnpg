@@ -244,8 +244,9 @@ function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
                 debug.print(2,sprintf(' %14.8g',cost));
                 debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
                 debug.print(2,sprintf(' %12g', difCost));
-                debug.clear_print(2);
-                if(mod(itr,opt.verbose)==0) debug.println(2); end
+                if(~debug.clear_print(2))
+                    if(mod(itr,opt.verbose)==0) debug.println(2); end
+                end
             end
         end
 

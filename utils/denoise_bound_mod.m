@@ -123,7 +123,7 @@ if(prnt)
     fprintf('#iteration  function-value  relative-difference\n');
     fprintf('---------------------------------------------------------------------------------------\n');
 end
-while((i<MAXITER)&&(count<5))
+while((i<MAXITER)&&(count<3))
     fold=fval;
     %%%%%%%%%
     % updating the iteration counter

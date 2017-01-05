@@ -217,8 +217,9 @@ while(true)
         end
         debug.print(2,sprintf(' %12g',difX));
         debug.print(2,sprintf(' %12g', difCost));
-        debug.clear_print(2);
-        if(mod(itr,opt.verbose)==0) debug.println(2); end
+        if(~debug.clear_print(2))
+            if(mod(itr,opt.verbose)==0) debug.println(2); end
+        end
     end
 
     if(debug.level(4))

@@ -38,7 +38,8 @@ function deb=Debug(level)
             strlen=0;
         end
     end
-    function clear_print(l)
+    function ret=clear_print(l)
+        ret=false;
         if(level>=l)
             if(isempty(add))
                 fprintf([repmat('\b',1,strlen),str,'     ']);
@@ -47,6 +48,7 @@ function deb=Debug(level)
                 fprintf([repmat('\b',1,strlen),str,add,'   \n']);
                 add='';
                 strlen=0;
+                ret=true;
             end
             str='';
         end

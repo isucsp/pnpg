@@ -85,6 +85,7 @@ if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
 if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
+if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-2; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
@@ -229,10 +230,13 @@ while(true)
         if(proximal.exact)
             newX=proximal.prox(xbar-grad/t,opt.u/t);
         else
-            [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
-            %[newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-            %    t*opt.relInnerThresh/2/itr/newTheta^2/opt.u,opt.maxInnerItr,pInit);
+            if(opt.dualGap)
+                [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
+                    opt.relInnerThresh/2/itr/newTheta^2,opt.maxInnerItr,pInit);
+            else
+                [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
+                    1e5*opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
+            end
         end
 
         newCost=NLL(newX);
@@ -304,7 +308,7 @@ while(true)
     %  end of one PNPG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if(difX<=thresh && itr>=opt.minItr)
+    if(difX<=opt.thresh && itr>=opt.minItr)
         convThresh=convThresh+1;
     end
 
@@ -360,8 +364,9 @@ while(true)
             debug.print(2,sprintf(' %4d',innerItr));
         end
         debug.print(2,sprintf(' %12g', difCost));
-        debug.clear_print(2);
-        if(mod(itr,opt.verbose)==0) debug.println(2); end
+        if(~debug.clear_print(2))
+            if(mod(itr,opt.verbose)==0) debug.println(2); end
+        end
     end
 
     if(debug.level(4))
