@@ -128,22 +128,6 @@ case 'run'
 
         mysave;
 
-%       opt.fullcont=true;
-%       % for isotv
-%       u_max=1;
-%       aa =(3:-0.5:-6);
-%       opt.u=(10.^aa)*u_max; opt.proximal='tviso';
-%       if(i<5) continue; end
-%       npgTVFull{i,k}=Wrapper.NPG(Phi,Phit,[],[],y,initSig,opt);
-%       for j=1:length(aa); if(aa(j)>-2)
-%           opt.u=10^aa(j)*u_max; opt.proximal='tviso';
-%           if(j==1)
-%               spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
-%           else
-%               spiralTVFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,spiralTVFull{i,j-1,k}.x,opt);
-%           end
-%       end; end
-
 %       % following are methods for weighted versions
 %       ty=max(sqrt(y),1);
 %       wPhi=@(xx) Phi(xx)./ty;
@@ -151,18 +135,6 @@ case 'run'
 %       wy=(y-opt.bb(:))./ty;
 %       wu_max=pNorm([](wPhit(wy)),inf);
 %       opt.noiseType='gaussian';
-
-%       opt.fullcont=true;
-%       opt.u=(10.^aa)*wu_max; opt.maxItr=1e4; opt.thresh=1e-12;
-%       wnpgFull {i,k}=Wrapper.NPG(wPhi,wPhit,[],[],wy,initSig,opt); out=wnpgFull{i,k};
-%       fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
-%       opt.fullcont=false;
-
-%       opt.u = 10^a(i)*u_max;
-%       fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,1,k);
-%       wnpg{i,k}=Wrapper.NPG         (wPhi,wPhit,[],[],wy,initSig,opt);
-%       wspiral{i,k}=Wrapper.SPIRAL (wPhi,wPhit,[],[],wy,initSig,opt);
-%       % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,[],[],wy,initSig,opt);
     end
     end
 
