@@ -236,7 +236,8 @@ while(true)
                     opt.maxInnerItr,pInit);
             else
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
+                    opt.relInnerThresh*difX,...
+                    opt.maxInnerItr,pInit);
             end
         end
 
@@ -270,7 +271,7 @@ while(true)
     newObj = newCost+opt.u*newPen;
 
     % using eps reduces numerical issue around the point of convergence
-    if((newObj-cost)>eps*max(abs(newCost),abs(cost)))
+    if((newObj-cost)>1e-14*norm([newObj,cost],inf))
         if(goodMM)
             if(restart()) itr=itr-1; continue; end
             if(runMore()) itr=itr-1; continue; end

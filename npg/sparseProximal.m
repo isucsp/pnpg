@@ -27,7 +27,7 @@ if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='bb'; end
 if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
 if(~isfield(opt,'minItr')) opt.minItr=1; end
 
-if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+if(~isfield(opt,'stepIncre')) opt.stepIncre=0.5^0.2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 % By default disabled.  Remember to use a value around 5 for the Poisson model
 % with poor initialization.
@@ -38,8 +38,8 @@ if(~isfield(opt,'Lip')) opt.Lip=[]; end
 
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
-if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
-if(~isfield(opt,'backtracking')) opt.backtracking=false; end
+if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
+if(~isfield(opt,'backtracking')) opt.backtracking=true; end
 if(~isfield(opt,'usePInit')) opt.usePInit=true; end
 if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 
@@ -197,7 +197,7 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             end
         end
 
-        if(newCost>cost)
+        if((newCost-cost)>1e-14*norm([newCost,cost],inf))
             if(goodMM)
                 if(restart()) itr=itr-1; continue; end
             end

@@ -28,9 +28,9 @@ function compareC(field,plotFunc,varargin)
             v{j}=getfield(varargin{ii},fieldname{j});
         end
         if(length(fieldname)==1)
-            plotFunc(v{1}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
+            plotFunc((v{1}-m)/m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
         elseif(length(fieldname)==2)
-            plotFunc(v{1},v{2}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
+            plotFunc(v{1},(v{2}-m)/m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
             xlabel(fieldname{1});
             ylabel(fieldname{2});
         end
