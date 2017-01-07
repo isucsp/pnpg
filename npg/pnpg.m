@@ -232,10 +232,11 @@ while(true)
         else
             if(opt.dualGap)
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    opt.relInnerThresh/2/itr/newTheta^2,opt.maxInnerItr,pInit);
+                    1*norm(x(:),1)*opt.relInnerThresh/2/itr^3,...
+                    opt.maxInnerItr,pInit);
             else
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    1e5*opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
+                    opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
             end
         end
 

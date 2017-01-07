@@ -35,6 +35,7 @@ case 'run'
 
     for k=1:K
     for i=length(count):-1:1
+        if(i>4) continue; end 
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -56,10 +57,21 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
 
         opt=OPT;
-        opt.dualGap=false;
-        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt.dualGap=true;
+        opt1=[]; opt1.dualGap=opt.dualGap;
+        opt.proximal=tvProximal(tvType,C.prox,'pnpg',opt1);
+        pnpg_   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+        o=pnpg_{i,j,k};
+        [mean(o.innerItr) median(o.innerItr) sum(o.innerItr)]
+        keyboard
+
+        opt=OPT;
         pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        o=pnpg_{i,j,k};
+        [mean(o.innerItr) median(o.innerItr) sum(o.innerItr)]
+
+        keyboard
+
 
         opt=OPT;
         opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
@@ -69,10 +81,13 @@ case 'run'
         opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
         opt.inn_ini  = 1;
         opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
         vmila{i,j} = VMILA(y, Phi, Phit, opt.bb,...
             opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
             opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+
+        keyboard
 
         opt=OPT; opt.innerThresh=1e-5;
         spiral_m5 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,[],[],y,initSig,opt);
