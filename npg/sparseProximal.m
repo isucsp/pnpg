@@ -38,10 +38,12 @@ if(~isfield(opt,'Lip')) opt.Lip=[]; end
 
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
-if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
-if(~isfield(opt,'backtracking')) opt.backtracking=true; end
+if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
+if(~isfield(opt,'backtracking')) opt.backtracking=false; end
 if(~isfield(opt,'usePInit')) opt.usePInit=true; end
 if(~isfield(opt,'dualGap')) opt.dualGap=false; end
+
+if(opt.adaptiveStep) opt.backtracking=true; end
 
 % Debug output information
 % >=0: no print,

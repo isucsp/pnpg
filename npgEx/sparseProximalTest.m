@@ -14,6 +14,8 @@ for i=1:5
     opt.outLevel=1;
     opt.debugLevel=2;
     opt=[];
+    opt.adaptiveStep=false;
+    opt.backtracking=false;
     opt.Lip=@(u)u^2;
     opt.initStep='fixed';
     tStart=tic;
@@ -47,11 +49,11 @@ for i=1:5
 
     f=@(x)0.5*sqrNorm(x-a)+u*sp3.val(x);
     fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x1),itr1,out1.gap);
-    fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x2),itr2,out1.gap);
-    fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x3),itr3,out1.gap);
+    fprintf('objective=%10.8g, itr=%d\n',f(x2),itr2);
+    fprintf('objective=%10.8g, itr=%d\n',f(x3),itr3);
 
     fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
 
-    keyboard
+%    keyboard
 end
 

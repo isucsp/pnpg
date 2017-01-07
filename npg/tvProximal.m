@@ -54,6 +54,8 @@ if(~isfield(opt,'backtracking')) opt.backtracking=false; end
 if(~isfield(opt,'usePInit')) opt.usePInit=true; end
 if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 
+if(opt.adaptiveStep) opt.backtracking=true; end
+
 % Debug output information
 % >=0: no print,
 % >=1: only report results,
