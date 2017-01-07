@@ -39,7 +39,7 @@ end
 if(~exist('opt','var') || ~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
 if(~isfield(opt,'minItr')) opt.minItr=1; end
 
-if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+if(~isfield(opt,'stepIncre')) opt.stepIncre=0.5^0.2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 % By default disabled.  Remember to use a value around 5 for the Poisson model
 % with poor initialization.
