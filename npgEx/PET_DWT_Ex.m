@@ -18,9 +18,11 @@ case 'run'
     filename = [mfilename '.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear -regexp '(?i)opt'
+    clear -regexp '(?i)proxopt'
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
     OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
+    PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     %OPT.maxItr=10;
 
@@ -44,10 +46,6 @@ case 'run'
         fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
         u_max=1;
         OPT.u = u_max*10.^a(i);
-        proxOpt=[]; proxOpt.Lip=@(u)u^2; proxOpt.initStep='fixed';
-        proxOpt.adaptiveStep=false; proxOpt.backtracking=false;
-        proxOpt.dualGap=true;
-        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
 
         initSig=C.prox(fbp{i,1,k}.x);
 
@@ -56,13 +54,38 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
 
         opt=OPT;
-        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        proxOpt=PROXOPT;
+        proxOpt.adaptiveStep=false; proxOpt.backtracking=false;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'admm',proxOpt);
+        pnpg_admm   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        keyboard
 
         opt=OPT;
-        opt.dualGap=true;
-        opt1=[]; opt1.dualGap=opt.dualGap;
-        opt.proximal=tvProximal(tvType,C.prox,'pnpg',opt1);
+        proxOpt=PROXOPT;
+        proxOpt.adaptiveStep=false; proxOpt.backtracking=false;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
+        pnpg_   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        opt=OPT; opt.dualGap=true;
+        proxOpt=PROXOPT;  proxOpt.dualGap=opt.dualGap;
+        proxOpt.adaptiveStep=false; proxOpt.backtracking=false;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
         pnpg_d   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        opt=OPT;
+        proxOpt=PROXOPT;
+        proxOpt.adaptiveStep=true; proxOpt.backtracking=true;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
+        pnpg_adp   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        opt=OPT; opt.dualGap=true;
+        proxOpt=PROXOPT;  proxOpt.dualGap=opt.dualGap;
+        proxOpt.adaptiveStep=true; proxOpt.backtracking=true;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
+        pnpg_d_adp   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        keyboard
 
         % END experiment region,  to delete in the end
 
@@ -140,7 +163,7 @@ case 'run'
         pnpgc  {i,j,k}=pnpgc   (NLL,proximal,initSig,opt);
         npg    {i,j,k}=Wrapper.NPG     (Phi,Phit,Psi,Psit,y,initSig,opt);
          
-         for wavelet l1 norm
+        %for wavelet l1 norm
         aa = (3:-0.5:-6);
         opt=OPT; opt.fullcont=true; opt.u=(10.^aa)*u_max; opt.proximal='wvltADMM';
         pnpgFull {i,k}=pnpg(NLL,proximal,initSig,opt);
@@ -154,15 +177,6 @@ case 'run'
                 spiralFull{i,j,k}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,spiralFull{i,j-1,k}.x,opt);
             end
         end; end
-    end
-
-        mysave;
-        continue;
-
-        opt=OPT; opt.proximal='wvltFADMM';
-        fpnpg  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-
-
 
 %           % following are methods for weighted versions
 %           ty=max(sqrt(y),1);
@@ -171,18 +185,6 @@ case 'run'
 %           wy=(y-opt.bb(:))./ty;
 %           wu_max=pNorm(Psit(wPhit(wy)),inf);
 %           opt.noiseType='gaussian';
-
-%           opt.fullcont=true;
-%           opt.u=(10.^aa)*wu_max; opt.maxItr=1e4; opt.thresh=1e-12;
-%           wnpgFull {i,k}=Wrapper.NPG(wPhi,wPhit,Psi,Psit,wy,initSig,opt); out=wnpgFull{i,k};
-%           fprintf('k=%d, good a = 1e%g\n',k,max((aa(out.contRMSE==min(out.contRMSE)))));
-%           opt.fullcont=false;
-
-%           opt.u = 10^a(i)*u_max;
-%           fprintf('%s, i=%d, j=%d, k=%d\n','PET Example_003',i,1,k);
-%           wnpg{i,k}=Wrapper.NPG         (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
-%           wspiral{i,k}=Wrapper.SPIRAL (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
-%           % wnpgc  {i,k}=Wrapper.NPGc   (wPhi,wPhit,Psi,Psit,wy,initSig,opt);
     end
     end
 
