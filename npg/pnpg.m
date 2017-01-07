@@ -260,6 +260,9 @@ while(true)
             else  % don't know what to do, mark on debug and break
                 goodMM=false;
                 debug.appendLog('_FalseMM');
+                %debug.appendLog(sprintf('\nnewCost-oldCost=%10.10g',newCost-oldCost));
+                %debug.appendLog(sprintf('\ndif=%10.10g',...
+                %   newCost-oldCost-innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2));
                 break;
             end
         end
@@ -277,6 +280,7 @@ while(true)
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
+        %debug.appendLog(sprintf('\nNewObj-cost=%10.10g',newObj-cost));
         innerItr=0;
         preX=x; difX=0;
         preCost=cost;

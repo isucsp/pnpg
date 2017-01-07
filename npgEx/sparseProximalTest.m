@@ -11,9 +11,9 @@ for i=1:5
 
     a=randn(size(OPT.trueX))*10^(i-3)+OPT.trueX;
 
-    opt=[];
     opt.outLevel=1;
     opt.debugLevel=2;
+    opt=[];
     opt.Lip=@(u)u^2;
     opt.initStep='fixed';
     tStart=tic;
@@ -31,12 +31,11 @@ for i=1:5
     end
     t2=toc(tStart);
 
-    opt.debugLevel=1;
     opt.debugLevel=0;
-    opt.adaptiveStep=false;
+    opt.debugLevel=1;
     opt.debugLevel=2;
-    opt=[];
     opt.outLevel=1;
+    opt=[];
     tStart=tic;
     sp3=sparseProximal(Psi,Psit,prj_C,'admm',opt);
     for j=1:1
@@ -46,9 +45,10 @@ for i=1:5
     t3=toc(tStart);
 
 
-    fprintf('objective=%g\n', 0.5*sqrNorm(x1-a)+u*sp3.val(x1));
-    fprintf('objective=%g\n', 0.5*sqrNorm(x2-a)+u*sp3.val(x2));
-    fprintf('objective=%g\n', 0.5*sqrNorm(x3-a)+u*sp3.val(x3));
+    f=@(x)0.5*sqrNorm(x-a)+u*sp3.val(x);
+    fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x1),itr1,out1.gap);
+    fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x2),itr2,out1.gap);
+    fprintf('objective=%10.8g, itr=%d, gap=%10.8g\n',f(x3),itr3,out1.gap);
 
     fprintf('results: t1=%g, t2=%g, t3=%g\n', t1, t2, t3);
 

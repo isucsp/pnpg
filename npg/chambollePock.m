@@ -178,7 +178,7 @@ while(true)
         x=G.prox(x-tau*K.backward(y),tau);
     else
         [x,innerItr_,pInit_]=G.prox(x-tau*K.backward(y),tau,...
-            opt.relInnerThresh*difX*0,                    opt.maxInnerItr,pInit);
+            opt.relInnerThresh*difX*0,opt.maxInnerItr,pInit);
     end
     preKx = Kx;
     Kx=K.forward(x);
