@@ -1,8 +1,9 @@
 function proximalOut=sparseProximal(Psi, Psit, prj_C, method, opt)
-% make an object to solve 0.5*||x-a||_2^2+u*TV(x)+I_C(x)
-% TV and C are specified via constructor see denoise for a and u
+% make an object to solve 0.5*||x-a||_2^2+u*||Psi^T(x)||_1+I_C(x)
+% Psi, Psit and C are specified via constructor; see denoise for a and u
 
-if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x) x; end
+% default to have not convex set contraint C
+if(~exist('prj_C','var') || isempty(prj_C)) prj_C=@(x)x; end
 if(~exist('method','var') || isempty(method)) method='admm'; end
 proxOp=@(p) min(max(p,-1),1);
 
@@ -11,7 +12,7 @@ proxOp=@(p) min(max(p,-1),1);
 % In that case, set opt.initStep='fixed' with the approximated
 % Lipschitz: opt.Lip=@(u)u^2; if Psi(Psit(x))==x.
 
-proximalOut.val = @(x) pNorm(Psit(x),1);
+proximalOut.val = @(x) norm(reshape(Psit(x),[],1),1);
 proximalOut.exact=false;
 switch(lower(method))
     case 'pnpg'
@@ -23,7 +24,7 @@ switch(lower(method))
 end
 
 if(~exist('opt','var') || ~isfield(opt,'initStep')) opt.initStep='bb'; end
-if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
+if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=5; end
 if(~isfield(opt,'minItr')) opt.minItr=1; end
 
 if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
@@ -38,7 +39,9 @@ if(~isfield(opt,'Lip')) opt.Lip=[]; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
+if(~isfield(opt,'backtracking')) opt.backtracking=true; end
 if(~isfield(opt,'usePInit')) opt.usePInit=true; end
+if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 
 % Debug output information
 % >=0: no print,
@@ -79,8 +82,11 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         fprintf('%s\n', repmat('=',1,80));
         str=sprintf( ' %5s','Itr');
         str=sprintf([str ' %14s'],'Objective');
-        str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'αSrh');
+        str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'lSrh');
         str=sprintf([str ' %12s'], '|d Obj/Obj|');
+        if(opt.dualGap)
+            str=sprintf([str ' %12s'], 'dualGap');
+        end
         str=sprintf([str '\t u=%g'],u);
         fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
     end
@@ -93,9 +99,9 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         p=zeros(size(Psit(a)));
     end
 
-    itr=0; theta=1; preP=p;
-
-    y=a-u*Psi(p); % is real
+    itr=0; convThresh=0; theta=1; preP=p;
+    Psi_p=Psi(p); prePsi_p=Psi_p;
+    y=a-u*Psi_p; % is real
     x=prj_C(y);   % is real
     cost=(sqrNorm(y)-sqrNorm(x-y))/2;
     goodStep=true;
@@ -105,9 +111,8 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(opt.adaptiveStep) cumu=0; end
 
     while(true)
-
+        if(itr >= maxItr || convThresh>=1) break; end
         itr=itr+1;
-        %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %  start of one PNPG step  %
@@ -130,9 +135,11 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
                 %newTheta=(1+sqrt(1+4*B*theta^2))/2;
             end
             pbar=p+(theta-1)/newTheta*(p-preP);
-            ybar=a-u*Psi(pbar); % is real
+            ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
             xbar=prj_C(ybar);   % is real
-            oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+            if(opt.backtracking)
+                oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+            end
             grad=-u*Psit(xbar);
         end
 
@@ -149,16 +156,20 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
                     %newTheta=(1+sqrt(1+4*B*theta^2))/2;
                 end
                 pbar=p+(theta-1)/newTheta*(p-preP);
-                ybar=a-u*Psi(pbar); % is real
+                ybar=a-u*(Psi_p  + (theta-1)/newTheta*(Psi_p-prePsi_p));
                 xbar=prj_C(ybar);   % is real
-                oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                if(opt.backtracking)
+                    oldCost=(sqrNorm(ybar)-sqrNorm(xbar-ybar))/2;
+                end
                 grad=-u*Psit(xbar);
             end
 
             newP=proxOp(pbar-grad/t);
-            newY=a-u*Psi(newP); % is real
+            newPsi_p=Psi(newP);
+            newY=a-u*newPsi_p; % is real
             newX=prj_C(newY);   % is real
             newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
+            if(~opt.backtracking) break; end
             if((newCost-oldCost)<=...
                     innerProd(newP-pbar,grad)...
                     +t*sqrNorm(newP-pbar)/2)
@@ -192,17 +203,23 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
             preP=p; difX=0;
+            prePsi_p=Psi_p;
             preCost=cost;
         else
             difX = relativeDif(x,newX);
             x=newX;
-            preP = p;
-            p = newP;
+            preP = p; prePsi_p=Psi_p;
+            p = newP; Psi_p=newPsi_p;
             theta = newTheta;
             preCost=cost;
             cost = newCost;
         end
         preT=t;
+
+        if(opt.dualGap)
+            % slightly larger than the exact gap, but saves time
+            dualGap=norm(grad(:),1)-u*sum(reshape(x.*Psi_p,[],1));
+        end
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)
@@ -216,8 +233,15 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         %  end of one PNPG step  %
         %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-        if(difX<=thresh && itr>=opt.minItr) break; end
-        if(itr >= maxItr) break; end
+        if(opt.dualGap)
+            if(dualGap<=thresh && itr>=opt.minItr)
+                convThresh=convThresh+1;
+            end
+        else
+            if(difX<=thresh && itr>=opt.minItr)
+                convThresh=convThresh+1;
+            end
+        end
 
         if(opt.outLevel<1 && opt.debugLevel<2)
             continue;
@@ -228,6 +252,9 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             out.time(itr)=toc(tStart);
             out.cost(itr)=cost;
             out.difX(itr)=difX;
+            if(opt.dualGap)
+                out.dualGap(itr)=dualGap;
+            end
             out.difCost(itr)=difCost;
             out.theta(itr)=theta;
             out.numLineSearch(itr) = numLineSearch;
@@ -244,6 +271,9 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             debug.print(2,sprintf(' %14.8g',cost));
             debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
             debug.print(2,sprintf(' %12g', difCost));
+            if(opt.dualGap)
+                debug.print(2,sprintf(' %12g', dualGap));
+            end
             if(~debug.clear_print(2))
                 if(mod(itr,opt.verbose)==0) debug.println(2); end
             end
@@ -251,7 +281,9 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     end
 
     if(nargout>=4)
-        out.opt = opt; out.date=datestr(now);
+        out.opt = opt;
+        out.date=datestr(now);
+        out.gap=norm(grad(:),1)-u*sum(reshape(x.*Psi_p,[],1));
     end
     if(opt.outLevel>=2)
         out.grad=grad;
