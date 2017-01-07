@@ -236,7 +236,8 @@ while(true)
                     opt.maxInnerItr,pInit);
             else
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
+                    opt.relInnerThresh*difX,...
+                    opt.maxInnerItr,pInit);
             end
         end
 
