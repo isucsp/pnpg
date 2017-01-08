@@ -11,23 +11,32 @@ function slGaussEx(op)
 
 
 if(~exist('op','var')) op='run'; end
+
 switch lower(op)
 case 'run'
     filename = [mfilename '.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear -regexp '(?i)opt'
+    clear -regexp '(?i)proxopt'
+    clear -regexp '(?i)C'
+    clear -regexp '(?i)proximal'
     filename = [mfilename '.mat'];
 
-    OPT.maxItr=5e4; OPT.thresh=1e-6; OPT.debugLevel=2;
+    OPT.maxItr=5e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.outLevel=1;
+    OPT.maxItr=5e2; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.outLevel=1;
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
+    PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+    PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+    proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
 
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
-    for i=1:length(m); if(any(i==[2:2:7]))
+    for i=4 %:length(m); if(any(i==[2:2:7]))
         OPT.m=m(i); OPT.snr=inf;
 
         [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,100+i);
         option.initStep='fixed'; option.Lip=@(u)u^2;
+        option.adaptiveStep=false; option.backtracking=false;
         proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',option);
         NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
 
@@ -36,143 +45,69 @@ case 'run'
         OPT.u = u(i)*10.^(-2:2);
         %gnet{i}=Wrapper.glmnet(Phi,wvltMat(length(OPT.trueAlpha),dwt_L,daub),y,initSig,OPT);
 
-        for j=5:-1:1
-            fprintf('%s, i=%d, j=%d\n','NPG',i,j);
-            OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
+        for j=4:-1:2
 
-            % BEGIN experiment region,  to delete in the end
+        fprintf('%s, i=%d, j=%d\n','NPG',i,j);
+        OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
-            opt=OPT;
-            G.exact=true;
-            G.val=@(x) opt.u*norm(Psit(x),1);
-            G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
-            gfb_   {i,j}=gfb(NLL,{G,C},opt.L,initSig,opt);
+        % BEGIN experiment region,  to delete in the end
 
-            opt=OPT; opt.thresh=1e-9;
-            H.exact=true;
-            H.val=@(s) opt.u*norm(s(:),1);
-            H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
-            condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
+        opt=OPT;
+        opt.sigma=10^-3; opt.tau=1/(opt.L)/opt.sigma; opt.maxItr=opt.maxItr*5;
+        opt.thresh=-1;
+        cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
 
-            opt=OPT;
-            pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT;
+        opt.sigma=10^0; opt.tau=1/(opt.L+1)/opt.sigma; opt.maxItr=opt.maxItr*5;
+        cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
 
-            keyboard
-            opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-            tfocs_200_m5 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        return
 
 
-            % END experiment region,  to delete in the end
-            if any(i==[6 4]) && any(j==[2 3 4])
-                opt=OPT; opt.b=0;
-                pnpgA0  {i,j}=pnpg(NLL,proximal,initSig,opt);
-                mysave;
-                continue;
+        keyboard
+        % END experiment region,  to delete in the end
 
-                opt=OPT; opt.innerThresh=1e-5; opt.thresh=1e-9; opt.maxItr=1e4; opt.debugLevel=0;
-                sparsn_m5_long   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
-            continue;
+        keyboard
 
-            if(i==6 && j==2)
-                opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-                opt.thresh=1e-9;
-                tfocs_200_m5_long {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            end
+        opt=OPT; opt.innerThresh=1e-5;
+        spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-            opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-            tfocs_200_m5 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
-            tfocs_200_m4 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.restartEvery=200;
-            tfocs_200_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.innerThresh=1e-5; obj.debugLevel=0
+        sparsn_m5   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.innerThresh=1e-12; opt.maxItr=5e4; obj.debugLevel=0
+        sparsn12{i,j}=Wrapper.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
+        sparsa12 {i,j}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-            mysave;
-            continue;
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+        opt.thresh=1e-9;
+        tfocs_200_m5_long {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-            opt=OPT; opt.innerThresh=1e-5;
-            spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.innerThresh=1e-5;
-            sparsn_m5   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT;
-            pnpg_    {i,j}=pnpg(NLL,proximal,initSig,opt);
-            pnpgc    {i,j}=Wrapper.PNPGc    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.alg='N83';
-            tfocs_n83_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.restart=false;
-            pnpg_noRestart {i,j}=pnpg(NLL,proximal,initSig,opt);
-            opt=OPT; opt.forcePositive=false;
-            pnpg_noPrj {i,j}=pnpg(NLL,proximal,initSig,opt);
-            opt=OPT; opt.forcePositive=false; opt.adaptiveStep=false;
-            pnpg_noPrj_noAdp {i,j}=pnpg(NLL,proximal,initSig,opt);
-            opt=OPT; opt.adaptiveStep=false;
-            pnpg_noAdp {i,j}=pnpg(NLL,proximal,initSig,opt);
-            opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-            pnpg_cumu0 {i,j}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+        tfocs_200_m5 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-            opt=OPT; opt.innerThresh=1e-4;
-            sparsn_m4   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.maxItr=opt.maxItr*10;
+        G.exact=true;
+        G.val=@(x) opt.u*norm(Psit(x),1);
+        G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
+        gfb_   {i,j}=gfb(NLL,{G,C},opt.L,initSig,opt);
 
-            opt=OPT; opt.thresh=1e-10; opt.adaptiveStep=false;
-            Tpnpg_noAdp {i,j}=pnpg(NLL,proximal,initSig,opt);
-            opt=OPT; opt.thresh=1e-10;
-            Tpnpg       {i,j}=pnpg(NLL,proximal,initSig,opt);
-            mysave;
-            continue;
-
-            opt=OPT; opt.restartEvery=100;
-            tfocs_100_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=OPT; opt.restartEvery=300;
-            tfocs_300_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-            continue;
-
-            if(~(i==4 && j<=2)) continue; end
-            condat   {i,j}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            keyboard
-            gfb_     {i,j}=Wrapper.GFB      (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.thresh=1e-9;
+        H.exact=true;
+        H.val=@(s) opt.u*norm(s(:),1);
+        H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
+        condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
 
 
-            tfocs_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            sparsn   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-            npgsc    {i,j}=Wrapper.NPGsc    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            npg      {i,j}=Wrapper.NPG      (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-            opt.restartEvery=200;
-            at200    {i,j}=Wrapper.AT       (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=rmfield(opt,'restartEvery');
-            opt.maxItr=opt.maxItr*10;
-            gfb_     {i,j}=Wrapper.GFB      (Phi,Phit,Psi,Psit,y,initSig,opt);
-            condat   {i,j}=Wrapper.Condat   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt.maxItr=opt.maxItr/10;
-
-            npg_nads {i,j}=Wrapper.NPG_nads (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-
-            temp=opt; opt.thresh=1e-12; opt.maxItr=5e4;
-            %pgc12{i,j}=Wrapper.PGc(Phi,Phit,Psi,Psit,y,initSig,opt);
-            %sparsn12{i,j}=Wrapper.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
-            %spiral12{i,j}=Wrapper.SPIRAL (Phi,Phit,Psi,Psit,y,initSig,opt);
-            sparsa12 {i,j}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=temp;
-
-
-            npgsT {i,j}=Wrapper.NPGs   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            temp=opt; opt.initStep='fixed';
-            fistal{i,j}=Wrapper.FISTA(Phi,Phit,Psi,Psit,y,initSig,opt);
-            opt=temp;
-            continue;
-
-            npgs     {i,j}=Wrapper.NPGs     (Phi,Phit,Psi,Psit,y,initSig,opt);
-            fpcas    {i,j}=Wrapper.FPCas    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            fista    {i,j}=Wrapper.FISTA    (Phi,Phit,Psi,Psit,y,initSig,opt);
-            sparsa   {i,j}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
-            fpc      {i,j}=Wrapper.FPC      (Phi,Phit,Psi,Psit,y,initSig,opt);
-            npgc_nads{i,j}=Wrapper.NPGc_nads(Phi,Phit,Psi,Psit,y,initSig,opt);
-            pgc      {i,j}=Wrapper.PGc      (Phi,Phit,Psi,Psit,y,initSig,opt);
-        end
-    end;
-end
+        opt=OPT; opt.alg='N83';
+        tfocs_n83_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_noAdp {i,j}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_cumu0 {i,j}=pnpg(NLL,proximal,initSig,opt);
+    end
+end;
 
 case 'plot'
     load([mfilename '.mat']);

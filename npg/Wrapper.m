@@ -227,6 +227,9 @@ classdef Wrapper < handle
                 end
             end
             if(~isfield(opt,'verbose')) opt.verbose=100; end
+            if(isfield(opt,'debugLevel') && opt.debugLevel==1)
+                opt.verbose=1e4;
+            end
             if(~isfield(opt,'bb')) opt.bb=zeros(size(y)); end
             if(~isfield(opt,'saveTrueCost')) opt.saveTrueCost=false; end
             if(~isfield(opt,'proximal')) opt.proximal='wvltLagrangian'; end

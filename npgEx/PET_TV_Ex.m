@@ -14,17 +14,19 @@ if(~exist('op','var')) op='run'; end
 
 switch lower(op)
 case 'run'
-    % PET example
     filename = [mfilename '.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear -regexp '(?i)opt'
+    clear -regexp '(?i)proxopt'
+    clear -regexp '(?i)C'
+    clear -regexp '(?i)proximal'
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
+    OPT.maxItr=1e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     tvType='l1';
     tvType='iso';
-    %OPT.maxItr=10;
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
     K=1;
@@ -57,6 +59,14 @@ case 'run'
         % END experiment region,  to delete in the end
 
         opt=OPT;
+        opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+
+        opt=OPT;
+        opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
+        cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
+
+        opt=OPT;
         opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
         opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
         opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
@@ -69,14 +79,6 @@ case 'run'
             opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
             initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
             opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-
-        opt=OPT;
-        opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-
-        opt=OPT;
-        opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
         opt=OPT;
         pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);

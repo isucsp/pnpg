@@ -19,14 +19,16 @@ case 'run'
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear -regexp '(?i)opt'
     clear -regexp '(?i)proxopt'
+    clear -regexp '(?i)C'
+    clear -regexp '(?i)proximal'
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
-    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
+    OPT.maxItr=1e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
+    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
+    C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
     PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
     proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
-    C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
-    %OPT.maxItr=10;
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
     K=1;
@@ -56,13 +58,6 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
         % END experiment region,  to delete in the end
 
-        opt=OPT; opt.thresh=1e-9;
-        opt.L=1/pnpg_{i,j,k}.stepSize(end);
-        H.exact=true;
-        H.val=@(s) opt.u*norm(s(:),1);
-        H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
-        condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
-
         opt=OPT;
         opt.sigma=10^-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
         cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
@@ -70,6 +65,13 @@ case 'run'
         opt=OPT;
         opt.sigma=10^-4; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
         cpdwt1 {i,j,k}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
+
+        opt=OPT; opt.thresh=1e-9;
+        opt.L=1/pnpg_{i,j,k}.stepSize(end);
+        H.exact=true;
+        H.val=@(s) opt.u*norm(s(:),1);
+        H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
+        condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
 
         opt=OPT;
         pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
