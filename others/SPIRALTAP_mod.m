@@ -366,7 +366,7 @@ if (numel(savecputime) ~= 1)  || (sum( savecputime == [0 1] ) ~= 1)
         'must be a binary scalar (either 0 or 1).'])
 end
 if (numel(savedifalpha) ~= 1)  || (sum( savedifalpha == [0 1] ) ~= 1)
-    error(['The option to save the difAlpha ',...
+    error(['The option to save the difX ',...
         'savedifalpha'' ',...
         'must be a binary scalar (either 0 or 1).'])
 end
@@ -602,7 +602,7 @@ if savesolutionpath
 end
 
 if savedifalpha
-    out.difAlpha=zeros(maxiter+1,1);
+    out.difX=zeros(maxiter+1,1);
 end
 if savetruecost
     out.trueCost=zeros(maxiter+1,1);
@@ -749,7 +749,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
     [converged,temp] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime(iter+1), objective);
     if savedifalpha
-        out.difAlpha(iter+1) = temp;
+        out.difX(iter+1) = temp;
     end
     if savestepsize
         out.stepSize(iter+1) = 1./alpha;
@@ -773,7 +773,7 @@ while (iter <= miniter) || ((iter <= maxiter) && not(converged))
                 abs(objective(iter)))
         end      
         if savedifalpha
-            fprintf(', difAlpha: %11.4e',out.difAlpha(iter+1));
+            fprintf(', difX: %11.4e',out.difX(iter+1));
         end
         if savereconerror
             fprintf(', Err: %11.4e',reconerror(iter+1))
@@ -835,7 +835,7 @@ if savesolutionpath
 end
 
 if (savedifalpha)
-    out.difAlpha(iter+2:end)=[];
+    out.difX(iter+2:end)=[];
 end
 if savetruecost
     out.trueCost(iter+2:end)=[];
@@ -993,9 +993,9 @@ end
 % =====================================
 % = Termination Criteria Computation: =
 % =====================================
-function [converged, difAlpha] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
+function [converged, difX] = checkconvergence(iter,miniter,stopcriterion,tolerance,...
                         dx, x, cputime, objective)
-	converged = 0; difAlpha=0;
+	converged = 0; difX=0;
     if iter >= miniter %no need to check if miniter not yet exceeded
 
         switch stopcriterion
@@ -1010,7 +1010,7 @@ function [converged, difAlpha] = checkconvergence(iter,miniter,stopcriterion,tol
                 temp=(sum(dx(:).^2));
                 temp1=sum(x(:).^2);
                 converged = ( temp <= tolerance^2*max(eps,temp1));
-                difAlpha=sqrt(temp/temp1);
+                difX=sqrt(temp/temp1);
             case 4
                 % relative changes in objective
                 converged = (( abs( objective(iter+1) - objective(iter))...

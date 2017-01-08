@@ -23,11 +23,10 @@ case 'run'
     filename = [mfilename '.mat'];
 
     OPT.maxItr=5e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.outLevel=1;
-    OPT.maxItr=5e2; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.outLevel=1;
+    OPT.maxItr=5e2; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.outLevel=1;
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
     PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
-    proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
 
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
@@ -35,9 +34,7 @@ case 'run'
         OPT.m=m(i); OPT.snr=inf;
 
         [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,100+i);
-        option.initStep='fixed'; option.Lip=@(u)u^2;
-        option.adaptiveStep=false; option.backtracking=false;
-        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',option);
+        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
         NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
 
         initSig = Phit(invEAAt*y);
@@ -52,9 +49,10 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        % END experiment region,  to delete in the end
+
         opt=OPT;
-        opt.sigma=10^-3; opt.tau=1/(opt.L)/opt.sigma; opt.maxItr=opt.maxItr*5;
-        opt.thresh=-1;
+        opt.sigma=10^-3; opt.tau=1/opt.L/opt.sigma; opt.maxItr=opt.maxItr*5;
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
 
         opt=OPT;
@@ -63,37 +61,30 @@ case 'run'
 
         opt=OPT;
         pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
-        return
-
-
-        keyboard
-        % END experiment region,  to delete in the end
-
-        keyboard
 
         opt=OPT; opt.innerThresh=1e-5;
         spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-        opt=OPT; opt.innerThresh=1e-5; obj.debugLevel=0
+        opt=OPT; opt.innerThresh=1e-5; opt.thresh=1e-6;
         sparsn_m5   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.innerThresh=1e-12; opt.maxItr=5e4; obj.debugLevel=0
+
+        opt=OPT; opt.innerThresh=1e-12;
         sparsn12{i,j}=Wrapper.SpaRSAp(Phi,Phit,Psi,Psit,y,initSig,opt);
         sparsa12 {i,j}=Wrapper.SpaRSA   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-        opt.thresh=1e-9;
         tfocs_200_m5_long {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-        opt=OPT; opt.maxItr=opt.maxItr*10;
+        opt=OPT;
         G.exact=true;
         G.val=@(x) opt.u*norm(Psit(x),1);
         G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
         gfb_   {i,j}=gfb(NLL,{G,C},opt.L,initSig,opt);
 
-        opt=OPT; opt.thresh=1e-9;
+        opt=OPT;
         H.exact=true;
         H.val=@(s) opt.u*norm(s(:),1);
         H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);

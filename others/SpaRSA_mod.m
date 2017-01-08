@@ -273,7 +273,7 @@ phi_l1 = 0;
 debias_start = 0;
 x_debias = [];
 out.mses = [];
-out.difAlpha = [];
+out.difX = [];
 out.stepSize = [];
 
 % Read the optional parameters
@@ -612,7 +612,7 @@ while keep_continuation
       end
       % f_threshold
 
-      if f <= f_threshold
+      if f <= f_threshold || isinf(alpha)
         cont_inner=0;
       else
         % not good enough, increase alpha and try again
@@ -670,7 +670,7 @@ while keep_continuation
     end
 
     delta_x_criterion = sqrt((dx(:)'*dx(:))/(x(:)'*x(:)));
-    out.difAlpha(iter)=delta_x_criterion;
+    out.difX(iter)=delta_x_criterion;
     out.uRecord(iter,:)=[final_tau,tau];
     % compute stopping criteria and test for termination
     switch stopCriterion
