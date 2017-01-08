@@ -177,7 +177,7 @@ while(true)
     if(G.exact)
         x=G.prox(x-tau*K.backward(y),tau);
     else
-        [x,innerItr_,pInit_]=G.prox(x-tau*K.backward(y),tau,...
+        [x,innerItr,pInit]=G.prox(x-tau*K.backward(y),tau,...
             opt.relInnerThresh*difX*0,opt.maxInnerItr,pInit);
     end
     preKx = Kx;
@@ -186,13 +186,6 @@ while(true)
     preCost=cost;
     cost=F.val(Kx)+G.val(x);
     difX = relativeDif(x,preX);
-
-    if(G.exact)
-        innerItr=0;
-    else
-        pInit=pInit_;
-        innerItr=innerItr_;
-    end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%
     %  end of one PNPG step  %

@@ -71,12 +71,10 @@ case 'run'
             opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
 
         opt=OPT;
-        % the value for sigma and tau is optimal for i=4
         opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,opt.trueX,opt);
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
 
         opt=OPT;
-        % the value for sigma and tau is optimal for i=4
         opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
         cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
@@ -104,6 +102,7 @@ case 'run'
         pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.b=0;
         pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
 
         opt=OPT; opt.cumuTol=0;
         pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);

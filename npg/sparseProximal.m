@@ -339,19 +339,14 @@ function [x,itr,p]=denoiseADMM(a,u,relativeTol,maxItr,pInit)
     % this makes sure the convergence criteria is nontrival
     relativeTol=min(1e-3,relativeTol); strlen=0;
 
-    % scale the input to prevent numerical problem
-    scale=pNorm(a,2);
-    if(scale==0) x=zeros(size(a)); itr=0; p=pInit; return; end
     s=pInit{1}; nu=pInit{2}; rho=pInit{3};
-
-    a=a/scale;  u=u/scale; s=s/scale; nu=nu/scale;
 
     itr=0; cnt=0; preS=s;
     while(true)
         itr=itr+1;
         cnt= cnt + 1;
 
-        x = prj_C(scale*(a+rho*Psi(s+nu))/(1+rho))/scale;
+        x = prj_C((a+rho*Psi(s+nu))/(1+rho));
         Psit_x=Psit(x);
         s = Utils.softThresh(Psit_x-nu,u/rho);
         nu=nu+s-Psit_x;
@@ -383,7 +378,6 @@ function [x,itr,p]=denoiseADMM(a,u,relativeTol,maxItr,pInit)
             end
         end
     end 
-    x = prj_C(scale*(a+rho*Psi(s+nu))/(1+rho));
     p = {s,nu,rho};
     % end of the ADMM inside the NPG
     if(debug.level(2))

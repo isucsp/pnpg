@@ -285,9 +285,7 @@ while(true)
         preX=x; difX=0;
         preCost=cost;
     else
-        if(proximal.exact)
-            innerItr=0;
-        else
+        if(~proximal.exact)
             pInit=pInit_;
             innerItr=innerItr_;
         end
