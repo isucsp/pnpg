@@ -11,7 +11,7 @@ function out = CP_DWT(Phi,Phit,y,approach,Psi,Psit,G,xInit,opt)
         F = F_;
         K.forward = Phi;
         K.backward = Phit;
-        proxOpt.initStep = 'fixed'; proxOpt.u = @(u)u^2;
+        proxOpt.initStep = 'fixed'; proxOpt.Lip = @(u)u^2;
         proxOpt.adaptiveStep = false; proxOpt.backtracking = false;
         proximal = sparseProximal(Psi,Psit,G.prox,'pnpg',proxOpt);
         G.exact = proximal.exact;

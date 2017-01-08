@@ -495,7 +495,6 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         opt.outLevel=0;
     end
 
-    tStart=tic;
     if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
         p=pInit{1}; q=pInit{2};
     else
@@ -539,14 +538,12 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
             debug.appendLog('_ForceConverge');
             difX=0;
             preP = p; preQ = q; prePsi_p=Psi_p;
-            preCost=cost;
         else
             difX = relativeDif(x,newX);
             x=newX;
             preP = p; preQ = q; prePsi_p=Psi_p;
             p = newP; q = newQ; Psi_p=newPsi_p;
             theta = newTheta;
-            preCost=cost;
             cost = newCost;
         end
 
