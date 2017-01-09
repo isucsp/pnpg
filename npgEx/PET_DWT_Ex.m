@@ -14,13 +14,9 @@ if(~exist('op','var')) op='run'; end
 
 switch lower(op)
 case 'run'
-    % PET example
     filename = [mfilename '.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-    clear -regexp '(?i)opt'
-    clear -regexp '(?i)proxopt'
-    clear -regexp '(?i)C'
-    clear -regexp '(?i)proximal'
+    clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
     OPT.maxItr=1e3; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
