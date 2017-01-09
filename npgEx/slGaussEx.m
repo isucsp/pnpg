@@ -22,8 +22,8 @@ case 'run'
     clear -regexp '(?i)proximal'
     filename = [mfilename '.mat'];
 
-    OPT.maxItr=5e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.outLevel=1;
     OPT.maxItr=5e2; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.outLevel=1;
+    OPT.maxItr=5e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.outLevel=1;
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
     PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
@@ -42,6 +42,7 @@ case 'run'
         OPT.u = u(i)*10.^(-2:2);
         %gnet{i}=Wrapper.glmnet(Phi,wvltMat(length(OPT.trueAlpha),dwt_L,daub),y,initSig,OPT);
 
+        %for j=4:-1:2
         for j=4:-1:2
 
         fprintf('%s, i=%d, j=%d\n','NPG',i,j);
@@ -52,15 +53,15 @@ case 'run'
         % END experiment region,  to delete in the end
 
         opt=OPT;
-        opt.sigma=10^-3; opt.tau=1/opt.L/opt.sigma; opt.maxItr=opt.maxItr*5;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+
+        opt=OPT;
+        opt.sigma=10^-3; opt.tau=1/opt.L/opt.sigma;
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
 
         opt=OPT;
-        opt.sigma=10^0; opt.tau=1/(opt.L+1)/opt.sigma; opt.maxItr=opt.maxItr*5;
+        opt.sigma=10^0; opt.tau=1/(opt.L+1)/opt.sigma;
         cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
-
-        opt=OPT;
-        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
 
         opt=OPT; opt.innerThresh=1e-5;
         spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -77,6 +78,8 @@ case 'run'
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        mysave
 
         opt=OPT;
         G.exact=true;
@@ -97,6 +100,8 @@ case 'run'
         pnpg_noAdp {i,j}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
         pnpg_cumu0 {i,j}=pnpg(NLL,proximal,initSig,opt);
+
+        mysave
     end
 end;
 

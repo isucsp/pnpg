@@ -341,7 +341,7 @@ if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\nCPU Time: %g, objective=%g',toc(tStart),cost);
+    fprintf('\n%s: CPU Time: %g, objective=%g',mfilename,toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);

@@ -531,7 +531,7 @@ function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
         newCost=(sqrNorm(newY)-sqrNorm(newX-newY))/2;
 
         %if(newCost-cost > eps*max(newCost,cost))
-        if(newCost>cost)
+        if((newCost-cost)>1e-14*norm([newCost,cost],inf))
             if(restart()) itr=itr-1; continue; end
 
             % give up and force it to converge

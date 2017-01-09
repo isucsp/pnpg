@@ -22,8 +22,8 @@ case 'run'
     clear -regexp '(?i)proximal'
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
-    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
     OPT.maxItr=1e3; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
+    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     tvType='l1';
     tvType='iso';
@@ -56,7 +56,25 @@ case 'run'
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
         % BEGIN experiment region,  to delete in the end
+        opt=OPT;
+        o=pnpg(NLL,proximal,initSig,opt);
+        pnpg_{i,j,k}.time(end)
+        pnpg_{i,j,k}.cost(end)
+        pnpg_{i,j,k}.RMSE(end)
+
+        o=pnpg_d{i};
+        fprintf('\n%s: CPU Time: %g, objective=%g',mfilename,o.time(end),o.cost(end));
+
+        opt.dualGap=true;
+        opt1=[]; opt1.dualGap=opt.dualGap;
+        opt.proximal=tvProximal(tvType,C.prox,'pnpg',opt1);
+        pnpg_d   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+
+        return;
         % END experiment region,  to delete in the end
+
+        opt=OPT;
+        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
         opt=OPT;
         opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
@@ -79,9 +97,6 @@ case 'run'
             opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
             initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
             opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-
-        opt=OPT;
-        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
         opt=OPT;
         opt.dualGap=true;

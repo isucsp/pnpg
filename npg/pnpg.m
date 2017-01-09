@@ -207,7 +207,7 @@ while(true)
         end
         xbar=x+(theta-1)/newTheta*(x-preX);
         xbar=opt.prj_C(xbar);
-        [oldCost,grad] = NLL(xbar);
+        [oldNLL,grad] = NLL(xbar);
     end
 
     % start of line Search
@@ -224,7 +224,7 @@ while(true)
             end
             xbar=x+(theta-1)/newTheta*(x-preX);
             xbar=opt.prj_C(xbar);
-            [oldCost,grad] = NLL(xbar);
+            [oldNLL,grad] = NLL(xbar);
         end
 
         if(proximal.exact)
@@ -241,8 +241,8 @@ while(true)
             end
         end
 
-        newCost=NLL(newX);
-        if((newCost-oldCost)<=innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2)
+        newNLL=NLL(newX);
+        if((newNLL-oldNLL)<=innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2)
             if(itr<=opt.preSteps && opt.adaptiveStep && goodStep)
                 cumu=opt.cumuTol;
             end
@@ -260,18 +260,18 @@ while(true)
             else  % don't know what to do, mark on debug and break
                 goodMM=false;
                 debug.appendLog('_FalseMM');
-                %debug.appendLog(sprintf('\nnewCost-oldCost=%10.10g',newCost-oldCost));
+                %debug.appendLog(sprintf('\nnewCost-oldNLL%10.10g',newNLL-oldNLL));
                 %debug.appendLog(sprintf('\ndif=%10.10g',...
-                %   newCost-oldCost-innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2));
+                %   newNLL-oldNLL-innerProd(newX-xbar,grad)+t*sqrNorm(newX-xbar)/2));
                 break;
             end
         end
     end
     newPen = proximal.val(newX);
-    newObj = newCost+opt.u*newPen;
+    newCost = newNLL+opt.u*newPen;
 
     % using eps reduces numerical issue around the point of convergence
-    if((newObj-cost)>1e-14*norm([newObj,cost],inf))
+    if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
             if(restart()) itr=itr-1; continue; end
             if(runMore()) itr=itr-1; continue; end
@@ -280,7 +280,7 @@ while(true)
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
-        %debug.appendLog(sprintf('\nNewObj-cost=%10.10g',newObj-cost));
+        %debug.appendLog(sprintf('\nNewObj-cost=%10.10g',newCost-cost));
         innerItr=0;
         preX=x; difX=0;
         preCost=cost;
@@ -294,8 +294,8 @@ while(true)
         x = newX;
         theta = newTheta;
         preCost=cost;
-        cost = newObj;
-        NLLVal=newCost;
+        cost = newCost;
+        NLLVal=newNLL;
         penVal=newPen;
     end
 
@@ -394,7 +394,7 @@ if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\nCPU Time: %g, objective=%g',toc(tStart),cost);
+    fprintf('\n%s: CPU Time: %g, objective=%g',mfilename,toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);
@@ -414,7 +414,8 @@ function reset()
 end
 function res=restart()
     % if has monmentum term, restart
-    res=(pNorm(xbar-x,0)~=0);
+    res=((pNorm(xbar-x,0)~=0) && ...
+        (oldNLL+opt.u*proximal.val(xbar)>newCost));
     if(~res) return; end
 
     theta=1;
