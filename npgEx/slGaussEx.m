@@ -16,10 +16,7 @@ switch lower(op)
 case 'run'
     filename = [mfilename '.mat'];
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
-    clear -regexp '(?i)opt'
-    clear -regexp '(?i)proxopt'
-    clear -regexp '(?i)C'
-    clear -regexp '(?i)proximal'
+    clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
 
     OPT.maxItr=5e2; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.outLevel=1;
