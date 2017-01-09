@@ -246,12 +246,15 @@ for itr = 1:NIT
     
 end
 
+TimeCost(itr+2:end) = [];
 Primal(itr+2:end) = [];
+alpha_vec(itr+2:end) = [];
+for i=1:nobj
+    err{i}(itr+2:end) = [];
+end
 nit_vec(itr+1) = [];
 hsigma_vec(itr+1) = [];
 G_vec(itr+1) = [];
-alpha_vec(itr+2:end) = [];
-TimeCost(itr+2:end) = [];
 
 out.x=x;
 out.time=TimeCost;

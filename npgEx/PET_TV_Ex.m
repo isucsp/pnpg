@@ -162,19 +162,10 @@ case lower('tspAddition')
     spiral=spiral_m5;
     tfocs=tfocs_200_m5;
 
-    % time cost RMSE
-    forSave=[count(:),meanOverK(   fbp,'RMSE'),...
-        meanOverK(     pnpg_),...
-        meanOverK(  pnpg_n0),...
-        meanOverK(   spiral),...
-        meanOverK(    tfocs),...
-        ];
-    save('varyCntPET_TV.data','forSave','-ascii');
-
     % mIdx=6 is also good
     mIdx=4; as=1; k=1;
     fields_={'stepSize','RMSE','time','cost'};
-    forSave=addTrace(        pnpg_{mIdx,as,k},     [],fields_); %  1- 4
+    forSave=addTrace(       pnpg_{mIdx,as,k},     [],fields_); %  1- 4
     forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_); %  9-12
     forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields_); % 13-16
@@ -187,15 +178,23 @@ case lower('tspAddition')
     forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields_); % 41-44
     save('cost_itrPET_TV.data','forSave','-ascii');
 
+    o=vmila{mIdx,as,k};
+    vmila{mIdx,as,k}.RMSE=o.RMSE{1}(1:length(o.cost));
+    fields_={'RMSE','time','cost'};
+    forSave=addTrace(       vmila{mIdx,as,k},     [],fields_); %  1- 3
+    forSave=addTrace(       cptv1{mIdx,as,k},forSave,fields_); %  4- 6
+    forSave=addTrace(       cptv2{mIdx,as,k},forSave,fields_); %  7- 9
+    save('cost_itrPET_TV_1.data','forSave','-ascii');
+
     nn=128;
     xtrue = read_zubal_emis('nx', nn, 'ny', nn);
     idx=5;
-    fprintf('  PNPG: %g%%\n',  pnpg_{idx}.RMSE(end)*100);
+    fprintf('  PNPG: %g%%\n', pnpg_{idx}.RMSE(end)*100);
     fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
     fprintf(' tfocs: %g%%\n', tfocs{idx}.RMSE(end)*100);
     fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
     img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
-    img=showImgMask(  pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV_pet.png')
+    img=showImgMask( pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_TV_pet.png')
     img=showImgMask( tfocs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'tfocs_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'tfocs_TV_pet.png')
     img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_TV_pet.png')
     img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_TV_pet.png')
@@ -584,6 +583,15 @@ case 'fullplot'
         m(:)];
     save('varyMeasurementPoisson.data','forSave','-ascii');
 
+    % time cost RMSE
+    forSave=[count(:),meanOverK(   fbp,'RMSE'),...
+        meanOverK(    pnpg_),...
+        meanOverK(  pnpg_n0),...
+        meanOverK(   spiral),...
+        meanOverK(    tfocs),...
+        ];
+    save('varyCntPET_TV.data','forSave','-ascii');
+
 
 end
 
@@ -605,7 +613,12 @@ function forSave=addTrace(method,forSave,fields)
     end
     n=length(fields);
     for i=1:n
-        data(:,i)=reshape(getfield(method,fields{i}),[],1);
+        tt=getfield(method,fields{i});
+        if(iscell(tt) && length(tt)==1)
+            data(:,i)=reshape(tt{1},[],1);
+        else
+            data(:,i)=reshape(tt,[],1);
+        end
     end
     forSave=appendColumns(data,forSave);
 end
