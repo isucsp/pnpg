@@ -159,27 +159,45 @@ case lower('tspAddition')
 
     % mIdx=6 is also good
     mIdx=4; as=1; k=1;
+    mc=min([  min(    pnpg_{mIdx,as,k}.cost)
+              min(  pnpg_n0{mIdx,as,k}.cost)
+              min(   spiral{mIdx,as,k}.cost)
+              min(pnpg_nInf{mIdx,as,k}.cost)
+              min(pnpg_n0m0{mIdx,as,k}.cost)
+              min(    tfocs{mIdx,as,k}.cost)
+              min(   pnpgA0{mIdx,as,k}.cost)
+              min( pnpgG5A0{mIdx,as,k}.cost)
+              min( pnpgG5Aq{mIdx,as,k}.cost)
+              min( pnpgGfA0{mIdx,as,k}.cost)
+              min( pnpgGfAq{mIdx,as,k}.cost)
+              min(    vmila{mIdx,as,k}.cost)
+              min(    cptv1{mIdx,as,k}.cost)
+              min(    cptv2{mIdx,as,k}.cost) ]);
+
     fields_={'stepSize','RMSE','time','cost'};
-    forSave=addTrace(       pnpg_{mIdx,as,k},     [],fields_); %  1- 4
-    forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_); %  5- 8
-    forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_); %  9-12
-    forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields_); % 13-16
-    forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields_); % 17-20
-    forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields_); % 21-24
-    forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields_); % 25-28
-    forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields_); % 29-32
-    forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields_); % 33-26
-    forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields_); % 37-40
-    forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields_); % 41-44
+    forSave=addTrace(       pnpg_{mIdx,as,k},     [],fields_,mc); %  1- 4
+    forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_,mc); %  5- 8
+    forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_,mc); %  9-12
+    forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields_,mc); % 13-16
+    forSave=addTrace(   pnpg_n0m0{mIdx,as,k},forSave,fields_,mc); % 17-20
+    forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields_,mc); % 21-24
+    forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields_,mc); % 25-28
+    forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields_,mc); % 29-32
+    forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields_,mc); % 33-26
+    forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields_,mc); % 37-40
+    forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields_,mc); % 41-44
     save('cost_itrPET_TV.data','forSave','-ascii');
 
     o=vmila{mIdx,as,k};
     vmila{mIdx,as,k}.RMSE=o.RMSE{1}(1:length(o.cost));
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(       vmila{mIdx,as,k},     [],fields_); %  1- 3
-    forSave=addTrace(       cptv1{mIdx,as,k},forSave,fields_); %  4- 6
-    forSave=addTrace(       cptv2{mIdx,as,k},forSave,fields_); %  7- 9
+    forSave=addTrace(       vmila{mIdx,as,k},     [],fields_,mc); %  1- 3
+    forSave=addTrace(       cptv1{mIdx,as,k},forSave,fields_,mc); %  4- 6
+    forSave=addTrace(       cptv2{mIdx,as,k},forSave,fields_,mc); %  7- 9
+    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); % 10-12
     save('cost_itrPET_TV_1.data','forSave','-ascii');
+    paperDir='~/research/myPaper/asilomar2014/';
+    system(['mv cost_itrPET_TV.data cost_itrPET_TV_1.data ' paperDir]);
 
     nn=128;
     xtrue = read_zubal_emis('nx', nn, 'ny', nn);
@@ -211,14 +229,16 @@ case lower('plotTV')
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-    K = 1:3;
+    K = 1:1;
 
     npgTVcTime= mean(Cell.getField(npgTVc(:,1,K),'time'),3);
     npgTVcCost= mean(Cell.getField(npgTVc(:,1,K),'cost'),3);
     npgTVcRMSE= mean(Cell.getField(npgTVc(:,1,K),'RMSE'),3);
+
     npgTVTime = mean(Cell.getField(npgTV (:,1,K),'time'),3);
     npgTVCost = mean(Cell.getField(npgTV (:,1,K),'cost'),3);
     npgTVRMSE = mean(Cell.getField(npgTV (:,1,K),'RMSE'),3);
+
     spiralTVTime = mean(Cell.getField(spiralTV (:,1,K),'time'),3);
     spiralTVCost = mean(Cell.getField(spiralTV (:,1,K),'cost'),3);
     spiralTVRMSE = mean(Cell.getField(spiralTV (:,1,K),'RMSE'),3);
@@ -230,6 +250,18 @@ case lower('plotTV')
     npgscTime = mean(Cell.getField( npgsc(:,1,K),'time'),3);
     npgscCost = mean(Cell.getField( npgsc(:,1,K),'cost'),3);
     npgscRMSE = mean(Cell.getField( npgsc(:,1,K),'RMSE'),3);
+
+    vmilaTime = mean(Cell.getField( vmila(:,1,K),'time'),3);
+    vmilaCost = mean(Cell.getField( vmila(:,1,K),'cost'),3);
+    vmilaRMSE = mean(Cell.getField( vmila(:,1,K),'RMSE'),3);
+
+    cptv1Time = mean(Cell.getField( cptv1(:,1,K),'time'),3);
+    cptv1Cost = mean(Cell.getField( cptv1(:,1,K),'cost'),3);
+    cptv1RMSE = mean(Cell.getField( cptv1(:,1,K),'RMSE'),3);
+
+    cptv2Time = mean(Cell.getField( cptv2(:,1,K),'time'),3);
+    cptv2Cost = mean(Cell.getField( cptv2(:,1,K),'cost'),3);
+    cptv2RMSE = mean(Cell.getField( cptv2(:,1,K),'RMSE'),3);
 
     fbpRMSE   = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
 
@@ -353,7 +385,6 @@ case lower('plotTV')
     img=showImgMask(     fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,     'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),     'FBP_pet2.png')
     img=showImgMask(    npgs{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,    'NPGs_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),    'NPGs_pet2.png')
 
-    paperDir='~/research/myPaper/asilomar2015/';
     decide=input(sprintf('start to copy to %s [y/N]?',paperDir));
     if strcmpi(decide,'y')
         system(['mv varyCntPET.data cost_itrPET.data *_pet.png ' paperDir]);
@@ -602,7 +633,7 @@ function [a,b,c]=meanOverK(method,field)
         a=[a b c];
     end
 end
-function forSave=addTrace(method,forSave,fields)
+function forSave=addTrace(method,forSave,fields,mc)
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
@@ -610,10 +641,12 @@ function forSave=addTrace(method,forSave,fields)
     for i=1:n
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
-            data(:,i)=reshape(tt{1},[],1);
-        else
-            data(:,i)=reshape(tt,[],1);
+            tt=tt{1};
         end
+        if(strcmpi(fields{i},'cost') && exist('mc','var'))
+            tt=(tt-mc)/mc;
+        end
+        data(:,i)=reshape(tt,[],1);
     end
     forSave=appendColumns(data,forSave);
 end

@@ -104,18 +104,13 @@ end;
 
 case 'plot'
     load([mfilename '.mat']);
-    load('gfb.mat'); load('condat.mat');
+    %load('gfb.mat'); load('condat.mat');
 
     m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
     K = 1;
 
-    temp=pnpg_(6,:,2:5); pnpg_(:,:,2:5)=[];pnpg_(6,:,2:5)=temp;
-    temp=pnpgc(6,:,2:5); pnpgc(:,:,2:5)=[]; pnpgc(6,:,2:5)=temp;
-      pnpg_     =       pnpg_(:,:,1:5);
-     pnpgc      =       pnpgc(:,:,1:5);
-       npg      =       pnpg_(:,:,1:5);
-      npgc      =       pnpgc(:,:,1:5);
+      pnpg_     =       pnpg_(:,:,1:K);
     spiral      =   spiral_m5(:,:,1:K);
     sparsn      =   sparsn_m5(:,:,1:K);
        gfb_     =        gfb_(:,:,1:K);
@@ -124,6 +119,66 @@ case 'plot'
     tfocs_200_m5=tfocs_200_m5(:,:,1:K);
     spiral_m5   =   spiral_m5(:,:,1:K);
     sparsn_m5   =   sparsn_m5(:,:,1:K);
+
+
+
+    mIdx=4;
+
+    iii=2;
+    mc2=min([...
+        min(       pnpg_{mIdx,iii}.cost)
+        min(      spiral{mIdx,iii}.cost)
+        min(      sparsn{mIdx,iii}.cost)
+        min(        gfb_{mIdx,iii}.cost)
+        min(      condat{mIdx,iii}.cost)
+        min(    tfocs_AT{mIdx,iii}.cost)
+        min(tfocs_n83_m6{mIdx,iii}.cost)
+        min(  pnpg_cumu0{mIdx,iii}.cost)
+        min(      cpdwt1{mIdx,iii}.cost)
+        min(      cpdwt2{mIdx,iii}.cost)]);
+    iii=3;
+    mc3=min([...
+        min(       pnpg_{mIdx,iii}.cost)
+        min(      spiral{mIdx,iii}.cost)
+        min(      sparsn{mIdx,iii}.cost)
+        min(        gfb_{mIdx,iii}.cost)
+        min(      condat{mIdx,iii}.cost)
+        min(    tfocs_AT{mIdx,iii}.cost)
+        min(tfocs_n83_m6{mIdx,iii}.cost)
+        min(  pnpg_cumu0{mIdx,iii}.cost)
+        min(      cpdwt1{mIdx,iii}.cost)
+        min(      cpdwt2{mIdx,iii}.cost)]);
+    iii=4;
+    mc4=min([...
+        min(       pnpg_{mIdx,iii}.cost)
+        min(      spiral{mIdx,iii}.cost)
+        min(      sparsn{mIdx,iii}.cost)
+        min(        gfb_{mIdx,iii}.cost)
+        min(      condat{mIdx,iii}.cost)
+        min(    tfocs_AT{mIdx,iii}.cost)
+        min(tfocs_n83_m6{mIdx,iii}.cost)
+        min(  pnpg_cumu0{mIdx,iii}.cost)
+        min(      cpdwt1{mIdx,iii}.cost)
+        min(      cpdwt2{mIdx,iii}.cost)]);
+
+    % each time add 3 columns (time cost RMSE)
+    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
+    out=         spiral;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
+    out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
+    out=           gfb_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-gfb.data','temp','-ascii');
+    out=         condat;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-condat.data','temp','-ascii');
+    out=       tfocs_AT;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-tfocsAT.data','temp','-ascii');
+    out=   tfocs_n83_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-tfocsN83.data','temp','-ascii');
+    out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpgCumu0.data','temp','-ascii');
+    out=         cpdwt1;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-1.data','temp','-ascii');
+    out=         cpdwt2;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-2.data','temp','-ascii');
+
+    return;
+
+    out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
+    out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
+    out=         pnpgA0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgG2A0.data','temp','-ascii');
+
 
    %tfocs1=tfocs1(:,:,1:K);
    % at200= at200(:,:,1:K);
@@ -248,7 +303,7 @@ case 'plot'
 
     keyboard
 
-    for mIdx=[4 6];
+    for mIdx=[4];
         for as=[2 3 4]
             forSave=[];
             forSave=addTrace(         npg{mIdx,as},forSave); % each time add 3 columns (time cost RMSE)
@@ -295,21 +350,12 @@ case 'plot'
         end
     end
 
-    keyboard
-
     mIdx=4;
-    % each time add 3 columns (time cost RMSE)
-    out=          pnpg_;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpg.data','temp','-ascii');
-    out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
-    out=         spiral;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-spiral.data','temp','-ascii');
-    out=         sparsn;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsn.data','temp','-ascii');
-    out=           gfb_;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-gfb.data','temp','-ascii');
-    out=         condat;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-condat.data','temp','-ascii');
-    out=       tfocs_AT;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsAT.data','temp','-ascii');
-    out=   tfocs_n83_m6;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-tfocsN83.data','temp','-ascii');
-    out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgCumu0.data','temp','-ascii');
-    out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
-    out=         pnpgA0;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgG2A0.data','temp','-ascii');
+    forSave=addTrace(      cpdwt1{mIdx,as},[]); % 28
+    forSave=addTrace(  {mIdx,as},forSave); % 31
+
+
+    keyboard
 
     mIdx=6;
     % each time add 3 columns (time cost RMSE)
@@ -892,40 +938,47 @@ else
 end
 end
 function idx = findBestJ(method)
-rmse=meanOverK(method,'RMSE');
-[r,c]=find(rmse==repmat(min(rmse,[],2),1,5));
-[r,idx]=sort(r);
-c=c(idx);
-[r,ia]=unique(r);
-idx=c(ia);
+    rmse=meanOverK(method,'RMSE');
+    [r,c]=find(rmse==repmat(min(rmse,[],2),1,5));
+    [r,idx]=sort(r);
+    c=c(idx);
+    [r,ia]=unique(r);
+    idx=c(ia);
 end
 function ret = findBest(method,field,idx)
-if ~exist('field','var')
-    field='RMSE';
+    if ~exist('field','var')
+        field='RMSE';
+    end
+    if ~exist('idx','var')
+        idx=findBestJ(method);
+    end
+    idx=idx(:);
+    data=meanOverK(method,field);
+    ret=ones(size(idx))*nan;
+    for i=1:min(size(data,1),length(idx))
+        ret(i)=data(i,idx(i));
+    end
 end
-if ~exist('idx','var')
-    idx=findBestJ(method);
-end
-idx=idx(:);
-data=meanOverK(method,field);
-ret=ones(size(idx))*nan;
-for i=1:min(size(data,1),length(idx))
-    ret(i)=data(i,idx(i));
-end
-end
-function forSave=addTrace(method,forSave,fields)
-if(~exist('fields','var'))
-    fields={'time','cost','RMSE'};
-end
-n=length(fields);
-for i=1:n
-    data(:,i)=reshape(getfield(method,fields{i}),[],1);
-end
-forSave=appendColumns(data,forSave);
+function forSave=addTrace(method,forSave,fields,mc)
+    if(~exist('fields','var') || isempty(fields))
+        fields={'time','cost','RMSE'};
+    end
+    n=length(fields);
+    for i=1:n
+        tt=getfield(method,fields{i});
+        if(iscell(tt) && length(tt)==1)
+            tt=tt{1};
+        end
+        if(strcmpi(fields{i},'cost') && exist('mc','var'))
+            tt=(tt-mc)/mc;
+        end
+        data(:,i)=reshape(tt,[],1);
+    end
+    forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)
-[r,c]=size(forSave);
-forSave(1:size(col,1),c+1:c+size(col,2))=col;
+    [r,c]=size(forSave);
+    forSave(1:size(col,1),c+1:c+size(col,2))=col;
 end
 
 

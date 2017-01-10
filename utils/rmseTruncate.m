@@ -1,7 +1,7 @@
 function rmse=rmseTruncate(x,trueAlpha)
     if(nargin<2) trueAlpha=x.opt.trueAlpha; end;
     if(isstruct(x))
-        alpha=x.alpha;
+        alpha=x.x;
     else
         alpha=x(:);
     end

@@ -116,62 +116,55 @@ case lower('plot')
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-    K = 5;
+    K = 1;
           fbp=      fbp(:,:,1:K);
         pnpg_=    pnpg_(:,:,1:K);
        spiral=   spiral_m5(:,:,1:K);
       pnpg_n0=  pnpg_n0(:,:,1:K);
     pnpg_nInf=pnpg_nInf(:,:,1:K);
-        pnpgc=    pnpgc(:,:,1:K);
         tfocs=tfocs_200_m5(:,:,1:K);
-
-    figure;
-    loglog(count,meanOverK(      fbp,'RMSE'),'b-o'); hold on;
-    loglog(count,meanOverK(     pnpg,'RMSE'),'r-*'); hold on;
-    loglog(count,meanOverK(   spiral,'RMSE'),'k*-.');
-    loglog(count,meanOverK(  pnpg_n0,'RMSE'),'c>-');
-    loglog(count,meanOverK(pnpg_nInf,'RMSE'),'gs-');
-    loglog(count,meanOverK(    pnpgc,'RMSE'),'bp-.');
-    loglog(count,meanOverK(    tfocs,'RMSE'),'kh-');
-    legend('fbp','pnpg','spiral','pnpg\_n0','pnpg\_nInf','pnpgc','tfocs');
-
-    figure;
-    loglog(count,meanOverK(     pnpg,'time'),'r-*'); hold on;
-    loglog(count,meanOverK(   spiral,'time'),'k*-.');
-    loglog(count,meanOverK(  pnpg_n0,'time'),'c>-');
-    loglog(count,meanOverK(pnpg_nInf,'time'),'gs-');
-    loglog(count,meanOverK(    pnpgc,'time'),'bp-.');
-    loglog(count,meanOverK(    tfocs,'time'),'kh-');
-    legend('pnpg','spiral',' pnpg\_n0','pnpg\_nInf','pnpgc','tfocs');
-
-    % time cost RMSE
-    forSave=[count(:),meanOverK(   fbp,'RMSE'),...
-        meanOverK(     pnpg),...
-        meanOverK(   spiral),...
-        meanOverK(  pnpg_n0),...
-        meanOverK(pnpg_nInf),...
-        meanOverK(    pnpgc),...
-        meanOverK(    tfocs),...
-        ];
-    save('varyCntPET.data','forSave','-ascii');
-
-    keyboard
 
     % mIdx=6 is also good
     mIdx=5; as=1; k=1;
+    mc=min([...
+        min(    pnpg_{mIdx,as,k}.cost)
+        min(   spiral{mIdx,as,k}.cost)
+        min(pnpg_nInf{mIdx,as,k}.cost)
+        min(  pnpg_n0{mIdx,as,k}.cost)
+        min(    tfocs{mIdx,as,k}.cost)
+        min(   pnpgA0{mIdx,as,k}.cost)
+        min( pnpgG5A0{mIdx,as,k}.cost)
+        min( pnpgG5Aq{mIdx,as,k}.cost)
+        min( pnpgGfA0{mIdx,as,k}.cost)
+        min( pnpgGfAq{mIdx,as,k}.cost)
+        min(   cpdwt1{mIdx,as,k}.cost)
+        min(   cpdwt1{mIdx,as,k}.cost)
+        min(   pnpg_d{mIdx,as,k}.cost)]);
+
     fields={'stepSize','RMSE','time','cost'};
-    forSave=addTrace(         npg{mIdx,as,k},     [],fields); %  1- 4
-    forSave=addTrace(       pnpg_{mIdx,as,k},forSave,fields); %  5- 8
-    forSave=addTrace(      spiral{mIdx,as,k},forSave,fields); %  9-12
-    forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields); % 13-16
-    forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields); % 17-20
-    forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields); % 21-24
-    forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields); % 25-28
-    forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields); % 29-32
-    forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields); % 33-26
-    forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields); % 37-40
-    forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields); % 41-44
+    forSave=addTrace(    pnpg_1_3{mIdx,as,k},     [],fields,mc); %  1- 4
+    forSave=addTrace(       pnpg_{mIdx,as,k},forSave,fields,mc); %  5- 8
+    forSave=addTrace(      spiral{mIdx,as,k},forSave,fields,mc); %  9-12
+    forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields,mc); % 13-16
+    forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields,mc); % 17-20
+    forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields,mc); % 21-24
+    forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields,mc); % 25-28
+    forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields,mc); % 29-32
+    forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields,mc); % 33-26
+    forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields,mc); % 37-40
+    forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields,mc); % 41-44
     save('cost_itrPET.data','forSave','-ascii');
+
+    fields_={'RMSE','time','cost'};
+    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); %  1- 3
+    forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  4- 6
+    forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  7- 9
+    save('cost_itrPET_1.data','forSave','-ascii');
+    paperDir='~/research/myPaper/asilomar2014/';
+    system(['mv cost_itrPET.data cost_itrPET_1.data ' paperDir]);
+
+    return;
+
     mincost=reshape(forSave(:,[4,8,12,16,20,24]),[],1); 
     mincost=min(mincost(mincost~=0));
 
@@ -220,26 +213,25 @@ case lower('plot')
 
     idx=5;
     fprintf('  PNPG: %g%%\n', pnpg_{idx}.RMSE(end)*100);
-    fprintf(' PNPGc: %g%%\n', pnpgc{idx}.RMSE(end)*100);
+    fprintf(' PNPGc: %g%%\n',pnpg_d{idx}.RMSE(end)*100);
     fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
     fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
     img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
     img=showImgMask( pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_pet.png')
-    img=showImgMask( pnpgc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'PNPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'PNPGc_pet.png')
+    img=showImgMask(pnpg_d{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'PNPGc_pet.eps','psc2'); imwrite(img/max(xtrue(:)), 'PNPGc_pet.png')
     img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet.png')
     img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet.png')
 
-    idx=4;
-    fprintf('  PNPG: %g%%\n', pnpg_{idx}.RMSE(end)*100);
-    fprintf(' PNPGc: %g%%\n', pnpgc{idx}.RMSE(end)*100);
-    fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
-    fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
-    img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
-    img=showImgMask( pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_pet2.png')
-    img=showImgMask( pnpgc{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'PNPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'PNPGc_pet2.png')
-    img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
-    img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
-
+%   idx=4;
+%   fprintf('  PNPG: %g%%\n', pnpg_{idx}.RMSE(end)*100);
+%   fprintf(' PNPGc: %g%%\n',pnpg_d{idx}.RMSE(end)*100);
+%   fprintf('SPIRAL: %g%%\n',spiral{idx}.RMSE(end)*100);
+%   fprintf('   FBP: (%g%%, %g%%)\n',   fbp{idx}.RMSE(end)*100,rmseTruncate(  fbp{idx},pnpg_{idx}.opt.trueX)*100);
+%   img=pnpg_{idx}.x; mask=pnpg_{idx}.opt.mask;
+%   img=showImgMask( pnpg_{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,  'PNPG_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),  'PNPG_pet2.png')
+%   img=showImgMask(pnpg_d{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf, 'PNPGc_pet2.eps','psc2'); imwrite(img/max(xtrue(:)), 'PNPGc_pet2.png')
+%   img=showImgMask(spiral{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,'SPIRAL_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),'SPIRAL_pet2.png')
+%   img=showImgMask(   fbp{idx}.x,mask); maxImg=max(img(:)); figure; showImg(img,0); saveas(gcf,   'FBP_pet2.eps','psc2'); imwrite(img/max(xtrue(:)),   'FBP_pet2.png')
 
     paperDir='~/research/myPaper/asilomar2014/';
     decide=input(sprintf('start to copy to %s [y/N]?',paperDir),'s');
@@ -248,6 +240,38 @@ case lower('plot')
     end
     system('rm *_pet.png *_pet.eps *_pet2.eps *_pet2.png');
     close all;
+
+    figure;
+    loglog(count,meanOverK(      fbp,'RMSE'),'b-o'); hold on;
+    loglog(count,meanOverK(    pnpg_,'RMSE'),'r-*'); hold on;
+    loglog(count,meanOverK(   spiral,'RMSE'),'k*-.');
+    loglog(count,meanOverK(  pnpg_n0,'RMSE'),'c>-');
+    loglog(count,meanOverK(pnpg_nInf,'RMSE'),'gs-');
+    loglog(count,meanOverK(   pnpg_d,'RMSE'),'bp-.');
+    loglog(count,meanOverK(    tfocs,'RMSE'),'kh-');
+    legend('fbp','pnpg','spiral','pnpg\_n0','pnpg\_nInf','pnpg\_d','tfocs');
+
+    figure;
+    loglog(count,meanOverK(    pnpg_,'time'),'r-*'); hold on;
+    loglog(count,meanOverK(   spiral,'time'),'k*-.');
+    loglog(count,meanOverK(  pnpg_n0,'time'),'c>-');
+    loglog(count,meanOverK(pnpg_nInf,'time'),'gs-');
+    loglog(count,meanOverK(   pnpg_d,'time'),'bp-.');
+    loglog(count,meanOverK(    tfocs,'time'),'kh-');
+    legend('pnpg','spiral',' pnpg\_n0','pnpg\_nInf','pnpg\_d','tfocs');
+
+    % time cost RMSE
+    forSave=[count(:),meanOverK(   fbp,'RMSE'),...
+        meanOverK(    pnpg_),...
+        meanOverK(   spiral),...
+        meanOverK(  pnpg_n0),...
+        meanOverK(pnpg_nInf),...
+        meanOverK(   pnpg_d),...
+        meanOverK(    tfocs),...
+        ];
+    save('varyCntPET.data','forSave','-ascii');
+
+    keyboard
 
 case 'fullplot'
     filename = [mfilename '.mat'];
@@ -294,13 +318,20 @@ function [a,b,c]=meanOverK(method,field)
         a=[a b c];
     end
 end
-function forSave=addTrace(method,forSave,fields)
+function forSave=addTrace(method,forSave,fields,mc)
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
     n=length(fields);
     for i=1:n
-        data(:,i)=reshape(getfield(method,fields{i}),[],1);
+        tt=getfield(method,fields{i});
+        if(iscell(tt) && length(tt)==1)
+            tt=tt{1};
+        end
+        if(strcmpi(fields{i},'cost') && exist('mc','var'))
+            tt=(tt-mc)/mc;
+        end
+        data(:,i)=reshape(tt,[],1);
     end
     forSave=appendColumns(data,forSave);
 end
