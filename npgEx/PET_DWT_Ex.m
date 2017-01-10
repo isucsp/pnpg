@@ -52,6 +52,11 @@ case 'run'
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
         % BEGIN experiment region,  to delete in the end
+        opt=OPT; opt.epsilonDecRate=1.3;
+        pnpg_1_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave
+        continue;
+
         % END experiment region,  to delete in the end
 
         opt=OPT;
