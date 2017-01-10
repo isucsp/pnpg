@@ -204,10 +204,15 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
 
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
-            preP=p; difX=0;
+            preP=p; difX=0; dualGap=0;
             prePsi_p=Psi_p;
             preCost=cost;
         else
+            if(opt.dualGap)
+                % slightly larger than the exact gap, but saves time
+                primary=norm(grad(:),1);
+                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/primary;
+            end
             difX = relativeDif(x,newX);
             x=newX;
             preP = p; prePsi_p=Psi_p;
@@ -217,11 +222,6 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             cost = newCost;
         end
         preT=t;
-
-        if(opt.dualGap)
-            % slightly larger than the exact gap, but saves time
-            dualGap=norm(grad(:),1)-u*sum(reshape(x.*Psi_p,[],1));
-        end
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)

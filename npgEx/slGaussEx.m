@@ -47,6 +47,13 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        opt=OPT; opt.dualGap=true;
+        proxOpt=PROXOPT;  proxOpt.dualGap=opt.dualGap;
+        opt.proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
+        pnpg_d   {i,j}=pnpg(NLL,opt.proximal,initSig,opt);
+        mysave
+        continue;
+
         % END experiment region,  to delete in the end
 
         opt=OPT;

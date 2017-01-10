@@ -213,11 +213,15 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
 
             % give up and force it to converge
             debug.appendLog('_ForceConverge');
-            preP=p; preQ=q; difX=0;
+            preP=p; preQ=q; difX=0; dualGap=0;
             prePsi_p=Psi_p;
             preCost=cost;
         else
             difX = relativeDif(x,newX);
+            if(opt.dualGap)
+                % slightly larger than the exact gap, but saves time
+                dualGap=1-u*sum(reshape(x.*Psi_p,[],1))/val(gradp,gradq);
+            end
             x=newX;
             preP = p; preQ = q; prePsi_p=Psi_p;
             p = newP; q = newQ; Psi_p=newPsi_p;
@@ -227,10 +231,6 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         end
         preT=t;
 
-        if(opt.dualGap)
-            % slightly larger than the exact gap, but saves time
-            dualGap=val(gradp,gradq)-u*sum(reshape(x.*Psi_p,[],1));
-        end
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)
@@ -416,8 +416,8 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
         D=prj_C(C);
         [Q1,Q2]=Ltrans(D);
         if(opt.dualGap)
-            gap=val(Q1,Q2)-sum(reshape(D.*Lforward(R1,R2),[],1));
-            gap=gap*lambda;
+            primary=val(Q1,Q2);
+            gap=(primary-sum(reshape(D.*Lforward(R1,R2),[],1)))/max(eps,primary);
         end
 
         %%%%%%%%%%

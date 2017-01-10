@@ -19,8 +19,8 @@ case 'run'
     clear('OPT','C','proximal');
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
-    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
     OPT.maxItr=1e3; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
+    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     tvType='l1';
     tvType='iso';
@@ -33,7 +33,7 @@ case 'run'
     atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
     for k=1:K
-    for i=4
+    for i=4:5
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -55,19 +55,13 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
         % END experiment region,  to delete in the end
         
+        opt=OPT; opt.epsilonDecRate=1.3;
+        pnpg_1_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave
+        continue;
+
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
-
-        opt=OPT;
-        opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-
-        opt=OPT;
-        opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
-
-	mysave;
-	return;
 
         opt=OPT;
         pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -78,6 +72,14 @@ case 'run'
         mysave
 
         if(i==5) continue; end
+
+        opt=OPT;
+        opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+
+        opt=OPT;
+        opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
+        cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
         opt=OPT;
         opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
@@ -100,7 +102,7 @@ case 'run'
         pnpg_d   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
 
         opt=OPT; opt.thresh=1e-10;
-        spiralTV_Long{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
+        spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 
         opt=OPT; opt.gamma=5; opt.b=0;
         pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -121,21 +123,8 @@ case 'run'
         opt=OPT; opt.adaptiveStep=false;
         pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
-
-
-
-
         opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
         pnpgTV_noAdpStpLong{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.thresh=1e-10;
-        spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
-        opt=OPT; opt.innerThresh=1e-6;
-        spiral_m6 {i,j,k}=Wrapper.SPIRAL  (Phi,Phit,[],[],y,initSig,opt);
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-4;
-        tfocs_200_m4 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
-        tfocs_200_m6 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
-
 
         mysave;
 

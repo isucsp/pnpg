@@ -69,7 +69,7 @@ end
 
 if(~isfield(opt,'u')) opt.u=1e-4; end
 
-if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
+if(~isfield(opt,'stepIncre')) opt.stepIncre=0.5^0.2; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
 % By default disabled.  Remember to use a value around 5 for the Poisson model
 % with poor initialization.
@@ -87,6 +87,8 @@ if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
 if(~isfield(opt,'dualGap')) opt.dualGap=false; end
 if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-2; end
+% decend rate of (epsion*theta)^2 is O(1/i^epsilonDecRate)
+if(~isfield(opt,'epsilonDecRate')) opt.epsilonDecRate=1; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
@@ -164,7 +166,7 @@ end
 
 tStart=tic;
 
-itr=0; convThresh=0; x=xInit; theta=1; preX=x;
+itr=0; convThresh=0; x=xInit; theta=1; preX=x; itrRes=0;
 NLLVal=NLL(x);
 penVal=proximal.val(x);
 cost=NLLVal+opt.u*penVal;
@@ -232,7 +234,7 @@ while(true)
         else
             if(opt.dualGap)
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    penVal*opt.relInnerThresh/2/itr^3,...
+                    opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2),...
                     opt.maxInnerItr,pInit);
             else
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
@@ -273,7 +275,13 @@ while(true)
     % using eps reduces numerical issue around the point of convergence
     if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
-            if(restart()) itr=itr-1; continue; end
+            if(restart())
+                itr=itr-1;
+                itrRes=itr;
+                opt.relInnerThresh=...
+                    opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2);
+                continue;
+            end
             if(runMore()) itr=itr-1; continue; end
         end
         %reset(); % both theta and step size;
@@ -425,7 +433,7 @@ end
 function res=runMore()
     res=false;
     if(proximal.exact) return; end
-    if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-6)
+    if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-9)
         opt.relInnerThresh=opt.relInnerThresh/10;
         debug.printWithoutDel(2,...
             sprintf('\n decrease relInnerThresh to %g',...
