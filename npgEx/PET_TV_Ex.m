@@ -36,8 +36,8 @@ case 'run'
     atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
     for k=1:K
-    for i=4:5
-    %for i=4
+    %for i=4:5
+    for i=4
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -56,6 +56,87 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
+        opt=OPT;
+        pnpg_55   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA055  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0m055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+
+        mysave;
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d55   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5A0_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5Aq_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfA0_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfAq_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgA0_d55  {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_n0m0_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_nInf_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        mysave
+
+        OPT.stepIncre=0.8; OPT.stepShrnk=0.8;
+        opt=OPT;
+        pnpg_88   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A088{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq88{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA088{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq88{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA088  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0m088{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf88{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+
+        mysave;
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d88   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5A0_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5Aq_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfA0_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfAq_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgA0_d88  {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_n0m0_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_nInf_d88{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        mysave
+
+        return
+
+
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         opt.stepShrnk=0.8; opt.stepIncre=0.8;
         pnpg_d88   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -65,8 +146,6 @@ case 'run'
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         opt.stepShrnk=0.5; opt.stepIncre=0.5;
         pnpg_d55   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
-        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
-        pnpg_d   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
         continue;
 
