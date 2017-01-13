@@ -192,7 +192,7 @@ case lower('tspAddition')
               min(    cptv1{mIdx,as,k}.cost)
               min(    cptv2{mIdx,as,k}.cost) ]);
 
-    fields_={'stepSize','RMSE','time','cost'};
+    fields_={'RMSE','time','cost'};
     forSave=addTrace(       pnpg_{mIdx,as,k},     [],fields_,mc); %  1- 4
     forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_,mc); %  9-12
@@ -652,11 +652,13 @@ function [a,b,c]=meanOverK(method,field)
     end
 end
 function forSave=addTrace(method,forSave,fields,mc)
+    len=1000;
+    tt=getfield(method,fields{1});
+    itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
-    n=length(fields);
-    for i=1:n
+    for i=1:length(fields);
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
@@ -664,8 +666,10 @@ function forSave=addTrace(method,forSave,fields,mc)
         if(strcmpi(fields{i},'cost') && exist('mc','var'))
             tt=(tt-mc)/mc;
         end
-        data(:,i)=reshape(tt,[],1);
+        ss=interp1(1:length(tt),tt,itr);
+        data(:,i)=reshape(ss,[],1);
     end
+    data=[itr(:) data];
     forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)

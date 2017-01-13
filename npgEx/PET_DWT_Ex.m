@@ -154,7 +154,41 @@ case lower('plot')
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-    pnpgList={'pnpg_',
+    pnpgList={'pnpg_d',
+         ' pnpgG5A0_d',
+         ' pnpgG5Aq_d',
+         ' pnpgGfA0_d',
+         ' pnpgGfAq_d',
+         '   pnpgA0_d',  
+         '  pnpg_n0_d', 
+         '     pnpg_', 
+         'pnpg_nInf  ',
+         ' pnpgG5A0  ',
+         ' pnpgG5Aq  ',
+         ' pnpgGfA0  ',
+         ' pnpgGfAq  ',
+         '   pnpgA0  ',  
+         '  pnpg_n0  ', 
+         'pnpg_nInf  '};
+
+    tfocsList={
+        'tfocs_200_m6 ',
+        'tfocs_200_m9 ',
+        'tfocs_200_m12'};
+
+    i=5;
+    mc=inf;
+    for ii=1:length(pnpgList)
+        a=eval(pnpgList{ii});
+        mc=min(mc,min(a{i}.cost(:)));
+        a{i}.name=pnpgList{ii};
+        varList{ii}=a{i};
+    end
+%   compareC({'time','cost'},@semilogy,varList{:});
+%   compare({'innerItr'},@plot,varList{1:end/2});
+%   compare({'innerItr'},@plot,varList{end/2:end});
+%   return
+
     nameList={'pnpg_','spiral','pnpg_nInf','pnpg_n0','tfocs'};
 
     K = 1;
@@ -182,9 +216,9 @@ case lower('plot')
         min(   cpdwt1{mIdx,as,k}.cost)
         min(   pnpg_d{mIdx,as,k}.cost)]);
 
-    fields={'stepSize','RMSE','time','cost'};
-    forSave=addTrace(    pnpg_1_3{mIdx,as,k},     [],fields,mc); %  1- 4
-    forSave=addTrace(       pnpg_{mIdx,as,k},forSave,fields,mc); %  5- 8
+    fields={'RMSE','time','cost'};
+    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields,mc); %  1- 4
+    forSave=addTrace(     pnpg_88{mIdx,as,k},forSave,fields,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields,mc); %  9-12
     forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields,mc); % 13-16
     forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields,mc); % 17-20
@@ -197,7 +231,7 @@ case lower('plot')
     save('cost_itrPET.data','forSave','-ascii');
 
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); %  1- 3
+    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields_,mc); %  1- 3
     forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  4- 6
     forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  7- 9
     save('cost_itrPET_1.data','forSave','-ascii');
@@ -360,11 +394,13 @@ function [a,b,c]=meanOverK(method,field)
     end
 end
 function forSave=addTrace(method,forSave,fields,mc)
+    len=1000;
+    tt=getfield(method,fields{1});
+    itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
-    n=length(fields);
-    for i=1:n
+    for i=1:length(fields);
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
@@ -372,14 +408,14 @@ function forSave=addTrace(method,forSave,fields,mc)
         if(strcmpi(fields{i},'cost') && exist('mc','var'))
             tt=(tt-mc)/mc;
         end
-        data(:,i)=reshape(tt,[],1);
+        ss=interp1(1:length(tt),tt,itr);
+        data(:,i)=reshape(ss,[],1);
     end
+    data=[itr(:) data];
     forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)
     [r,c]=size(forSave);
     forSave(1:size(col,1),c+1:c+size(col,2))=col;
 end
-
-
 
