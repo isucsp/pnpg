@@ -17,13 +17,20 @@ function out = CP_DWT(Phi,Phit,y,approach,Psi,Psit,G,xInit,opt)
         G.exact = proximal.exact;
         G.val = @(x)opt.u*proximal.val(x);
         G.prox = @(x,u,varargin) proximal.prox(x,u*opt.u,varargin{:});
-    else
+    elseif(approach == 2)
         F.exact = true;
         F.val = @(z) F_.val(z{1})+opt.u*norm(reshape(z{2},[],1),1);
-        F.proxConj = @(a,u) {F_.proxConj(a{1},u), min(max(a{2},-opt.u),opt.u)};
+        F.proxConj = @(a,u) {F_.proxConj(a{1},u(1)), min(max(a{2},-opt.u),opt.u)};
 
         K.forward = @(x) {Phi(x),Psit(x)};
         K.backward = @(y) Phit(y{1})+Psi(y{2});
+    else
+        F.exact = true;
+        F.val = @(z) F_.val(z{1})+norm(reshape(z{2},[],1),1);
+        F.proxConj = @(a,u) {F_.proxConj(a{1},u(1)), min(max(a{2},-1),1)};
+
+        K.forward = @(x) {Phi(x),opt.u*Psit(x)};
+        K.backward = @(y) Phit(y{1})+opt.u*Psi(y{2});
     end
 
     out = chambollePock(F,G,K,xInit,opt);
@@ -54,9 +61,9 @@ function F = poissonProximal(y,b)
         F.val=@(x) sum(x(:))+sumB-sumY-y(nzy).'*log((x(nzy)+b(nzy))./y(nzy));
     end
     F.exact=true;
-    F.prox=@(a,u) max(0,0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) ));
-    %F.proxConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a-b*u-1).^2+4*u*(y-b)+4*a.*b ) );
-    F.proxConj=@(a,u) a-F.prox(a/u,1/u)*u;
+    F.prox=@(a,u) 0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) );
+    %F.proxConj=@(a,u) a-F.prox(a/u,1/u)*u;
+    F.proxConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a+b*u-1).^2+4*u*y ) );
 
 end % function F = poissonProximal(y,b0)
 

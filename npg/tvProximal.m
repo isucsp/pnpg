@@ -217,11 +217,12 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             prePsi_p=Psi_p;
             preCost=cost;
         else
-            difX = relativeDif(x,newX);
             if(opt.dualGap)
                 % slightly larger than the exact gap, but saves time
-                dualGap=1-u*sum(reshape(x.*Psi_p,[],1))/val(gradp,gradq);
+                primary=val(gradp,gradq);
+                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/primary;
             end
+            difX = relativeDif(x,newX);
             x=newX;
             preP = p; preQ = q; prePsi_p=Psi_p;
             p = newP; q = newQ; Psi_p=newPsi_p;
@@ -230,7 +231,6 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             cost = newCost;
         end
         preT=t;
-
 
         if(opt.adaptiveStep)
             if(numLineSearch==1)

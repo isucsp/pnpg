@@ -20,10 +20,13 @@ case 'run'
     filename = [mfilename '.mat'];
     OPT.mask=[]; OPT.outLevel=1;
     OPT.maxItr=1e3; OPT.thresh=1e-6; OPT.debugLevel=2; OPT.noiseType='poisson';
-    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=1; OPT.noiseType='poisson';
+    OPT.maxItr=1e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
     tvType='l1';
     tvType='iso';
+    proximal=tvProximal(tvType,C.prox,'pnpg');
+    opt=[]; opt.dualGap=true;
+    proximal_dualInnerCrit=tvProximal(tvType, C.prox,'pnpg',opt);
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
     K=1;
@@ -34,54 +37,80 @@ case 'run'
 
     for k=1:K
     for i=4:5
+    %for i=4
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
 
         fbp{i,1,k}.x=fbpfunc(y);
-        fbp{i,1,k}.RMSE=sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX);
+        fbp{i,1,k}.RMSE=sqrNorm(maskFunc(fbp{i,1,k}.x,OPT.mask)-OPT.trueX)/sqrNorm(OPT.trueX);
 
-        fprintf('fbp RMSE=%f\n',sqrNorm(fbp{i,1,k}.x-OPT.trueX)/sqrNorm(OPT.trueX));
+        fprintf('fbp RMSE=%f\n',fbp{i,1,k}.RMSE);
         fprintf('min=%d, max=%d, mean=%d\n',min(y(y>0)),max(y(y>0)),mean(y(y>0)));
         u_max=1;
         OPT.u = 10^atv(i)*u_max; OPT.proximal=['tv' tvType];
-        OPT.stepShrnk=0.5; OPT.stepIncre=0.5;
-        proximal=tvProximal(tvType,C.prox,'pnpg');
 
-        initSig=C.prox(fbp{i,1,k}.x);
+        initSig=C.prox(maskFunc(fbp{i,1,k}.x,OPT.mask));
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
         % BEGIN experiment region,  to delete in the end
-        % END experiment region,  to delete in the end
-        
-        opt=OPT; opt.epsilonDecRate=1.3;
-        pnpg_1_3   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        opt.stepShrnk=0.8; opt.stepIncre=0.8;
+        pnpg_d88   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
         continue;
 
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-        tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        opt.stepShrnk=0.5; opt.stepIncre=0.5;
+        pnpg_d55   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        mysave
+        continue;
 
-        opt=OPT;
-        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-
-        opt=OPT;
-        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d   {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5A0_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5Aq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfA0_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfAq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.b=0; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgA0_d  {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_n0m0_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_nInf_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
 
         mysave
+        continue;
 
-        if(i==5) continue; end
 
-        opt=OPT;
-        opt.sigma=1e-5; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-
-        opt=OPT;
-        opt.sigma=1e-3; opt.tau=opt.sigma; opt.maxItr=opt.maxItr*4;
+        opt=OPT; opt.thresh=opt.thresh/100;  % opt.maxItr=1.5e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma=[0,0,0,1e-3,10^-4];
+        tau=[1,0.9,0.9,1e-3,10^-4];
+        opt.sigma=sigma(i); opt.tau=tau(i);
         cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
-        opt=OPT;
+        opt=OPT; opt.thresh=opt.thresh/100; %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma=[0,0,0,1e-5,1e-6];
+        sigma1=[0,0,0,1,1];
+        tau=[1,1,1,10^-2,10^-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+
+        mysave;
+        continue;
+
+
+        % END experiment region,  to delete in the end
+
+        opt=OPT;   opt.maxItr=1e3;
         opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
         opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
         opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
@@ -94,16 +123,23 @@ case 'run'
             opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
             initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
             opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        
+
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+        tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
 
         opt=OPT;
-        opt.dualGap=true;
-        opt1=[]; opt1.dualGap=opt.dualGap;
-        opt.proximal=tvProximal(tvType,C.prox,'pnpg',opt1);
-        pnpg_d   {i,j,k}=pnpg(NLL,opt.proximal,initSig,opt);
+        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
+
+        mysave
+
+        if(i==5) continue; end
 
         opt=OPT; opt.thresh=1e-10;
         spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 
+        opt=OPT;
+        pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.gamma=5; opt.b=0;
         pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.gamma=5; opt.b=1/4;
@@ -114,17 +150,10 @@ case 'run'
         pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.b=0;
         pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-
-        opt=OPT; opt.cumuTol=0;
-        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
         pnpg_n0m0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.adaptiveStep=false;
         pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-
-        opt=OPT; opt.adaptiveStep=false; opt.thresh=1e-10;
-        pnpgTV_noAdpStpLong{i,j,k}=pnpg(NLL,proximal,initSig,opt);
 
         mysave;
 
