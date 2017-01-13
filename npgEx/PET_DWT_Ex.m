@@ -254,27 +254,73 @@ case 'run'
     end
 
 case lower('plot')
+    pnpg_adp=[];
+    pnpg_d_adp=[];
+    pnpg_1_3=[];
     filename = [mfilename '.mat']; load(filename);
     fprintf('PET Poisson l1 example\n');
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-    pnpgList={'pnpg_d',
-         ' pnpgG5A0_d',
-         ' pnpgG5Aq_d',
-         ' pnpgGfA0_d',
-         ' pnpgGfAq_d',
-         '   pnpgA0_d',  
-         '  pnpg_n0_d', 
-         '     pnpg_', 
-         'pnpg_nInf  ',
-         ' pnpgG5A0  ',
-         ' pnpgG5Aq  ',
-         ' pnpgGfA0  ',
-         ' pnpgGfAq  ',
-         '   pnpgA0  ',  
-         '  pnpg_n0  ', 
-         'pnpg_nInf  '};
+    pnpgd55List={
+        'pnpg_d55',
+        'pnpgG5A0_d55',
+        'pnpgG5Aq_d55',
+        'pnpgGfA0_d55',
+        'pnpgGfAq_d55',
+        'pnpgA0_d55',
+        'pnpg_n0_d55',
+        'pnpg_nInf_d55'};
+
+    pnpgd88List={
+        'pnpg_d88',
+        'pnpgG5A0_d88',
+        'pnpgG5Aq_d88',
+        'pnpgGfA0_d88',
+        'pnpgGfAq_d88',
+        'pnpgA0_d88',
+        'pnpg_n0_d88',
+        'pnpg_nInf_d88'};
+
+    pnpg55List={
+        'pnpg_55',
+        'pnpgG5A055',
+        'pnpgG5Aq55',
+        'pnpgGfA055',
+        'pnpgGfAq55',
+        'pnpgA055',
+        'pnpg_n055',
+        'pnpg_nInf55'};
+
+    pnpg88List={
+        'pnpg_88',
+        'pnpgG5A088',
+        'pnpgG5Aq88',
+        'pnpgGfA088',
+        'pnpgGfAq88',
+        'pnpgA088',
+        'pnpg_n088',
+        'pnpg_nInf88'};
+
+    pnpgdList={
+        'pnpg_d',
+        'pnpgG5A0_d',
+        'pnpgG5Aq_d',
+        'pnpgGfA0_d',
+        'pnpgGfAq_d',
+        'pnpgA0_d',
+        'pnpg_n0_d',
+        'pnpg_nInf_d'};
+
+    pnpgList={
+        'pnpg_',
+        'pnpgG5A0',
+        'pnpgG5Aq',
+        'pnpgGfA0',
+        'pnpgGfAq',
+        'pnpgA0',
+        'pnpg_n0',
+        'pnpg_nInf'};
 
     tfocsList={
         'tfocs_200_m6 ',
@@ -282,14 +328,29 @@ case lower('plot')
         'tfocs_200_m12'};
 
     i=5;
-    mc=inf;
-    for ii=1:length(pnpgList)
-        a=eval(pnpgList{ii});
-        mc=min(mc,min(a{i}.cost(:)));
-        a{i}.name=pnpgList{ii};
-        varList{ii}=a{i};
-    end
-%   compareC({'time','cost'},@semilogy,varList{:});
+    mc=+inf;
+    [mc,pnpgd55Var]=minAndName(pnpgd55List,i,mc);
+    [mc,pnpgd88Var]=minAndName(pnpgd88List,i,mc);
+    [mc,pnpg55Var ]=minAndName(pnpg55List ,i,mc);
+    [mc,pnpg88Var ]=minAndName(pnpg88List ,i,mc);
+    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,i,mc);
+    [mc,pnpgVar   ]=minAndName(pnpgList   ,i,mc);
+
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg88Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg88Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+
+    return
 %   compare({'innerItr'},@plot,varList{1:end/2});
 %   compare({'innerItr'},@plot,varList{end/2:end});
 %   return
@@ -486,6 +547,18 @@ case 'fullplot'
     legend('PNPG','FPNPG','SPIRAL');
 end
 
+function [mc,varList] = minAndName(nameList,i,mc)
+    if(~exist('mc','var'))
+        mc=+inf;
+    end
+    for ii=1:length(nameList)
+        a=eval(nameList{ii});
+        mc=min(mc,min(a{i}.cost(:)));
+        a{i}.name=nameList{ii};
+        varList{ii}=a{i};
+    end
+end
+
 end
 
 function [a,b,c]=meanOverK(method,field)
@@ -523,4 +596,3 @@ function forSave = appendColumns(col,forSave)
     [r,c]=size(forSave);
     forSave(1:size(col,1),c+1:c+size(col,2))=col;
 end
-
