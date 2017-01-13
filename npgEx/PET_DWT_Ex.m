@@ -259,7 +259,6 @@ case lower('plot')
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
 
-    pnpgList={'pnpg_',
     nameList={'pnpg_','spiral','pnpg_nInf','pnpg_n0','tfocs'};
 
     K = 1;
