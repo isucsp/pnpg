@@ -131,23 +131,21 @@ case 'plot'
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
     K = 1;
 
-      pnpg_     =       pnpg_(:,:,1:K);
-    spiral      =   spiral_m5(:,:,1:K);
-    sparsn      =   sparsn_m5(:,:,1:K);
-       gfb_     =        gfb_(:,:,1:K);
-    condat      =      condat(:,:,1:K);
-    tfocs_AT    =tfocs_200_m5(:,:,1:K);
-    tfocs_200_m5=tfocs_200_m5(:,:,1:K);
-    spiral_m5   =   spiral_m5(:,:,1:K);
-    sparsn_m5   =   sparsn_m5(:,:,1:K);
-
-
+      pnpg_      =        pnpg_(:,:,1:K);
+    spiral       =    spiral_m6(:,:,1:K);
+    sparsn       =    sparsn_m5(:,:,1:K);
+       gfb_      =         gfb_(:,:,1:K);
+    condat       =       condat(:,:,1:K);
+    tfocs_AT     = tfocs_200_m6(:,:,1:K);
+    tfocs_200_m5 = tfocs_200_m6(:,:,1:K);
+    spiral_m5    =    spiral_m6(:,:,1:K);
+    sparsn_m5    =    sparsn_m6(:,:,1:K);
 
     mIdx=4;
-
     iii=2;
     mc2=min([...
         min(       pnpg_{mIdx,iii}.cost)
+        min(      pnpg_d{mIdx,iii}.cost)
         min(      spiral{mIdx,iii}.cost)
         min(      sparsn{mIdx,iii}.cost)
         min(        gfb_{mIdx,iii}.cost)
@@ -160,6 +158,7 @@ case 'plot'
     iii=3;
     mc3=min([...
         min(       pnpg_{mIdx,iii}.cost)
+        min(      pnpg_d{mIdx,iii}.cost)
         min(      spiral{mIdx,iii}.cost)
         min(      sparsn{mIdx,iii}.cost)
         min(        gfb_{mIdx,iii}.cost)
@@ -174,6 +173,7 @@ case 'plot'
         min(       pnpg_{mIdx,iii}.cost)
         min(      spiral{mIdx,iii}.cost)
         min(      sparsn{mIdx,iii}.cost)
+        min(      pnpg_d{mIdx,iii}.cost)
         min(        gfb_{mIdx,iii}.cost)
         min(      condat{mIdx,iii}.cost)
         min(    tfocs_AT{mIdx,iii}.cost)
@@ -183,7 +183,7 @@ case 'plot'
         min(      cpdwt2{mIdx,iii}.cost)]);
 
     % each time add 3 columns (time cost RMSE)
-    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
+    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(pnpg_{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
     out=         spiral;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
     out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
     out=           gfb_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-gfb.data','temp','-ascii');
