@@ -15,14 +15,10 @@ function x = maskFunc(s,maskIdx,n)
                 x(maskIdx)=s;
             end
         else  % apply the mask to image s;
-            if(isempty(maskIdx))
-                if(min(size(s))==1)
-                    x=reshape(s,sqrt(length(s)),[]);
-                else
-                    x=s(:);
-                end
-            else
+            if(~isempty(maskIdx))
                 x=s(maskIdx);
+            else
+                x=s;
             end
         end
     end

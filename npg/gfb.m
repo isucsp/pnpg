@@ -65,12 +65,16 @@ end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
+% opt.gamma in [0, 2]
+if(~isfield(opt,'gamma')) opt.gamma=1.8; end
+% opt.lambda in [0, 1]
+if(~isfield(opt,'lambda')) opt.lambda=1; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 % print iterations every opt.verbose lines.
-if(~isfield(opt,'verbose')) opt.verbose=100; end
+if(~isfield(opt,'verbose')) opt.verbose=1000; end
 
 % Output options and debug information
 % >=0: minimum output with only results,
@@ -124,7 +128,9 @@ itr=0; convThresh=0; x=xInit;
 w=zeros(length(Gi),1);
 
 % default to be 1.8/Lipschitz
-gamma=1.8/Lip; lambda=1;
+% opt.gamma in [0,2]
+% opt.lambda in [0,1]
+gamma=opt.gamma/Lip; lambda=min(1.5,0.5+1/gamma)*opt.lambda;
 
 [cost,grad]=F(x);
 for i=1:length(Gi)

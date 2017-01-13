@@ -39,7 +39,7 @@ if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 
-if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-2; end
+if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-3; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
@@ -55,7 +55,9 @@ end
 % >=4: plot real time cost and RMSE,
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 % print iterations every opt.verbose lines.
-if(~isfield(opt,'verbose')) opt.verbose=100; end
+if(~isfield(opt,'verbose'))
+    if(G.exact) opt.verbose=1000; else opt.verbose=100; end
+end
 
 % Output options and debug information
 % >=0: minimum output with only results,
@@ -141,7 +143,7 @@ sigma=opt.sigma;
 y=Kx;
 if(iscell(Kx))
     for i=1:length(Kx)
-        y{i}=sigma*Kx{i};
+        y{i}=sigma(i)*Kx{i};
     end
     y=F.proxConj(y,sigma);
 else
@@ -165,7 +167,7 @@ while(true)
     if(iscell(Kx))
         for i=1:length(Kx)
             Kxbar{i}=2*Kx{i}-preKx{i};
-            y{i}=y{i}+sigma*Kxbar{i};
+            y{i}=y{i}+sigma(i)*Kxbar{i};
         end
         y=F.proxConj(y,sigma);
     else
@@ -178,7 +180,7 @@ while(true)
         x=G.prox(x-tau*K.backward(y),tau);
     else
         [x,innerItr,pInit]=G.prox(x-tau*K.backward(y),tau,...
-            opt.relInnerThresh*difX*0,opt.maxInnerItr,pInit);
+            opt.relInnerThresh*difX,opt.maxInnerItr,pInit);
     end
     preKx = Kx;
     Kx=K.forward(x);
@@ -233,6 +235,7 @@ while(true)
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
         debug.print(2,sprintf(' %14.8g',cost));
+        %debug.print(2,sprintf(' %14.8g',cost-opt.xxx));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end

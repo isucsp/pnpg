@@ -276,10 +276,12 @@ while(true)
     if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
             if(restart())
+                if(opt.dualGap)
+                    opt.relInnerThresh=...
+                        opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2);
+                end
                 itr=itr-1;
                 itrRes=itr;
-                opt.relInnerThresh=...
-                    opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2);
                 continue;
             end
             if(runMore()) itr=itr-1; continue; end

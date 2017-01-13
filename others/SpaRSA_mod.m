@@ -595,8 +595,10 @@ while keep_continuation
 
     % computation of step
 
-    cont_inner = 1;
-    while cont_inner
+    cont_inner = 100;
+    while cont_inner>0
+      cont_inner=cont_inner-1;
+
       x = psi_function(prev_x - gradq*(1/alpha),tau/alpha);
       %x = psi_function(prev_x - gradq*(1/alpha),tau/alpha,delta_x_criterion*1e-3);
       dx = x - prev_x;

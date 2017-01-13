@@ -20,21 +20,22 @@ function out=CP_TV(Phi,Phit,y,approach,tvType,G,xInit,opt)
         switch(lower(tvType))
             case 'iso'
                 F.val=@(z) F_.val(z{1})+opt.u*isoNorm(z{2},z{3});
-                F.proxConj=@(a,u) isoPrjCell(F_.proxConj(a{1},u),a{2},a{3},opt.u);
+                F.proxConj=@(a,u) isoPrjCell(F_.proxConj(a{1},u(1)),a{2},a{3},opt.u);
             case 'l1'
                 F.val=@(z) F_.val(z{1})+...
                     opt.u*norm([reshape(z{2},[],1); reshape(z{3},[],1)],1);
-                F.proxConj=@(a,u) {F_.proxConj(a{1},u),...
+                F.proxConj=@(a,u) {F_.proxConj(a{1},u(1)),...
                     min(max(a{2},-opt.u),opt.u),min(max(a{3},-opt.u),opt.u)};
         end
 
         K.forward=@(x) {Phi(x),TV.Psi_vt(x),TV.Psi_ht(x)};
         K.backward=@(y) Phit(y{1})+TV.Psi_v(y{2})+TV.Psi_h(y{3});
     end
+
     out = chambollePock(F,G,K,xInit,opt);
-    out.F=F;
-    out.F_=F_;
-    out.K=K;
+    out.F_ = F_;
+    out.F = F;
+    out.K = K;
     out.isoNorm=@isoNorm;
 
 end %function out=CP_TV(Phi,Phit,y,approach,tvType,xInit,opt)
@@ -60,9 +61,9 @@ function F = poissonProximal(y,b)
         F.val=@(x) sum(x(:))+sumB-sumY-y(nzy).'*log((x(nzy)+b(nzy))./y(nzy));
     end
     F.exact=true;
-    F.prox=@(a,u) max(0,0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) ));
-    %F.proxConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a-b*u-1).^2+4*u*(y-b)+4*a.*b ) );
-    F.proxConj=@(a,u) a-F.prox(a/u,1/u)*u;
+    F.prox=@(a,u) 0.5*( (a-b-u)+sqrt( (a+b-u).^2+4*u*y ) );
+    %F.proxConj=@(a,u) a-F.prox(a/u,1/u)*u;
+    F.proxConj=@(a,u) 0.5*( (a+b*u+1)-sqrt( (a+b*u-1).^2+4*u*y ) );
 
 end %function F = poissonProximal(y,b0)
 

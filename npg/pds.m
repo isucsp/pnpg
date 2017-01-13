@@ -72,10 +72,14 @@ if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
+% the following three should be set to be smaller than 1
+if(~isfield(opt,'sigma')) opt.sigma=1; end
+if(~isfield(opt,'tau')) opt.tau=1; end
+if(~isfield(opt,'rho')) opt.rho=1; end
 
 if(~isfield(opt,'debugLevel')) opt.debugLevel=1; end
 % print iterations every opt.verbose lines.
-if(~isfield(opt,'verbose')) opt.verbose=100; end
+if(~isfield(opt,'verbose')) opt.verbose=1000; end
 
 % Output options and debug information
 % >=0: minimum output with only results,
@@ -133,9 +137,9 @@ tStart=tic;
 % initialization for PDS
 itr=0; convThresh=0; x=xInit; y=zeros(size(x));
 
-sigma=(sqrt(Lip^2/16+1)-Lip/4)*1;
-tau=1/(sigma+Lip/2) * 1;
-rho=(2-Lip/2/(1/tau-sigma)) * 1;
+sigma=(sqrt(Lip^2/16+1)-Lip/4)*opt.sigma;
+tau=1/(sigma+Lip/2) * opt.tau;
+rho=(2-Lip/2/(1/tau-sigma)) * opt.rho;
 
 [f,grad]=F(x);
 Psit_x=Psit(x);

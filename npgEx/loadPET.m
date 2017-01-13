@@ -84,6 +84,8 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
         Psi = @(s) maskFunc(W (maskFunc(s,wvltIdx,ig.nx)),maskIdx);
         Psit= @(x) maskFunc(Wt(maskFunc(x,maskIdx,ig.nx)),wvltIdx);
         opt.trueX=xtrue(maskIdx);
+        Phif = @(xx) ci.*(G*maskFunc(xx,mask));
+        Phitf = @(xx) maskFunc(G'*(ci.*xx),mask);
     else
         Psi = W;
         Psit= Wt;
