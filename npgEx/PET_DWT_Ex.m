@@ -55,6 +55,82 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        opt=OPT;   opt.maxItr=1e4; opt.debugLevel=0;
+        opt.grad1 = @(y)Psit(y);
+        opt.grad2 = @(y)0;
+        opt.div   = @(x1,x2) Psi(x1);
+        opt.P = 1e10; opt.p = 2;
+        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+        opt.inn_ini  = 1;
+        opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
+        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
+            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        mysave;
+        return
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d55_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_55 {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+        return;
+
+
+
+        opt=OPT; opt.gamma=5; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5Aq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfAq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_n0_d {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        mysave;
+
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+
+
+        continue;
+
         OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -74,25 +150,6 @@ case 'run'
         pnpg_nInf_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
          
-        opt=OPT;
-        pnpg_55{i,j}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=0;
-        pnpgG5A055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=1/4;
-        pnpgG5Aq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=0;
-        pnpgGfA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=1/4;
-        pnpgGfAq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.b=0;
-        pnpgA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-        pnpg_n055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.adaptiveStep=false;
-        pnpg_nInf55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-
-
         OPT.stepIncre=0.8; OPT.stepShrnk=0.8;
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         pnpg_d88{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -254,10 +311,108 @@ case 'run'
     end
 
 case lower('plot')
+    ept=[];
+    pnpg_adp=[];
+    pnpgG5A055=[];
+    pnpg_d_adp=[];
+    pnpg_1_3=[];
     filename = [mfilename '.mat']; load(filename);
     fprintf('PET Poisson l1 example\n');
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+    pnpgd55List={
+        'pnpg_d55',
+        'pnpgG5A0_d55',
+        'pnpgG5Aq_d55',
+        'pnpgGfA0_d55',
+        'pnpgGfAq_d55',
+        'pnpgA0_d55',
+        'pnpg_n0_d55',
+        'pnpg_nInf_d55'};
+
+    pnpgd88List={
+        'pnpg_d88',
+        'pnpgG5A0_d88',
+        'pnpgG5Aq_d88',
+        'pnpgGfA0_d88',
+        'pnpgGfAq_d88',
+        'pnpgA0_d88',
+        'pnpg_n0_d88',
+        'pnpg_nInf_d88'};
+
+    pnpg55List={
+        'pnpg_55',
+        'pnpgG5A055',
+        'pnpgG5Aq55',
+        'pnpgGfA055',
+        'pnpgGfAq55',
+        'pnpgA055',
+        'pnpg_n055',
+        'pnpg_nInf55'};
+
+    pnpg88List={
+        'pnpg_88',
+        'pnpgG5A088',
+        'pnpgG5Aq88',
+        'pnpgGfA088',
+        'pnpgGfAq88',
+        'pnpgA088',
+        'pnpg_n088',
+        'pnpg_nInf88'};
+
+    pnpgdList={
+        'pnpg_d',
+        'pnpgG5A0_d',
+        'pnpgG5Aq_d',
+        'pnpgGfA0_d',
+        'pnpgGfAq_d',
+        'pnpgA0_d',
+        'pnpg_n0_d',
+        'pnpg_nInf_d'};
+
+    pnpgList={
+        'pnpg_',
+        'pnpgG5A0',
+        'pnpgG5Aq',
+        'pnpgGfA0',
+        'pnpgGfAq',
+        'pnpgA0',
+        'pnpg_n0',
+        'pnpg_nInf'};
+
+    tfocsList={
+        'tfocs_200_m6 ',
+        'tfocs_200_m9 ',
+        'tfocs_200_m12'};
+
+    i=5;
+    mc=+inf;
+    [mc,pnpgd55Var]=minAndName(pnpgd55List,i,mc);
+    [mc,pnpgd88Var]=minAndName(pnpgd88List,i,mc);
+    [mc,pnpg55Var ]=minAndName(pnpg55List ,i,mc);
+    [mc,pnpg88Var ]=minAndName(pnpg88List ,i,mc);
+    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,i,mc);
+    [mc,pnpgVar   ]=minAndName(pnpgList   ,i,mc);
+
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg88Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg88Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+
+    return
+%   compare({'innerItr'},@plot,varList{1:end/2});
+%   compare({'innerItr'},@plot,varList{end/2:end});
+%   return
 
     nameList={'pnpg_','spiral','pnpg_nInf','pnpg_n0','tfocs'};
 
@@ -286,9 +441,9 @@ case lower('plot')
         min(   cpdwt1{mIdx,as,k}.cost)
         min(   pnpg_d{mIdx,as,k}.cost)]);
 
-    fields={'stepSize','RMSE','time','cost'};
-    forSave=addTrace(    pnpg_1_3{mIdx,as,k},     [],fields,mc); %  1- 4
-    forSave=addTrace(       pnpg_{mIdx,as,k},forSave,fields,mc); %  5- 8
+    fields={'RMSE','time','cost'};
+    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields,mc); %  1- 4
+    forSave=addTrace(     pnpg_88{mIdx,as,k},forSave,fields,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields,mc); %  9-12
     forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields,mc); % 13-16
     forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields,mc); % 17-20
@@ -301,7 +456,7 @@ case lower('plot')
     save('cost_itrPET.data','forSave','-ascii');
 
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); %  1- 3
+    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields_,mc); %  1- 3
     forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  4- 6
     forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  7- 9
     save('cost_itrPET_1.data','forSave','-ascii');
@@ -451,6 +606,18 @@ case 'fullplot'
     legend('PNPG','FPNPG','SPIRAL');
 end
 
+function [mc,varList] = minAndName(nameList,i,mc)
+    if(~exist('mc','var'))
+        mc=+inf;
+    end
+    for ii=1:length(nameList)
+        a=eval(nameList{ii});
+        mc=min(mc,min(a{i}.cost(:)));
+        a{i}.name=nameList{ii};
+        varList{ii}=a{i};
+    end
+end
+
 end
 
 function [a,b,c]=meanOverK(method,field)
@@ -464,11 +631,13 @@ function [a,b,c]=meanOverK(method,field)
     end
 end
 function forSave=addTrace(method,forSave,fields,mc)
+    len=1000;
+    tt=getfield(method,fields{1});
+    itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
-    n=length(fields);
-    for i=1:n
+    for i=1:length(fields);
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
@@ -476,14 +645,13 @@ function forSave=addTrace(method,forSave,fields,mc)
         if(strcmpi(fields{i},'cost') && exist('mc','var'))
             tt=(tt-mc)/mc;
         end
-        data(:,i)=reshape(tt,[],1);
+        ss=interp1(1:length(tt),tt,itr);
+        data(:,i)=reshape(ss,[],1);
     end
+    data=[itr(:) data];
     forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)
     [r,c]=size(forSave);
     forSave(1:size(col,1),c+1:c+size(col,2))=col;
 end
-
-
-

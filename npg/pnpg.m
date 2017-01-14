@@ -233,13 +233,13 @@ while(true)
             newX=proximal.prox(xbar-grad/t,opt.u/t);
         else
             if(opt.dualGap)
+                innerThresh=opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2);
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2),...
-                    opt.maxInnerItr,pInit);
+                    innerThresh,opt.maxInnerItr,pInit);
             else
+                innerThresh=opt.relInnerThresh*difX;
                 [newX,innerItr_,pInit_]=proximal.prox(xbar-grad/t,opt.u/t,...
-                    opt.relInnerThresh*difX,...
-                    opt.maxInnerItr,pInit);
+                    innerThresh,opt.maxInnerItr,pInit);
             end
         end
 
@@ -275,16 +275,23 @@ while(true)
     % using eps reduces numerical issue around the point of convergence
     if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
-            if(restart())
-                if(opt.dualGap)
-                    opt.relInnerThresh=...
-                        opt.relInnerThresh/((itr-itrRes)^opt.epsilonDecRate)/(newTheta^2);
+            if(restart() || runMore())
+                if(~proximal.exact && opt.dualGap)
+                    opt.relInnerThresh=innerThresh;
                 end
+                theta=1;
                 itr=itr-1;
                 itrRes=itr;
+
+                % if(~proximal.exact && opt.dualGap)
+                %     opt.relInnerThresh=innerThresh*itr^opt.epsilonDecRate;
+                % end
+                % theta=1;
+                % itr=itr-1;
+
                 continue;
             end
-            if(runMore()) itr=itr-1; continue; end
+            %if(runMore()) itr=itr-1; continue; end
         end
         %reset(); % both theta and step size;
 
@@ -342,6 +349,7 @@ while(true)
         out.difX(itr)=difX;
         out.difCost(itr)=difCost;
         out.theta(itr)=theta;
+        out.innerThresh(itr)=innerThresh;
         out.numLineSearch(itr) = numLineSearch;
         out.stepSize(itr) = 1/t;
         out.NLLVal(itr)=NLLVal;
@@ -369,7 +377,7 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.8g',cost));
+        debug.print(2,sprintf('%15.11g',cost));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end
@@ -428,14 +436,13 @@ function res=restart()
         (oldNLL+opt.u*proximal.val(xbar)>newCost));
     if(~res) return; end
 
-    theta=1;
     debug.appendLog('_Restart');
     debug.printWithoutDel(2,'\t restart');
 end
 function res=runMore()
     res=false;
     if(proximal.exact) return; end
-    if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-9)
+    if(innerItr_<opt.maxInnerItr && innerThresh>1e-12)
         opt.relInnerThresh=opt.relInnerThresh/10;
         debug.printWithoutDel(2,...
             sprintf('\n decrease relInnerThresh to %g',...

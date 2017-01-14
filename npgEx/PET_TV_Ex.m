@@ -56,6 +56,37 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        opt=OPT; opt.thresh=opt.thresh/100;  %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma=[0,0,0,1e-4,1e-6];
+        sigma1=[0,0,0,1,1];
+        tau=[1,1,1,10^-2,10^-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        mysave;
+        continue;
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d55_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_55 {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+        return;
+
         OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
         opt=OPT;
         pnpg_55   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -176,14 +207,6 @@ case 'run'
         opt.sigma=sigma(i); opt.tau=tau(i);
         cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
-        opt=OPT; opt.thresh=opt.thresh/100; %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,1e-5,1e-6];
-        sigma1=[0,0,0,1,1];
-        tau=[1,1,1,10^-2,10^-3];
-        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-
-        mysave;
         continue;
 
 
@@ -271,7 +294,7 @@ case lower('tspAddition')
               min(    cptv1{mIdx,as,k}.cost)
               min(    cptv2{mIdx,as,k}.cost) ]);
 
-    fields_={'stepSize','RMSE','time','cost'};
+    fields_={'RMSE','time','cost'};
     forSave=addTrace(       pnpg_{mIdx,as,k},     [],fields_,mc); %  1- 4
     forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields_,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields_,mc); %  9-12
@@ -731,11 +754,13 @@ function [a,b,c]=meanOverK(method,field)
     end
 end
 function forSave=addTrace(method,forSave,fields,mc)
+    len=1000;
+    tt=getfield(method,fields{1});
+    itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
-    n=length(fields);
-    for i=1:n
+    for i=1:length(fields);
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
@@ -743,8 +768,10 @@ function forSave=addTrace(method,forSave,fields,mc)
         if(strcmpi(fields{i},'cost') && exist('mc','var'))
             tt=(tt-mc)/mc;
         end
-        data(:,i)=reshape(tt,[],1);
+        ss=interp1(1:length(tt),tt,itr);
+        data(:,i)=reshape(ss,[],1);
     end
+    data=[itr(:) data];
     forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)
