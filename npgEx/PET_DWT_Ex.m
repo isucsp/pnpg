@@ -327,6 +327,14 @@ case lower('plot')
         'tfocs_200_m9 ',
         'tfocs_200_m12'};
 
+    testList={
+        'pnpg_d',
+        'pnpg_d_06',
+        'pnpg_',
+        'pnpg_d55',
+        'pnpg_d55_06',
+        'pnpg_55'};
+
     i=5;
     mc=+inf;
     [mc,pnpgd55Var]=minAndName(pnpgd55List,i,mc);
@@ -335,6 +343,8 @@ case lower('plot')
     [mc,pnpg88Var ]=minAndName(pnpg88List ,i,mc);
     [mc,pnpgdVar  ]=minAndName(pnpgdList  ,i,mc);
     [mc,pnpgVar   ]=minAndName(pnpgList   ,i,mc);
+    [mc,tfocsVar  ]=minAndName(tfocsList  ,i,mc);
+    [mc,testVar   ]=minAndName(testList   ,i,mc);
 
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
@@ -342,15 +352,15 @@ case lower('plot')
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg88Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:});
 
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd88Var{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg88Var{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg88Var{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
 
-    return
 %   compare({'innerItr'},@plot,varList{1:end/2});
 %   compare({'innerItr'},@plot,varList{end/2:end});
 %   return
@@ -384,22 +394,23 @@ case lower('plot')
 
     fields={'RMSE','time','cost'};
     forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields,mc); %  1- 4
-    forSave=addTrace(     pnpg_88{mIdx,as,k},forSave,fields,mc); %  5- 8
+    forSave=addTrace(     pnpg_55{mIdx,as,k},forSave,fields,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields,mc); %  9-12
-    forSave=addTrace(   pnpg_nInf{mIdx,as,k},forSave,fields,mc); % 13-16
-    forSave=addTrace(     pnpg_n0{mIdx,as,k},forSave,fields,mc); % 17-20
-    forSave=addTrace(       tfocs{mIdx,as,k},forSave,fields,mc); % 21-24
-    forSave=addTrace(      pnpgA0{mIdx,as,k},forSave,fields,mc); % 25-28
-    forSave=addTrace(    pnpgG5A0{mIdx,as,k},forSave,fields,mc); % 29-32
-    forSave=addTrace(    pnpgG5Aq{mIdx,as,k},forSave,fields,mc); % 33-26
-    forSave=addTrace(    pnpgGfA0{mIdx,as,k},forSave,fields,mc); % 37-40
-    forSave=addTrace(    pnpgGfAq{mIdx,as,k},forSave,fields,mc); % 41-44
+    forSave=addTrace( pnpg_nInf55{mIdx,as,k},forSave,fields,mc); % 13-16
+    forSave=addTrace(   pnpg_n055{mIdx,as,k},forSave,fields,mc); % 17-20
+    forSave=addTrace(tfocs_200_m6{mIdx,as,k},forSave,fields,mc); % 21-24
+    forSave=addTrace(    pnpgA055{mIdx,as,k},forSave,fields,mc); % 25-28
+    forSave=addTrace(  pnpgG5A055{mIdx,as,k},forSave,fields,mc); % 29-32
+    forSave=addTrace(  pnpgG5Aq55{mIdx,as,k},forSave,fields,mc); % 33-26
+    forSave=addTrace(  pnpgGfA055{mIdx,as,k},forSave,fields,mc); % 37-40
+    forSave=addTrace(  pnpgGfAq55{mIdx,as,k},forSave,fields,mc); % 41-44
     save('cost_itrPET.data','forSave','-ascii');
 
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields_,mc); %  1- 3
-    forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  4- 6
-    forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  7- 9
+    forSave=addTrace(    pnpg_d55{mIdx,as,k},     [],fields_,mc); %  1- 4
+    forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  5- 8
+    forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  9-12
+    forSave=addTrace(tfocs_200_m9{mIdx,as,k},forSave,fields_,mc); % 13-16
     save('cost_itrPET_1.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv cost_itrPET.data cost_itrPET_1.data ' paperDir]);
@@ -546,6 +557,11 @@ case 'fullplot'
     title('rmse vs count');
     legend('PNPG','FPNPG','SPIRAL');
 end
+
+
+pnpg_d_06=[];
+pnpg_d55_06=[];
+ept=[];
 
 function [mc,varList] = minAndName(nameList,i,mc)
     if(~exist('mc','var'))

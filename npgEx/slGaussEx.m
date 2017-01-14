@@ -183,7 +183,8 @@ case 'plot'
         min(      cpdwt2{mIdx,iii}.cost)]);
 
     % each time add 3 columns (time cost RMSE)
-    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(pnpg_{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
+    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
+    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
     out=         spiral;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
     out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
     out=           gfb_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-gfb.data','temp','-ascii');
@@ -193,6 +194,8 @@ case 'plot'
     out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpgCumu0.data','temp','-ascii');
     out=         cpdwt1;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-1.data','temp','-ascii');
     out=         cpdwt2;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-2.data','temp','-ascii');
+    paperDir='~/research/myPaper/asilomar2014/';
+    system(['mv traceLG-*.data ' paperDir]);
 
     return;
 
@@ -981,11 +984,13 @@ function ret = findBest(method,field,idx)
     end
 end
 function forSave=addTrace(method,forSave,fields,mc)
+    len=1000;
     if(~exist('fields','var') || isempty(fields))
         fields={'time','cost','RMSE'};
     end
-    n=length(fields);
-    for i=1:n
+    tt=getfield(method,fields{1});
+    itr=linspace(1,length(tt),len);
+    for i=1:length(fields);
         tt=getfield(method,fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
@@ -993,8 +998,10 @@ function forSave=addTrace(method,forSave,fields,mc)
         if(strcmpi(fields{i},'cost') && exist('mc','var'))
             tt=(tt-mc)/mc;
         end
-        data(:,i)=reshape(tt,[],1);
+        ss=interp1(1:length(tt),tt,itr);
+        data(:,i)=reshape(ss,[],1);
     end
+    data=[itr(:) data];
     forSave=appendColumns(data,forSave);
 end
 function forSave = appendColumns(col,forSave)
