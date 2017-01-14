@@ -276,12 +276,19 @@ while(true)
     if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
             if(restart() || runMore())
-                if(~opt.exact && opt.dualGap)
+                if(~proximal.exact && opt.dualGap)
                     opt.relInnerThresh=innerThresh;
                 end
                 theta=1;
                 itr=itr-1;
                 itrRes=itr;
+
+                % if(~proximal.exact && opt.dualGap)
+                %     opt.relInnerThresh=innerThresh*itr^opt.epsilonDecRate;
+                % end
+                % theta=1;
+                % itr=itr-1;
+
                 continue;
             end
             %if(runMore()) itr=itr-1; continue; end
@@ -370,7 +377,7 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.8g',cost));
+        debug.print(2,sprintf('%15.11g',cost));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end

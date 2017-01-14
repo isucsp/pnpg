@@ -55,6 +55,82 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        opt=OPT;   opt.maxItr=1e4; opt.debugLevel=0;
+        opt.grad1 = @(y)Psit(y);
+        opt.grad2 = @(y)0;
+        opt.div   = @(x1,x2) Psi(x1);
+        opt.P = 1e10; opt.p = 2;
+        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+        opt.inn_ini  = 1;
+        opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
+        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
+            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        mysave;
+        return
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d55_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_55 {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+        return;
+
+
+
+        opt=OPT; opt.gamma=5; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgG5Aq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpgGfAq_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_n0_d {i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        mysave;
+
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+
+
+        continue;
+
         OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -74,25 +150,6 @@ case 'run'
         pnpg_nInf_d55{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
          
-        opt=OPT;
-        pnpg_55{i,j}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=0;
-        pnpgG5A055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=1/4;
-        pnpgG5Aq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=0;
-        pnpgGfA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=1/4;
-        pnpgGfAq55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.b=0;
-        pnpgA055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-        pnpg_n055{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.adaptiveStep=false;
-        pnpg_nInf55{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-
-
         OPT.stepIncre=0.8; OPT.stepShrnk=0.8;
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         pnpg_d88{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -254,7 +311,9 @@ case 'run'
     end
 
 case lower('plot')
+    ept=[];
     pnpg_adp=[];
+    pnpgG5A055=[];
     pnpg_d_adp=[];
     pnpg_1_3=[];
     filename = [mfilename '.mat']; load(filename);

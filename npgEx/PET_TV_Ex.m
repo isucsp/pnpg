@@ -56,6 +56,37 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        opt=OPT; opt.thresh=opt.thresh/100;  %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma=[0,0,0,1e-4,1e-6];
+        sigma1=[0,0,0,1,1];
+        tau=[1,1,1,10^-2,10^-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        mysave;
+        continue;
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+        OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
+        pnpg_d55_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+
+        opt=OPT;
+        pnpg_55 {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+        return;
+
         OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
         opt=OPT;
         pnpg_55   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -176,14 +207,6 @@ case 'run'
         opt.sigma=sigma(i); opt.tau=tau(i);
         cptv1 {i,j,k}=CP_TV(Phi,Phit,y,1,tvType,C,initSig,opt);
 
-        opt=OPT; opt.thresh=opt.thresh/100; %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,1e-5,1e-6];
-        sigma1=[0,0,0,1,1];
-        tau=[1,1,1,10^-2,10^-3];
-        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-
-        mysave;
         continue;
 
 
