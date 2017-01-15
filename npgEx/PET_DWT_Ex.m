@@ -394,16 +394,41 @@ case lower('plot')
         'pnpg_d55_06',
         'pnpg_55'};
 
-    i=5;
+    nameList={
+        '    pnpg_',
+        '   spiral',
+        'pnpg_nInf',
+        '  pnpg_n0',
+        '    tfocs',
+        '   pnpgA0',
+        ' pnpgG5A0',
+        ' pnpgG5Aq',
+        ' pnpgGfA0',
+        ' pnpgGfAq',
+        '   cpdwt1',
+        '   cpdwt1',
+        '   pnpg_d'};
+
+    K = 1;
+          fbp=      fbp(:,:,1:K);
+        pnpg_=    pnpg_(:,:,1:K);
+       spiral=   spiral_m5(:,:,1:K);
+      pnpg_n0=  pnpg_n0(:,:,1:K);
+    pnpg_nInf=pnpg_nInf(:,:,1:K);
+        tfocs=tfocs_200_m5(:,:,1:K);
+
+    % mIdx=6 is also good
+    mIdx=5; as=1; k=1;
     mc=+inf;
-    [mc,pnpgd55Var]=minAndName(pnpgd55List,i,mc);
-    [mc,pnpgd88Var]=minAndName(pnpgd88List,i,mc);
-    [mc,pnpg55Var ]=minAndName(pnpg55List ,i,mc);
-    [mc,pnpg88Var ]=minAndName(pnpg88List ,i,mc);
-    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,i,mc);
-    [mc,pnpgVar   ]=minAndName(pnpgList   ,i,mc);
-    [mc,tfocsVar  ]=minAndName(tfocsList  ,i,mc);
-    [mc,testVar   ]=minAndName(testList   ,i,mc);
+    [mc,otherVar  ]=minAndName(nameList   ,mIdx,mc);
+    [mc,pnpgd55Var]=minAndName(pnpgd55List,mIdx,mc);
+    [mc,pnpgd88Var]=minAndName(pnpgd88List,mIdx,mc);
+    [mc,pnpg55Var ]=minAndName(pnpg55List ,mIdx,mc);
+    [mc,pnpg88Var ]=minAndName(pnpg88List ,mIdx,mc);
+    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,mIdx,mc);
+    [mc,pnpgVar   ]=minAndName(pnpgList   ,mIdx,mc);
+    [mc,tfocsVar  ]=minAndName(tfocsList  ,mIdx,mc);
+    [mc,testVar   ]=minAndName(testList   ,mIdx,mc);
 
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
@@ -424,33 +449,6 @@ case lower('plot')
 %   compare({'innerItr'},@plot,varList{end/2:end});
 %   return
 
-    nameList={'pnpg_','spiral','pnpg_nInf','pnpg_n0','tfocs'};
-
-    K = 1;
-          fbp=      fbp(:,:,1:K);
-        pnpg_=    pnpg_(:,:,1:K);
-       spiral=   spiral_m5(:,:,1:K);
-      pnpg_n0=  pnpg_n0(:,:,1:K);
-    pnpg_nInf=pnpg_nInf(:,:,1:K);
-        tfocs=tfocs_200_m5(:,:,1:K);
-
-    % mIdx=6 is also good
-    mIdx=5; as=1; k=1;
-    mc=min([...
-        min(    pnpg_{mIdx,as,k}.cost)
-        min(   spiral{mIdx,as,k}.cost)
-        min(pnpg_nInf{mIdx,as,k}.cost)
-        min(  pnpg_n0{mIdx,as,k}.cost)
-        min(    tfocs{mIdx,as,k}.cost)
-        min(   pnpgA0{mIdx,as,k}.cost)
-        min( pnpgG5A0{mIdx,as,k}.cost)
-        min( pnpgG5Aq{mIdx,as,k}.cost)
-        min( pnpgGfA0{mIdx,as,k}.cost)
-        min( pnpgGfAq{mIdx,as,k}.cost)
-        min(   cpdwt1{mIdx,as,k}.cost)
-        min(   cpdwt1{mIdx,as,k}.cost)
-        min(   pnpg_d{mIdx,as,k}.cost)]);
-
     fields={'RMSE','time','cost'};
     forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields,mc); %  1- 4
     forSave=addTrace(     pnpg_55{mIdx,as,k},forSave,fields,mc); %  5- 8
@@ -470,6 +468,7 @@ case lower('plot')
     forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  5- 8
     forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  9-12
     forSave=addTrace(tfocs_200_m9{mIdx,as,k},forSave,fields_,mc); % 13-16
+    forSave=addTrace(       vmila{mIdx,as,k},forSave,fields_,mc); % 17-20
     save('cost_itrPET_1.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv cost_itrPET.data cost_itrPET_1.data ' paperDir]);
@@ -649,6 +648,9 @@ end
 function forSave=addTrace(method,forSave,fields,mc)
     len=1000;
     tt=getfield(method,fields{1});
+    if(iscell(tt) && length(tt)==1)
+        tt=tt{1};
+    end
     itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
