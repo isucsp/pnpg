@@ -55,11 +55,11 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
-        opt=OPT;   opt.maxItr=1e4; opt.debugLevel=0;
+        opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
         opt.grad1 = @(y)Psit(y);
         opt.grad2 = @(y)0;
         opt.div   = @(x1,x2) Psi(x1);
-        opt.P = 1e10; opt.p = 2;
+        opt.P = 1e5; opt.p = 2;
         opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
         opt.inn_ini  = 1;
         opt.eta = 1e-6;
