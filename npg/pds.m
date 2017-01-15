@@ -215,7 +215,7 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.8g',cost));
+        debug.print(2,sprintf(' %14.12g',cost));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end
@@ -258,6 +258,7 @@ if(debug.level(1))
     else
         fprintf('\n');
     end
+    fprintf('\t sigma=%g, tau=%g, rho=%g\n',sigma,tau,rho);
 end
 
 end
