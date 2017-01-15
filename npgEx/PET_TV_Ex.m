@@ -274,6 +274,92 @@ case lower('tspAddition')
     fprintf('PET Poisson TV example for TSP\n');
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+    testList={
+        'pnpg_d',
+        'pnpg_d_06',
+        'pnpg_',
+        'pnpg_d55',
+        'pnpg_d55_06',
+        'pnpg_d55'};
+
+    pnpgd55List={
+        'pnpg_d55',
+        'pnpgG5A0_d55',
+        'pnpgG5Aq_d55',
+        'pnpgGfA0_d55',
+        'pnpgGfAq_d55',
+        'pnpgA0_d55',
+        'pnpg_n0m0_d55',
+        'pnpg_nInf_d55'};
+
+    pnpgd88List={
+        'pnpg_d88',
+        'pnpgG5A0_d88',
+        'pnpgG5Aq_d88',
+        'pnpgGfA0_d88',
+        'pnpgGfAq_d88',
+        'pnpgA0_d88',
+        'pnpg_n0m0_d88',
+        'pnpg_nInf_d88'};
+
+    pnpg55List={
+        'pnpg_55',
+        'pnpgG5A055',
+        'pnpgG5Aq55',
+        'pnpgGfA055',
+        'pnpgGfAq55',
+        'pnpgA055',
+        'pnpg_n0m055',
+        'pnpg_nInf55'};
+
+    pnpg88List={
+        'pnpg_88',
+        'pnpgG5A088',
+        'pnpgG5Aq88',
+        'pnpgGfA088',
+        'pnpgGfAq88',
+        'pnpgA088',
+        'pnpg_n0m088',
+        'pnpg_nInf88'};
+
+    pnpgdList={
+        'pnpg_d'};
+
+    pnpgList={
+        'pnpg_',
+        'pnpgG5A0',
+        'pnpgG5Aq',
+        'pnpgGfA0',
+        'pnpgGfAq',
+        'pnpgA0',
+        'pnpg_n0m0',
+        'pnpg_nInf'};
+
+    tfocsList={
+        'tfocs_200_m6 ',
+        'tfocs_200_m9 ',
+        'tfocs_200_m12'};
+
+    i=4;
+    mc=+inf;
+    [mc,pnpgd55Var]=minAndName(pnpgd55List,i,mc);
+    [mc,pnpgd88Var]=minAndName(pnpgd88List,i,mc);
+    [mc,pnpg55Var ]=minAndName(pnpg55List ,i,mc);
+    [mc,pnpg88Var ]=minAndName(pnpg88List ,i,mc);
+    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,i,mc);
+    [mc,pnpgVar   ]=minAndName(pnpgList   ,i,mc);
+    [mc,testVar   ]=minAndName(testList   ,i,mc);
+
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg88Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:});
+
+
     spiral=spiralTV;
     tfocs=tfocs_200_m5;
 
@@ -740,6 +826,26 @@ case 'fullplot'
 
 
 end
+
+pnpg_1_3=[];
+spiral_m5=[];
+spiral_m6=[];
+pnpgTV_noAdpStpLong=[];
+pnpg_d_06=[];
+pnpg_d55_06=[];
+
+function [mc,varList] = minAndName(nameList,i,mc)
+    if(~exist('mc','var'))
+        mc=+inf;
+    end
+    for ii=1:length(nameList)
+        a=eval(nameList{ii});
+        mc=min(mc,min(a{i}.cost(:)));
+        a{i}.name=nameList{ii};
+        varList{ii}=a{i};
+    end
+end
+
 
 end
 
