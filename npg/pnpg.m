@@ -94,6 +94,7 @@ if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
 if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
 if(~isfield(opt,'maxPossibleInnerItr')) opt.maxPossibleInnerItr=1e3; end
+if(~isfield(opt,'minPossibleInnerThresh')) opt.minPossibleInnerThresh=1e-14; end
 if(strcmpi(opt.initStep,'fixed') && isinf(opt.Lip))
     error('The "fixed" for opt.initStep can not be used together with infinite opt.Lip');
 end
@@ -302,6 +303,7 @@ while(true)
         preX=x; difX=0;
         preCost=cost;
     else
+    end
         if(~proximal.exact)
             pInit=pInit_;
             innerItr=innerItr_;
@@ -314,7 +316,6 @@ while(true)
         cost = newCost;
         NLLVal=newNLL;
         penVal=newPen;
-    end
 
     if(opt.adaptiveStep)
         preT=t;
@@ -350,6 +351,7 @@ while(true)
         out.difCost(itr)=difCost;
         out.theta(itr)=theta;
         out.innerThresh(itr)=innerThresh;
+        out.innerDifX(itr)=proximal.getDifX();
         out.numLineSearch(itr) = numLineSearch;
         out.stepSize(itr) = 1/t;
         out.NLLVal(itr)=NLLVal;
@@ -412,7 +414,7 @@ if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\n%s: CPU Time: %g, objective=%g',mfilename,toc(tStart),cost);
+    fprintf('\n%s: CPU Time: %g, objective=%26.20g',mfilename,toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);
@@ -442,21 +444,23 @@ end
 function res=runMore()
     res=false;
     if(proximal.exact) return; end
-    if(innerItr_<opt.maxInnerItr && innerThresh>1e-12)
+    if(...%innerItr_<opt.maxInnerItr &&
+            innerThresh>opt.minPossibleInnerThresh)
         opt.relInnerThresh=opt.relInnerThresh/10;
         debug.printWithoutDel(2,...
             sprintf('\n decrease relInnerThresh to %g',...
             opt.relInnerThresh));
         debug.appendLog('_DecInnerThresh');
         res=true;
-    elseif(innerItr_>=opt.maxInnerItr &&...
-            opt.maxInnerItr<opt.maxPossibleInnerItr)
-        opt.maxInnerItr=opt.maxInnerItr*10;
-        debug.printWithoutDel(2,...
-            sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
-        debug.appendLog('_IncInnerMaxItr');
-        res=true;
     end
+    %elseif(innerItr_>=opt.maxInnerItr &&...
+    %        opt.maxInnerItr<opt.maxPossibleInnerItr)
+    %    opt.maxInnerItr=opt.maxInnerItr*10;
+    %    debug.printWithoutDel(2,...
+    %        sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
+    %    debug.appendLog('_IncInnerMaxItr');
+    %    res=true;
+    %end
 end
 
 function t_=stepSizeInit(select,Lip,delta)
