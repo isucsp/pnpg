@@ -50,9 +50,8 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
 
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
         pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
-        mysave;
-        continue;
 
         opt=OPT; opt.maxPossibleInnerItr=1e2;
         opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
