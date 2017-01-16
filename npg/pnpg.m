@@ -86,7 +86,13 @@ if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
 if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
 
 if(~isfield(opt,'dualGap')) opt.dualGap=false; end
-if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-2; end
+if(~isfield(opt,'relInnerThresh'))
+    if(opt.dualGap)
+        opt.relInnerThresh=1;
+    else
+        opt.relInnerThresh=1e-2;
+    end
+end
 % decend rate of (epsion*theta)^2 is O(1/i^epsilonDecRate)
 if(~isfield(opt,'epsilonDecRate')) opt.epsilonDecRate=1; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
@@ -278,7 +284,7 @@ while(true)
         if(goodMM)
             if(restart() || runMore())
                 if(~proximal.exact && opt.dualGap)
-                    opt.relInnerThresh=innerThresh;
+                    %opt.relInnerThresh=innerThresh;
                 end
                 theta=1;
                 itr=itr-1;
@@ -351,6 +357,7 @@ while(true)
         out.difCost(itr)=difCost;
         out.theta(itr)=theta;
         out.innerThresh(itr)=innerThresh;
+        out.innerDualGap(itr)=proximal.getDualGap();
         out.innerDifX(itr)=proximal.getDifX();
         out.numLineSearch(itr) = numLineSearch;
         out.stepSize(itr) = 1/t;

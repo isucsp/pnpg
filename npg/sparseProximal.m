@@ -68,6 +68,12 @@ function o = getDifX()
     o=difX;
 end
 
+proximalOut.getDualGap=@getDualGap;
+dualGap=1;
+function o = getDualGap()
+    o=dualGap;
+end
+
 function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     % For Psi and Psit that are from wavelet transform, set
     % opt.Lip=@(u)u^2;
@@ -214,6 +220,7 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             prePsi_p=Psi_p;
             preCost=cost;
         else
+        end
             if(opt.dualGap)
                 % slightly larger than the exact gap, but saves time
                 primary=norm(grad(:),1);
@@ -226,7 +233,6 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             theta = newTheta;
             preCost=cost;
             cost = newCost;
-        end
         preT=t;
 
         if(opt.adaptiveStep)

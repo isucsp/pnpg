@@ -49,16 +49,37 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
-        % END experiment region,  to delete in the end
+        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
+        opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
+        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
 
         opt=OPT; opt.maxPossibleInnerItr=1e2;
         opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
-        pnpg_ {i,j}=pnpg(NLL,proximal_admm,initSig,opt);
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
         mysave;
         continue;
 
-        ept=OPT; opt.dualGap=true; opt.relInnerThresh=1;
-        pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
+        % END experiment region,  to delete in the end
+
+        opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=1e-14;
+        sigma=[0,0.01,0.1,10];
+        tau=[0,1,1,1];
+        rho=[1,1,1,1];
+        opt.sigma=sigma(j); opt.tau=tau(j); opt.rho=rho(j);
+        H.exact=true;
+        H.val=@(s) opt.u*norm(s(:),1);
+        H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
+        condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
+
+        opt=OPT; opt.thresh=1e-14;  opt.maxItr=5e5;  
+        %opt.maxItr=4e4; opt.xxx=gfb_{i,j}.cost(end); opt.debugLevel=2;
+        sigma=[0,1e-2,1e-1,1];
+        sigma1=[0,1e-2,1e-1,1];
+        tau=[1,1,1,1];
+        opt.sigma=[sigma(j), sigma1(j)]; opt.tau=1/(opt.L+1)/opt.sigma(1)*tau(j);
+        cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
+        mysave
+        continue;
 
 %       opt=OPT; opt.innerThresh=1e-6;
 %       sparsn_m6   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -92,16 +113,6 @@ case 'run'
         opt=OPT; opt.innerThresh=1e-12;
         spiral_m12  {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-        opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=opt.thresh/10000000;
-        sigma=[0,0.01,0.1,10];
-        tau=[0,1,1,1];
-        rho=[1,1,1,1];
-        opt.sigma=sigma(j); opt.tau=tau(j); opt.rho=rho(j);
-        H.exact=true;
-        H.val=@(s) opt.u*norm(s(:),1);
-        H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
-        condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
-
         opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=opt.thresh/1000;
         % opt.gamma in [0, 2];   opt.lambda in [0, 1]
         gamma=[0.0,1.9,1.9,1.9];
@@ -118,14 +129,6 @@ case 'run'
         tau=[1,0.9,0.9,0.8];
         opt.sigma=sigma(j); opt.tau=1/opt.L/opt.sigma*tau(j);
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
-
-        opt=OPT; opt.thresh=opt.thresh/10000;  opt.maxItr=5e5;  
-        %opt.maxItr=4e4; opt.xxx=gfb_{i,j}.cost(end); opt.debugLevel=2;
-        sigma=[0,1e-2,1e-1,1];
-        sigma1=[0,1e-2,1e-1,1];
-        tau=[1,1,1,1];
-        opt.sigma=[sigma(j), sigma1(j)]; opt.tau=1/(opt.L+1)/opt.sigma(1)*tau(j);
-        cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
 
         mysave
     end
