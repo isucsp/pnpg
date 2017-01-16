@@ -142,65 +142,45 @@ case 'plot'
     u = [1e-3,1e-3,1e-4,1e-4,1e-5,1e-5,1e-6,1e-6,1e-6];
     K = 1;
 
-      pnpg_      =        pnpg_(:,:,1:K);
     spiral       =    spiral_m6(:,:,1:K);
     sparsn       =    sparsn_m5(:,:,1:K);
-       gfb_      =         gfb_(:,:,1:K);
-    condat       =       condat(:,:,1:K);
     tfocs_AT     = tfocs_200_m6(:,:,1:K);
-    tfocs_200_m5 = tfocs_200_m6(:,:,1:K);
-    spiral_m5    =    spiral_m6(:,:,1:K);
-    sparsn_m5    =    sparsn_m6(:,:,1:K);
 
-    mIdx=4;
-    iii=2;
-    mc2=min([...
-        min(       pnpg_{mIdx,iii}.cost)
-        min(      pnpg_d{mIdx,iii}.cost)
-        min(      spiral{mIdx,iii}.cost)
-        min(      sparsn{mIdx,iii}.cost)
-        min(        gfb_{mIdx,iii}.cost)
-        min(      condat{mIdx,iii}.cost)
-        min(    tfocs_AT{mIdx,iii}.cost)
-        min(tfocs_n83_m6{mIdx,iii}.cost)
-        min(  pnpg_cumu0{mIdx,iii}.cost)
-        min(      cpdwt1{mIdx,iii}.cost)
-        min(      cpdwt2{mIdx,iii}.cost)]);
+    nameList={'       pnpg_',
+              '      pnpg_d',
+              '   spiral_m5',
+              '   spiral_m6',
+              '   spiral_m9',
+              '        gfb_',
+              '      condat',
+              'tfocs_200_m5',
+              'tfocs_200_m6',
+              'tfocs_200_m9',
+              'tfocs_n83_m6',
+              '  pnpg_cumu0',
+              '      cpdwt1',
+              '      cpdwt2',};
+
+    mIdx=4; iii=2;
+    [mc2,varList2]=minAndName(nameList,[mIdx,iii]);
     iii=3;
-    mc3=min([...
-        min(       pnpg_{mIdx,iii}.cost)
-        min(      pnpg_d{mIdx,iii}.cost)
-        min(      spiral{mIdx,iii}.cost)
-        min(      sparsn{mIdx,iii}.cost)
-        min(        gfb_{mIdx,iii}.cost)
-        min(      condat{mIdx,iii}.cost)
-        min(    tfocs_AT{mIdx,iii}.cost)
-        min(tfocs_n83_m6{mIdx,iii}.cost)
-        min(  pnpg_cumu0{mIdx,iii}.cost)
-        min(      cpdwt1{mIdx,iii}.cost)
-        min(      cpdwt2{mIdx,iii}.cost)]);
+    [mc3,varList3]=minAndName(nameList,[mIdx,iii]);
     iii=4;
-    mc4=min([...
-        min(       pnpg_{mIdx,iii}.cost)
-        min(      spiral{mIdx,iii}.cost)
-        min(      sparsn{mIdx,iii}.cost)
-        min(      pnpg_d{mIdx,iii}.cost)
-        min(        gfb_{mIdx,iii}.cost)
-        min(      condat{mIdx,iii}.cost)
-        min(    tfocs_AT{mIdx,iii}.cost)
-        min(tfocs_n83_m6{mIdx,iii}.cost)
-        min(  pnpg_cumu0{mIdx,iii}.cost)
-        min(      cpdwt1{mIdx,iii}.cost)
-        min(      cpdwt2{mIdx,iii}.cost)]);
+    [mc4,varList4]=minAndName(nameList,[mIdx,iii]);
+    compareC({'time','cost'},@semilogy,varList2{:});
+    compareC({'time','cost'},@semilogy,varList3{:});
+    compareC({'time','cost'},@semilogy,varList4{:});
+
+    keyboard
 
     % each time add 3 columns (time cost RMSE)
     out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
     out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
-    out=         spiral;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
+    out=      spiral_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
     out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
     out=           gfb_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-gfb.data','temp','-ascii');
     out=         condat;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-condat.data','temp','-ascii');
-    out=       tfocs_AT;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-tfocsAT.data','temp','-ascii');
+    out=   tfocs_200_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-tfocsAT.data','temp','-ascii');
     out=   tfocs_n83_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-tfocsN83.data','temp','-ascii');
     out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpgCumu0.data','temp','-ascii');
     out=         cpdwt1;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-1.data','temp','-ascii');
@@ -961,6 +941,41 @@ case 'plot_old'
     system(['mv continuation.data traceLinGauss.data selectedTime.data timeVsA.data rmseVsA.data stepSizeLin.data varyMeasurement.data varyMeasurementTime.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');
 end
+pnpg_1_3=[];
+pnpg_d0_6=[];
+pnpg_d1rel1=[];
+pnpg_d1rel_5=[];
+pnpg_d1rel_75=[];
+pnpg_d_deb1=[];
+pnpg_deb1=[];
+pnpg_drel0_1=[];
+pnpg_drel1=[];
+pnpg_drel_5=[];
+pnpg_drel_75=[];
+sparsn_m12=[];
+sparsn_m9=[];
+tfocs_200_m5=[];
+spiral_m5=[];
+sparsn_m6=[];
+sigma1=[];
+function [mc,varList] = minAndName(nameList,i,mc)
+    if(~exist('mc','var'))
+        mc=+inf;
+    end
+    idx='{';
+    for ii=1:length(i)
+        idx=sprintf('%s%d,',idx,i(ii));
+    end
+    idx=[idx(1:end-1) '}'];
+    for ii=1:length(nameList)
+        a=eval([nameList{ii}, idx ]);
+        mc=min(mc,min(a.cost(:)));
+        a.name=nameList{ii};
+        varList{ii}=a;
+    end
+end
+
+
 end
 
 function [a,b,c]=meanOverK(method,field)
