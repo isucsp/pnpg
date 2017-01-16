@@ -167,12 +167,22 @@ case 'plot'
     compareC({'time','cost'},@semilogy,varList2{:});
     compareC({'time','cost'},@semilogy,varList3{:});
     compareC({'time','cost'},@semilogy,varList4{:});
+    % compareC({'cost'},@semilogy,varList2{:});
+    % compareC({'cost'},@semilogy,varList3{:});
+    % compareC({'cost'},@semilogy,varList4{:});
 
+    for j=2:4;
+        a=pnpg_{4,j};
+        figure; semilogy(a.innerDifX); hold on; semilogy(a.innerThresh,'r'); semilogy(a.difX,'k');
+        legend('innerDifX','innerThresh','DifX');
+        a=pnpg_{4,j};
+        figure; semilogy(a.innerDifX); hold on; semilogy(a.innerThresh,'r'); semilogy(a.difX,'k');
+        semilogy(a.innerDualGap,'m');
+        legend('innerDifX','innerThresh','DifX','dualGap');
+    end
     keyboard
 
     % each time add 3 columns (time cost RMSE)
-    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
-    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
     out=      spiral_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
     out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
     out=           gfb_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-gfb.data','temp','-ascii');
@@ -186,6 +196,8 @@ case 'plot'
     system(['mv traceLG-*.data ' paperDir]);
 
     return;
+    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
+    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
 
     out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
     out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
