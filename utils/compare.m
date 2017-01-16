@@ -1,7 +1,7 @@
 function compare(field,plotFunc,varargin)
-    colors={'g','b','r','k','m'};
-    marks = {'.','*','o','s','^'};
-    lines = {'-','--','-.'};
+    colors= {'g','b','r','k','m'};
+    marks = {'+','x','d','v','<','>','p','h','.','*','o','s','^'};
+    lines = {'-','--','-.',':'};
 
     if(~iscell(field))
         fieldname{1}=field;
@@ -20,10 +20,14 @@ function compare(field,plotFunc,varargin)
         for j=1:length(fieldname)
             v{j}=getfield(vars{ii},fieldname{j});
         end
+        colorIdx=mod(ii-1,length(colors))+1;
+        tmp=floor((ii-1)/length(colors))+1;
+        lineIdx=mod(tmp-1,length(lines))+1;
         if(length(fieldname)==1)
-            plotFunc(v{1}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
+            plotFunc(v{1}-m,[colors{colorIdx} lines{lineIdx}]);
+            ylabel(fieldname{1});
         elseif(length(fieldname)==2)
-            plotFunc(v{1},v{2}-m,[colors{mod(ii-1,length(colors))+1} lines{mod(ii-1,length(lines))+1}]);
+            plotFunc(v{1},v{2}-m,[colors{colorIdx} lines{lineIdx}]);
             xlabel(fieldname{1});
             ylabel(fieldname{2});
         end
