@@ -234,8 +234,8 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.12g',cost));
-        %debug.print(2,sprintf(' %14.12g',cost-opt.xxx));
+        %debug.print(2,sprintf(' %14.12g',cost));
+        debug.print(2,sprintf(' %14.12g',(cost-opt.xxx)/opt.xxx));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end

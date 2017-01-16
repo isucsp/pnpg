@@ -62,6 +62,12 @@ if(~isfield(opt,'outLevel')) opt.outLevel=0; end
 
 debug=Debug(opt.debugLevel);
 
+proximalOut.getDifX=@getDifX;
+difX=1;
+function o = getDifX()
+    o=difX;
+end
+
 function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     % For Psi and Psit that are from wavelet transform, set
     % opt.Lip=@(u)u^2;
