@@ -56,14 +56,14 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
         % END experiment region,  to delete in the end
 
-
-        keyboard
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
-        opt.maxInnerItr=100;
-        tfocs_200_m6_100 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt.maxInnerItr=100;  opt.maxItr=4000;
+        tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        mysave;
+
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
-        opt.maxInnerItr=100;
-        tfocs_200_m9_100 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt.maxInnerItr=100;  opt.maxItr=4000;
+        tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
         return;
 
