@@ -1,4 +1,4 @@
-function out = gfb(F,Gi,Lip,xInit,opt)
+function out = gfb(F,Gi,C,Lip,xInit,opt)
 %   gfb solves a sparse regularized problem using GFB algorithm
 %
 %                        F(x) + u*r(x) + I_C(x)                     (1)
@@ -165,6 +165,7 @@ while(true)
     for i=1:length(Gi)
         x=x+w(i)*z{i};
     end
+    x=C.prox(x);
     preCost=cost;
     [cost, grad]=F(x);
     for i=1:length(Gi)

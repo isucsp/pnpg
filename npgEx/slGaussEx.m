@@ -50,17 +50,33 @@ case 'run'
         keyboard
         % BEGIN experiment region,  to delete in the end
 
-        opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
-        opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
+        % END experiment region,  to delete in the end
+
+        opt=OPT; opt.innerThresh=1e-5; opt.maxItr=15e4; opt.thresh=0; opt.maxInnerItr=100;
+        spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        opt=OPT; opt.innerThresh=1e-6; opt.maxItr=15e4; opt.thresh=0; opt.maxInnerItr=100;
+        spiral_m6   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        opt=OPT; opt.innerThresh=1e-9; opt.maxInnerItr=100;
+        spiral_m9   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6; opt.maxInnerItr=100;
+        tfocs_200_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9; opt.maxInnerItr=100;
+        tfocs_200_m9 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+
+        mysave
+        continue
+
+        opt=OPT; opt.dualGap=true; %opt.debugLevel=2;
+        opt.maxInnerItr=1e3; opt.thresh=1e-14;
         pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
 
-        opt=OPT; opt.maxPossibleInnerItr=1e2;
-        opt.debugLevel=2;  opt.maxInnerItr=1e3; opt.thresh=1e-13;
+        opt=OPT; %opt.debugLevel=2;
+        opt.maxInnerItr=1e3; opt.thresh=1e-14;
         pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-        continue;
-
-        % END experiment region,  to delete in the end
 
         opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=1e-14;
         sigma=[0,0.01,0.1,10];
@@ -72,15 +88,16 @@ case 'run'
         H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
         condat   {i,j}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
 
-        opt=OPT; opt.thresh=1e-14;  opt.maxItr=5e5;  
-        %opt.maxItr=4e4; opt.xxx=gfb_{i,j}.cost(end); opt.debugLevel=2;
-        sigma=[0,1e-2,1e-1,1];
-        sigma1=[0,1e-2,1e-1,1];
-        tau=[1,1,1,1];
-        opt.sigma=[sigma(j), sigma1(j)]; opt.tau=1/(opt.L+1)/opt.sigma(1)*tau(j);
-        cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
-        mysave
-        continue;
+        opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=1e-13;
+        % opt.gamma in [0, 2];   opt.lambda in [0, 1]
+        gamma=[0.0,1.9,1.9,1.9];
+        lambda=[1,1,1,1];
+        opt.gamma=gamma(j);
+        opt.lambda=lambda(j)/min(1.5,0.5+1/(opt.gamma/opt.L));
+        G.exact=true;
+        G.val=@(x) opt.u*norm(Psit(x),1);
+        G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
+        gfb_   {i,j}=gfb(NLL,{G,C},C,opt.L,initSig,opt);
 
 %       opt=OPT; opt.innerThresh=1e-6;
 %       sparsn_m6   {i,j}=Wrapper.SpaRSAp  (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -93,43 +110,19 @@ case 'run'
 
 %       mysave;
 
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
-        tfocs_200_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
-        tfocs_200_m9 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-12;
-        tfocs_200_m12{i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.innerThresh=1e-5; opt.maxItr=15e4; opt.thresh=0;
-        spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.innerThresh=1e-6; opt.maxItr=15e4; opt.thresh=0;
-        spiral_m6   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.innerThresh=1e-9;
-        spiral_m9   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.innerThresh=1e-12;
-        spiral_m12  {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.maxItr=20*opt.maxItr; opt.thresh=opt.thresh/1000;
-        % opt.gamma in [0, 2];   opt.lambda in [0, 1]
-        gamma=[0.0,1.9,1.9,1.9];
-        lambda=[1,1,1,1];
-        opt.gamma=gamma(j);
-        opt.lambda=lambda(j)/min(1.5,0.5+1/(opt.gamma/opt.L));
-        G.exact=true;
-        G.val=@(x) opt.u*norm(Psit(x),1);
-        G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
-        gfb_   {i,j}=gfb(NLL,{G,C},opt.L,initSig,opt);
-
         opt=OPT;
         sigma=[0,10^-4,10^-3,10^-2];
         tau=[1,0.9,0.9,0.8];
         opt.sigma=sigma(j); opt.tau=1/opt.L/opt.sigma*tau(j);
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
+
+        opt=OPT; opt.thresh=1e-14;  opt.maxItr=5e5;  
+        %opt.maxItr=4e4; opt.xxx=gfb_{i,j}.cost(end); opt.debugLevel=2;
+        sigma=[0,1e-2,1e-1,1];
+        sigma1=[0,1e-2,1e-1,1];
+        tau=[1,1,1,1];
+        opt.sigma=[sigma(j), sigma1(j)]; opt.tau=1/(opt.L+1)/opt.sigma(1)*tau(j);
+        cpdwt2 {i,j}=CP_DWT(Phi,Phit,y,2,Psi,Psit,C,initSig,opt);
 
         mysave
     end
@@ -958,9 +951,12 @@ pnpg_drel_75=[];
 sparsn_m12=[];
 sparsn_m9=[];
 tfocs_200_m5=[];
+tfocs_200_m12=[];
 spiral_m5=[];
+spiral_m12=[];
 sparsn_m6=[];
 sigma1=[];
+ept=[];
 function [mc,varList] = minAndName(nameList,i,mc)
     if(~exist('mc','var'))
         mc=+inf;
