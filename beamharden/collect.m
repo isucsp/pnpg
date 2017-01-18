@@ -1,7 +1,7 @@
 function res = collect(out,field,t)
     
     for i=1:length(out(:))
-        temp = getfield(out{i},field);
+        temp = out{i}.(field);
         if(nargin==3 && isa(t,'function_handle'))
             temp = t(temp);
         end

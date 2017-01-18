@@ -6,13 +6,13 @@ classdef Cell < handle
                 if(~isempty(ele{i}))
                     if(nargin==3)
                         if(isfield(ele{i},field) &&...
-                            isfield(getfield(ele{i},field),field2))
-                            res{i}=getfield(getfield(ele{i},field),field2);
+                            isfield(ele{i}.(field),field2))
+                            res{i}=ele{i}.(field).(field2);
                             summary(i)=res{i}(end);
                         end
                     elseif(nargin==2)
                         if(isfield(ele{i},field))
-                            res{i}=getfield(ele{i},field);
+                            res{i}=ele{i}.(field);
                             summary(i)=res{i}(end);
                         end
                     end
@@ -24,7 +24,7 @@ classdef Cell < handle
             for i=1:length(ele(:))
                 if(~isempty(ele{i}))
                     if(isfield(ele{i},field))
-                        res{i}=getfield(ele{i},field);
+                        res{i}=ele{i}.(field);
                     end
                 end
             end

@@ -861,13 +861,13 @@ function [a,b,c]=meanOverK(method,field)
 end
 function forSave=addTrace(method,forSave,fields,mc)
     len=1000;
-    tt=getfield(method,fields{1});
+    tt=method.(fields{1});
     itr=linspace(1,length(tt),len);
     if(~exist('fields','var'))
         fields={'time','cost','RMSE'};
     end
     for i=1:length(fields);
-        tt=getfield(method,fields{i});
+        tt=method.(fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
         end

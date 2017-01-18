@@ -222,7 +222,9 @@ case 'run'
     end
 
 case lower('plot')
-    filename = [mfilename '.mat']; load(filename);
+    filename = [mfilename '.mat'];
+    load(filename);
+    dup=load(filename);
     fprintf('PET Poisson l1 example\n');
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
@@ -269,6 +271,8 @@ case lower('plot')
 
     tfocsList={
         'tfocs_200_m6 ',
+        'tfocs_200_m6_100',
+        'tfocs_200_m9_100',
         'tfocs_200_m9 '};
 
     spiralList={
@@ -285,10 +289,10 @@ case lower('plot')
 
     nameList={
         '    pnpg_',
-        '   spiral',
+        '   spiral_m6',
         'pnpg_nInf',
         '  pnpg_n0',
-        '    tfocs',
+        '    tfocs_200_m6',
         '   pnpgA0',
         ' pnpgG5A0',
         ' pnpgG5Aq',
@@ -309,25 +313,25 @@ case lower('plot')
     % mIdx=6 is also good
     mIdx=5; as=1; k=1;
     mc=+inf;
-    [mc,otherVar  ]=minAndName(nameList   ,mIdx,mc);
-    [mc,pnpgd55Var]=minAndName(pnpgd55List,mIdx,mc);
-    [mc,pnpg55Var ]=minAndName(pnpg55List ,mIdx,mc);
-    [mc,pnpgdVar  ]=minAndName(pnpgdList  ,mIdx,mc);
-    [mc,pnpgVar   ]=minAndName(pnpgList   ,mIdx,mc);
-    [mc,tfocsVar  ]=minAndName(tfocsList  ,mIdx,mc);
-    [mc,testVar   ]=minAndName(testList   ,mIdx,mc);
-    [mc,spiralVar   ]=minAndName(spiralList   ,mIdx,mc);
+    [mc,otherVar  ]=minAndName(dup,nameList   ,mIdx,mc);
+    [mc,pnpgd55Var]=minAndName(dup,pnpgd55List,mIdx,mc);
+    [mc,pnpg55Var ]=minAndName(dup,pnpg55List ,mIdx,mc);
+    [mc,pnpgdVar  ]=minAndName(dup,pnpgdList  ,mIdx,mc);
+    [mc,pnpgVar   ]=minAndName(dup,pnpgList   ,mIdx,mc);
+    [mc,tfocsVar  ]=minAndName(dup,tfocsList  ,mIdx,mc);
+    [mc,testVar   ]=minAndName(dup,testList   ,mIdx,mc);
+    [mc,spiralVar ]=minAndName(dup,spiralList   ,mIdx,mc);
 
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
-    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
-    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
 
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
-    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
 
 %   compare({'innerItr'},@plot,varList{1:end/2});
 %   compare({'innerItr'},@plot,varList{end/2:end});
@@ -528,18 +532,19 @@ pnpg_adp=[];
 pnpg_d_adp=[];
 pnpg_1_3=[];
 
-function [mc,varList] = minAndName(nameList,i,mc)
+end
+
+function [mc,varList] = minAndName(dup,nameList,i,mc)
     if(~exist('mc','var'))
         mc=+inf;
     end
     for ii=1:length(nameList)
-        a=eval(nameList{ii});
+        %a=eval(nameList{ii});
+        a=dup.(strtrim(nameList{ii}));
         mc=min(mc,min(a{i}.cost(:)));
         a{i}.name=nameList{ii};
         varList{ii}=a{i};
     end
-end
-
 end
 
 function [a,b,c]=meanOverK(method,field)
@@ -554,7 +559,7 @@ function [a,b,c]=meanOverK(method,field)
 end
 function forSave=addTrace(method,forSave,fields,mc)
     len=1000;
-    tt=getfield(method,fields{1});
+    tt=method.(fields{1});
     if(iscell(tt) && length(tt)==1)
         tt=tt{1};
     end
@@ -563,7 +568,7 @@ function forSave=addTrace(method,forSave,fields,mc)
         fields={'time','cost','RMSE'};
     end
     for i=1:length(fields);
-        tt=getfield(method,fields{i});
+        tt=method.(fields{i});
         if(iscell(tt) && length(tt)==1)
             tt=tt{1};
         end
