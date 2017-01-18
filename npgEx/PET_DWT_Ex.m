@@ -56,6 +56,8 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
         % END experiment region,  to delete in the end
 
+
+        keyboard
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
         opt.maxInnerItr=100;
         tfocs_200_m6_100 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -502,12 +504,6 @@ end
 ept=[];
 pnpg_d_06=[];
 pnpg_d55_06=[];
-<<<<<<< HEAD
-pnpg_adp=[];
-pnpgG5A055=[];
-pnpg_d_adp=[];
-pnpg_1_3=[];
-=======
 ept=[];
 pnpg_nInf88=[];
 pnpgGfA088=[];
@@ -528,7 +524,6 @@ pnpgG5A0_d88=[];
 tfocs_200_m12=[];
 tfocs_200_m6=[];
 tfocs_200_m9=[];
->>>>>>> refs/remotes/origin/switch_to_object_proximal
 
 function [mc,varList] = minAndName(nameList,i,mc)
     if(~exist('mc','var'))
