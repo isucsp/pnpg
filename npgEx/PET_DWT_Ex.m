@@ -524,6 +524,9 @@ pnpgG5A0_d88=[];
 tfocs_200_m12=[];
 tfocs_200_m6=[];
 tfocs_200_m9=[];
+pnpg_adp=[];
+pnpg_d_adp=[];
+pnpg_1_3=[];
 
 function [mc,varList] = minAndName(nameList,i,mc)
     if(~exist('mc','var'))

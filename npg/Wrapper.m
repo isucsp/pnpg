@@ -98,8 +98,8 @@ classdef Wrapper < handle
         end
         function out = tfocs(Phi_,Phit_,Psi_,Psit_,y,xInit,opt)
             % it is better to have affineF as {affineF, b} when b is non-zero
-            [x1,x2]=size(xInit); [y1,y2]=size(y); xInit=xInit(:); y=y(:);
-            [s1,s2]=size(Psit_(xInit));
+            [x1,x2]=size(xInit); [y1,y2]=size(y); [s1,s2]=size(Psit_(xInit));
+            xInit=xInit(:); y=y(:);
             Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
             Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
             Psi =@(s) reshape(Psi_ (reshape(s,s1,s2)),[],1);
