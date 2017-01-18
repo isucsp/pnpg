@@ -93,12 +93,15 @@ if(~isfield(opt,'relInnerThresh'))
         opt.relInnerThresh=1e-2;
     end
 end
-% decend rate of (epsion*theta)^2 is O(1/i^epsilonDecRate)
+% Descent rate of (epsion*theta)^2 is O(1/i^epsilonDecRate)
+% default value 1 guarantees O(1/k^2) overall rate. But for iterative
+% inner proximal operator, this value can be set to around 0.6 to gain
+% more flexibility.
 if(~isfield(opt,'epsilonDecRate')) opt.epsilonDecRate=1; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
-if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
+if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=1000; end
 if(~isfield(opt,'maxPossibleInnerItr')) opt.maxPossibleInnerItr=1e3; end
 if(~isfield(opt,'minPossibleInnerThresh')) opt.minPossibleInnerThresh=1e-14; end
 if(strcmpi(opt.initStep,'fixed') && isinf(opt.Lip))
@@ -283,22 +286,13 @@ while(true)
     if((newCost-cost)>1e-14*norm([newCost,cost],inf))
         if(goodMM)
             if(restart() || runMore())
-                if(~proximal.exact && opt.dualGap)
-                    %opt.relInnerThresh=innerThresh;
-                end
+                % It has some doubt whether put the following line "theta=1" in restart() or
+                % here.  We choose to put it here to be conservative.
                 theta=1;
                 itr=itr-1;
                 itrRes=itr;
-
-                % if(~proximal.exact && opt.dualGap)
-                %     opt.relInnerThresh=innerThresh*itr^opt.epsilonDecRate;
-                % end
-                % theta=1;
-                % itr=itr-1;
-
                 continue;
             end
-            %if(runMore()) itr=itr-1; continue; end
         end
         %reset(); % both theta and step size;
 
@@ -309,7 +303,6 @@ while(true)
         preX=x; difX=0;
         preCost=cost;
     else
-    end
         if(~proximal.exact)
             pInit=pInit_;
             innerItr=innerItr_;
@@ -322,6 +315,7 @@ while(true)
         cost = newCost;
         NLLVal=newNLL;
         penVal=newPen;
+    end
 
     if(opt.adaptiveStep)
         preT=t;
@@ -357,8 +351,8 @@ while(true)
         out.difCost(itr)=difCost;
         out.theta(itr)=theta;
         out.innerThresh(itr)=innerThresh;
-        out.innerDualGap(itr)=proximal.getDualGap();
-        out.innerDifX(itr)=proximal.getDifX();
+        %out.innerDualGap(itr)=proximal.getDualGap();
+        %out.innerDifX(itr)=proximal.getDifX();
         out.numLineSearch(itr) = numLineSearch;
         out.stepSize(itr) = 1/t;
         out.NLLVal(itr)=NLLVal;

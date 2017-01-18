@@ -96,11 +96,14 @@ classdef Wrapper < handle
                 f=penalty(xx);
             end
         end
-        function out = tfocs(Phi_,Phit_,Psi,Psit,y,xInit,opt)
+        function out = tfocs(Phi_,Phit_,Psi_,Psit_,y,xInit,opt)
             % it is better to have affineF as {affineF, b} when b is non-zero
             [x1,x2]=size(xInit); [y1,y2]=size(y); xInit=xInit(:); y=y(:);
+            [s1,s2]=size(Psit_(xInit));
             Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
             Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
+            Psi =@(s) reshape(Psi_ (reshape(s,s1,s2)),[],1);
+            Psit=@(x) reshape(Psit_(reshape(x,x1,x2)),[],1);
             affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
 
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end

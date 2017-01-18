@@ -62,17 +62,17 @@ if(~isfield(opt,'outLevel')) opt.outLevel=0; end
 
 debug=Debug(opt.debugLevel);
 
-proximalOut.getDifX=@getDifX;
-difX=1;
-function o = getDifX()
-    o=difX;
-end
-
-proximalOut.getDualGap=@getDualGap;
-dualGap=1;
-function o = getDualGap()
-    o=dualGap;
-end
+%proximalOut.getDifX=@getDifX;
+%difX=1;
+%function o = getDifX()
+%    o=difX;
+%end
+%
+%proximalOut.getDualGap=@getDualGap;
+%dualGap=1;
+%function o = getDualGap()
+%    o=dualGap;
+%end
 
 function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     % For Psi and Psit that are from wavelet transform, set
@@ -107,7 +107,7 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
 
     tStart=tic;
 
-    if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
+    if(~isempty(pInit) && opt.usePInit)
         p=pInit; 
     else
         p=zeros(size(Psit(a)));
@@ -220,11 +220,10 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             prePsi_p=Psi_p;
             preCost=cost;
         else
-        end
             if(opt.dualGap)
                 % slightly larger than the exact gap, but saves time
                 primary=norm(grad(:),1);
-                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/primary;
+                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/max(eps,primary);
             end
             difX = relativeDif(x,newX);
             x=newX;
@@ -233,6 +232,7 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             theta = newTheta;
             preCost=cost;
             cost = newCost;
+        end
         preT=t;
 
         if(opt.adaptiveStep)
@@ -297,7 +297,8 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(nargout>=4)
         out.opt = opt;
         out.date=datestr(now);
-        out.gap=norm(grad(:),1)-u*sum(reshape(x.*Psi_p,[],1));
+        Psit_x=Psit(x);
+        out.gap=u*norm(reshape(Psit_x,[],1),1)-u*sum(reshape(p.*Psit_x,[],1));
     end
     if(opt.outLevel>=2)
         out.grad=grad;
@@ -344,7 +345,7 @@ function [x,itr,p]=denoiseADMM(a,u,relativeTol,maxItr,pInit)
     %
     if((~exist('relativeTol','var')) || isempty(relativeTol)) relativeTol=1e-6; end
     if((~exist('maxItr','var')) || isempty(maxItr)) maxItr=1e3; end
-    if((~exist('pInit','var')) || isempty(pInit) || ~iscell(pInit))
+    if((~exist('pInit','var')) || isempty(pInit))
         temp=size(Psit(a));
         pInit={zeros(temp), zeros(temp), 1};
     end

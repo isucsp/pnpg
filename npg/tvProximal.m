@@ -99,7 +99,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
 
     tStart=tic;
 
-    if(~isempty(pInit) && iscell(pInit) && opt.usePInit)
+    if(~isempty(pInit) && opt.usePInit)
         p=pInit{1}; q=pInit{2};
     else
         [I,J]=size(a);
@@ -220,7 +220,7 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
             if(opt.dualGap)
                 % slightly larger than the exact gap, but saves time
                 primary=val(gradp,gradq);
-                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/primary;
+                dualGap=(primary-u*sum(reshape(x.*Psi_p,[],1)))/max(eps,primary);
             end
             difX = relativeDif(x,newX);
             x=newX;
@@ -296,7 +296,8 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(nargout>=4)
         out.opt = opt;
         out.date=datestr(now);
-        out.gap=val(gradp,gradq)-u*sum(reshape(x.*Psi_p,[],1));
+        [gradp, gradq]=TV.Psit(x);
+        out.gap=u*val(gradp,gradq)-u*sum(reshape(p.*gradp,[],1))-u*sum(reshape(q.*gradq,[],1));
     end
     if(opt.outLevel>=2)
         out.gradp=gradp; out.gradq=gradq;
