@@ -42,11 +42,12 @@ case 'run'
         OPT.u = u(i)*10.^(-2:2);
 
         %for j=4:-1:2
-        for j=2:4; %[4,3]
+        for j=4; %[4,3]
 
         fprintf('%s, i=%d, j=%d\n','NPG',i,j);
         OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
+        keyboard
         % BEGIN experiment region,  to delete in the end
 
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
@@ -174,17 +175,6 @@ case 'plot'
     % compareC({'cost'},@semilogy,varList3{:});
     % compareC({'cost'},@semilogy,varList4{:});
 
-    for j=2:4;
-        a=pnpg_{4,j};
-        figure; semilogy(a.innerDifX); hold on; semilogy(a.innerThresh,'r'); semilogy(a.difX,'k');
-        legend('innerDifX','innerThresh','DifX');
-        a=pnpg_{4,j};
-        figure; semilogy(a.innerDifX); hold on; semilogy(a.innerThresh,'r'); semilogy(a.difX,'k');
-        semilogy(a.innerDualGap,'m');
-        legend('innerDifX','innerThresh','DifX','dualGap');
-    end
-    keyboard
-
     % each time add 3 columns (time cost RMSE)
     out=      spiral_m6;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-spiral.data','temp','-ascii');
     out=         sparsn;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-sparsn.data','temp','-ascii');
@@ -195,12 +185,12 @@ case 'plot'
     out=     pnpg_cumu0;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpgCumu0.data','temp','-ascii');
     out=         cpdwt1;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-1.data','temp','-ascii');
     out=         cpdwt2;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-cpdwt-2.data','temp','-ascii');
+    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
+    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv traceLG-*.data ' paperDir]);
 
     return;
-    out=         pnpg_d;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg-d.data','temp','-ascii');
-    out=          pnpg_;temp=addTrace(out{mIdx,2},[],[],mc2);temp=addTrace(out{mIdx,3},temp,[],mc3);temp=addTrace(out{mIdx,4},temp,[],mc4); save('traceLG-pnpg.data','temp','-ascii');
 
     out=          pnpgc;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-pnpgc.data','temp','-ascii');
     out= sparsn_m5_long;temp=addTrace(out{mIdx,2},[]);temp=addTrace(out{mIdx,3},temp);temp=addTrace(out{mIdx,4},temp); save('traceLG-sparsnL.data','temp','-ascii');
@@ -953,6 +943,7 @@ case 'plot_old'
     system(['mv continuation.data traceLinGauss.data selectedTime.data timeVsA.data rmseVsA.data stepSizeLin.data varyMeasurement.data varyMeasurementTime.data skyline.data varyMeasurementTable.tex ' paperDir]);
     disp('done');
 end
+ept=[];
 pnpg_1_3=[];
 pnpg_d0_6=[];
 pnpg_d1rel1=[];

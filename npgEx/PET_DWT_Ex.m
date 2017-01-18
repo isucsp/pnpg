@@ -55,6 +55,21 @@ case 'run'
 
         % BEGIN experiment region,  to delete in the end
 
+        keyboard
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
+        tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
+        tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-12;
+        tfocs_200_m12{i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.innerThresh=1e-6;
+        spiral_m6   {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.innerThresh=1e-9;
+        spiral_m9   {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
+        opt=OPT; opt.innerThresh=1e-12;
+        spiral_m12  {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
+
+
         opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
         opt.grad1 = @(y)Psit(y);
         opt.grad2 = @(y)0;
@@ -246,19 +261,6 @@ case 'run'
         H.proxConj=@(a,v) max(min(a,opt.u),-opt.u);
         condat {i,j,k}=pds(NLL,H,Psi,Psit,C,opt.L,initSig,opt);
 
-        opt=OPT; opt.innerThresh=1e-6;
-        spiral_m6   {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.innerThresh=1e-9;
-        spiral_m9   {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.innerThresh=1e-12;
-        spiral_m12  {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
-        tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
-        tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-12;
-        tfocs_200_m12{i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
-
         mysave
 
 
@@ -311,11 +313,6 @@ case 'run'
     end
 
 case lower('plot')
-    ept=[];
-    pnpg_adp=[];
-    pnpgG5A055=[];
-    pnpg_d_adp=[];
-    pnpg_1_3=[];
     filename = [mfilename '.mat']; load(filename);
     fprintf('PET Poisson l1 example\n');
 
@@ -331,16 +328,6 @@ case lower('plot')
         'pnpg_n0_d55',
         'pnpg_nInf_d55'};
 
-    pnpgd88List={
-        'pnpg_d88',
-        'pnpgG5A0_d88',
-        'pnpgG5Aq_d88',
-        'pnpgGfA0_d88',
-        'pnpgGfAq_d88',
-        'pnpgA0_d88',
-        'pnpg_n0_d88',
-        'pnpg_nInf_d88'};
-
     pnpg55List={
         'pnpg_55',
         'pnpgG5A055',
@@ -350,16 +337,6 @@ case lower('plot')
         'pnpgA055',
         'pnpg_n055',
         'pnpg_nInf55'};
-
-    pnpg88List={
-        'pnpg_88',
-        'pnpgG5A088',
-        'pnpgG5Aq88',
-        'pnpgGfA088',
-        'pnpgGfAq88',
-        'pnpgA088',
-        'pnpg_n088',
-        'pnpg_nInf88'};
 
     pnpgdList={
         'pnpg_d',
@@ -383,15 +360,18 @@ case lower('plot')
 
     tfocsList={
         'tfocs_200_m6 ',
-        'tfocs_200_m9 ',
-        'tfocs_200_m12'};
+        'tfocs_200_m9 '};
+
+    spiralList={
+        'spiral_m6  ',
+        'spiral_m9  ',
+        'spiral_m12 ',
+    };
 
     testList={
         'pnpg_d',
-        'pnpg_d_06',
         'pnpg_',
         'pnpg_d55',
-        'pnpg_d55_06',
         'pnpg_55'};
 
     nameList={
@@ -422,49 +402,44 @@ case lower('plot')
     mc=+inf;
     [mc,otherVar  ]=minAndName(nameList   ,mIdx,mc);
     [mc,pnpgd55Var]=minAndName(pnpgd55List,mIdx,mc);
-    [mc,pnpgd88Var]=minAndName(pnpgd88List,mIdx,mc);
     [mc,pnpg55Var ]=minAndName(pnpg55List ,mIdx,mc);
-    [mc,pnpg88Var ]=minAndName(pnpg88List ,mIdx,mc);
     [mc,pnpgdVar  ]=minAndName(pnpgdList  ,mIdx,mc);
     [mc,pnpgVar   ]=minAndName(pnpgList   ,mIdx,mc);
     [mc,tfocsVar  ]=minAndName(tfocsList  ,mIdx,mc);
     [mc,testVar   ]=minAndName(testList   ,mIdx,mc);
+    [mc,spiralVar   ]=minAndName(spiralList   ,mIdx,mc);
 
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd88Var{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg88Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
 
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd88Var{:});
-    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
-    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg88Var{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
-    %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
 
 %   compare({'innerItr'},@plot,varList{1:end/2});
 %   compare({'innerItr'},@plot,varList{end/2:end});
 %   return
 
     fields={'RMSE','time','cost'};
-    forSave=addTrace(      pnpg_d{mIdx,as,k},     [],fields,mc); %  1- 4
-    forSave=addTrace(     pnpg_55{mIdx,as,k},forSave,fields,mc); %  5- 8
+    forSave=addTrace(      pnpg_ {mIdx,as,k},     [],fields,mc); %  1- 4
+    forSave=addTrace(     pnpg_d {mIdx,as,k},forSave,fields,mc); %  5- 8
     forSave=addTrace(      spiral{mIdx,as,k},forSave,fields,mc); %  9-12
-    forSave=addTrace( pnpg_nInf55{mIdx,as,k},forSave,fields,mc); % 13-16
-    forSave=addTrace(   pnpg_n055{mIdx,as,k},forSave,fields,mc); % 17-20
+    forSave=addTrace( pnpg_nInf  {mIdx,as,k},forSave,fields,mc); % 13-16
+    forSave=addTrace(   pnpg_n0  {mIdx,as,k},forSave,fields,mc); % 17-20
     forSave=addTrace(tfocs_200_m6{mIdx,as,k},forSave,fields,mc); % 21-24
-    forSave=addTrace(    pnpgA055{mIdx,as,k},forSave,fields,mc); % 25-28
-    forSave=addTrace(  pnpgG5A055{mIdx,as,k},forSave,fields,mc); % 29-32
-    forSave=addTrace(  pnpgG5Aq55{mIdx,as,k},forSave,fields,mc); % 33-26
-    forSave=addTrace(  pnpgGfA055{mIdx,as,k},forSave,fields,mc); % 37-40
-    forSave=addTrace(  pnpgGfAq55{mIdx,as,k},forSave,fields,mc); % 41-44
+    forSave=addTrace(    pnpgA0  {mIdx,as,k},forSave,fields,mc); % 25-28
+    forSave=addTrace(  pnpgG5A0  {mIdx,as,k},forSave,fields,mc); % 29-32
+    forSave=addTrace(  pnpgG5Aq  {mIdx,as,k},forSave,fields,mc); % 33-26
+    forSave=addTrace(  pnpgGfA0  {mIdx,as,k},forSave,fields,mc); % 37-40
+    forSave=addTrace(  pnpgGfAq  {mIdx,as,k},forSave,fields,mc); % 41-44
     save('cost_itrPET.data','forSave','-ascii');
 
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(    pnpg_d55{mIdx,as,k},     [],fields_,mc); %  1- 4
+    forSave=addTrace(     pnpg_55{mIdx,as,k},     [],fields_,mc); %  1- 4
     forSave=addTrace(      cpdwt1{mIdx,as,k},forSave,fields_,mc); %  5- 8
     forSave=addTrace(      cpdwt2{mIdx,as,k},forSave,fields_,mc); %  9-12
     forSave=addTrace(tfocs_200_m9{mIdx,as,k},forSave,fields_,mc); % 13-16
@@ -617,9 +592,13 @@ case 'fullplot'
 end
 
 
+ept=[];
 pnpg_d_06=[];
 pnpg_d55_06=[];
-ept=[];
+pnpg_adp=[];
+pnpgG5A055=[];
+pnpg_d_adp=[];
+pnpg_1_3=[];
 
 function [mc,varList] = minAndName(nameList,i,mc)
     if(~exist('mc','var'))
