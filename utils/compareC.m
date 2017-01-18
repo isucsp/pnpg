@@ -14,7 +14,7 @@ function compareC(field,plotFunc,varargin)
 
     m=+inf;
     for ii=1:length(vars)
-        m=min(m,min(getfield(vars{ii},fieldname{end})));
+        m=min(m,min(vars{ii}.(fieldname{end})));
     end
     figure;
     for ii=1:length(vars)
@@ -22,7 +22,7 @@ function compareC(field,plotFunc,varargin)
             hold on;
         end
         for j=1:length(fieldname)
-            v{j}=getfield(vars{ii},fieldname{j});
+            v{j}=vars{ii}.(fieldname{j});
         end
         colorIdx=mod(ii-1,length(colors))+1;
         tmp=floor((ii-1)/length(colors))+1;
@@ -36,7 +36,7 @@ function compareC(field,plotFunc,varargin)
             ylabel(fieldname{2});
         end
         if(isfield(vars{ii},'name'))
-            names{ii}=filterName(getfield(vars{ii},'name'));
+            names{ii}=filterName(vars{ii}.('name'));
         else
             names{ii}=sprintf('%c',ii+96);
         end

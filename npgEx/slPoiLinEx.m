@@ -260,7 +260,7 @@ function forSave=addTrace(method,forSave,fields)
     end
     n=length(fields);
     for i=1:n
-        data(:,i)=reshape(getfield(method,fields{i}),[],1);
+        data(:,i)=reshape(method.(fields{i}),[],1);
     end
     forSave=appendColumns(data,forSave);
 end
