@@ -42,15 +42,22 @@ case 'run'
         OPT.u = u(i)*10.^(-2:2);
 
         %for j=4:-1:2
-        for j=4; %[4,3]
+        for j=2; %[4,3]
 
         fprintf('%s, i=%d, j=%d\n','NPG',i,j);
         OPT.u = u(i)*10^(j-3)*pNorm(Psit(Phit(y)),inf);
 
-        keyboard
         % BEGIN experiment region,  to delete in the end
 
         % END experiment region,  to delete in the end
+
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6; opt.maxInnerItr=100; opt.maxItr=40000;
+        tfocs_200_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
+        mysave
+        continue
+
+        opt=OPT; opt.restartEvery=300; opt.innerThresh=1e-9; opt.maxInnerItr=100; opt.maxItr=3e3;
+        tfocs_200_m9 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
 
         opt=OPT; opt.innerThresh=1e-5; opt.maxItr=15e4; opt.thresh=0; opt.maxInnerItr=100;
         spiral_m5   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -61,14 +68,6 @@ case 'run'
         opt=OPT; opt.innerThresh=1e-9; opt.maxInnerItr=100;
         spiral_m9   {i,j}=Wrapper.SPIRAL   (Phi,Phit,Psi,Psit,y,initSig,opt);
 
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6; opt.maxInnerItr=100;
-        tfocs_200_m6 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9; opt.maxInnerItr=100;
-        tfocs_200_m9 {i,j}=Wrapper.tfocs    (Phi,Phit,Psi,Psit,y,initSig,opt);
-
-        mysave
-        continue
 
         opt=OPT; opt.dualGap=true; %opt.debugLevel=2;
         opt.maxInnerItr=1e3; opt.thresh=1e-14;

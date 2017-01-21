@@ -97,7 +97,7 @@ end
 % default value 1 guarantees O(1/k^2) overall rate. But for iterative
 % inner proximal operator, this value can be set to around 0.6 to gain
 % more flexibility.
-if(~isfield(opt,'epsilonDecRate')) opt.epsilonDecRate=1; end
+if(~isfield(opt,'epsilonDecRate')) opt.epsilonDecRate=1.000001; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end

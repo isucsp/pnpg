@@ -139,6 +139,10 @@ classdef Wrapper < handle
                 case lower('wvltADMM')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,varargin) admm(Psi,Psit,x,u*opt.u,...
                         innerThresh,maxInnerItr,false,varargin{:});
+                    PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+                    PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+                    proximalStruct=sparseProximal(Psi,Psit,@(x)max(0,x),'pnpg',PROXOPT);
+                    proximalOp=@(x,u,innerThresh,maxInnerItr,varargin)proximalStruct.prox(x,u*opt.u,innerThresh,maxInnerItr,varargin{:},[]);
                     penalty = @(x) opt.u*pNorm(Psit(x),1);
                 case lower('wvltLagrangian')
                     proximalOp=@(x,u,innerThresh,maxInnerItr,init) constrainedl2l1denoise(...
