@@ -11,31 +11,6 @@ function setupPath
 a=a(1);
 [pathstr,~,~]=fileparts(a.file);
 
-cd 'prj'
-if(isunix)
-    system('make cpu');
-    if(gpuDeviceCount>0)
-        system('make gpu');
-    end
-elseif(ispc)
-    if (~exist(['solveTridiag.' mexext],'file'))
-        mex solveTridiag.c
-    end
-    if ~exist(['parPrj.' mexext],'file')
-        mex -output parPrj mParPrj.c parPrj.c
-    end
-    tgt=['cpuPrj.' mexext];
-    if (~exist(tgt,'file') || isOlder(tgt,{'cpuPrj.c', 'mPrj.c', 'common/kiss_fft.c', 'prj.h'}))
-        mex -output cpuPrj cpuPrj.c mPrj.c common/kiss_fft.c -DCPU=1
-    end
-    tgt=['gpuPrj.' mexext];
-    if(gpuDeviceCount>0  && (~exist(tgt,'file') || isOlder(tgt,{'gpuPrj.cu','mPrj.c','common/kiss_fft.c','prj.h'})))
-        link='"-LC:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v7.5\lib\x64"';
-        mex('-DGPU=1','-output','gpuPrj', link,'-lcudart','gpuPrj.obj','mPrj.c','common/kiss_fft.c');
-    end
-end
-cd(pathstr)
-
 cd('rwt')
 tgt=['mdwt.' mexext];
 if(~exist(tgt,'file')...
@@ -49,27 +24,11 @@ if(~exist(tgt,'file')...
 end
 cd(pathstr)
 
-cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
-if(~exist(['lbfgsb_wrapper.' mexext],'file'))
-    if(isunix)
-        system('make');
-    elseif(ispc)
-        mex -largeArrayDims -O -g -UDEBUG -I../src ...
-            lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
-            ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
-    end
-end
-cd(pathstr)
-
-addpath([pathstr filesep 'beamharden' filesep 'subfunctions']);
-addpath([pathstr filesep 'beamharden']);
-addpath([pathstr filesep 'tomography']);
 addpath([pathstr filesep 'rwt']);
 addpath([pathstr filesep 'npg']);
 addpath([pathstr filesep 'bhc']);
 addpath([pathstr filesep 'prj']);
 addpath([pathstr filesep 'utils']);
-addpath([pathstr filesep 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab']);
 addpath([pathstr filesep 'irt' filesep 'nufft']);
 addpath([pathstr filesep 'irt' filesep 'systems']);
 addpath([pathstr filesep 'irt']);
