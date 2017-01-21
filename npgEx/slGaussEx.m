@@ -160,8 +160,8 @@ case 'plot'
     [mc3,varList3]=minAndName(nameList,[mIdx,iii]);
     iii=4;
     [mc4,varList4]=minAndName(nameList,[mIdx,iii]);
-    compareC({'time','cost'},@semilogy,varList2{:});
-    compareC({'time','cost'},@semilogy,varList3{:});
+    %compareC({'time','cost'},@semilogy,varList2{:});
+    %compareC({'time','cost'},@semilogy,varList3{:});
     compareC({'time','cost'},@semilogy,varList4{:});
     % compareC({'cost'},@semilogy,varList2{:});
     % compareC({'cost'},@semilogy,varList3{:});

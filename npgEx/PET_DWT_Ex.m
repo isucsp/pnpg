@@ -271,8 +271,6 @@ case lower('plot')
 
     tfocsList={
         'tfocs_200_m6 ',
-        'tfocs_200_m6_100',
-        'tfocs_200_m9_100',
         'tfocs_200_m9 '};
 
     spiralList={
@@ -323,15 +321,16 @@ case lower('plot')
     [mc,spiralVar ]=minAndName(dup,spiralList   ,mIdx,mc);
 
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgd55Var{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgdVar{:});
     %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),pnpgVar{:});
-    %compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
+    compare({'time','cost'},@(x,y,varargin)semilogy(x,(y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
 
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgd55Var{:});
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpg55Var{:});
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgdVar{:});
     %compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),pnpgVar{:});
+    compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),testVar{:},spiralVar{:},tfocsVar{:});
 
 %   compare({'innerItr'},@plot,varList{1:end/2});
 %   compare({'innerItr'},@plot,varList{end/2:end});
