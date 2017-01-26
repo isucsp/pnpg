@@ -7,7 +7,7 @@ function [ur,ur_rmse]=bisection(opt,func,cond,ul,ur,thresh)
     opt.u=(ur+ul)/2;
     out=func(opt);
     if(isstruct(out))
-      out=out.alpha;
+      out=out.x;
     end
     rmse=cond(out);
     if(rmse<=thresh)

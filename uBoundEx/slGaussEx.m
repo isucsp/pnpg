@@ -64,18 +64,18 @@ switch lower(op)
 %       u_6(i)=bisection(opt,func,cond,0,u_4(i)*100);
 
 %       % following is the 1d TV regularization
-%       x_0=sum(Phity)/sqrNorm(Phi(ones(p,1)));
-%       x_0=max(x_0,0);  % x_0 has to be nonnegative
-%       x0=x_0*ones(p,1);
-%       g=Phit(Phi(x0)-yy);
-%       u_7(i)=norm(cumsum(g),inf);
+        x_0=sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        x_0=max(x_0,0);  % x_0 has to be nonnegative
+        x0=x_0*ones(p,1);
+        g=Phit(Phi(x0)-yy);
+        u_7(i)=norm(cumsum(g),inf);
 
-%       if(x_0>0)
-%         Pncx=@(x) x*0;
-%       else
-%         Pncx=@(x) min(x,0);
-%       end
-%       u_8(i)=uBound(@A,@At,Pncx,x0,g);
+        if(x_0>0)
+          Pncx=@(x) x*0;
+        else
+          Pncx=@(x) min(x,0);
+        end
+        u_8(i)=uBound(@A,@At,Pncx,x0,g);
 
 
 %       opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
@@ -101,11 +101,15 @@ switch lower(op)
 %       cond=@(x) norm(x-x0);
 %       u_B(i)=bisection([],func,cond,0,u_7(i)*1.2, 1e-5);
 
-        opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
-        opt.prj_C=@(x)max(x,0);
-        opt.admmTol=1e-9; opt.debugLevel=1; opt.maxItr=1e2;
+        opt=OPT;
+        C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
+        tvType='l1';
+        proximal=tvProximal(tvType,C.prox,'pnpg');
+        NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
+
+        opt.debugLevel=1; opt.maxItr=1e2;
         %opt.u=100;
-        func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
+        func=@(optt) pnpg(NLL,proximal,x0,optt);
         cond=@(x) norm(x-x0);
         u_C(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
  
@@ -139,7 +143,7 @@ end
 
 function x = A(p)
   [I,J]=size(p);
-  p(I,0)=0;
+  p(I,:)=0;
   x=[p(1,:); p(2:I,:)-p(1:I-1,:)];
 end
 

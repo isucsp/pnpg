@@ -26,8 +26,6 @@ cd(pathstr)
 
 addpath([pathstr filesep 'rwt']);
 addpath([pathstr filesep 'npg']);
-addpath([pathstr filesep 'bhc']);
-addpath([pathstr filesep 'prj']);
 addpath([pathstr filesep 'utils']);
 addpath([pathstr filesep 'irt' filesep 'nufft']);
 addpath([pathstr filesep 'irt' filesep 'systems']);
