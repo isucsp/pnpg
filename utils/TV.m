@@ -213,10 +213,23 @@ function x = Psi_v(p)
     J=size(p,2);
     x=diff([zeros(1,J); p; zeros(1,J)],1,1);
 end
+function x = Phi_v(p)
+    [I,J]=size(p);
+    p(I,:)=0;
+    %x=[p; zeros(1,J)];
+    %x(2:I,:)=x(2:I,:)-p(1:I-1,:);
+    %x=[p(1,:); diff(p,1,1); -p(end,:)];
+    x=diff([zeros(1,J); p],1,1);
+end
 function p = Psi_vt(x)
     %[I,~]=size(x);
     %p=x(1:I-1,:)-x(2:I,:);
     p=-diff(x,1,1);
+end
+function p = Phi_vt(x)
+    [I,J]=size(x);
+    %p=x(1:I-1,:)-x(2:I,:);
+    p=[-diff(x,1,1); zeros(1,J)];
 end
 
 function x = Psi_h(q)
@@ -227,10 +240,22 @@ function x = Psi_h(q)
     I=size(q,1);
     x=diff([zeros(I,1), q, zeros(I,1)],1,2);
 end
+function x = Phi_h(q)
+    [I,J]=size(q);
+    q(:,J)=0;
+    %x=[q zeros(I,1)];
+    %x(:,2:J)=x(:,2:J)-x(:,1:J-1);
+    x=diff([zeros(I,1), q],1,2);
+end
 function q = Psi_ht(x)
     %[~,J]=size(x);
     %q=x(:,1:J-1)-x(:,2:J);
     q=-diff(x,1,2);
+end
+function q = Phi_ht(x)
+    [I,~]=size(x);
+    %q=x(:,1:J-1)-x(:,2:J);
+    q=[-diff(x,1,2), zeros(I,1)];
 end
 
 end % methods(Static)

@@ -75,7 +75,11 @@ switch lower(op)
         else
           Pncx=@(x) min(x,0);
         end
-        u_8(i)=uBound(@A,@At,Pncx,x0,g);
+
+        %??? set opt with step size
+
+
+        u_8(i)=uBound([],[],'l1',Pncx,x0,g);
 
 
 %       opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;

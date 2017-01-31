@@ -27,6 +27,7 @@ cd(pathstr)
 addpath([pathstr filesep 'rwt']);
 addpath([pathstr filesep 'npg']);
 addpath([pathstr filesep 'utils']);
+addpath([pathstr filesep 'utils' filesep 'L-BFGS-B-C' filesep 'Matlab']);
 addpath([pathstr filesep 'irt' filesep 'nufft']);
 addpath([pathstr filesep 'irt' filesep 'systems']);
 addpath([pathstr filesep 'irt']);

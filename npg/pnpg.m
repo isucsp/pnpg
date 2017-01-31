@@ -350,7 +350,6 @@ while(true)
         out.difX(itr)=difX;
         out.difCost(itr)=difCost;
         out.theta(itr)=theta;
-        out.innerThresh(itr)=innerThresh;
         %out.innerDualGap(itr)=proximal.getDualGap();
         %out.innerDifX(itr)=proximal.getDifX();
         out.numLineSearch(itr) = numLineSearch;
@@ -359,6 +358,7 @@ while(true)
         out.penVal(itr)=penVal;
         if(~proximal.exact)
             out.innerItr(itr)=innerItr;
+            out.innerThresh(itr)=innerThresh;
         end;
         if(isfield(opt,'trueX'))
             out.RMSE(itr)=RMSE;
