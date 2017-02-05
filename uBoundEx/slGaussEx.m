@@ -24,13 +24,13 @@ switch lower(op)
     snr = [1e3 100 10 1 0.1 0.01 1e-3];
     for k=1:1
       [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100);
-      p=length(OPT.trueAlpha);
-      PsiM=Utils.getMat(Psi,length(Psit(OPT.trueAlpha)));
+      p=length(OPT.trueX);
+      PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
       v = randn(OPT.m,1);
 
       for i=1:length(snr);
         fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
-        yy = Phi(OPT.trueAlpha)+v*(norm(y)/sqrt(snr(i)*OPT.m));
+        yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
 
         Phity=Phit(yy);
 
@@ -49,7 +49,7 @@ switch lower(op)
 
 %       opt=OPT; opt.maxPossibleInnerItr=1e4;
 %       func=@(init,optt) Wrapper.PG(Phi,Phit,Psi,Psit,yy,init,optt);
-%       cond=@(x) norm(x);
+%       cond=@(x) relativeDif(x,0);
 %       u_3(i)=bisection(opt,func,0,u_1(i)*100)
 
 %       % the following are under sparsity regularization only
@@ -60,7 +60,7 @@ switch lower(op)
 
 %       opt=OPT;
 %       func=@(init,optt) Wrapper.NPGs(Phi,Phit,Psi,Psit,yy,init,optt);
-%       cond=@(x) norm(x);
+%       cond=@(x) relativeDif(x,0);
 %       u_6(i)=bisection(opt,func,cond,0,u_4(i)*100);
 
 %       % following is the 1d TV regularization
@@ -78,44 +78,31 @@ switch lower(op)
 
         %??? set opt with step size
 
-
-        u_8(i)=uBound([],[],'l1',Pncx,x0,g);
-
-
-%       opt=OPT; opt.proximal='tv1d'; opt.maxPossibleInnerItr=4e4;
-%       opt.admmTol=1e-9; opt.debugLevel=1; opt.maxItr=1e2;
-%       %opt.u=100;
-%       func=@(optt) Wrapper.PNPG(Phi,Phit,[],[],yy,x0,optt);
-%       cond=@(x) norm(x-x0);
-%       u_9(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
-
-%       pars.print = false;
-%       pars.tv ='1d';
-%       pars.MAXITER = 4e4;
-%       pars.epsilon = 1e-13; 
-%       beta=1e-2*pNorm(x,2)/pNorm(g,2);
-%       pars.init=x0;
-%       func=@(optt) denoise_bound_mod(x0-g,optt.u,0,inf,pars);
-%       cond=@(x) norm(x-x0);
-%       u_A(i)=bisection([],func,cond,0,u_7(i)*1.2, 1e-5);
-
-%       iso=ProximalTV('iso',@(x)max(x,0));
-%       iso.maxItr=4e4; iso.thresh=1e-13;
-%       func=@(optt) iso.denoise(x0-g,optt.u);
-%       cond=@(x) norm(x-x0);
-%       u_B(i)=bisection([],func,cond,0,u_7(i)*1.2, 1e-5);
+%       u_8(i)=uBound([],[],'l1',Pncx,x0,g);
 
         opt=OPT;
         C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
         tvType='l1';
         proximal=tvProximal(tvType,C.prox,'pnpg');
         NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
+        opt.debugLevel=2; opt.maxItr=1e2; opt.maxInnerItr=1e5;
+        opt.trueX=x0; opt.outLevel=2;
+        func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
 
-        opt.debugLevel=1; opt.maxItr=1e2;
-        %opt.u=100;
-        func=@(optt) pnpg(NLL,proximal,x0,optt);
-        cond=@(x) norm(x-x0);
-        u_C(i)=bisection(opt,func,cond,0,u_7(i)*1.2);
+        keyboard
+        cond=@(x) relativeDif(x,x0);
+        u_A(i)=bisection(func,cond,0,u_7(i)*1.2,1e-6);
+
+        keyboard
+
+
+        opt=[]; opt.debugLevel=2; opt.verbose=1e3;
+        iso=tvProximal('iso',@(x)max(0,x),[],opt);
+        beta=1/OPT.L;
+        func=@(u) iso.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+        cond=@(x) relativeDif(x,x0);
+        u_9(i)=bisection(func,cond,0,u_7(i)*1.2, 10^-6);
+
  
         mysave;
         keyboard

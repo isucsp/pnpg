@@ -50,7 +50,7 @@ strlen=0;
 
 PsitXstar=realPsit(xstar);
 switch(lower(tvType))
-    case 'iso'
+    case {'iso','l1'}
         proj=Prj_G(PsitXstar);
     otherwise
         lb=-ones(size(w)); ub=ones(size(w));
@@ -63,7 +63,7 @@ end
 % Lip = 4 for 1-d TV
 % Lip = 1 for wavelet
 switch(lower(tvType))
-    case 'iso'
+    case {'iso','l1'}
         if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
         if(~isfield(opt,'backtracking')) opt.backtracking=false; end
         if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
@@ -108,7 +108,7 @@ while(EndCnt<3 && ii<=5e3)
     preV=v; preT=t; preW=w; preZ=z; preRealPsi_w=realPsi_w;
 
     switch(lower(tvType))
-        case {'iso'}
+        case {'iso','l1'}
             vgtz=(vg+t+z); NLL=@(x) Utils.linearModel(x,realPsi,realPsit,-vgtz);
             %opt.debugLevel=2; opt.outLevel=1;
             out = pnpg(NLL,proximal,w,opt);
@@ -122,6 +122,7 @@ while(EndCnt<3 && ii<=5e3)
             opts.x0=w;
             [w,cost,info]=lbfgsb(@(x) quadBox(x,vg+t+z,realPsi,realPsit),...
                 lb,ub,opts);
+            innerItr=info.iterations;
             %numItr=info.iterations; %disp(info); strlen=0;
     end
 

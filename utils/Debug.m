@@ -12,7 +12,11 @@ function deb=Debug(level)
     deb.println=@println;
     deb.clear_print=@clear_print;
     deb.appendLog=@appendLog;
+    deb.reset=@reset;
 
+    function res=reset(l)
+        strlen=0; log=''; add=''; str='';
+    end
     function res=levelGE(l)
         res=(level>=l);
     end
@@ -36,6 +40,8 @@ function deb=Debug(level)
         if(level>=l)
             fprintf('\n');
             strlen=0;
+        elseif(l==10)  % for debug to print the size of previous buffer
+            fprintf('strlen=%d\n',strlen);
         end
     end
     function ret=clear_print(l)

@@ -87,6 +87,7 @@ function [x,itr,p,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
     if(nargout<4)
         opt.outLevel=0;
     end
+    debug.reset();
 
     % print start information
     if(debug.level(2))

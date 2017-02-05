@@ -76,9 +76,11 @@ debug=Debug(opt.debugLevel);
 function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
 
     Lip=8*u^2;
+    if(min(size(a,1),size(a,2))==1) Lip=Lip/2; end
     if(nargout<4)
         opt.outLevel=0;
     end
+    debug.reset()
 
     % print start information
     if(debug.level(2))
@@ -96,7 +98,6 @@ function [x,itr,pOut,out]=denoisePNPG(a,u,thresh,maxItr,pInit)
         str=sprintf([str '\t u=%g'],u);
         fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
     end
-
     tStart=tic;
 
     if(~isempty(pInit) && opt.usePInit)
@@ -362,6 +363,7 @@ function [D,iter,pOut,out]=denoiseBeck(Xobs,lambda,thresh,maxItr,pInit)
     if (~exist('thresh','var'))
         thresh=1e-4;
     end
+    debug.reset();
 
     [m,n]=size(Xobs);
     D=zeros(m,n);
@@ -492,6 +494,7 @@ end
 function [x,itr,pOut,out]=denoisePNPGSkeleton(a,u,thresh,maxItr,pInit)
 
     t=8*u;
+    if(min(size(a,1),size(a,2))==1) t=t/2; end
     if(nargout<4)
         opt.outLevel=0;
     end
