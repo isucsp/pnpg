@@ -64,13 +64,12 @@ switch lower(op)
 %       u_6(i)=bisection(opt,func,cond,0,u_4(i)*100);
 
 %       % following is the 1d TV regularization
-        x_0=sum(Phity)/sqrNorm(Phi(ones(p,1)));
-        x_0=max(x_0,0);  % x_0 has to be nonnegative
-        x0=x_0*ones(p,1);
+        x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        x0=max(x0,0);  % x0 has to be nonnegative
         g=Phit(Phi(x0)-yy);
         u_7(i)=norm(cumsum(g),inf);
 
-        if(x_0>0)
+        if(x0(1)>0)
           Pncx=@(x) x*0;
         else
           Pncx=@(x) min(x,0);
@@ -85,12 +84,10 @@ switch lower(op)
         tvType='l1';
         proximal=tvProximal(tvType,C.prox,'pnpg');
         NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
-        opt.debugLevel=2; opt.maxItr=1e2; opt.maxInnerItr=1e5;
+        opt.debugLevel=2; opt.maxItr=1e2; opt.maxInnerItr=1e4;
         opt.trueX=x0; opt.outLevel=2;
         func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
-
-        keyboard
-        cond=@(x) relativeDif(x,x0);
+        cond=@(x) relativeDif(x,mean(x));
         u_A(i)=bisection(func,cond,0,u_7(i)*1.2,1e-6);
 
         keyboard
@@ -100,9 +97,8 @@ switch lower(op)
         iso=tvProximal('iso',@(x)max(0,x),[],opt);
         beta=1/OPT.L;
         func=@(u) iso.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-        cond=@(x) relativeDif(x,x0);
+        cond=@(x) relativeDif(x,mean(x));
         u_9(i)=bisection(func,cond,0,u_7(i)*1.2, 10^-6);
-
  
         mysave;
         keyboard

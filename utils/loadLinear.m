@@ -45,7 +45,7 @@ function [y,Phif,Phitf,Psi,Psit,opt,EAAt,invEAAt]=loadLinear(opt,seed)
     end
 
     %figure(1); plot(t,x); ylim([-2,5]);
-    if(~( exist('opt','var') && isfield(opt,'m'))) opt.m=500; end
+    if(~( ~isempty(opt) && isfield(opt,'m'))) opt.m=500; end
     if(~isfield(opt,'snr')) opt.snr=inf; end
     if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
     if(~isfield(opt,'matrixType')) opt.matrixType='gaussian'; end
