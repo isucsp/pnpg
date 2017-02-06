@@ -140,6 +140,12 @@ if(isfield(opt,'trueX'))
             trueXNorm=pNorm(opt.trueX,2);
             if(trueXNorm==0) trueXNorm=eps; end
             computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
+        otherwise
+            if(~isfield(opt,'computError'))
+                error(['field computError is missing from opt, '...
+                    'since opt.errorType is not in {0,1,2}']);
+            end
+            computError = opt.computError;
     end
 end
 

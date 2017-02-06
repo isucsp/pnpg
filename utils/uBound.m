@@ -32,9 +32,16 @@ if(isempty(tvType))
     realPsi=Psi;
     realPsit=Psit;
 else
-    w=zeros(size([TV.Phi_vt(xstar); TV.Phi_ht(xstar)]));
-    realPsi=@(w) TV.Phi_v(w(1:end/2,:))+TV.Phi_h(w(end/2+1:end,:));
-    realPsit=@(x) [TV.Phi_vt(x); TV.Phi_ht(x)];
+    switch(lower(tvType))
+        case {'iso','l1'}
+            w=zeros(size([TV.Phi_vt(xstar); TV.Phi_ht(xstar)]));
+            realPsi=@(w) TV.Phi_v(w(1:end/2,:))+TV.Phi_h(w(end/2+1:end,:));
+            realPsit=@(x) [TV.Phi_vt(x); TV.Phi_ht(x)];
+        case {'wav'}
+            w=zeros(size(Psit(xstar)));
+            realPsi=Psi;
+            realPsit=Psit;
+    end
 end
 realPsi_w=realPsi(w);
 
@@ -44,49 +51,73 @@ cnt=0;
 ii=0;
 EndCnt=0;
 
+vgtz=zeros(size(g));
 dRes=1e-4;
 
 strlen=0;
 
 PsitXstar=realPsit(xstar);
-switch(lower(tvType))
-    case {'iso','l1'}
-        proj=Prj_G(PsitXstar);
-    otherwise
-        lb=-ones(size(w)); ub=ones(size(w));
-        ww=sign(PsitXstar); A=(ww~=0);
-        lb(A)=ww(A); ub(A)=ww(A);
-        proj=@(w) max(min(w,ub),lb);
+if(isempty(tvType))
+    lb=-ones(size(w)); ub=ones(size(w));
+    ww=sign(PsitXstar); A=(ww~=0);
+    lb(A)=ww(A); ub(A)=ww(A);
+    proj=@(w) max(min(w,ub),lb);
+else
+    switch(lower(tvType))
+        case {'iso'}
+            proj=Prj_G(PsitXstar);
+        case {'l1','wav'}
+            lb=-ones(size(w)); ub=ones(size(w));
+            ww=sign(PsitXstar); A=(ww~=0);
+            lb(A)=ww(A); ub(A)=ww(A);
+            proj=@(w) max(min(w,ub),lb);
+    end
 end
 
 % Lip = 8 for 2-d TV
 % Lip = 4 for 1-d TV
 % Lip = 1 for wavelet
-switch(lower(tvType))
-    case {'iso','l1'}
-        if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
-        if(~isfield(opt,'backtracking')) opt.backtracking=false; end
-        if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
-        if(~isfield(opt,'outLevel')) opt.outLevel=0; end
-        if(~isfield(opt,'Lip')) opt.Lip=8; end
-        if(~isfield(opt,'initStep')) opt.initStep='fixed'; end
-        proximal.exact=true; proximal.val=@(x)0; proximal.prox=proj;
-    otherwise
-        opts.printEvery=inf;
-        opts.maxTotalIts=5e3;
-        opts.maxIts=1000;
-        opts.factr=0; %1e-6/eps;
+if(isempty(tvType))
+    opts.printEvery=inf;
+    opts.maxTotalIts=5e3;
+    opts.maxIts=1000;
+    opts.factr=0; %1e-6/eps;
+else
+    switch(lower(tvType))
+        case {'iso'}
+            if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
+            if(~isfield(opt,'backtracking')) opt.backtracking=false; end
+            if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
+            if(~isfield(opt,'outLevel')) opt.outLevel=0; end
+            if(~isfield(opt,'Lip'))
+                opt.Lip=8;
+                if(min(size(g))==1) opt.Lip=4; end
+            end
+            if(~isfield(opt,'initStep')) opt.initStep='fixed'; end
+            proximal.exact=true; proximal.val=@(x)0; proximal.prox=proj;
+        case {'l1'}
+            opts.printEvery=inf;
+            opts.maxTotalIts=5e3;
+            opts.maxIts=1000;
+            opts.factr=0; %1e-6/eps;
+        case {'wav'}
+            proximal.exact=true; proximal.val=@(x)0; proximal.prox=proj;
+    end
 end
 
 fprintf('\n%s\n', repmat( '=', 1, 80 ) );
 str=sprintf('ADMM for uBound, Type: ');
-switch(lower(tvType))
-    case 'iso'
-        str=[str 'ISO_TV'];
-    case 'l1'
-        str=[str 'L1_TV'];
-    otherwise
-        str=[str 'Sparsifying Matrix Psi'];
+if(isempty(tvType))
+    str=[str 'Sparsifying Matrix Psi'];
+else
+    switch(lower(tvType))
+        case 'iso'
+            str=[str 'ISO_TV'];
+        case 'l1'
+            str=[str 'L1_TV'];
+        case 'wav'
+            str=[str 'Wavelet Psi'];
+    end
 end
 
 fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
@@ -105,25 +136,26 @@ while(EndCnt<3 && ii<=5e3)
 
     ii=ii+1; cnt=cnt+1;
 
-    preV=v; preT=t; preW=w; preZ=z; preRealPsi_w=realPsi_w;
+    preV=v; preT=t; preZ=z; preRealPsi_w=realPsi_w; preVgtz=vgtz;
 
-    switch(lower(tvType))
-        case {'iso','l1'}
-            vgtz=(vg+t+z); NLL=@(x) Utils.linearModel(x,realPsi,realPsit,-vgtz);
-            %opt.debugLevel=2; opt.outLevel=1;
-            out = pnpg(NLL,proximal,w,opt);
-            w=out.x;
-            innerItr=out.itr;
-            %opt.thresh=1e-3*relativeDif(preW,w);
-        otherwise
-            % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
-            % subject to the [-1,1] box
-            opts.pgtol=max(1e-2*dRes,1e-14);
-            opts.x0=w;
-            [w,cost,info]=lbfgsb(@(x) quadBox(x,vg+t+z,realPsi,realPsit),...
-                lb,ub,opts);
-            innerItr=info.iterations;
-            %numItr=info.iterations; %disp(info); strlen=0;
+    vgtz=(vg+t+z);
+    NLL=@(x) Utils.linearModel(x,realPsi,realPsit,-vgtz);
+    if(isempty(tvType) || strcmpi(tvType,'l1'))
+        % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
+        % subject to the [-1,1] box
+        opts.pgtol=max(1e-2*relativeDif(preVgtz,vgtz),1e-14);
+        opts.x0=w;
+        [w,cost,info]=lbfgsb(NLL,lb,ub,opts);
+        innerItr=info.iterations;
+        %numItr=info.iterations; %disp(info); strlen=0;
+    elseif (strcmpi(tvType,'iso'))
+        %opt.debugLevel=2; opt.outLevel=1;
+        opt.thresh=max(1e-4*relativeDif(preVgtz,vgtz),1e-13);
+        out = pnpg(NLL,proximal,w,opt);
+        w=out.x; innerItr=out.itr;
+    elseif strcmpi(tvType,'wav')
+        w=proximal.prox(-realPsit(vgtz));
+        innerItr=-1;
     end
 
     realPsi_w=realPsi(w);
@@ -154,7 +186,7 @@ while(EndCnt<3 && ii<=5e3)
     end
     strlen = length(str);
 
-    if(cnt>100) % prevent excessive back and forth adjusting
+    if(cnt>100 && abs(log10(rho))<4) % prevent excessive back and forth adjusting
         if(dRes>10*pRes)
             rho=rho/2; z=z*2; cnt=0;
         elseif(dRes<pRes/10)
@@ -171,13 +203,6 @@ end
 u=normG/v;
 fprintf('\n\n');
 
-function [f,g] = quadBox(x,y,Psi,Psit)
-    r=Psi(x)+y;
-    f=0.5*norm(r,2)^2;
-    if(nargout>1)
-        g=Psit(r);
-    end
-end
 function [f,g] = compBox(x,y,Psi,Psit)
     r=Psi.r(x(:,1))+Psi.i(x(:,2))+y;
     f=0.5*sqrNorm(r);

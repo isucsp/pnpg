@@ -68,13 +68,16 @@ if(~isfield(opt,'u')) opt.u=1e-4; end
 
 if(~isfield(opt,'stepIncre')) opt.stepIncre=0.9; end
 if(~isfield(opt,'stepShrnk')) opt.stepShrnk=0.5; end
-if(~isfield(opt,'preSteps')) opt.preSteps=5; end
+% By default disabled.  Remember to use a value around 5 for the Poisson model
+% with poor initialization.
+if(~isfield(opt,'preSteps')) opt.preSteps=0; end
 if(~isfield(opt,'initStep')) opt.initStep='hessian'; end
 % Threshold for relative difference between two consecutive x
 if(~isfield(opt,'thresh')) opt.thresh=1e-6; end
-if(~isfield(opt,'Lip')) opt.Lip=nan; end
+if(~isfield(opt,'Lip')) opt.Lip=inf; end
 if(~isfield(opt,'maxItr')) opt.maxItr=2e3; end
 if(~isfield(opt,'minItr')) opt.minItr=10; end
+if(~isfield(opt,'maxLineSearch')) opt.maxLineSearch=20; end
 if(~isfield(opt,'errorType')) opt.errorType=1; end
 if(~isfield(opt,'gamma')) gamma=2; else gamma=opt.gamma; end
 if(~isfield(opt,'b')) b=0.25; else b=opt.b; end
@@ -83,8 +86,12 @@ if(~isfield(opt,'relInnerThresh')) opt.relInnerThresh=1e-2; end
 if(~isfield(opt,'cumuTol')) opt.cumuTol=4; end
 if(~isfield(opt,'incCumuTol')) opt.incCumuTol=true; end
 if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=true; end
-if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=100; end
+if(~isfield(opt,'maxInnerItr')) opt.maxInnerItr=1000; end
 if(~isfield(opt,'maxPossibleInnerItr')) opt.maxPossibleInnerItr=1e3; end
+if(~isfield(opt,'minPossibleInnerThresh')) opt.minPossibleInnerThresh=1e-14; end
+if(strcmpi(opt.initStep,'fixed') && isinf(opt.Lip))
+    error('The "fixed" for opt.initStep can not be used together with infinite opt.Lip');
+end
 
 % Debug output information
 % >=0: no print,
@@ -118,6 +125,12 @@ if(isfield(opt,'trueX'))
             trueXNorm=pNorm(opt.trueX,2);
             if(trueXNorm==0) trueXNorm=eps; end
             computError = @(xxx) pNorm(xxx-opt.trueX,2)/trueXNorm;
+        otherwise
+            if(~isfield(opt,'computError'))
+                error(['field computError is missing from opt, '...
+                    'since opt.errorType is not in {0,1,2}']);
+            end
+            computError = opt.computError;
     end
 end
 
@@ -134,7 +147,7 @@ end
 
 % print start information
 if(debug.level(2))
-    fprintf('%s\n', repmat( '=', 1, 80 ) );
+    fprintf('\n%s\n', repmat( '=', 1, 80 ) );
     str=sprintf('Proximal-Gradient (PG) Method');
     fprintf('%s%s\n',repmat(' ',1,floor(40-length(str)/2)),str);
     fprintf('%s\n', repmat('=',1,80));
@@ -143,13 +156,14 @@ if(debug.level(2))
     if(isfield(opt,'trueX'))
         str=sprintf([str ' %12s'], 'Error');
     end
-    str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'αSrh');
+    str=sprintf([str ' %12s %4s'], '|dx|/|x|', 'lSrh');
+    if(~proximal.exact)
+        str=sprintf([str ' %4s'], 'iItr');
+    end
     str=sprintf([str ' %12s'], '|d Obj/Obj|');
     str=sprintf([str '\t u=%g'],opt.u);
     fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 end
-
-t=stepSizeInit(opt.initStep,opt.Lip);
 
 tStart=tic;
 
@@ -158,6 +172,8 @@ NLLVal=NLL(x);
 penVal=proximal.val(x);
 cost=NLLVal+opt.u*penVal;
 goodStep=true;
+t=stepSizeInit(opt.initStep,opt.Lip);
+
 if((opt.outLevel>=1 || debug.level(2)) && isfield(opt,'trueX'))
     RMSE=computError(x);
 end
@@ -170,15 +186,15 @@ end
 if(opt.adaptiveStep) cumu=0; end
 
 while(true)
+    if(itr>=opt.maxItr || convThresh>=3) break; end
     itr=itr+1;
-    %if(mod(itr,100)==1 && itr>100) save('snapshotFST.mat'); end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %  start of one PG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     numLineSearch=0; goodMM=true; incStep=false;
-    [oldCost,grad] = NLL(x);
+    [oldNLL,grad] = NLL(x);
     if(opt.adaptiveStep && cumu>=opt.cumuTol)
         % adaptively increase the step size
         t=t*opt.stepIncre;
@@ -197,14 +213,14 @@ while(true)
                 pInit);
         end
 
-        newCost=NLL(newX);
-        if(majorizationHolds(newX-x,newCost,oldCost,[],grad,t))
+        newNLL=NLL(newX);
+        if(majorizationHolds(newX-x,newNLL,oldNLL,[],grad,t))
             if(itr<=opt.preSteps && opt.adaptiveStep && goodStep)
                 cumu=opt.cumuTol;
             end
             break;
         else
-            if(numLineSearch<=20)
+            if(numLineSearch<=opt.maxLineSearch && t<opt.Lip)
                 t=t/opt.stepShrnk; goodStep=false;
                 % Penalize if there is a step size increase just now
                 if(incStep)
@@ -221,14 +237,12 @@ while(true)
         end
     end
     newPen = proximal.val(newX);
-    newObj = newCost+opt.u*newPen;
+    newCost = newNLL+opt.u*newPen;
 
     % using eps reduces numerical issue around the point of convergence
-    if((newObj-cost)>eps*max(abs(newCost),abs(cost)))
-        if(~goodMM)
-            reset(); % both theta and step size;
-        end
-        if(runMore()) itr=itr-1; continue; end
+    if((newCost-cost)>1e-14*norm([newCost,cost],inf))
+        if(goodMM && runMore()) itr=itr-1; continue; end
+        %reset(); % both theta and step size;
 
         % give up and force it to converge
         debug.appendLog('_ForceConverge');
@@ -236,9 +250,7 @@ while(true)
         preX=x; difX=0;
         preCost=cost;
     else
-        if(proximal.exact)
-            innerItr=0;
-        else
+        if(~proximal.exact)
             pInit=pInit_;
             innerItr=innerItr_;
         end
@@ -246,8 +258,8 @@ while(true)
         preX = x;
         x = newX;
         preCost=cost;
-        cost = newObj;
-        NLLVal=newCost;
+        cost = newCost;
+        NLLVal=newNLL;
         penVal=newPen;
     end
 
@@ -263,12 +275,20 @@ while(true)
     %  end of one PG step  %
     %%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    if(opt.outLevel>=1 || debug.level(2))
-        difCost=abs(cost-preCost)/max(1,abs(cost));
-        if(isfield(opt,'trueX'))
-            preRMSE=RMSE; RMSE=computError(x);
-        end
+    if(difX<=opt.thresh && itr>=opt.minItr)
+        convThresh=convThresh+1;
     end
+
+    % skip the rest if not needed
+    if(opt.outLevel<1 && opt.debugLevel<2)
+        continue;
+    end
+
+    difCost=abs(cost-preCost)/max(1,abs(cost));
+    if(isfield(opt,'trueX'))
+        preRMSE=RMSE; RMSE=computError(x);
+    end
+
     if(opt.outLevel>=1)
         out.time(itr)=toc(tStart);
         out.cost(itr)=cost;
@@ -280,6 +300,7 @@ while(true)
         out.penVal(itr)=penVal;
         if(~proximal.exact)
             out.innerItr(itr)=innerItr;
+            out.innerThresh(itr)=innerThresh;
         end;
         if(isfield(opt,'trueX'))
             out.RMSE(itr)=RMSE;
@@ -301,18 +322,21 @@ while(true)
 
     if(debug.level(2))
         debug.print(2,sprintf(' %5d',itr));
-        debug.print(2,sprintf(' %14.8g',cost));
+        debug.print(2,sprintf(' %14.12g',cost));
         if(isfield(opt,'trueX'))
             debug.print(2,sprintf(' %12g',RMSE));
         end
         debug.print(2,sprintf(' %12g %4d',difX,numLineSearch));
+        if(~proximal.exact)
+            debug.print(2,sprintf(' %4d',innerItr));
+        end
         debug.print(2,sprintf(' %12g', difCost));
         if(~debug.clear_print(2))
             if(mod(itr,opt.verbose)==0) debug.println(2); end
         end
     end
 
-    if(debug.level(4) && itr>1)
+    if(debug.level(4))
         set(0,'CurrentFigure',figCostRMSE);
         if(isfield(opt,'trueX')) subplot(2,1,1); end
         if(cost>0)
@@ -327,21 +351,13 @@ while(true)
         end
         drawnow;
     end
-
-    if(itr>1 && difX<=opt.thresh )
-        convThresh=convThresh+1;
-    end
-
-    if(itr >= opt.maxItr || (convThresh>2 && itr>=opt.minItr))
-        break;
-    end
 end
 out.x=x; out.itr=itr; out.opt = opt; out.date=datestr(now);
 if(opt.outLevel>=2)
     out.grad=grad;
 end
 if(debug.level(1))
-    fprintf('\n%s: CPU Time: %g, objective=%g',mfilename,toc(tStart),cost);
+    fprintf('\n%s: CPU Time: %g, objective=%26.20g',mfilename,toc(tStart),cost);
     if(isfield(opt,'trueX'))
         if(debug.level(2))
             fprintf(', RMSE=%g\n',RMSE);
@@ -354,29 +370,33 @@ if(debug.level(1))
 end
 
 function reset()
-    t=min([t;max(stepSizeInit('hessian'))]);
+    t=min([t;stepSizeInit(opt.initStep,opt.Lip)]);
     debug.appendLog('_Reset');
     debug.printWithoutDel(2,'\t reset');
 end
 function res=runMore()
     res=false;
     if(proximal.exact) return; end
-    if(innerItr_<opt.maxInnerItr && opt.relInnerThresh>1e-6)
+    if(...%innerItr_<opt.maxInnerItr &&
+            innerThresh>opt.minPossibleInnerThresh)
         opt.relInnerThresh=opt.relInnerThresh/10;
         debug.printWithoutDel(2,...
             sprintf('\n decrease relInnerThresh to %g',...
             opt.relInnerThresh));
-        res=true;
-    elseif(innerItr_>=opt.maxInnerItr &&...
-            opt.maxInnerItr<opt.maxPossibleInnerItr)
-        opt.maxInnerItr=opt.maxInnerItr*10;
-        debug.printWithoutDel(2,...
-            sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
+        debug.appendLog('_DecInnerThresh');
         res=true;
     end
+    %elseif(innerItr_>=opt.maxInnerItr &&...
+    %        opt.maxInnerItr<opt.maxPossibleInnerItr)
+    %    opt.maxInnerItr=opt.maxInnerItr*10;
+    %    debug.printWithoutDel(2,...
+    %        sprintf('\n increase maxInnerItr to %g',opt.maxInnerItr));
+    %    debug.appendLog('_IncInnerMaxItr');
+    %    res=true;
+    %end
 end
 
-function t=stepSizeInit(select,Lip,delta)
+function t_=stepSizeInit(select,Lip,delta)
     switch (lower(select))
         case 'bb'   % use BB method to guess the initial stepSize
             if(~exist('delta','var')) delta=1e-5; end
@@ -384,7 +404,7 @@ function t=stepSizeInit(select,Lip,delta)
             temp = delta*grad1/pNorm(grad1,2);
             temp = x-opt.prj_C(x-temp);
             [~,grad2] = NLL(x-temp);
-            t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
+            t_ = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
         case 'hessian'
             [~,grad1,hessian] = NLL(x);
             if(isempty(hessian))
@@ -392,16 +412,16 @@ function t=stepSizeInit(select,Lip,delta)
                 temp = delta*grad1/pNorm(grad1,2);
                 temp = x-opt.prj_C(x-temp);
                 [~,grad2] = NLL(x-temp);
-                t = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
+                t_ = abs(innerProd(grad1-grad2,temp))/sqrNorm(temp);
             else
-                t = hessian(grad1,2)/sqrNorm(grad1);
+                t_ = hessian(grad1,2)/sqrNorm(grad1);
             end
         case 'fixed'
-            t = Lip;
+            t_ = Lip;
         otherwise
             error('unkown selection for initial step');
     end
-    if(isnan(t) || t<=0)
+    if(isnan(t_) || t_<=0)
         error('PG is having a negative or NaN step size, do nothing and return!!');
     end
 end
