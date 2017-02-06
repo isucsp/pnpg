@@ -24,6 +24,18 @@ if(~exist(tgt,'file')...
 end
 cd(pathstr)
 
+cd(['utils' filesep 'L-BFGS-B-C' filesep 'Matlab'])
+if(~exist(['lbfgsb_wrapper.' mexext],'file'))
+    if(isunix)
+        system('make');
+    elseif(ispc)
+        mex -largeArrayDims -O -g -UDEBUG -I../src ...
+            lbfgsb_wrapper.c ../src/lbfgsb.c ../src/linesearch.c ../src/subalgorithms.c ...
+            ../src/print.c ../src/linpack.c ../src/miniCBLAS.c ../src/timer.c
+    end
+end
+cd(pathstr)
+
 addpath([pathstr filesep 'rwt']);
 addpath([pathstr filesep 'npg']);
 addpath([pathstr filesep 'utils']);
