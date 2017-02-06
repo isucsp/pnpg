@@ -38,13 +38,16 @@ switch lower(op)
 
         % the following are under sparsity regularization +
         % nonnegativity constraints
-%       cvx_begin
-%       variable a(p)
-%       minimize( norm( PsiM'*(Phity+a), inf) )
-%       subject to
-%       a>=0
-%       cvx_end
-%       u_1(i)=cvx_optval;
+        cvx_begin
+        variable a(p)
+        minimize( norm( PsiM'*(Phity+a), inf) )
+        subject to
+        a>=0
+        cvx_end
+        u_1(i)=cvx_optval;
+
+        mysave;
+        continue;
 
 %       Pncx=@(x) min(x,0);
 %       u_2(i)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
@@ -77,12 +80,12 @@ switch lower(op)
 %       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
 %       u_6(i)=bisection(func,cond,u_4(i)/2,u_4(i)*2);
 
-%       % following is the 1d TV regularization
-%       x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
-%       x0=max(x0,0);  % x0 has to be nonnegative
-%       g=Phit(Phi(x0)-yy);
-%       u_7(i)=norm(cumsum(g),inf);
-%       fprintf('u_7=%20.10g\n',u_7(i));
+        % following is the 1d TV regularization
+        x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        x0=max(x0,0);  % x0 has to be nonnegative
+        g=Phit(Phi(x0)-yy);
+        u_7(i)=norm(cumsum(g),inf);
+        fprintf('u_7=%20.10g\n',u_7(i));
 
         if(x0(1)>0)
           Pncx=@(x) x*0;
