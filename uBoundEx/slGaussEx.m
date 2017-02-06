@@ -78,42 +78,31 @@ switch lower(op)
 %       u_6(i)=bisection(func,cond,u_4(i)/2,u_4(i)*2);
 
 %       % following is the 1d TV regularization
-        x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
-        x0=max(x0,0);  % x0 has to be nonnegative
-        g=Phit(Phi(x0)-yy);
-        u_7(i)=norm(cumsum(g),inf);
-        fprintf('u_7=%20.10g\n',u_7(i));
+%       x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+%       x0=max(x0,0);  % x0 has to be nonnegative
+%       g=Phit(Phi(x0)-yy);
+%       u_7(i)=norm(cumsum(g),inf);
+%       fprintf('u_7=%20.10g\n',u_7(i));
 
         if(x0(1)>0)
           Pncx=@(x) x*0;
         else
           Pncx=@(x) min(x,0);
         end
-        u_8(i)=uBound([],[],'l1',Pncx,x0,g);
+        u_8(i)=uBound([],[],'iso',Pncx,x0,g);
+        fprintf('u_8=%20.10g\n',u_8(i));
 
-        keyboard
-
-        opt=OPT;
-        tvType='l1';
-        proximal=tvProximal(tvType,C.prox,'pnpg');
-        opt.debugLevel=2; opt.maxInnerItr=1e4;
-        %opt.maxItr=1e2;
-        opt.trueX=x0; opt.outLevel=2;
-        opt.errorType=-1;
-        opt.computError=@(x) relativeDif(x,mean(x));
-        func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
+        PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=tvProximal('iso',C.prox,[],PROXOPT);
         cond=@(x) relativeDif(x,mean(x));
-        u_A(i)=bisection(func,cond,0,u_7(i)*1.2,1e-6);
-
-        keyboard
-
-
-        opt=[]; opt.debugLevel=2; opt.verbose=1e3;
-        iso=tvProximal('iso',@(x)max(0,x),[],opt);
         beta=1/OPT.L;
         func=@(u) iso.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-        cond=@(x) relativeDif(x,mean(x));
-        u_9(i)=bisection(func,cond,0,u_7(i)*1.2, 10^-6);
+        opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+        opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
+        func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
+        u_9(i)=bisection(func,cond,u_7(i)/2,u_7(i)*1.2, 10^-6);
+
+        keyboard
  
         mysave;
         keyboard
