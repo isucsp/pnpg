@@ -1,13 +1,12 @@
 function slGaussEx(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     Reconstruction of Nonnegative Sparse Signals Using Accelerated
-%                      Proximal-Gradient Algorithms
+% Upper-Bounding the Regularization Constant for Sparse Signal Reconstruction %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (gurenliang@gmail.com)
 %
-%          Skyline Gaussian Linear example, no background noise
-%           Vary the number of measurements, with continuation
+%   Skyline Gaussian Linear example, no background noise
+%   Vary SNR of measurements, with continuation
 
 
 if(~exist('op','var')) op='run'; end
@@ -45,9 +44,6 @@ switch lower(op)
         a>=0
         cvx_end
         u_1(i)=cvx_optval;
-
-        mysave;
-        continue;
 
         Pncx=@(x) min(x,0);
         u_2(i)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
