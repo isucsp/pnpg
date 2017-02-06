@@ -216,8 +216,8 @@ function y = Prj_G(PsitXstar)
     %mag=sqrt(max(1,[p.^2;zeros(1,J)]+[q.^2, zeros(I,1)]));
     pp=PsitXstar(1:I,:); qq=PsitXstar(I+1:end,:);
     mag=sqrt(pp.^2+qq.^2); nonzeroMag=(mag~=0);
-    pp(nonzeroMag)=pp(nonzeroMag)/mag;
-    qq(nonzeroMag)=qq(nonzeroMag)/mag;
+    pp(nonzeroMag)=pp(nonzeroMag)./mag(nonzeroMag);
+    qq(nonzeroMag)=qq(nonzeroMag)./mag(nonzeroMag);
     
     y=@(w) prj(w);
 
