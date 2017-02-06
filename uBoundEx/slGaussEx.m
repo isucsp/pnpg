@@ -71,7 +71,7 @@ switch lower(op)
         proximal.val=@(x) norm(Psit(x),1);
         proximal.prox=@(x,u) Psi(Utils.softThresh(Psit(x),u));
         opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=0;
-        func=@(u) pg(NLL,proximal,x0*0,setfield(opt,'u',u));
+        func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
         cond=@(x) norm(x)/length(x);
         u_6(i)=bisection(func,cond,0,u_4(i)*100);
 
