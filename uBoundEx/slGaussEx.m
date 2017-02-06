@@ -46,6 +46,9 @@ switch lower(op)
         cvx_end
         u_1(i)=cvx_optval;
 
+        mysave;
+        continue;
+
         Pncx=@(x) min(x,0);
         u_2(i)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
 
@@ -103,7 +106,6 @@ switch lower(op)
         u_9(i)=bisection(func,cond,u_7(i)/2,u_7(i)*1.2, 10^-8);
 
         mysave;
-        keyboard
       end;
     end
 
