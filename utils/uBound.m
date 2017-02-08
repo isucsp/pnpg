@@ -43,7 +43,6 @@ else
             realPsit=Psit;
     end
 end
-realPsi_w=realPsi(w);
 
 rho=1;
 
@@ -52,7 +51,6 @@ ii=0;
 EndCnt=0;
 
 vgtz=zeros(size(g));
-dRes=1e-4;
 
 strlen=0;
 
@@ -136,7 +134,7 @@ while(EndCnt<3 && ii<=5e3)
 
     ii=ii+1; cnt=cnt+1;
 
-    preV=v; preT=t; preZ=z; preRealPsi_w=realPsi_w; preVgtz=vgtz;
+    preV=v; preT=t; preVgtz=vgtz;
 
     vgtz=(vg+t+z);
     NLL=@(x) Utils.linearModel(x,realPsi,realPsit,-vgtz);
@@ -145,7 +143,7 @@ while(EndCnt<3 && ii<=5e3)
         % subject to the [-1,1] box
         opts.pgtol=max(1e-3*relativeDif(preVgtz,vgtz),1e-14);
         opts.x0=w;
-        [w,cost,info]=lbfgsb(NLL,lb,ub,opts);
+        [w,~,info]=lbfgsb(NLL,lb,ub,opts);
         innerItr=info.iterations;
         %numItr=info.iterations; %disp(info); strlen=0;
     elseif strcmpi(tvType,'iso') || strcmpi(tvType,'l1')
@@ -168,12 +166,10 @@ while(EndCnt<3 && ii<=5e3)
     z=z+realPsi_w+vg+t;
 
     pRes=norm(reshape(vg+realPsi_w+t,[],1),2);
-    %dRes1=g'*(preRealPsi_w-realPsi_w+preT-t);
-    %dRes2=norm(preRealPsi_w-realPsi_w,2)^2;
     dRes1=abs(preV-v);  %norm(g*(preV-v));
     dRes2=norm(preT-t);
-    dRes=[max(dRes1,dRes2)];
-    gap=z'*(vg+realPsi_w+t);
+    dRes=max(dRes1,dRes2);
+    gap=sum(reshape(z.*(vg+realPsi_w+t),[],1));
 
     str=sprintf('%5d %12g %12g %12g %10g %12g %4g %4g',ii, normG/v, pRes,...
         dRes1, dRes2, gap,innerItr, rho);
@@ -203,15 +199,8 @@ end
 u=normG/v;
 fprintf('\n\n');
 
-function [f,g] = compBox(x,y,Psi,Psit)
-    r=Psi.r(x(:,1))+Psi.i(x(:,2))+y;
-    f=0.5*sqrNorm(r);
-    if(nargout>1)
-        g=[Psit.r(r), Psit.i(r)];
-    end
-end
 function y = Prj_G(PsitXstar)
-    [I,J]=size(PsitXstar); I=I/2;
+    [I,~]=size(PsitXstar); I=I/2;
 
     %mag=sqrt(max(1,[p.^2;zeros(1,J)]+[q.^2, zeros(I,1)]));
     pp=PsitXstar(1:I,:); qq=PsitXstar(I+1:end,:);
