@@ -1,4 +1,3 @@
-
 function [ur,ur_rmse]=bisection(func,cond,ul,ur,thresh)
   if(~exist('thresh','var')) thresh=eps; end
   ur_rmse=0; ul_rmse=0;

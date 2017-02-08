@@ -84,7 +84,7 @@ if(isempty(tvType))
     opts.factr=0; %1e-6/eps;
 else
     switch(lower(tvType))
-        case {'iso'}
+        case {'iso','l1'}
             if(~isfield(opt,'adaptiveStep')) opt.adaptiveStep=false; end
             if(~isfield(opt,'backtracking')) opt.backtracking=false; end
             if(~isfield(opt,'debugLevel')) opt.debugLevel=0; end
@@ -95,7 +95,7 @@ else
             end
             if(~isfield(opt,'initStep')) opt.initStep='fixed'; end
             proximal.exact=true; proximal.val=@(x)0; proximal.prox=proj;
-        case {'l1'}
+
             opts.printEvery=inf;
             opts.maxTotalIts=5e3;
             opts.maxIts=1000;
@@ -140,7 +140,7 @@ while(EndCnt<3 && ii<=5e3)
 
     vgtz=(vg+t+z);
     NLL=@(x) Utils.linearModel(x,realPsi,realPsit,-vgtz);
-    if(isempty(tvType) || strcmpi(tvType,'l1'))
+    if isempty(tvType)
         % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
         % subject to the [-1,1] box
         opts.pgtol=max(1e-3*relativeDif(preVgtz,vgtz),1e-14);
@@ -148,7 +148,7 @@ while(EndCnt<3 && ii<=5e3)
         [w,cost,info]=lbfgsb(NLL,lb,ub,opts);
         innerItr=info.iterations;
         %numItr=info.iterations; %disp(info); strlen=0;
-    elseif (strcmpi(tvType,'iso'))
+    elseif strcmpi(tvType,'iso') || strcmpi(tvType,'l1')
         %opt.debugLevel=2; opt.outLevel=1;
         opt.thresh=max(1e-4*relativeDif(preVgtz,vgtz),1e-13);
         out = pnpg(NLL,proximal,w,opt);
@@ -162,7 +162,7 @@ while(EndCnt<3 && ii<=5e3)
 
     % Since ||g||=1, v=(1-rho*g'*(realPsi_w+t+z)) / (rho*(g'*g))
     % reduces to
-    v=1/rho-g'*(realPsi_w+t+z); vg=v*g;
+    v=1/rho-sum(reshape(g.*(realPsi_w+t+z),[],1)); vg=v*g;
     t=prj_NC( -vg-realPsi_w-z );
 
     z=z+realPsi_w+vg+t;
