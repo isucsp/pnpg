@@ -26,34 +26,43 @@ switch lower(op)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
                 OPT.mask  =[];
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
+                NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
 
                 [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
                 if(x0s>0) Pncx=@(x) x*0; else Pncx=@(x) min(x,0); end
 
                 tvType='l1';
                 u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
+                mysave;
 
                 initSig=ones(size(OPT.trueX))*x0s;
-                proximal=tvProximal(tvType,C.prox,'pnpg');
-                ur=u_1(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;
-                opt.proximal='tvl1'; opt.maxItr=13;
-                while(ur-ul>1e-5*ur)
-                    fprintf('%10g <-> %10g\n',ul,ur);
-                    fprintf('%10g <-> %10g\n',ul_rmse,ur_rmse);
-                    opt.u=(ur+ul)/2; opt.thresh=1e-9;
-                    fprintf('u=%g\n',opt.u);
-                    out=Wrapper.PNPG(Phi,Phit,[],[],y,initSig,opt);
-                    rmse=norm(out.x-initSig)
-                    if(rmse<=eps)
-                        ur=opt.u; ur_rmse=rmse;
-                    else
-                        ul=opt.u; ul_rmse=rmse;
-                    end
-                end
-                u_2(i)=ur;
-                u_2rmse(i)=ur_rmse;
+                PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
+                proximal=tvProximal(tvType,C.prox,[],PROXOPT);
+                cond=@(x) relativeDif(x,mean(x(:)));
+                %beta=1/OPT.L;
+                %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+                opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+                opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
+                func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
+                u_2(i)=bisection(func,cond,u_1(i)/2,u_1(i)*1.2, 10^-6);
 
                 tvType='iso';
+                u_4(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
+                mysave;
+
+                initSig=ones(size(OPT.trueX))*x0s;
+                PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
+                proximal=tvProximal(tvType,C.prox,[],PROXOPT);
+                cond=@(x) relativeDif(x,mean(x(:)));
+                %beta=1/OPT.L;
+                %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+                opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+                opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
+                func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
+                u_5(i)=bisection(func,cond,u_1(i)/2,u_1(i)*1.2, 10^-6);
+
+                mysave
+                continue;
 
                 if(isfield(OPT,'mask')) OPT=rmfield(OPT,'mask'); end;
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
