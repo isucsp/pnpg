@@ -1,14 +1,12 @@
 function tv_Bound(op)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     Reconstruction of Nonnegative Sparse Signals Using Accelerated
-%                      Proximal-Gradient Algorithms
+% Upper-Bounding the Regularization Constant for Sparse Signal Reconstruction %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 %   Author: Renliang Gu (gurenliang@gmail.com)
 %
-%
-%                  PET example, with background noise b
-%      Vary the total counts of the measurements, with continuation
+%   PET example, with background noise b
+%   Vary the total counts of the measurements, with continuation
 
 if(~exist('op','var')) op='run'; end
 
@@ -25,32 +23,32 @@ switch lower(op)
         for k=1:K
             for i=1:length(count)
                 fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
-        %       OPT.mask  =[];
-        %       [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
+                OPT.mask  =[];
+                [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
 
-        %       [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
-        %       g=reshape(g,sqrt(length(g(:))),[]);
+                [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
+                g=reshape(g,sqrt(length(g(:))),[]);
 
-        %       u_1(i)=TV.upperBoundU_admm(g,x0s*ones(size(g)));
+                u_1(i)=TV.upperBoundU_admm(g,x0s*ones(size(g)));
 
-        %       initSig=ones(size(OPT.trueAlpha))*x0s;
-        %       ur=u_1(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;
-        %       opt.proximal='tvl1'; opt.maxItr=13;
-        %       while(ur-ul>1e-5*ur)
-        %           fprintf('%10g <-> %10g\n',ul,ur);
-        %           fprintf('%10g <-> %10g\n',ul_rmse,ur_rmse);
-        %           opt.u=(ur+ul)/2; opt.thresh=1e-9;
-        %           fprintf('u=%g\n',opt.u);
-        %           out=Wrapper.PNPG(Phi,Phit,[],[],y,initSig,opt);
-        %           rmse=norm(out.alpha-initSig)
-        %           if(rmse<=eps)
-        %               ur=opt.u; ur_rmse=rmse;
-        %           else
-        %               ul=opt.u; ul_rmse=rmse;
-        %           end
-        %       end
-        %       u_2(i)=ur;
-        %       u_2rmse(i)=ur_rmse;
+                initSig=ones(size(OPT.trueAlpha))*x0s;
+                ur=u_1(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;
+                opt.proximal='tvl1'; opt.maxItr=13;
+                while(ur-ul>1e-5*ur)
+                    fprintf('%10g <-> %10g\n',ul,ur);
+                    fprintf('%10g <-> %10g\n',ul_rmse,ur_rmse);
+                    opt.u=(ur+ul)/2; opt.thresh=1e-9;
+                    fprintf('u=%g\n',opt.u);
+                    out=Wrapper.PNPG(Phi,Phit,[],[],y,initSig,opt);
+                    rmse=norm(out.alpha-initSig)
+                    if(rmse<=eps)
+                        ur=opt.u; ur_rmse=rmse;
+                    else
+                        ul=opt.u; ul_rmse=rmse;
+                    end
+                end
+                u_2(i)=ur;
+                u_2rmse(i)=ur_rmse;
 
                 if(isfield(OPT,'mask')) OPT=rmfield(OPT,'mask'); end;
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);

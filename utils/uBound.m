@@ -143,7 +143,7 @@ while(EndCnt<3 && ii<=5e3)
     if(isempty(tvType) || strcmpi(tvType,'l1'))
         % objective: 0.5*||Psi(w)+t+z+v*g||_F^2
         % subject to the [-1,1] box
-        opts.pgtol=max(1e-3*relativeDif(preVgtz,vgtz),1e-14);
+        opts.pgtol=max(1e-4*relativeDif(preVgtz,vgtz),1e-14);
         opts.x0=w;
         [w,cost,info]=lbfgsb(NLL,lb,ub,opts);
         innerItr=info.iterations;
