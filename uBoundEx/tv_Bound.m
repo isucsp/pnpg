@@ -16,6 +16,7 @@ switch lower(op)
         if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
         clear -regexp '(?i)opt'
         filename = [mfilename '.mat'];
+        C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
         OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson';
 
         K=1;
@@ -27,11 +28,13 @@ switch lower(op)
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
 
                 [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
-                g=reshape(g,sqrt(length(g(:))),[]);
+                if(x0s>0) Pncx=@(x) x*0; else Pncx=@(x) min(x,0); end
 
-                u_1(i)=TV.upperBoundU_admm(g,x0s*ones(size(g)));
+                tvType='l1';
+                u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
 
-                initSig=ones(size(OPT.trueAlpha))*x0s;
+                initSig=ones(size(OPT.trueX))*x0s;
+                proximal=tvProximal(tvType,C.prox,'pnpg');
                 ur=u_1(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;
                 opt.proximal='tvl1'; opt.maxItr=13;
                 while(ur-ul>1e-5*ur)
@@ -40,7 +43,7 @@ switch lower(op)
                     opt.u=(ur+ul)/2; opt.thresh=1e-9;
                     fprintf('u=%g\n',opt.u);
                     out=Wrapper.PNPG(Phi,Phit,[],[],y,initSig,opt);
-                    rmse=norm(out.alpha-initSig)
+                    rmse=norm(out.x-initSig)
                     if(rmse<=eps)
                         ur=opt.u; ur_rmse=rmse;
                     else
@@ -50,14 +53,16 @@ switch lower(op)
                 u_2(i)=ur;
                 u_2rmse(i)=ur_rmse;
 
+                tvType='iso';
+
                 if(isfield(OPT,'mask')) OPT=rmfield(OPT,'mask'); end;
                 [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
                 Pncx=@(x) min(x,0);
-                %u_3(i)=uBound(Psi,Psit,Pncx,OPT.trueAlpha*0,Phit(1-y./OPT.bb(:)));
+                %u_3(i)=uBound(Psi,Psit,Pncx,OPT.trueX*0,Phit(1-y./OPT.bb(:)));
                 u_3(i)=1e3;
 
                 ur=u_3(i)*10; ul=ur/100; ur_rmse=0; ul_rmse=0; opt=OPT;
-                initSig=opt.trueAlpha*0; opt.maxItr=13;
+                initSig=opt.trueX*0; opt.maxItr=13;
                 opt.proximal='wvltADMM';
                 while(ur-ul>1e-5*ur)
                     fprintf('%10g <-> %10g\n',ul,ur);
@@ -65,7 +70,7 @@ switch lower(op)
                     opt.u=(ur+ul)/2; opt.thresh=1e-9;
                     fprintf('u=%g\n',opt.u);
                     out=Wrapper.PNPG(Phi,Phit,Psi,Psit,y,initSig,opt);
-                    rmse=norm(out.alpha-initSig)
+                    rmse=norm(out.x-initSig)
                     if(rmse<=eps)
                         ur=opt.u; ur_rmse=rmse;
                     else

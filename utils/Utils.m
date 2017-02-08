@@ -264,12 +264,13 @@ end
 function [a,b] = poissonModelConstEst(Phi,Phit,y,b,epsilon)
     % Estimate the MLE given the signal is a constant
     if(~exist('b','var') || isempty(b)) b=0; end
-    b=b(:);
+
     one = ones(size(Phit(y)));
     PhiOne=Phi(one);
-    OnePhiOne=sum(PhiOne);
+    OnePhiOne=sum(reshape(PhiOne,[],1));
     yPhiOne=y.*PhiOne;
-    g=@(x) OnePhiOne-sum(yPhiOne./(PhiOne*x+b));
+    g=@(x) OnePhiOne-sum(reshape(yPhiOne./(PhiOne*x+b),[],1));
+
     high=1;
     if(g(high)>0)
         low=high/10;
