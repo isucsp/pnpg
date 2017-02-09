@@ -32,8 +32,8 @@ case 'run'
             if(x0s>0) Pncx=@(x) x*0; else Pncx=@(x) min(x,0); end
 
             tvType='l1';
-            u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
-            mysave;
+%           u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
+%           mysave;
 
             initSig=ones(size(OPT.trueX))*x0s;
             PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
