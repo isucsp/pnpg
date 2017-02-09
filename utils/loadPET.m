@@ -53,7 +53,8 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
     % detector efficiency variations per CTI 931 PET scanner
     ci = exp(0.3 * randn(size(proj)));
     ci = ci .* exp(-li);
-    ci = f.count / sum(ci(:) .* proj(:)) * ci;
+    opt.w=f.count / sum(ci(:) .* proj(:));
+    ci =  opt.w * ci;
     ytrue = ci .* proj;
     if ~isvar('f.randpercent')
         f.randpercent = 10;

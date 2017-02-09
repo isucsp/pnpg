@@ -130,6 +130,7 @@ str=sprintf([str ' %4s'], 'iItr');
 str=sprintf([str ' %4s'], 'rho');
 fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 
+cntThresh=100;
 while(EndCnt<3 && ii<=5e3)
 
     ii=ii+1; cnt=cnt+1;
@@ -182,11 +183,11 @@ while(EndCnt<3 && ii<=5e3)
     end
     strlen = length(str);
 
-    if(cnt>100 && abs(log10(rho))<4) % prevent excessive back and forth adjusting
+    if(cnt>cntThresh && abs(log10(rho))<4) % prevent excessive back and forth adjusting
         if(dRes>10*pRes)
-            rho=rho/2; z=z*2; cnt=0;
+            rho=rho/2; z=z*2; cnt=0; cntThresh=cntThresh*1.6;
         elseif(dRes<pRes/10)
-            rho=rho*2; z=z/2; cnt=0;
+            rho=rho*2; z=z/2; cnt=0; cntThresh=cntThresh*1.6;
         end
     end
 

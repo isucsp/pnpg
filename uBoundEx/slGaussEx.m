@@ -114,7 +114,7 @@ switch lower(op)
     forSave=[snr; u_1; u_2; u_3; u_4; u_5; u_6; u_7; u_8; u_9]';
 
     figure;
-    semilogx(snr,u_1,'b^-'); hold on;
+    loglog(snr,u_1,'b^-'); hold on;
     plot(snr,u_2,'gh-'); hold on;
     plot(snr,u_3,'bs--');
     plot(snr,u_4,'r*-');
