@@ -21,14 +21,14 @@ switch lower(op)
     OPT.maxItr=1; OPT.debugLevel=0; OPT.thresh=1e-9;
     %m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     % The following corresponding to 30dB 20dB ... -30dB
-    snr = [1e3 100 10 1 0.1 0.01 1e-3];
+    snr = [1e3 100 10 1 0.1 0.01 1e-3 1e-3];
     for k=1:1
       [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100);
       p=length(OPT.trueX);
       PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
       v = randn(OPT.m,1);
 
-      for i=6 %1:length(snr);
+      for i=8 %1:length(snr);
         fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
         yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
         NLL=@(x) Utils.linearModel(x,Phi,Phit,yy);
@@ -57,7 +57,7 @@ switch lower(op)
 %       beta=1;  % a step size is not needed sine x*=0
 %       func=@(u) proximal.prox(beta*Phity,u*beta,1e-10,1e5,[]);
 %       %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-%       %func=@(u) pg(NLL,proximal,x0*0,setfield(opt,'u',u));
+%       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
 %       u_3(i)=bisection(func,cond,u_1(i)/2,u_1(i)*2,1e-6);
 
 %       % the following are under sparsity regularization only
@@ -77,7 +77,19 @@ switch lower(op)
 %       u_6(i)=bisection(func,cond,u_4(i)/2,u_4(i)*2,1e-6);
 
         % following is the 1d TV regularization
-        x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        if(i==8)
+            % to get a case when x0<0
+            for e=1:100
+                v = randn(OPT.m,1);
+                yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
+                Phity=Phit(yy);
+                NLL=@(x) Utils.linearModel(x,Phi,Phit,yy);
+                x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+                if(x0(1)<0) break; end
+            end
+        else
+            x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        end
         x0=max(x0,0);  % x0 has to be nonnegative
         g=Phit(Phi(x0)-yy);
         u_7(i)=norm(cumsum(g),inf);
@@ -91,16 +103,15 @@ switch lower(op)
         u_8(i)=uBound([],[],'l1',Pncx,x0,g);
         fprintf('u_8=%20.10g\n',u_8(i));
 
-%       PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-%       proximal=tvProximal('iso',C.prox,[],PROXOPT);
-%       cond=@(x) relativeDif(x,mean(x));
-%       beta=1/OPT.L;
-%       func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-%       %opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
-%       %opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
-%       %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
-%       u_9(i)=bisection(func,cond,u_7(i)/2,u_7(i)*1.2, 10^-6);
-
+        PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=tvProximal('iso',C.prox,[],PROXOPT);
+        cond=@(x) relativeDif(x,mean(x));
+        beta=1/OPT.L;
+        func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+        %opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+        %opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
+        %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
+        u_9(i)=bisection(func,cond,u_7(i)/2,u_7(i)*1.2, 10^-6);
         mysave;
       end;
     end
