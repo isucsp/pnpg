@@ -93,25 +93,25 @@ switch lower(op)
         u_7(i,k)=norm(cumsum(g),inf);
         fprintf('u_7=%20.10g\n',u_7(i,k));
 
-%       if(x0(1)>0)
-%         Pncx=@(x) x*0;
-%       else
-%         Pncx=@(x) min(x,0);
-%       end
-%       optu_8.maxItr=5e4;
-%       u_8(i,k)=uBound([],[],'l1',Pncx,x0,g,optu_8);
-%       fprintf('u_8=%20.10g\n',u_8(i,k));
+        if(x0(1)>0)
+          Pncx=@(x) x*0;
+        else
+          Pncx=@(x) min(x,0);
+        end
+        optu_8.maxItr=5e4;
+        u_8(i,k)=uBound([],[],'l1',Pncx,x0,g,optu_8);
+        fprintf('u_8=%20.10g\n',u_8(i,k));
 
-%       PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-%       proximal=tvProximal('iso',C.prox,[],PROXOPT);
-%       cond=@(x) relativeDif(x,mean(x));
-%       beta=1/OPT.L;
-%       func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-%       %opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
-%       %opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
-%       %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
-%       if(i==8) thresh=1e-5; else thresh=1e-6; end
-%       u_9(i,k)=bisection(func,cond,u_7(i,k)/2,u_7(i,k)*1.2, thresh);
+        PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=tvProximal('iso',C.prox,[],PROXOPT);
+        cond=@(x) relativeDif(x,mean(x));
+        beta=1/OPT.L;
+        func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+        %opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+        %opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
+        %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
+        if(i==8) thresh=1e-5; else thresh=1e-6; end
+        u_9(i,k)=bisection(func,cond,u_7(i,k)/2,u_7(i,k)*1.2, thresh);
         mysave;
          
         % following is the 1d TV regularization without nonnegativity
