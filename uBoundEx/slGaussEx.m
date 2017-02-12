@@ -21,14 +21,14 @@ switch lower(op)
     OPT.maxItr=1; OPT.debugLevel=0; OPT.thresh=1e-9;
     %m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     % The following corresponding to 30dB 20dB ... -30dB
-    snr = [1e5 1e4 1e3 100 10 1 0.1 0.01 1e-3 1e-3];
+    snr = [ 1e3 100 10 1 0.1 0.01 1e-3 1e-3 1e5 1e4 ];
     for k=1:4
       [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100);
       p=length(OPT.trueX);
       PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
       v = randn(OPT.m,1);
 
-      for i=1:7  %length(snr);
+      for i=8  %length(snr);
         fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
         yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
         if(i==8)
@@ -85,7 +85,7 @@ switch lower(op)
 %       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
 %       u_6(i,k)=bisection(func,cond,u_4(i,k)/2,u_4(i,k)*2,1e-6);
 
-        % following is the 1d TV regularization
+        % following is the 1d TV regularization with R_+ constrains
         x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
         x00(i,k)=x0(1);
         x0=max(x0,0);  % x0 has to be nonnegative
@@ -112,6 +112,35 @@ switch lower(op)
 %       %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
 %       if(i==8) thresh=1e-5; else thresh=1e-6; end
 %       u_9(i,k)=bisection(func,cond,u_7(i,k)/2,u_7(i,k)*1.2, thresh);
+        mysave;
+         
+        % following is the 1d TV regularization without nonnegativity
+        % constraints
+        x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
+        if(x0(1)>0) continue; end
+        g=Phit(Phi(x0)-yy);
+        u_a(i,k)=norm(cumsum(g),inf);
+        fprintf('u_a=%20.10g\n',u_a(i,k));
+
+        if(x0(1)>0)
+          Pncx=@(x) x*0;
+        else
+          Pncx=@(x) min(x,0);
+        end
+        optu_b.maxItr=5e4;
+        u_b(i,k)=uBound([],[],'l1',Pncx,x0,g,optu_b);
+        fprintf('u_b=%20.10g\n',u_b(i,k));
+
+        PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=tvProximal('iso',C.prox,[],PROXOPT);
+        cond=@(x) relativeDif(x,mean(x));
+        beta=1/OPT.L;
+        func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+        %opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+        %opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x));
+        %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
+        if(i==8) thresh=1e-5; else thresh=1e-6; end
+        u_c(i,k)=bisection(func,cond,u_a(i,k)/2,u_a(i,k)*1.2, thresh);
         mysave;
       end;
     end

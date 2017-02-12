@@ -22,7 +22,7 @@ case 'run'
     K=1;
     count = [1e4 1e5 1e6 1e7 1e8 1e9 1e0 1e1 1e2 1e3];
     for k=1:K
-        for i=7:length(count)
+        for i=6 %:length(count)
             fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
             OPT.mask  =[];
             [y,PhiO,PhitO,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
@@ -38,34 +38,34 @@ case 'run'
             fprintf('u_1=%20.10g\n',u_1(i));
             mysave;
 
-            initSig=ones(size(OPT.trueX))*x0s;
-            PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
-            proximal=tvProximal(tvType,C.prox,[],PROXOPT);
-            cond=@(x) relativeDif(x,mean(x(:)));
-            %beta=1/OPT.L;
-            %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-            opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
-            opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
-            func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
-            u_2(i)=bisection(func,cond,u_1(i)/2,u_1(i)*2, 10^-6);
-            fprintf('u_2=%20.10g\n',u_2(i));
+%           initSig=ones(size(OPT.trueX))*x0s;
+%           PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
+%           proximal=tvProximal(tvType,C.prox,[],PROXOPT);
+%           cond=@(x) relativeDif(x,mean(x(:)));
+%           %beta=1/OPT.L;
+%           %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+%           opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+%           opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
+%           func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
+%           u_2(i)=bisection(func,cond,u_1(i)/2,u_1(i)*2, 10^-6);
+%           fprintf('u_2=%20.10g\n',u_2(i));
 
             tvType='iso';
             u_4(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
             fprintf('u_4=%20.10g\n',u_4(i));
             mysave;
 
-            initSig=ones(size(OPT.trueX))*x0s;
-            PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
-            proximal=tvProximal(tvType,C.prox,[],PROXOPT);
-            cond=@(x) relativeDif(x,mean(x(:)));
-            %beta=1/OPT.L;
-            %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
-            opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
-            opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
-            func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
-            u_5(i)=bisection(func,cond,u_4(i)/2,u_4(i)*2, 10^-6);
-            fprintf('u_5=%20.10g\n',u_5(i));
+%           initSig=ones(size(OPT.trueX))*x0s;
+%           PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
+%           proximal=tvProximal(tvType,C.prox,[],PROXOPT);
+%           cond=@(x) relativeDif(x,mean(x(:)));
+%           %beta=1/OPT.L;
+%           %func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
+%           opt=OPT; opt.debugLevel=2; opt.maxInnerItr=1e4;
+%           opt.errorType=-1; opt.computError=@(x) relativeDif(x,mean(x(:)));
+%           func=@(u) pnpg(NLL,proximal,x0s*ones(size(g)),setfield(opt,'u',u));
+%           u_5(i)=bisection(func,cond,u_4(i)/2,u_4(i)*2, 10^-6);
+%           fprintf('u_5=%20.10g\n',u_5(i));
 
             mysave
 
@@ -74,18 +74,18 @@ case 'run'
                 Phit(1-y./OPT.bb));
             fprintf('u_7=%20.10g\n',u_7(i));
              
-            PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
-            PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
-            PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-            proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
-            cond=@(x) norm(x)/length(x);
-            %beta=1/OPT.L;
-            beta=1;  % a step size is not needed sine x*=0
-            func=@(u) proximal.prox(-beta*Phit(1-y./OPT.bb), u*beta,1e-9,1e5,[]);
-            %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-            %func=@(u) pg(NLL,proximal,x0*0,setfield(opt,'u',u));
-            u_8(i)=bisection(func,cond,u_7(i)/2,u_7(i)*2,1e-6);
-            fprintf('u_8=%20.10g\n',u_8(i));
+%           PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+%           PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+%           PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+%           proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
+%           cond=@(x) norm(x)/length(x);
+%           %beta=1/OPT.L;
+%           beta=1;  % a step size is not needed sine x*=0
+%           func=@(u) proximal.prox(-beta*Phit(1-y./OPT.bb), u*beta,1e-9,1e5,[]);
+%           %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
+%           %func=@(u) pg(NLL,proximal,x0*0,setfield(opt,'u',u));
+%           u_8(i)=bisection(func,cond,u_7(i)/2,u_7(i)*2,1e-6);
+%           fprintf('u_8=%20.10g\n',u_8(i));
 
             mysave;
         end
