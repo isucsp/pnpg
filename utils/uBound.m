@@ -17,7 +17,7 @@ if(norm(reshape(g+prj_NC(-g),[],1),2)<eps)
     return;
 end
 
-if(~exist('opt','var')) opt=[]; end
+if(~exist('opt','var') || ~isfield(opt,'maxItr')) opt.maxItr=5e3; end
 
 % it is sure that normG~=0
 normG=norm(g(:),2);
@@ -131,7 +131,7 @@ str=sprintf([str ' %4s'], 'rho');
 fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 
 cntThresh=100;
-while(EndCnt<3 && ii<=5e3)
+while(EndCnt<3 && ii<=opt.maxItr)
 
     ii=ii+1; cnt=cnt+1;
 
