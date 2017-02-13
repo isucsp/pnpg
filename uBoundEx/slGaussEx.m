@@ -22,7 +22,7 @@ switch lower(op)
     %m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     % The following corresponding to 30dB 20dB ... -30dB
     snr = [ 1e3 100 10 1 0.1 0.01 1e-3 1e-3 1e5 1e4 ];
-    for k=1:4
+    for k=1
       [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100);
       p=length(OPT.trueX);
       PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
@@ -53,44 +53,60 @@ switch lower(op)
         a>=0
         cvx_end
         u_1(i,k)=cvx_optval;
+        fprintf('u_1=%20.10g\n',u_1(i,k));
 
-%       Pncx=@(x) min(x,0);
-%       u_2(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        Pncx=@(x) min(x,0);
+        u_2(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        fprintf('u_2=%20.10g\n',u_2(i,k));
 
-%       PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
-%       PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
-%       PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-%       proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
-%       cond=@(x) norm(x)/length(x);
-%       %beta=1/OPT.L;
-%       beta=1;  % a step size is not needed sine x*=0
-%       func=@(u) proximal.prox(beta*Phity,u*beta,1e-10,1e5,[]);
-%       %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-%       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
-%       u_3(i,k)=bisection(func,cond,u_1(i,k)/2,u_1(i,k)*2,1e-6);
+        PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+        PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+        PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
+        cond=@(x) norm(x)/length(x);
+        %beta=1/OPT.L;
+        beta=1;  % a step size is not needed sine x*=0
+        func=@(u) proximal.prox(beta*Phity,u*beta,1e-10,1e5,[]);
+        %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
+        %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
+        u_3(i,k)=bisection(func,cond,u_1(i,k)/2,u_1(i,k)*2,1e-6);
+        fprintf('u_3=%20.10g\n',u_3(i,k));
 
         % the following are under sparsity regularization only
         u_4(i,k)=norm( PsiM'*(Phity), inf);
         fprintf('u_4=%20.10g\n',u_4(i,k));
 
-%       Pncx=@(x) x*0;
-%       u_5(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        Pncx=@(x) x*0;
+        u_5(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        fprintf('u_5=%20.10g\n',u_5(i,k));
 
-%       proximal.exact=true;
-%       proximal.val=@(x) norm(Psit(x),1);
-%       proximal.prox=@(x,u) Psi(Utils.softThresh(Psit(x),u));
-%       cond=@(x) norm(x)/length(x);
-%       func=@(u) Psi(Utils.softThresh(Psit(Phity),u));
-%       %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-%       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
-%       u_6(i,k)=bisection(func,cond,u_4(i,k)/2,u_4(i,k)*2,1e-6);
+        proximal.exact=true;
+        proximal.val=@(x) norm(Psit(x),1);
+        proximal.prox=@(x,u) Psi(Utils.softThresh(Psit(x),u));
+        cond=@(x) norm(x)/length(x);
+        func=@(u) Psi(Utils.softThresh(Psit(Phity),u));
+        %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
+        %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
+        u_6(i,k)=bisection(func,cond,u_4(i,k)/2,u_4(i,k)*2,1e-6);
+        fprintf('u_6=%20.10g\n',u_6(i,k));
 
         % following is the 1d TV regularization with R_+ constrains
         x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
         x00(i,k)=x0(1);
         x0=max(x0,0);  % x0 has to be nonnegative
         g=Phit(Phi(x0)-yy);
-        u_7(i,k)=norm(cumsum(g),inf);
+
+        if(x0(1)==0)
+            cvx_begin
+            variable a(p)
+            minimize( norm( cumsum(g+a), inf) )
+            subject to
+                a<=0
+            cvx_end
+            u_7(i,k)=cvx_optval;
+        else
+            u_7(i,k)=norm(cumsum(g),inf);
+        end
         fprintf('u_7=%20.10g\n',u_7(i,k));
 
         if(x0(1)>0)
@@ -112,6 +128,7 @@ switch lower(op)
         %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
         if(i==8) thresh=1e-5; else thresh=1e-6; end
         u_9(i,k)=bisection(func,cond,u_7(i,k)/2,u_7(i,k)*1.2, thresh);
+        fprintf('u_9=%20.10g\n',u_9(i,k));
         mysave;
          
         % following is the 1d TV regularization without nonnegativity
@@ -132,7 +149,7 @@ switch lower(op)
         fprintf('u_b=%20.10g\n',u_b(i,k));
 
         PROXOPT=[]; PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-        proximal=tvProximal('iso',C.prox,[],PROXOPT);
+        proximal=tvProximal('iso',@(x)x,[],PROXOPT);
         cond=@(x) relativeDif(x,mean(x));
         beta=1/OPT.L;
         func=@(u) proximal.prox(x0-beta*g,u*beta,1e-11,1e5,[]);
@@ -141,6 +158,7 @@ switch lower(op)
         %func=@(u) pnpg(NLL,proximal,x0,setfield(opt,'u',u));
         if(i==8) thresh=1e-5; else thresh=1e-6; end
         u_c(i,k)=bisection(func,cond,u_a(i,k)/2,u_a(i,k)*1.2, thresh);
+        fprintf('u_c=%20.10g\n',u_c(i,k));
         mysave;
       end;
     end
