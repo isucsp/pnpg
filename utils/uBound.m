@@ -46,7 +46,8 @@ end
 
 rho=1;
 
-cnt=0;
+incCnt=0;
+decCnt=0;
 ii=0;
 EndCnt=0;
 
@@ -133,7 +134,7 @@ fprintf('%s\n%s\n',str,repmat( '-', 1, 80 ) );
 cntThresh=100;
 while(EndCnt<3 && ii<=opt.maxItr)
 
-    ii=ii+1; cnt=cnt+1;
+    ii=ii+1;
 
     preV=v; preT=t; preVgtz=vgtz;
 
@@ -183,12 +184,14 @@ while(EndCnt<3 && ii<=opt.maxItr)
     end
     strlen = length(str);
 
-    if(cnt>cntThresh && abs(log10(rho))<4) % prevent excessive back and forth adjusting
-        if(dRes>10*pRes)
-            rho=rho/2; z=z*2; cnt=0; cntThresh=cntThresh*1.6;
-        elseif(dRes<pRes/10)
-            rho=rho*2; z=z/2; cnt=0; cntThresh=cntThresh*1.6;
-        end
+    if(dRes>10*pRes) decCnt = decCnt+1; else decCnt = 0; end
+    if(dRes<pRes/10) incCnt = incCnt+1; else incCnt = 0; end
+
+    if(decCnt>cntThresh)
+        rho=rho/2; z=z*2; decCnt=0; cntThresh=cntThresh*1.6;
+    end
+    if(incCnt>cntThresh)
+        rho=rho*2; z=z/2; incCnt=0; cntThresh=cntThresh*1.6;
     end
 
     if(max(pRes,dRes)<1e-9)
