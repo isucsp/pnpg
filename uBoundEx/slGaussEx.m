@@ -22,13 +22,13 @@ switch lower(op)
     %m = [ 200, 250, 300, 350, 400, 500, 600, 700, 800]; % should go from 200
     % The following corresponding to 30dB 20dB ... -30dB
     snr = [ 1e3 100 10 1 0.1 0.01 1e-3 1e-3 1e5 1e4 ];
-    for k=1:4
+    for k=1:3
       [y,Phi,Phit,Psi,Psit,OPT,~,invEAAt]=loadLinear(OPT,k*100);
       p=length(OPT.trueX);
       PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
       v = randn(OPT.m,1);
 
-      for i=8  %length(snr);
+      for i=8:length(snr);
         fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
         yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
         if(i==8)
@@ -54,36 +54,36 @@ switch lower(op)
         cvx_end
         u_1(i,k)=cvx_optval;
 
-%       Pncx=@(x) min(x,0);
-%       u_2(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        Pncx=@(x) min(x,0);
+        u_2(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
 
-%       PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
-%       PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
-%       PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
-%       proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
-%       cond=@(x) norm(x)/length(x);
-%       %beta=1/OPT.L;
-%       beta=1;  % a step size is not needed sine x*=0
-%       func=@(u) proximal.prox(beta*Phity,u*beta,1e-10,1e5,[]);
-%       %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-%       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
-%       u_3(i,k)=bisection(func,cond,u_1(i,k)/2,u_1(i,k)*2,1e-6);
+        PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+        PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+        PROXOPT.debugLevel=2; PROXOPT.verbose=1e3;
+        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
+        cond=@(x) norm(x)/length(x);
+        %beta=1/OPT.L;
+        beta=1;  % a step size is not needed sine x*=0
+        func=@(u) proximal.prox(beta*Phity,u*beta,1e-10,1e5,[]);
+        %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
+        %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
+        u_3(i,k)=bisection(func,cond,u_1(i,k)/2,u_1(i,k)*2,1e-6);
 
         % the following are under sparsity regularization only
         u_4(i,k)=norm( PsiM'*(Phity), inf);
         fprintf('u_4=%20.10g\n',u_4(i,k));
 
-%       Pncx=@(x) x*0;
-%       u_5(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
+        Pncx=@(x) x*0;
+        u_5(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
 
-%       proximal.exact=true;
-%       proximal.val=@(x) norm(Psit(x),1);
-%       proximal.prox=@(x,u) Psi(Utils.softThresh(Psit(x),u));
-%       cond=@(x) norm(x)/length(x);
-%       func=@(u) Psi(Utils.softThresh(Psit(Phity),u));
-%       %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
-%       %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
-%       u_6(i,k)=bisection(func,cond,u_4(i,k)/2,u_4(i,k)*2,1e-6);
+        proximal.exact=true;
+        proximal.val=@(x) norm(Psit(x),1);
+        proximal.prox=@(x,u) Psi(Utils.softThresh(Psit(x),u));
+        cond=@(x) norm(x)/length(x);
+        func=@(u) Psi(Utils.softThresh(Psit(Phity),u));
+        %opt=OPT; opt.maxPossibleInnerItr=1e4; opt.trueX=opt.trueX*0;
+        %func=@(u) pg(NLL,proximal,opt.trueX*0,setfield(opt,'u',u));
+        u_6(i,k)=bisection(func,cond,u_4(i,k)/2,u_4(i,k)*2,1e-6);
 
         % following is the 1d TV regularization with R_+ constrains
         x0=ones(p,1)*sum(Phity)/sqrNorm(Phi(ones(p,1)));
