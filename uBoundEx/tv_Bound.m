@@ -94,35 +94,26 @@ case 'run'
 case 'plot'
     load([mfilename '.mat']);
     clear -regexp '(?i)opt'
-    count = [1e4 1e5 1e6 1e7 1e8 1e9];
-    w=zeros(size(count));
+    count = [1e4 1e5 1e6 1e7 1e8 1e9 1e0 1e1 1e2 1e3];
     OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson'; OPT.mask  =[];
-    for i=1:length(count)
-        [~,~,~,~,~,~,opt]=loadPET(count(i),OPT,k*100+i);
-        w(i)=opt.w;
-    end
 
-    keyboard
-    figure;
-    semilogx(count,u_1./w,'b^-'); hold on;
-    loglog(count,u_2./w,'bs--');
-    loglog(count,u_1./w*sqrt(2),'gh-'); hold on;
-    loglog(count,u_4./w,'r*-');
-    loglog(count,u_5./w,'b-.');
-    h=legend('$U_0$','empirical anisotropic $U$','$\sqrt{2}U_0$',...
-        'empirical isotropic $U$', 'aa');
-    set(h,'interpreter','latex');
+%   figure;
+%   semilogx(count,u_1,'b^-'); hold on;
+%   loglog(count,u_2,'bs--');
+%   loglog(count,u_1*sqrt(2),'gh-'); hold on;
+%   loglog(count,u_4,'r*-');
+%   loglog(count,u_5,'b-.');
+%   h=legend('$U_0$','empirical anisotropic $U$','$\sqrt{2}U_0$',...
+%       'empirical isotropic $U$', 'aa');
+%   set(h,'interpreter','latex');
 
     forSave=[u_1; u_2; u_2; u_4; u_5; u_5; u_7; u_8; u_8; count]';
-    for i=1:9
-        forSave(:,i)=forSave(:,i)./w(:);
-    end
     save('petBound.data','forSave','-ascii');
 
     rowLabels={'$N$','theoretical','empirical',...
         'theoretical','empirical','theoretical','empirical'};
     matrix2latex(forSave(:,[10 1 2 4 5 7 8]), 'petBound.tex', 'columnLabels', rowLabels,...
-      'alignment', 'r', 'format', '%-6.2f', 'size', 'small');
+      'alignment', 'r', 'format', '\\num{%8.2e}', 'size', 'small');
 end
 end
 
