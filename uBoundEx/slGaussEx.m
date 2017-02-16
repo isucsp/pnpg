@@ -55,6 +55,17 @@ switch lower(op)
         u_1(i,k)=cvx_optval;
         fprintf('u_1=%20.10g\n',u_1(i,k));
 
+        %cvx_begin
+        %variable v
+        %variable w(size(Phity))
+        %variable t(size(Phity))
+        %minimize( -v )
+        %subject to
+        %    -v*Phity+PsiM*w+t==0
+        %    norm(w,inf)<=1
+        %    t<=0
+        %cvx_end
+        %u_2(i,k)=-1/cvx_optval;
         Pncx=@(x) min(x,0);
         u_2(i,k)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
         fprintf('u_2=%20.10g\n',u_2(i,k));
