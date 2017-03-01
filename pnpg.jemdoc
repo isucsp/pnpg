@@ -1,7 +1,7 @@
 # jemdoc: nodefaultcss, addcss{css/mysite.css}, addcss{css/bibtex.css}
 # jemdoc: notime
 # jemdoc: title{Nesterov's Proximal-Gradient}
-# jemdoc: menu{MENU}{npg.html}
+## jemdoc: menu{MENU}{npg.html}
 
 = Projected Nesterov's Proximal-Gradient Algorithms for Sparse Signal Reconstruction with a Convex Constraint
 

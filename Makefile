@@ -1,10 +1,10 @@
 
-target := bhc npg
+target := pnpg
 
 all: $(addsuffix .html,$(target)) 
 
-FLAGS := -c imgRecSrc.conf
+FLAGS := -c pnpg.conf
 
-$(addsuffix .html,$(target)) : %.html : %.jemdoc imgRecSrc.conf MENU
+$(addsuffix .html,$(target)) : %.html : %.jemdoc pnpg.conf MENU
 	jemdoc $(FLAGS) $<
 
