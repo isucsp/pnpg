@@ -1,7 +1,7 @@
 function [alpha,pppp] = fadmm(Psi,Psit,a,u,relativeTol,maxItr,isInDebugMode,init)
     % overelaxation version of ADMM
     %
-    % solve 0.5*||α-a||_2^2 + I(α≥0) + u*||Psit(α)||_1
+    % solve 0.5*||x-a||_2^2 + I(x≥0) + u*||Psit(x)||_1
     %
     % author: Renliang Gu (gurenliang@gmail.com)
     %
