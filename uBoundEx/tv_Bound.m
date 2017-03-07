@@ -22,7 +22,7 @@ case 'run'
     K=1;
     count = [1e4 1e5 1e6 1e7 1e8 1e9 1e0 1e1 1e2 1e3];
     for k=1:K
-        for i=8:length(count)
+        for i=1:length(count)
             fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
             OPT.mask  =[];
             [y,PhiO,PhitO,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
@@ -34,9 +34,12 @@ case 'run'
             if(x0s>0) Pncx=@(x) x*0; else Pncx=@(x) min(x,0); end
 
             tvType='l1';
-%           u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
+            u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
             fprintf('u_1=%20.10g\n',u_1(i));
             mysave;
+
+            % remove the next line to reproduce examples in paper
+            return 
 
             initSig=ones(size(OPT.trueX))*x0s;
             PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;
@@ -51,7 +54,7 @@ case 'run'
             fprintf('u_2=%20.10g\n',u_2(i));
 
             tvType='iso';
-%           u_4(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
+            u_4(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
             fprintf('u_4=%20.10g\n',u_4(i));
             mysave;
 
@@ -70,8 +73,8 @@ case 'run'
             mysave
 
             Pncx=@(x) min(x,0);
-%           u_7(i)=uBound(Psi,Psit,'wav',Pncx,zeros(size(OPT.trueX)),...
-%               Phit(1-y./OPT.bb));
+            u_7(i)=uBound(Psi,Psit,'wav',Pncx,zeros(size(OPT.trueX)),...
+                Phit(1-y./OPT.bb));
             fprintf('u_7=%20.10g\n',u_7(i));
              
             PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';

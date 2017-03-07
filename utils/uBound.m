@@ -1,13 +1,42 @@
 function u=uBound(Psi,Psit,tvType,prj_NC,xstar,g,opt)
-% 
-% g is the gradient of L(x) at xstar
+%
+% Upper-Bounding the Regularization Constant for the following problem
+%
+%               minimize     L(x) + u*||\Psi^H x||_1                   (1)
+%               subject to   x \in C
+%
+% Phi and Phit: function handle for Phi and Phi^H
+% tvType:       can be [], 'wav', 'iso', and 'ani'
+% prj_NC:       function handle for the projection to the normal cone of
+%               convex set C at x_0, where x_0 is the solution of (1) when
+%               u -> \infty.
+% xstar:        equivalent to x_0.
+% g:            the gradient of L(x) at xstar, i.e. x_0
+% opt:          options
+%
+% Example: 
+%
+%       For the problem L(x)=0.5*||x||_2^2 with C={x| ||x-[2;0]||_2^2<=2 },
+%       suppose Psi and Psit are operators for 1-d TV of a signal x, such
+%       that size(x)=[2,1].  The following code returns the upper bound of
+%       u:
+%      
+%               xstar=ones(2,1);
+%               Psi=@(x)[x;-x];
+%               Psit=@(x) x(1)-x(2);
+%               %Ncx=[-a,a] with a>=0
+%               Pncx=@(x) min(0,(x(1)-x(2))/2)*[1;-1];
+%               g=[1;1];
+%               uTrue=Inf
+%               u=uBound(Psi,Psit,[],Pncx,xstar,g);
 %
 %
-%
-% Examples: 
-%
-% author: Renliang Gu
-%
+% See Also:     uBoundEx/{exa1,exa2,exa3,slGaussEx,tv_Bound}
+% Author:       Renliang Gu
+% Reference: 
+%       R. Gu and A. Dogandžić. Upper-Bounding the Regularization Constant
+%       for Convex Sparse Signal Reconstruction.
+
 
 % Theoretically, the condition is 
 %         0 \in g + N_C(x*)
