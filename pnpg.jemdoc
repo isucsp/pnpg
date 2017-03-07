@@ -43,27 +43,19 @@ $r(\bx)$ that imposes signal sparsity and the convex-set constraint:
 \(
     \begin{equation}
         \label{eq:r}
-        r(\bx)=\norm{\bpsi(\bx)}_1 + \mathbb{I}_C(\bx)
+        r(\bx)=\norm{\Psi^H\bx}_1 + \mathbb{I}_C(\bx)
     \end{equation}
 \)
-where $\bpsi(\cdot): \mathbb{R}^p \mapsto \mathbb{R}^{p'}$ is an 
-appropriate /sparsifying transform/ such that $\bpsi(\bx)$ is a signal 
+where $C$ is a closed convex set and $\Psi^H \bx$ is a signal 
 transform-coefficient vector with most elements having negligible 
-magnitudes.  Usual options for $\bpsi(\cdot)$ are $\ell_1$-norm and 
-total-variation (TV) regularizations:
-\(
-    \begin{align}
-        \label{eq:Psibx}
-        \bpsi(\bx)&=\Psi^T\bx
-        \\
-        \label{eq:gradientMap}
-        \SBR{\bpsi(\bx)}_{i=1}^{p'} &=
-        \sqrt{\sum_{j\in\mathcal{N}_i}(x_i-x_j)^2}
-    \end{align}
-\)
-where $\Psi \in \mathbb{R}^{p \times p'}$ is known /sparsifying dictionary/ 
-and $\mathcal{N}_i$ is the index set of neighbors of $x_i$ in an 
-appropriate (e.g., 2D) arrangement.
+magnitudes.  Real-valued $\Psi \in \mathbb{R}^{p\times p'}$ can accommodate 
+discrete wavelet transform (DWT) or gradient-map sparsity with anisotropic 
+total-variation (TV) sparsifying transform (with 
+$\Psi=[\Psi_\text{v}\,\,\Psi_\text{h}]$); a complex-valued $\Psi = 
+\Psi_\text{v} + j \Psi_\text{h} \in \mathbb{C}^{p\times p'}$ can 
+accommodate gradient-map sparsity and the 2D isotropic TV sparsifying 
+transform; here $\Psi_\text{v}, \Psi_\text{h} \in \mathbb{R}^{p\times p'}$ 
+are the vertical and horizontal difference matrices.
 
 ~~~
 This work is supported by the National Science Foundation under 
@@ -71,7 +63,9 @@ This work is supported by the National Science Foundation under
 Grant CCF-1421480].
 ~~~
 
-Under construction ...
+We proposed to use an adaptive step size strategy and , inexactness of the 
+iterative proximal mapping, and the convex-set constraint.   The tuning of 
+\gls{PNPG} is largely 
 
 ~~~
 {}{img_left}{fig/localLip.png}{local Lipschitz}{350px}{}{}

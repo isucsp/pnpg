@@ -69,28 +69,19 @@ constant that quantifies the weight of the convex <i>regularization term</i>
 \[
     \begin{equation}
         \label{eq:r}
-        r(\bx)=\norm{\bpsi(\bx)}_1 + \mathbb{I}_C(\bx)
+        r(\bx)=\norm{\Psi^H\bx}_1 + \mathbb{I}_C(\bx)
     \end{equation}
 \]
-</p><p>where \(\bpsi(\cdot): \mathbb{R}^p \mapsto \mathbb{R}^{p&rsquo;}\) is an 
-appropriate <i>sparsifying transform</i> such that \(\bpsi(\bx)\) is a signal 
+</p><p>where \(C\) is a closed convex set and \(\Psi^H \bx\) is a signal 
 transform-coefficient vector with most elements having negligible 
-magnitudes.  Usual options for \(\bpsi(\cdot)\) are \(\ell_1\)-norm and 
-total-variation (TV) regularizations:</p>
-<p style="text-align:center">
-\[
-    \begin{align}
-        \label{eq:Psibx}
-        \bpsi(\bx)&amp;=\Psi^T\bx
-        \\
-        \label{eq:gradientMap}
-        \SBR{\bpsi(\bx)}_{i=1}^{p&rsquo;} &amp;=
-        \sqrt{\sum_{j\in\mathcal{N}_i}(x_i-x_j)^2}
-    \end{align}
-\]
-</p><p>where \(\Psi \in \mathbb{R}^{p \times p&rsquo;}\) is known <i>sparsifying dictionary</i> 
-and \(\mathcal{N}_i\) is the index set of neighbors of \(x_i\) in an 
-appropriate (e.g., 2D) arrangement.</p>
+magnitudes.  Real-valued \(\Psi \in \mathbb{R}^{p\times p&rsquo;}\) can accommodate 
+discrete wavelet transform (DWT) or gradient-map sparsity with anisotropic 
+total-variation (TV) sparsifying transform (with 
+\(\Psi=[\Psi_\text{v}\,\,\Psi_\text{h}]\)); a complex-valued \(\Psi = 
+\Psi_\text{v} + j \Psi_\text{h} \in \mathbb{C}^{p\times p&rsquo;}\) can 
+accommodate gradient-map sparsity and the 2D isotropic TV sparsifying 
+transform; here \(\Psi_\text{v}, \Psi_\text{h} \in \mathbb{R}^{p\times p&rsquo;}\) 
+are the vertical and horizontal difference matrices.</p>
 <div class="infoblock">
 <div class="blockcontent">
 <p>This work is supported by the National Science Foundation under 
@@ -156,7 +147,7 @@ solutions</a>,&rdquo; <i>Opt.  Express</i>, 24, 6145-6155 (2016).</p>
 </script>
 <div id="footer">
 <div id="footer-text">
-Page upadted on 2017-03-01
+Page upadted on 2017-03-06
 </div>
 </div>
 </div>
