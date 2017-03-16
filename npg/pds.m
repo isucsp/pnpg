@@ -137,9 +137,12 @@ tStart=tic;
 % initialization for PDS
 itr=0; convThresh=0; x=xInit; y=zeros(size(x));
 
-sigma=(sqrt(Lip^2/16+1)-Lip/4)*opt.sigma;
-tau=1/(sigma+Lip/2) * opt.tau;
-rho=(2-Lip/2/(1/tau-sigma)) * opt.rho;
+sigma=(sqrt(Lip^2/16+1)-Lip/4);
+tau=1/(sigma+Lip/2);
+rho=(2-Lip/2/(1/tau-sigma));
+sigma=sigma*opt.sigma;
+tau=tau* opt.tau;
+rho=rho* opt.rho;
 
 [f,grad]=F(x);
 Psit_x=Psit(x);
