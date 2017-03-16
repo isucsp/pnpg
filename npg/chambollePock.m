@@ -1,14 +1,22 @@
 function out = chambollePock(F,G,K,xInit,opt)
 % Solves the minimization of the following problem:
-%         F(K(x))+G(x)
+%                              F(K(x))+G(x)
 % whose primal-dual is
-%    min_x  max_y  y'*K(x)-F^*(y)+G(x)
+%                    min_x  max_y  y'*K(x)-F^*(y)+G(x)
 % where F^*(x) is the conjugate of F(x).
 %
-% Note that F.proxConj(a,u) solves 0.5*||x-a||_2^2+u*F^*(x)
-% F.val(x) returns F(x);
-% Note that G.prox(a,u) solves 0.5*||x-a||_2^2+u*G(x)
-% G.val(x) returns G(x);
+% Inputs: 
+%  F:     a structure with F.proxConj(a,u) solving 0.5*||x-a||_2^2+u*F^*(x)
+%         and F.val(x) returning F(x);
+%  G:     a structure with G.prox(a,u) solving 0.5*||x-a||_2^2+u*G(x) and
+%         G.val(x) returning value of G(x);
+%  K:     Also a structure with K.forward(x) as function handle for K*x and
+%         K.backward(x) for K^T*x;
+%  xInit: initial value of x;
+%  opt:   options.
+%
+% Examples:
+%  See CP_DWT and CP_TV under folder npgEx.
 %
 % Reference:
 %  [1] A. Chambolle and T. Pock, "A first-order primal-dual algorithm for

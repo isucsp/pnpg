@@ -28,7 +28,7 @@ switch lower(op)
       PsiM=Utils.getMat(Psi,length(Psit(OPT.trueX)));
       v = randn(OPT.m,1);
 
-      for i=8:length(snr);
+      for i=1:length(snr);
         fprintf('%s, i=%d, k=%d\n','slGaussBound',i,k);
         yy = Phi(OPT.trueX)+v*(norm(y)/sqrt(snr(i)*OPT.m));
         if(i==8)
@@ -46,14 +46,14 @@ switch lower(op)
 
         % the following are under sparsity regularization +
         % nonnegativity constraints
-        cvx_begin
-        variable a(p)
-        minimize( norm( PsiM'*(Phity+a), inf) )
-        subject to
-        a>=0
-        cvx_end
-        u_1(k,i)=cvx_optval;
-        fprintf('u_1=%20.10g\n',u_1(k,i));
+%       cvx_begin
+%       variable a(p)
+%       minimize( norm( PsiM'*(Phity+a), inf) )
+%       subject to
+%       a>=0
+%       cvx_end
+%       u_1(k,i)=cvx_optval;
+%       fprintf('u_1=%20.10g\n',u_1(k,i));
 
         %cvx_begin
         %variable v
@@ -69,6 +69,9 @@ switch lower(op)
         Pncx=@(x) min(x,0);
         u_2(k,i)=uBound(Psi,Psit,'wav',Pncx,zeros(p,1),-Phity);
         fprintf('u_2=%20.10g\n',u_2(k,i));
+
+        % remove the next line to reproduce examples in paper
+        return;
 
         PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
         PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;

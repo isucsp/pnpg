@@ -18,15 +18,11 @@ case 'run'
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
-    OPT.mask=[]; OPT.outLevel=1;
+    %OPT.mask=[];
+    OPT.outLevel=1;
     OPT.maxItr=2e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     OPT.maxItr=2e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
-    PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
-    PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
-    proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
-    proxOpt=PROXOPT;  proxOpt.dualGap=true;
-    proximal_dualInnerCrit=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
 
     count = [1e4 1e5 1e6 1e7 1e8 1e9];
     K=1;
@@ -40,6 +36,12 @@ case 'run'
         j=1;
         [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
+        PROXOPT=[];
+        PROXOPT.Lip=@(u)u^2; PROXOPT.initStep='fixed';
+        PROXOPT.adaptiveStep=false; PROXOPT.backtracking=false;
+        proximal=sparseProximal(Psi,Psit,C.prox,'pnpg',PROXOPT);
+        proxOpt=PROXOPT;  proxOpt.dualGap=true;
+        proximal_dualInnerCrit=sparseProximal(Psi,Psit,C.prox,'pnpg',proxOpt);
 
         fbp{i,1,k}.x=fbpfunc(y);
         fbp{i,1,k}.RMSE=sqrNorm(maskFunc(fbp{i,1,k}.x,OPT.mask)-OPT.trueX)/sqrNorm(OPT.trueX);
