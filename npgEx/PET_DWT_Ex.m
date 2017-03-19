@@ -32,7 +32,7 @@ case 'run'
     atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
     for k=1:K
-    for i=5
+    for i=[1 2 3 4 6]
         j=1;
         [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -59,30 +59,36 @@ case 'run'
         % END experiment region,  to delete in the end
 
         opt=OPT; opt.maxInnerItr=1e3;
-        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
-        mysave
-        % delete the following line to continue the rest.
-        return
-        opt=OPT; opt.gamma=5; opt.b=0;
-        pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=1/4;
-        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=0;
-        pnpgGfA0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=1/4;
-        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.b=0;
-        pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.adaptiveStep=false;
-        pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-         
+        pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
+
+        opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
+        opt.grad1 = @(y)Psit(y);
+        opt.grad2 = @(y)0;
+        opt.div   = @(x1,x2) Psi(x1);
+        opt.P = 1e5; opt.p = 2;
+        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+        opt.inn_ini  = 1;
+        opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
+        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
+            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        mysave;
+        continue;
+        opt=OPT; opt.thresh=opt.thresh/100;  % opt.maxItr=3e3;
+        L=1e5;                               % opt.xxx=pnpg_{i}.cost(end);
+        sigma=[0,0,0,0,1e-6];
+        sigma1=[0,1e-3,1e-2,1e-1,1];
+        tau=[1,1,1,1,10^-3];
+        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=1/L/opt.sigma(1)*tau(i);
+        cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
+
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
         opt.maxInnerItr=100;  opt.maxItr=4000;
@@ -133,6 +139,22 @@ case 'run'
         pnpg_nInf_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
 
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+         
         opt=OPT; opt.dualGap=true;
         opt.stepIncre=0.5; opt.stepShrnk=0.5;
         pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
@@ -181,14 +203,6 @@ case 'run'
         opt.sigma=sigma(i); opt.tau=1/L/opt.sigma*tau(i);
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
 
-        opt=OPT; opt.thresh=opt.thresh/100;  % opt.maxItr=3e3;
-        L=1e5;                               % opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,0,1e-6];
-        sigma1=[0,1e-3,1e-2,1e-1,1];
-        tau=[1,1,1,1,10^-3];
-        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=1/L/opt.sigma(1)*tau(i);
-        cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
-
         opt=OPT; opt.maxItr=10*opt.maxItr;
         opt.L=1/mean(pnpg_{i,j,k}.stepSize);
         sigma=[0,0,0,0,1];
@@ -208,20 +222,6 @@ case 'run'
         spiral_m12  {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave
 
-        opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
-        opt.grad1 = @(y)Psit(y);
-        opt.grad2 = @(y)0;
-        opt.div   = @(x1,x2) Psi(x1);
-        opt.P = 1e5; opt.p = 2;
-        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
-        opt.inn_ini  = 1;
-        opt.eta = 1e-6;
-        opt.thresh=opt.thresh/1e2;
-        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
-            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-        mysave;
     end
     end
 

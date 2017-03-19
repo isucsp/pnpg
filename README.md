@@ -1,4 +1,4 @@
-## Projected Nesterov's Proximal-Gradient Algorithm
+## Projected Nesterov's Proximal-Gradient (PNPG) Algorithm
 
 ### What does this package contain
 
