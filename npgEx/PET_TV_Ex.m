@@ -37,7 +37,8 @@ case 'run'
 
     for k=1:K
     %for i=4:5
-    for i=4
+    %for i=[1,2,3,5,6]
+    for i = 4;
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -55,25 +56,63 @@ case 'run'
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
         % BEGIN experiment region,  to delete in the end
+        % END experiment region,  to delete in the end
+        
+        % this cptv2 is to show the sensitivity of CP to its parameters.
+        opt=OPT; opt.thresh=opt.thresh/100;   opt.maxItr=3e4; opt.xxx=pnpg_{i}.cost(end);
+        sigma =[ 1e2,1,1e-2, 10^-4,1e-6];
+        sigma1=[   1,1,   1, 10^+0,1];
+        tau=   [1e-1,1,   1, 10^-1,10^-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv21{i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        return
 
-        opt=OPT; opt.thresh=opt.thresh/100;  %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,1e-4,1e-6];
-        sigma1=[0,0,0,1,1];
-        tau=[1,1,1,10^-2,10^-3];
+        opt=OPT; opt.thresh=opt.thresh/100;   opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma =[1e2,1,1e-2,1e-4,1e-6];
+        sigma1=[1,1,1,1,1];
+        tau=[1e-1,1,1,10^-2,10^-3];
         opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
         cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        return
         mysave;
+
+        opt=OPT;
+        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
+        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
+        tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
+
+        mysave
+        continue
+
+        opt=OPT;   opt.maxItr=1e3;
+        opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
+        opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
+        opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
+        opt.P = 1e10; opt.p = 2;
+        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+        opt.inn_ini  = 1;
+        opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
+        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
+            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+
+        mysave
         continue;
+        opt=OPT;
+        pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+
+
+        opt=OPT; opt.thresh=1e-10;
+        spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
         pnpg_d{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
 
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1; opt.epsilonDecRate=0.6;
         pnpg_d_06{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
-
-        opt=OPT;
-        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
 
         OPT.stepIncre=0.5; OPT.stepShrnk=0.5;
         opt=OPT; opt.dualGap=true; opt.relInnerThresh=1;
@@ -210,35 +249,9 @@ case 'run'
         continue;
 
 
-        % END experiment region,  to delete in the end
-
-        opt=OPT;   opt.maxItr=1e3;
-        opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
-        opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
-        opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
-        opt.P = 1e10; opt.p = 2;
-        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
-        opt.inn_ini  = 1;
-        opt.eta = 1e-6;
-        opt.thresh=opt.thresh/1e2;
-        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
-            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-        
-
-        opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
-        tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
-
-        opt=OPT;
-        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
-
         mysave
 
         if(i==5) continue; end
-
-        opt=OPT; opt.thresh=1e-10;
-        spiralTV_Long=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
 
         opt=OPT;
         pnpg_   {i,j,k}=pnpg(NLL,proximal,initSig,opt);
@@ -397,10 +410,10 @@ case lower('tspAddition')
     o=vmila{mIdx,as,k};
     vmila{mIdx,as,k}.RMSE=o.RMSE{1}(1:length(o.cost));
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(       vmila{mIdx,as,k},     [],fields_,mc); %  1- 3
-    forSave=addTrace(       cptv1{mIdx,as,k},forSave,fields_,mc); %  4- 6
-    forSave=addTrace(       cptv2{mIdx,as,k},forSave,fields_,mc); %  7- 9
-    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); % 10-12
+    forSave=addTrace(       vmila{mIdx,as,k},     [],fields_,mc); %  1- 4
+    forSave=addTrace(       cptv1{mIdx,as,k},forSave,fields_,mc); %  5- 8
+    forSave=addTrace(       cptv2{mIdx,as,k},forSave,fields_,mc); %  9-12
+    forSave=addTrace(      pnpg_d{mIdx,as,k},forSave,fields_,mc); % 12-16
     save('cost_itrPET_TV_1.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv cost_itrPET_TV.data cost_itrPET_TV_1.data ' paperDir]);
