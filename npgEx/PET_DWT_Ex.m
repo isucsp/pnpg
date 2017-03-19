@@ -18,7 +18,7 @@ case 'run'
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
-    %OPT.mask=[];
+    %OPT.mask=[]; % set mask to empty to disable the mask
     OPT.outLevel=1;
     OPT.maxItr=2e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     OPT.maxItr=2e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
@@ -58,6 +58,27 @@ case 'run'
         % BEGIN experiment region,  to delete in the end
         % END experiment region,  to delete in the end
 
+        opt=OPT; opt.maxInnerItr=1e3;
+        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
+        mysave
+        % delete the following line to continue the rest.
+        return
+        opt=OPT; opt.gamma=5; opt.b=0;
+        pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=5; opt.b=1/4;
+        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=0;
+        pnpgGfA0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.gamma=15; opt.b=1/4;
+        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.b=0;
+        pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
+        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        opt=OPT; opt.adaptiveStep=false;
+        pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave;
+         
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
@@ -67,7 +88,6 @@ case 'run'
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
-        return;
 
         opt=OPT; opt.maxInnerItr=1e3;
         opt.stepIncre=0.5; opt.stepShrnk=0.5;
@@ -113,24 +133,6 @@ case 'run'
         pnpg_nInf_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
 
-        opt=OPT; opt.maxInnerItr=1e3;
-        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=0;
-        pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=5; opt.b=1/4;
-        pnpgG5Aq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=0;
-        pnpgGfA0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.gamma=15; opt.b=1/4;
-        pnpgGfAq{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.b=0;
-        pnpgA0  {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.cumuTol=0; opt.incCumuTol=false;
-        pnpg_n0 {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        opt=OPT; opt.adaptiveStep=false;
-        pnpg_nInf{i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave;
-         
         opt=OPT; opt.dualGap=true;
         opt.stepIncre=0.5; opt.stepShrnk=0.5;
         pnpg_d55{i,j}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
