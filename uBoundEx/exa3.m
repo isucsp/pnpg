@@ -11,5 +11,5 @@ g=[1;1];
 
 uTrue=Inf
 
-u=uBound(Psi,Psit,Pncx,xstar,g);
+u=uBound(Psi,Psit,[],Pncx,xstar,g);
 

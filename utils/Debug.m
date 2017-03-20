@@ -1,4 +1,6 @@
 function deb=Debug(level)
+    % see npg/pnpg.m for usage
+
     strlen=0;
     log='';
     add='';

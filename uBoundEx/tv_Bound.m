@@ -22,7 +22,7 @@ case 'run'
     K=1;
     count = [1e4 1e5 1e6 1e7 1e8 1e9 1e0 1e1 1e2 1e3];
     for k=1:K
-        for i=7:length(count)
+        for i=1:length(count)
             fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
             OPT.mask  =[];
             [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
@@ -36,6 +36,9 @@ case 'run'
             u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
             fprintf('u_1=%20.10g\n',u_1(i));
             mysave;
+
+            % remove the next line to reproduce examples in paper
+            return 
 
             initSig=ones(size(OPT.trueX))*x0s;
             PROXOPT=[]; PROXOPT.debugLevel=0; PROXOPT.verbose=1e3;

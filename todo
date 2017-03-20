@@ -1,12 +1,6 @@
 1. remove Link in the setupPath file
 2. handle the find nothing problem in preprocess
 3. handle projection size larger than 28888
-4. change models, e.g., poissAlpha, poissLI and something inside class Utils to object
-
-be care for the mask of the wavelate, as the PsiM and PsiMt are not square.
-
-check the convergence criteria
-considering less use of operators, efficiency, i.e. SpaRSA
 
 check the wavelet, it is very suspicious
 
@@ -18,7 +12,6 @@ the fourier transform implementation stack at certain point, although the
 two share the same path before the point.
 The RSE can reach unblievable precision. 4e-5; for less than 1000 iterations
 
-
 The line search for FISTA speed up the convergence in terms of number of outer
 iterations.
 
@@ -27,22 +20,10 @@ line search, their convergence curve are the same.
 
 Restarting in FISTA is not better.
 
-
-Construct an example for a steel tube with carburn film inside.
-
-
-reduce unnecessary output
-make better structure for class Method and its subclasses
-
-
 todo for denoise_bound_mod
      use more agressive step size
      use C implementation
      use a better mask implementation
-
-todo for inner iterations
-  use better initialization by packing the inner iterations to objects
-  maybe need to provide some interface to implement here.
 
   make solver to support complex number
 
