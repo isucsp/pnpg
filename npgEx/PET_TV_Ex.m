@@ -37,8 +37,8 @@ case 'run'
 
     for k=1:K
     %for i=4:5
-    %for i=[1,2,3,5,6]
-    for i = 4;
+    for i=[1,2,3,5,6]
+    %for i = 6;
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -55,33 +55,20 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-        % BEGIN experiment region,  to delete in the end
-        % END experiment region,  to delete in the end
-        
-        % this cptv2 is to show the sensitivity of CP to its parameters.
-        opt=OPT; opt.thresh=opt.thresh/100;   opt.maxItr=3e4; opt.xxx=pnpg_{i}.cost(end);
-        sigma =[ 1e2,1,1e-2, 10^-4,1e-6];
-        sigma1=[   1,1,   1, 10^+0,1];
-        tau=   [1e-1,1,   1, 10^-1,10^-3];
-        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
-        cptv21{i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-        return
-
-        opt=OPT; opt.thresh=opt.thresh/100;   opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
-        sigma =[1e2,1,1e-2,1e-4,1e-6];
-        sigma1=[1,1,1,1,1];
-        tau=[1e-1,1,1,10^-2,10^-3];
-        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
-        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
-        return
-        mysave;
-
-        opt=OPT;
-        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
 
+        opt=OPT;
+        spiralTV{i,j,k}=Wrapper.SPIRAL (Phi,Phit,[],[],y,initSig,opt);
         mysave
+
+        opt=OPT; opt.thresh=opt.thresh/100;   opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma =[ 1e1,1e-2,1e-3, 10^-4,1e-5,1e-7];
+        sigma1=[   1,   1,   1, 10^-0,   1,1e-0];
+        tau=   [1e-1,1e-1,1e-2, 10^-2,1e-3,1e-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv2 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        mysave;
         continue
 
         opt=OPT;   opt.maxItr=1e3;
