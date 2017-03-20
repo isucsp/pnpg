@@ -271,21 +271,12 @@ function [a,b] = poissonModelConstEst(Phi,Phit,y,b,epsilon)
     yPhiOne=y.*PhiOne;
     g=@(x) OnePhiOne-sum(reshape(yPhiOne./(PhiOne*x+b),[],1));
 
+    low=0;
     high=1;
-    if(g(high)>0)
-        low=high/10;
-        while(g(low)>0)
-            high=low;
-            low=low/10;
-        end
-    elseif(g(high)<0)
-        while(g(high)<0)
-            low=high;
-            high=high*10;
-        end
-    else
-        low=high;
+    while(g(high)<0)
+        high=high*10;
     end
+
     while(high-low>epsilon)
         mid=(high+low)/2;
         if(g(mid)>0)
