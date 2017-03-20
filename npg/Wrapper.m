@@ -99,7 +99,6 @@ classdef Wrapper < handle
         function out = tfocs(Phi_,Phit_,Psi_,Psit_,y,xInit,opt)
             % it is better to have affineF as {affineF, b} when b is non-zero
             [x1,x2]=size(xInit); [y1,y2]=size(y);
-            xInit=xInit(:); y=y(:);
             Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
             Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
             if(~isempty(Psit_))
@@ -107,6 +106,7 @@ classdef Wrapper < handle
                 Psi =@(s) reshape(Psi_ (reshape(s,s1,s2)),[],1);
                 Psit=@(x) reshape(Psit_(reshape(x,x1,x2)),[],1);
             end
+            xInit=xInit(:); y=y(:);
             affineF=@(x,op) Wrapper.tfocs_affineF(x,op,Phi,Phit,[length(y(:)) length(xInit(:))]);
 
             if(~isfield(opt,'noiseType')) opt.noiseType='gaussian'; end
@@ -219,7 +219,7 @@ classdef Wrapper < handle
             fprintf('gauss stab proxite RMSE=%g\n',out.RMSE(end));
         end
         function out = SPIRAL(Phi_,Phit_,Psi_,Psit_,y,xInit,opt,varargin)
-            [x1,x2]=size(xInit); [y1,y2]=size(y); xInit=xInit(:); y=y(:);
+            [x1,x2]=size(xInit); [y1,y2]=size(y);
             opt.trueX=opt.trueX(:);
             Phi =@(x) reshape(Phi_ (reshape(x,x1,x2)),[],1);
             Phit=@(y) reshape(Phit_(reshape(y,y1,y2)),[],1);
@@ -230,6 +230,7 @@ classdef Wrapper < handle
             else
                 Psi=[]; Psit=[];
             end
+            xInit=xInit(:); y=y(:);
             
             % use the default value for SPIRAL
             if(~isfield(opt,'innerThresh')) opt.innerThresh=1e-5; end
