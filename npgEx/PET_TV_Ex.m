@@ -36,8 +36,8 @@ case 'run'
     atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
     for k=1:K
-    %for i=4:5
-    for i=[1,2,3,5,6]
+    for i=4:6
+    %for i=[1,2,3,5,6]
     %for i = 6;
         j=1;
         [y,Phi,Phit,~,~,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
@@ -55,6 +55,22 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
+        opt=OPT;
+        opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
+        opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
+        opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
+        opt.P = 1e10; opt.p = 2;
+        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+        opt.inn_ini  = 1;
+        opt.eta = 1e-6;
+        opt.thresh=opt.thresh/1e2;
+        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
+            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
+            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+
+        mysave
+        continue;
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-5;
         tfocs_200_m5 {i,j,k}=Wrapper.tfocs    (Phi,Phit,[],[],y,initSig,opt);
 
@@ -71,22 +87,6 @@ case 'run'
         mysave;
         continue
 
-        opt=OPT;   opt.maxItr=1e3;
-        opt.grad1 = @(y)[diff(y,1,2), zeros(size(y,1),1)];
-        opt.grad2 = @(y)[diff(y); zeros(1,size(y,2))];
-        opt.div   = @(x1,x2)([-x1(:,1), -diff(x1(:,1:end-1),1,2), x1(:,end-1)] + [-x2(1,:);-diff(x2(1:end-1,:)); x2(end-1,:)]);
-        opt.P = 1e10; opt.p = 2;
-        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
-        opt.inn_ini  = 1;
-        opt.eta = 1e-6;
-        opt.thresh=opt.thresh/1e2;
-        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
-            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-
-        mysave
-        continue;
         opt=OPT;
         pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
         mysave;

@@ -18,7 +18,7 @@ case 'run'
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
-    %OPT.mask=[]; % set mask to empty to disable the mask
+    OPT.mask=[]; % set mask to empty to disable the mask
     OPT.outLevel=1;
     OPT.maxItr=2e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     OPT.maxItr=2e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
@@ -33,7 +33,7 @@ case 'run'
 
     for k=1:K
     for i=[1 2 3 4 6]
-    %for i=1
+    %for i=6
         j=1;
         [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -56,44 +56,62 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-        opt=OPT; opt.maxInnerItr=1e3;
-        pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
-        mysave
+        if(~isempty(OPT.mask))
+            maskIdx = find(OPT.mask~=0); n=size(OPT.mask,1);
+            wvltIdx = find(OPT.maskk~=0);
+            opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
+            opt.grad1 = @(y)reshape(maskFunc(Psit(maskFunc(y,maskIdx)),wvltIdx,n),[],1);
+            opt.grad2 = @(y)0;
+            opt.div   = @(x1,x2)reshape(maskFunc(Psi(maskFunc(x1,wvltIdx)),maskIdx,n),[],1);
+            opt.P = 1e5; opt.p = 2;
+            opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+            opt.inn_ini  = 1;
+            opt.eta = 1e-6;
+            opt.thresh=opt.thresh/1e2;
+            vmila{i,j,k} = VMILA(y, @(x)Phi(maskFunc(x,maskIdx)),...
+                @(y)reshape(maskFunc(Phit(y),maskIdx,n),[],1), opt.bb,...
+                opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+                reshape(maskFunc(initSig,maskIdx,n),[],1), opt.debugLevel>0,...
+                {reshape(maskFunc(opt.trueX,maskIdx,n),[],1)}, opt.eta, opt.P, opt.p,...
+                opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        else
+            opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
+            opt.grad1 = Psit; %@(y)reshape(maskFunc(Psit(maskFunc(y,maskIdx)),wvltIdx,n),[],1);
+            opt.grad2 = @(y)0;
+            opt.div   = @(x1,x2) Psi(x1); %reshape(maskFunc(Psi(maskFunc(x1,wvltIdx)),maskIdx,n),[],1);
+            opt.P = 1e5; opt.p = 2;
+            opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+            opt.inn_ini  = 1;
+            opt.eta = 1e-6;
+            opt.thresh=opt.thresh/1e2;
+            vmila{i,j,k} = VMILA(y, Phi,...
+                Phit, opt.bb,...
+                opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+                initSig, opt.debugLevel>0,...
+                {opt.trueX}, opt.eta, opt.P, opt.p,...
+                opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        end
+        mysave;
         continue;
 
-        opt=OPT; opt.thresh=opt.thresh/100;  % opt.maxItr=3e3;
-        L=1e5;                               % opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,0,1e-6];
-        sigma1=[0,1e-3,1e-2,1e-1,1];
-        tau=[1,1,1,1,10^-3];
-        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=1/L/opt.sigma(1)*tau(i);
+        opt=OPT; opt.thresh=opt.thresh/100;    opt.maxItr=3e3;
+                                               opt.xxx=pnpg_{i}.cost(end);
+        sigma =[ 1e-1,1e-2,1e-3,1e-4,1e-6,1e-7];
+        sigma1=[ 1e-0,1e-0,1e-0,1e-0,   1,   1];
+        tau   =[ 1e-0,1e-1,1e-2,1e-2,1e-2,1e-3];
+        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=tau(i);
         cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
-
-        maskIdx = find(OPT.mask~=0); n=size(OPT.mask,1);
-        wvltIdx = find(OPT.maskk~=0);
-        opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
-        opt.grad1 = @(y)reshape(maskFunc(Psit(maskFunc(y,maskIdx)),wvltIdx,n),[],1);
-        opt.grad2 = @(y)0;
-        opt.div   = @(x1,x2)reshape(maskFunc(Psi(maskFunc(x1,wvltIdx)),maskIdx,n),[],1);
-        opt.P = 1e5; opt.p = 2;
-        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
-        opt.inn_ini  = 1;
-        opt.eta = 1e-6;
-        opt.thresh=opt.thresh/1e2;
-        vmila{i,j,k} = VMILA(y, @(x)Phi(maskFunc(x,maskIdx)),...
-            @(y)reshape(maskFunc(Phit(y),maskIdx,n),[],1), opt.bb,...
-            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            reshape(maskFunc(initSig,maskIdx,n),[],1), opt.debugLevel>0,...
-            {reshape(maskFunc(opt.trueX,maskIdx,n),[],1)}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
-
-        mysave;
         continue;
+
+        opt=OPT; opt.maxInnerItr=1e3;
+        pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave
+
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
