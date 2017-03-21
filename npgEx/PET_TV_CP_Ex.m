@@ -97,7 +97,7 @@ case 'run'
     end
     end
 
-case lower('tspAddition')
+case lower('plot')
     filename = [mfilename '.mat']; load(filename);
     fprintf('PET Poisson TV example for TSP\n');
 
@@ -117,15 +117,15 @@ case lower('tspAddition')
     compare({'cost'},@(y,varargin)semilogy((y-mc)/mc,varargin{:}),cptv2xVar{:});
 
     fields_={'RMSE','time','cost'};
-    forSave=addTrace(    pnpg_{mIdx,as,k},     [],fields_,mc); %  1- 4
-    forSave=addTrace(   cptv2 {mIdx,as,k},forSave,fields_,mc); %  5- 8
-    forSave=addTrace(   cptv21{mIdx,as,k},forSave,fields_,mc); %  9-12
-    forSave=addTrace(   cptv22{mIdx,as,k},forSave,fields_,mc); % 13-16
-    forSave=addTrace(   cptv23{mIdx,as,k},forSave,fields_,mc); % 17-20
-    forSave=addTrace(   cptv24{mIdx,as,k},forSave,fields_,mc); % 21-24
+    forSave=addTrace(    pnpg_{i},     [],fields_,mc); %  1- 4
+    forSave=addTrace(   cptv2 {i},forSave,fields_,mc); %  5- 8
+    forSave=addTrace(   cptv21{i},forSave,fields_,mc); %  9-12
+    forSave=addTrace(   cptv22{i},forSave,fields_,mc); % 13-16
+    forSave=addTrace(   cptv23{i},forSave,fields_,mc); % 17-20
+    forSave=addTrace(   cptv24{i},forSave,fields_,mc); % 21-24
     save('cptv2x.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
-    system(['mv cost_itrPET_TV.data cost_itrPET_TV_1.data ' paperDir]);
+    system(['mv cptv2x.data ' paperDir]);
 end
 
 function [mc,varList] = minAndName(nameList,i,mc)

@@ -135,7 +135,7 @@ case lower('plot')
     forSave=addTrace(cpdwt24{mIdx,as,k},forSave,fields,mc); % 21-24
     save('cpdwt2x.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
-    system(['mv cost_itrPET.data cost_itrPET_1.data ' paperDir]);
+    system(['mv cpdwt2x.data ' paperDir]);
 end
 
 end
