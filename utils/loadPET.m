@@ -68,7 +68,7 @@ function [y,Phif,Phitf,Psi,Psit,fbpfunc,opt]=loadPET(totalCnt,opt,seed)
     y=yi;
 
     % FBP reconstruction
-    xfbp = em_fbp(sg, ig, yi, ci, ri);
+    % xfbp = em_fbp(sg, ig, yi, ci, ri);
     fbpfunc = @(yyy) double(em_fbp(sg, ig, reshape(yyy,size(ci)), ci, ri));
 
     Phif = @(xx) ci.*(G*xx);
