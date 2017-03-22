@@ -55,6 +55,16 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
+        opt=OPT; opt.thresh=opt.thresh/100;   %opt.maxItr=3e3;
+        L=1e5;                                %opt.xxx=pnpg_{i}.cost(end);
+        sigma= [0,   0,   0,   0,1e-3];
+        sigma1=[0,1e-3,1e-2,1e-1,1e-3];
+        tau=   [1,   1,   1,   1,1e-3];
+        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=1/L/opt.sigma(1)*tau(i);
+        cpdwt25{i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
+        mysave
+        return;
+
         opt=OPT; opt.thresh=opt.thresh/100;    
         L=1e5;                                 
         sigma= [0,   0,   0,   0,1e-6];

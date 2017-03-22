@@ -55,6 +55,14 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
+        opt=OPT; opt.thresh=opt.thresh/100;       opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
+        sigma =[ 1e2,1,1e-2, 10^-3,1e-6];
+        sigma1=[   1,1,   1, 10^-0,1];
+        tau=   [1e-1,1,   1, 10^-3,10^-3];
+        opt.sigma=[sigma(i),sigma1(i),sigma1(i)]; opt.tau=tau(i);
+        cptv26 {i,j,k}=CP_TV(Phi,Phit,y,2,tvType,C,initSig,opt);
+        return
+
         opt=OPT; opt.thresh=opt.thresh/100;       %opt.maxItr=3e3; opt.xxx=pnpg_{i}.cost(end);
         sigma =[ 1e2,1,1e-2, 10^-3,1e-6];
         sigma1=[   1,1,   1, 10^-3,1];
