@@ -118,7 +118,9 @@ case lower('plot')
         'cptv21',
         'cptv22',
         'cptv23',
-        'cptv24'};
+        'cptv24',
+        'cptv25',
+        };
 
     i=4;
     mc=+inf;
@@ -132,6 +134,7 @@ case lower('plot')
     forSave=addTrace(   cptv22{i},forSave,fields_,mc); % 13-16
     forSave=addTrace(   cptv23{i},forSave,fields_,mc); % 17-20
     forSave=addTrace(   cptv24{i},forSave,fields_,mc); % 21-24
+    forSave=addTrace(   cptv25{i},forSave,fields_,mc); % 25-28
     save('cptv2x.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv cptv2x.data ' paperDir]);

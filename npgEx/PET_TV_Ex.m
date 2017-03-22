@@ -268,6 +268,57 @@ case 'run'
 %       opt.noiseType='gaussian';
     end
     end
+case lower('tspMinorRev')
+    filename = [mfilename '.mat']; load(filename);
+    fprintf('PET Poisson TV example for TSP\n');
+
+    count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+    K = 1:1;
+
+    list={
+        'pnpg_',
+        'vmila',
+        'tfocs_200_m5',
+        'spiralTV',
+        'cptv2',
+    };
+    pnpg_Time         = mean(Cell.getField(pnpg_(:,1,K),'time'),3);
+    pnpg_Cost         = mean(Cell.getField(pnpg_(:,1,K),'cost'),3);
+    pnpg_RMSE         = mean(Cell.getField(pnpg_(:,1,K),'RMSE'),3);
+
+    vmilaTime         = mean(Cell.getField(vmila (:,1,K),'time'),3);
+    vmilaCost         = mean(Cell.getField(vmila (:,1,K),'cost'),3);
+    vmilaRMSE         = mean(Cell.getField(vmila (:,1,K),'RMSE'),3).^2;
+
+    spiralTVTime      = mean(Cell.getField(spiralTV (:,1,K),'time'),3);
+    spiralTVCost      = mean(Cell.getField(spiralTV (:,1,K),'cost'),3);
+    spiralTVRMSE      = mean(Cell.getField(spiralTV (:,1,K),'RMSE'),3);
+
+    tfocs_200_m5Time  = mean(Cell.getField(  tfocs_200_m5(:,1,K),'time'),3);
+    tfocs_200_m5Cost  = mean(Cell.getField(  tfocs_200_m5(:,1,K),'cost'),3);
+    tfocs_200_m5RMSE  = mean(Cell.getField(  tfocs_200_m5(:,1,K),'RMSE'),3);
+
+    cptv2Time         = mean(Cell.getField( cptv2(:,1,K),'time'),3);
+    cptv2Cost         = mean(Cell.getField( cptv2(:,1,K),'cost'),3);
+    cptv2RMSE         = mean(Cell.getField( cptv2(:,1,K),'RMSE'),3);
+
+    fbpRMSE           = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
+
+    figure;
+    loglog(count,pnpg_RMSE,'r-*'); hold on;
+    loglog(count,   vmilaRMSE,'b-o');
+    loglog(count,spiralTVRMSE,'k-^');
+    loglog(count,  tfocs_200_m5RMSE,'k*-.');
+    loglog(count,  cptv2RMSE,'c>-');
+    loglog(count,  fbpRMSE,'c>-');
+    legend('pnpg','vmila','spiralTV','tfocs','cptv2','fbp');
+
+    forSave=[ pnpg_Time, pnpg_Cost, pnpg_RMSE, vmilaTime,...
+        vmilaCost, vmilaRMSE, spiralTVTime, spiralTVCost,...
+        spiralTVRMSE, tfocs_200_m5Time, tfocs_200_m5Cost, tfocs_200_m5RMSE,...
+        cptv2Time, cptv2Cost, cptv2RMSE, fbpRMSE, count(:)];
+    save('varyCntPETTV_resp.data','forSave','-ascii');
 
 case lower('tspAddition')
     filename = [mfilename '.mat']; load(filename);
