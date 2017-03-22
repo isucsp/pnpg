@@ -126,7 +126,9 @@ case lower('plot')
         'cpdwt21',
         'cpdwt22',
         'cpdwt23',
-        'cpdwt24'};
+        'cpdwt24',
+        'cpdwt25',
+        };
 
     K = 1;
     mIdx=5; as=1; k=1;
@@ -143,6 +145,7 @@ case lower('plot')
     forSave=addTrace(cpdwt22{mIdx,as,k},forSave,fields,mc); % 13-16
     forSave=addTrace(cpdwt23{mIdx,as,k},forSave,fields,mc); % 17-20
     forSave=addTrace(cpdwt24{mIdx,as,k},forSave,fields,mc); % 21-24
+    forSave=addTrace(cpdwt25{mIdx,as,k},forSave,fields,mc); % 25-28
     save('cpdwt2x.data','forSave','-ascii');
     paperDir='~/research/myPaper/asilomar2014/';
     system(['mv cpdwt2x.data ' paperDir]);
