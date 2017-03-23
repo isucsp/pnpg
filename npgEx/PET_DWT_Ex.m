@@ -94,8 +94,8 @@ case 'run'
         mysave;
         continue;
 
-        opt=OPT; opt.thresh=opt.thresh/100;    opt.maxItr=3e3;
-                                               opt.xxx=pnpg_{i}.cost(end);
+        opt=OPT; opt.thresh=opt.thresh/100;    %opt.maxItr=3e3;
+                                               %opt.xxx=pnpg_{i}.cost(end);
         sigma =[ 1e-1,1e-2,1e-3,1e-4,1e-6,1e-7];
         sigma1=[ 1e-0,1e-0,1e-0,1e-0,   1,   1];
         tau   =[ 1e-0,1e-1,1e-2,1e-2,1e-2,1e-3];
