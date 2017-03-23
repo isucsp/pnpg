@@ -246,7 +246,47 @@ case 'run'
 
     end
     end
+case lower('tspMinorRev')
+    filename = [mfilename '.mat']; load(filename);
+    fprintf('PET Poisson TV example for TSP\n');
 
+    count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+    K = 1:1;
+
+    pnpg_Time         = mean(Cell.getField(pnpg_(:,1,K),'time'),3);
+    pnpg_Cost         = mean(Cell.getField(pnpg_(:,1,K),'cost'),3);
+    pnpg_RMSE         = mean(Cell.getField(pnpg_(:,1,K),'RMSE'),3);
+
+    vmilaTime         = mean(Cell.getField(vmila (:,1,K),'time'),3);
+    vmilaCost         = mean(Cell.getField(vmila (:,1,K),'cost'),3);
+    vmilaRMSE         = mean(Cell.getField(vmila (:,1,K),'RMSE'),3).^2;
+
+    tfocs_200_m6Time  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'time'),3);
+    tfocs_200_m6Cost  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'cost'),3);
+    tfocs_200_m6RMSE  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'RMSE'),3);
+
+    cpdwt2Time         = mean(Cell.getField( cpdwt2(:,1,K),'time'),3);
+    cpdwt2Cost         = mean(Cell.getField( cpdwt2(:,1,K),'cost'),3);
+    cpdwt2RMSE         = mean(Cell.getField( cpdwt2(:,1,K),'RMSE'),3);
+
+    fbpRMSE           = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
+
+    figure;
+    loglog(count,pnpg_RMSE,'r-*'); hold on;
+    loglog(count,   vmilaRMSE,'b-o');
+    loglog(count,  tfocs_200_m6RMSE,'k*-.');
+    loglog(count,  cpdwt2RMSE,'c>-');
+    loglog(count,  fbpRMSE,'c>-');
+    legend('pnpg','vmila','tfocs','cpdwt2','fbp');
+
+    forSave=[ pnpg_Time, pnpg_Cost, pnpg_RMSE,...
+        vmilaTime, vmilaCost, vmilaRMSE,...
+        tfocs_200_m6Time, tfocs_200_m6Cost, tfocs_200_m6RMSE,...
+        cpdwt2Time, cpdwt2Cost, cpdwt2RMSE,...
+        fbpRMSE, count(:)...
+        ];
+    save('varyCntPET_resp.data','forSave','-ascii');
 case lower('plot')
     filename = [mfilename '.mat'];
     load(filename);

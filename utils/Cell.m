@@ -13,6 +13,9 @@ classdef Cell < handle
                     elseif(nargin==2)
                         if(isfield(ele{i},field))
                             res{i}=ele{i}.(field);
+                            if(iscell(res{i}))
+                                res{i}=res{i}{:};
+                            end
                             summary(i)=res{i}(end);
                         end
                     end
