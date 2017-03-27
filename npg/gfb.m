@@ -1,53 +1,49 @@
 function out = gfb(F,Gi,C,Lip,xInit,opt)
 %   gfb solves a sparse regularized problem using GFB algorithm
 %
-%                        F(x) + u*r(x) + I_C(x)                     (1)
+%                          F(x) + \sum_i G_i(x)
 %
-%   where F(x) is the likelihood function, r(x) is the regularization
-%   term with u as the regularization parameter, and I_C(x) is an indicator
-%   function.   For the input, we require F to be a function handle that
-%   can be used in the following form:
-%                       [f,grad,hessian] = F(x);
+%   where F(x) is a function with Lipschitz continuous gradient, G_i(x) are
+%   a group of functions with simple proximal operators.  For the input, we
+%   require F to be a function handle that can be used in the following
+%   form:
+%                            [f,grad] = F(x);
 %
 %   where f and grad are the value and gradient of F at x, respectively.
-%   "hessian" is a function handle that can be use to calculate H*x and
-%   x'*H*x with hessian(x,1) and hessian(x,2), respectively.  If Hessian
-%   matrix is not available, simply return hessian as empty: [];
-%   (See npg/sparseProximal.m and utils/Utils.m for examples)
 %
-%   The "proximal" parameter is served as a structure with "exact",
-%   "op" and "val" to solve the following subproblem:
+%   Gi is a cell with the i-th element Gi{i} being a structure: Gi{i}.val
+%   is a function handle, such that Gi{i}.val(x) returns the value of
+%   G_i(x); Gi{i}.prox is another function handle, such that Gi{i}.prox(a)
+%   returns the proximal of G_i(x) at a, i.e., the solution of
 %
-%                         0.5*||x-a||_2^2+u*r(x)                      (2)
+%                    minimize 0.5*||x-a||_2^2 + G_i(x)
 %
-%   where proximal.exact must be false, proximal.prox is exact with no
-%   iterations, i.e., the proximal operator has analytical solution:
-%                           x=proximal.prox(a,u);
-%   where "u" is optional in case r(x) is an indicator function.
-%   One example for the case when r(x)=||Psit(x)||_1 with orthogonal Psi,
-%   the proximal operator is
-%
-%           proximal.prox=@(a,t) Psi(softThresh(Psit(a),t));
-%
-%   proximal.val(x) returns the value of r(x).
-%   (See npg/sparseProximal.m for an example)
+%   C is a function handle that makes sure that after each iteration
+%   C.prox(x) is within the domain of F(x).  C is optional and can be set
+%   to C.prox=@(x)x to take no effect.
 %
 %   xInit       Initial value for estimation of x
+%   Lip         Required, is the Lipschitz constant of gradient of F(x)
 %
 %   opt         The optional structure for the configuration of this algorithm (refer to
 %               the code for detail)
-%       prj_C           A function handle to project signal x to a convex set
-%                       C;
-%       u               Regularization parameter;
-%       initStep        Method for the initial step size, can be one of
-%                       "hessian", "bb", and "fixed".  When "fixed" is set,
-%                       provide Lipschitz constant of F by opt.Lip;
-%       debugLevel      An integer value to tune how much debug information
-%                       to show during the iterations;
-%       outLevel        An integer value to control how many quantities to
-%                       put in "out".
 %
-%   See also: pnpg pds sparseProximal
+%   Example:
+%
+%     C.exact=true; C.val=@(x)0; C.prox=@(x,u)max(0,x);
+%     opt.debugLevel=2; opt.outLevel=1; opt.m=350;
+%     opt.snr=inf; opt.maxItr=1e5;
+%     [y,Phi,Phit,Psi,Psit,opt]=loadLinear(opt);
+%     opt.u = 10^(-5)*pNorm(Psit(Phit(y)),inf);
+%     NLL=@(x) Utils.linearModel(x,Phi,Phit,y);
+%     % opt.gamma in [0, 2];
+%     opt.gamma=1.9; opt.lambda=1/min(1.5,0.5+1/(opt.gamma/opt.L));
+%     G.exact=true;
+%     G.val=@(x) opt.u*norm(Psit(x),1);
+%     G.prox=@(a,v) Psi(Utils.softThresh(Psit(a),v*opt.u));
+%     out=gfb(NLL,{G,C},C,opt.L,zeros(size(opt.trueX)),opt);
+%
+%   See also: pnpg pds sparseProximal slGaussEx
 %
 %   Reference:
 %   	H. Raguet, J. Fadili, and G. Peyré, “A generalized forward-backward

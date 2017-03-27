@@ -25,13 +25,12 @@ case 'run'
         for i=1:length(count)
             fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,1,k);
             OPT.mask  =[];
-            [y,PhiO,PhitO,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
-            Phi=@(x) PhiO(x)/OPT.w; Phit=@(x) PhitO(x)/OPT.w;
-            y=y/OPT.w; OPT.bb=OPT.bb/OPT.w;
+            [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
             NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
 
             [x0s,g]=Utils.poissonModelConstEst(Phi,Phit,y,OPT.bb,1e-16);
             if(x0s>0) Pncx=@(x) x*0; else Pncx=@(x) min(x,0); end
+            keyboard
 
             tvType='l1';
             u_1(i)=uBound([],[],tvType,Pncx,x0s*ones(size(g)),g);
@@ -100,23 +99,32 @@ case 'plot'
     count = [1e4 1e5 1e6 1e7 1e8 1e9 1e0 1e1 1e2 1e3];
     OPT.maxItr=1e4; OPT.thresh=1e-6; OPT.debugLevel=1; OPT.noiseType='poisson'; OPT.mask  =[];
 
-%   figure;
-%   semilogx(count,u_1,'b^-'); hold on;
-%   loglog(count,u_2,'bs--');
-%   loglog(count,u_1*sqrt(2),'gh-'); hold on;
-%   loglog(count,u_4,'r*-');
-%   loglog(count,u_5,'b-.');
-%   h=legend('$U_0$','empirical anisotropic $U$','$\sqrt{2}U_0$',...
-%       'empirical isotropic $U$', 'aa');
-%   set(h,'interpreter','latex');
+    for i=1:length(count)
+        [~,~,~,~,~,~,opt]=loadPET(count(i),OPT,k*100+i);
+        w(i)=opt.w;
+    end
+
+
+    figure;
+    semilogx(count,u_1,'b^-'); hold on;
+    loglog(count,u_2,'bs--');
+    loglog(count,u_1*sqrt(2),'gh-'); hold on;
+    loglog(count,u_4,'r*-');
+    loglog(count,u_5,'b-.');
+    h=legend('$U_0$','empirical anisotropic $U$','$\sqrt{2}U_0$',...
+        'empirical isotropic $U$', 'aa');
+    set(h,'interpreter','latex');
 
     forSave=[u_1; u_2; u_2; u_4; u_5; u_5; u_7; u_8; u_8; count]';
+    for i=1:9
+        forSave(:,i)=forSave(:,i).*w(:);
+    end
     save('petBound.data','forSave','-ascii');
 
     rowLabels={'$N$','theoretical','empirical',...
         'theoretical','empirical','theoretical','empirical'};
     matrix2latex(forSave(:,[10 1 2 4 5 7 8]), 'petBound.tex', 'columnLabels', rowLabels,...
-      'alignment', 'r', 'format', '\\num{%8.2e}', 'size', 'small');
+      'alignment', 'r', 'format', '\\num{%8.3e}', 'size', 'small');
 end
 end
 

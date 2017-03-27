@@ -18,7 +18,7 @@ case 'run'
     if(~exist(filename,'file')) save(filename,'filename'); else load(filename); end
     clear('OPT','C','proximal','PROXOPT');
     filename = [mfilename '.mat'];
-    %OPT.mask=[];
+    OPT.mask=[]; % set mask to empty to disable the mask
     OPT.outLevel=1;
     OPT.maxItr=2e3; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
     OPT.maxItr=2e4; OPT.thresh=1e-9; OPT.debugLevel=2; OPT.noiseType='poisson';
@@ -32,7 +32,8 @@ case 'run'
     atv= [-0.5,-0.5,  0,   0, 0.5,   1];
 
     for k=1:K
-    for i=5
+    for i=[1 2 3 4 6]
+    %for i=6
         j=1;
         [y,Phi,Phit,Psi,Psit,fbpfunc,OPT]=loadPET(count(i),OPT,k*100+i);
         NLL=@(x) Utils.poissonModel(x,Phi,Phit,y,OPT.bb);
@@ -55,19 +56,66 @@ case 'run'
 
         fprintf('%s, i=%d, j=%d, k=%d\n','PET Example',i,j,k);
 
-        % BEGIN experiment region,  to delete in the end
-        % END experiment region,  to delete in the end
+        if(~isempty(OPT.mask))
+            maskIdx = find(OPT.mask~=0); n=size(OPT.mask,1);
+            wvltIdx = find(OPT.maskk~=0);
+            opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
+            opt.grad1 = @(y)reshape(maskFunc(Psit(maskFunc(y,maskIdx)),wvltIdx,n),[],1);
+            opt.grad2 = @(y)0;
+            opt.div   = @(x1,x2)reshape(maskFunc(Psi(maskFunc(x1,wvltIdx)),maskIdx,n),[],1);
+            opt.P = 1e5; opt.p = 2;
+            opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+            opt.inn_ini  = 1;
+            opt.eta = 1e-6;
+            opt.thresh=opt.thresh/1e2;
+            vmila{i,j,k} = VMILA(y, @(x)Phi(maskFunc(x,maskIdx)),...
+                @(y)reshape(maskFunc(Phit(y),maskIdx,n),[],1), opt.bb,...
+                opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+                reshape(maskFunc(initSig,maskIdx,n),[],1), opt.debugLevel>0,...
+                {reshape(maskFunc(opt.trueX,maskIdx,n),[],1)}, opt.eta, opt.P, opt.p,...
+                opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        else
+            opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
+            opt.grad1 = Psit; %@(y)reshape(maskFunc(Psit(maskFunc(y,maskIdx)),wvltIdx,n),[],1);
+            opt.grad2 = @(y)0;
+            opt.div   = @(x1,x2) Psi(x1); %reshape(maskFunc(Psi(maskFunc(x1,wvltIdx)),maskIdx,n),[],1);
+            opt.P = 1e5; opt.p = 2;
+            opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
+            opt.inn_ini  = 1;
+            opt.eta = 1e-6;
+            opt.thresh=opt.thresh/1e2;
+            vmila{i,j,k} = VMILA(y, Phi,...
+                Phit, opt.bb,...
+                opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
+                initSig, opt.debugLevel>0,...
+                {opt.trueX}, opt.eta, opt.P, opt.p,...
+                opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
+        end
+        mysave;
+        continue;
+
+        opt=OPT; opt.thresh=opt.thresh/100;    %opt.maxItr=3e3;
+                                               %opt.xxx=pnpg_{i}.cost(end);
+        sigma =[ 1e-1,1e-2,1e-3,1e-4,1e-6,1e-7];
+        sigma1=[ 1e-0,1e-0,1e-0,1e-0,   1,   1];
+        tau   =[ 1e-0,1e-1,1e-2,1e-2,1e-2,1e-3];
+        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=tau(i);
+        cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-6;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m6 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
+        continue;
+
+        opt=OPT; opt.maxInnerItr=1e3;
+        pnpg_ {i,j,k}=pnpg(NLL,proximal,initSig,opt);
+        mysave
 
         opt=OPT; opt.restartEvery=200; opt.innerThresh=1e-9;
         opt.maxInnerItr=100;  opt.maxItr=4000;
         tfocs_200_m9 {i,j,k}=Wrapper.tfocs(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave;
-        return;
 
         opt=OPT; opt.maxInnerItr=1e3;
         opt.stepIncre=0.5; opt.stepShrnk=0.5;
@@ -113,8 +161,6 @@ case 'run'
         pnpg_nInf_d{i,j,k}=pnpg(NLL,proximal_dualInnerCrit,initSig,opt);
         mysave
 
-        opt=OPT; opt.maxInnerItr=1e3;
-        pnpg_ {i,j}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.gamma=5; opt.b=0;
         pnpgG5A0{i,j,k}=pnpg(NLL,proximal,initSig,opt);
         opt=OPT; opt.gamma=5; opt.b=1/4;
@@ -179,14 +225,6 @@ case 'run'
         opt.sigma=sigma(i); opt.tau=1/L/opt.sigma*tau(i);
         cpdwt1 {i,j}=CP_DWT(Phi,Phit,y,1,Psi,Psit,C,initSig,opt);
 
-        opt=OPT; opt.thresh=opt.thresh/100;  % opt.maxItr=3e3;
-        L=1e5;                               % opt.xxx=pnpg_{i}.cost(end);
-        sigma=[0,0,0,0,1e-6];
-        sigma1=[0,1e-3,1e-2,1e-1,1];
-        tau=[1,1,1,1,10^-3];
-        opt.sigma=[sigma(i),sigma1(i)]; opt.tau=1/L/opt.sigma(1)*tau(i);
-        cpdwt2 {i,j,k}=CP_DWT(Phi,Phit,y,3,Psi,Psit,C,initSig,opt);
-
         opt=OPT; opt.maxItr=10*opt.maxItr;
         opt.L=1/mean(pnpg_{i,j,k}.stepSize);
         sigma=[0,0,0,0,1];
@@ -206,23 +244,49 @@ case 'run'
         spiral_m12  {i,j,k}=Wrapper.SPIRAL(Phi,Phit,Psi,Psit,y,initSig,opt);
         mysave
 
-        opt=OPT;   % opt.maxItr=1e3; opt.debugLevel=1;
-        opt.grad1 = @(y)Psit(y);
-        opt.grad2 = @(y)0;
-        opt.div   = @(x1,x2) Psi(x1);
-        opt.P = 1e5; opt.p = 2;
-        opt.alpha_min = 1e-5; opt.alpha_max = 1e2;
-        opt.inn_ini  = 1;
-        opt.eta = 1e-6;
-        opt.thresh=opt.thresh/1e2;
-        vmila{i,j,k} = VMILA(y, Phi, Phit, opt.bb,...
-            opt.u, opt.grad1, opt.grad2, opt.div, opt.maxItr,...
-            initSig, opt.debugLevel>0, {opt.trueX}, opt.eta, opt.P, opt.p,...
-            opt.alpha_min, opt.alpha_max, opt.inn_ini,opt.thresh);
-        mysave;
     end
     end
+case lower('tspMinorRev')
+    filename = [mfilename '.mat']; load(filename);
+    fprintf('PET Poisson TV example for TSP\n');
 
+    count = [1e4 1e5 1e6 1e7 1e8 1e9];
+
+    K = 1:1;
+
+    pnpg_Time         = mean(Cell.getField(pnpg_(:,1,K),'time'),3);
+    pnpg_Cost         = mean(Cell.getField(pnpg_(:,1,K),'cost'),3);
+    pnpg_RMSE         = mean(Cell.getField(pnpg_(:,1,K),'RMSE'),3);
+
+    vmilaTime         = mean(Cell.getField(vmila (:,1,K),'time'),3);
+    vmilaCost         = mean(Cell.getField(vmila (:,1,K),'cost'),3);
+    vmilaRMSE         = mean(Cell.getField(vmila (:,1,K),'RMSE'),3).^2;
+
+    tfocs_200_m6Time  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'time'),3);
+    tfocs_200_m6Cost  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'cost'),3);
+    tfocs_200_m6RMSE  = mean(Cell.getField(  tfocs_200_m6(:,1,K),'RMSE'),3);
+
+    cpdwt2Time         = mean(Cell.getField( cpdwt2(:,1,K),'time'),3);
+    cpdwt2Cost         = mean(Cell.getField( cpdwt2(:,1,K),'cost'),3);
+    cpdwt2RMSE         = mean(Cell.getField( cpdwt2(:,1,K),'RMSE'),3);
+
+    fbpRMSE           = mean(Cell.getField(   fbp(:,1,K),'RMSE'),3);
+
+    figure;
+    loglog(count,pnpg_RMSE,'r-*'); hold on;
+    loglog(count,   vmilaRMSE,'b-o');
+    loglog(count,  tfocs_200_m6RMSE,'k*-.');
+    loglog(count,  cpdwt2RMSE,'c>-');
+    loglog(count,  fbpRMSE,'c>-');
+    legend('pnpg','vmila','tfocs','cpdwt2','fbp');
+
+    forSave=[ pnpg_Time, pnpg_Cost, pnpg_RMSE,...
+        vmilaTime, vmilaCost, vmilaRMSE,...
+        tfocs_200_m6Time, tfocs_200_m6Cost, tfocs_200_m6RMSE,...
+        cpdwt2Time, cpdwt2Cost, cpdwt2RMSE,...
+        fbpRMSE, count(:)...
+        ];
+    save('varyCntPET_resp.data','forSave','-ascii');
 case lower('plot')
     filename = [mfilename '.mat'];
     load(filename);
