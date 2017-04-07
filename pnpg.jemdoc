@@ -86,6 +86,13 @@ Under construction ...
 
 === Reference:
 
+- R.~Gu and A.~Dogandžić, "Projected Nesterov’s proximal-gradient algorithm 
+  for sparse signal recovery," /IEEE Trans.~Signal Process./, 2017, to 
+    appear.
+  #[/javascript:toggleBibtex('gd16beamharden') \[BibTex\]] 
+  [https://doi.org/10.1109/TSP.2017.2691661 \[DOI\]]
+  [/pdf/tsp_pnpg.pdf \[PDF\]]
+
 - R.~Gu and A.~Dogandžić, (May.~2016). Projected Nesterov's 
   Proximal-Gradient Algorithm for Sparse Signal Reconstruction with a 
   Convex Constraint.  arXiv: [https://arxiv.org/abs/1502.02613 1502.02613] 
