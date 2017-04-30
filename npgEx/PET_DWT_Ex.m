@@ -287,6 +287,38 @@ case lower('tspMinorRev')
         fbpRMSE, count(:)...
         ];
     save('varyCntPET_resp.data','forSave','-ascii');
+case lower('plotThetaStepSizeAndCost')
+    filename = [mfilename '.mat'];
+    load(filename);
+    dup=load(filename);
+    fprintf('PET Poisson l1 example\n');
+
+    K = 1;
+        pnpg_=    pnpg_(:,:,1:K);
+
+    % mIdx=6 is also good
+    mIdx=5; as=1; k=1;
+    mc=+inf;
+
+    fields={'RMSE','time','cost'};
+
+    len=1000;
+    method=pnpg_{mIdx};
+    itr=linspace(1,length(method.RMSE),len);
+
+    tt=method.stepSize;
+    ss=interp1(1:length(tt),tt,itr);
+    data(:,1)=reshape(ss,[],1);
+    tt=method.theta;
+    ss=interp1(1:length(tt),tt,itr);
+    data(:,2)=reshape(ss,[],1);
+    tt=method.theta.*sqrt(method.stepSize);
+    ss=interp1(1:length(tt),tt,itr);
+    data(:,3)=reshape(ss,[],1);
+    data=[itr(:) data];
+
+    save('itr_stepSize_theta_inc.data','data','-ascii');
+
 case lower('plot')
     filename = [mfilename '.mat'];
     load(filename);
