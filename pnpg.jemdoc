@@ -64,8 +64,8 @@ Grant CCF-1421480].
 ~~~
 
 We proposed to use an adaptive step size strategy and , inexactness of the 
-iterative proximal mapping, and the convex-set constraint.   The tuning of 
-\gls{PNPG} is largely 
+iterative proximal mapping, and the convex-set constraint.
+#  The tuning of \gls{PNPG} is largely 
 
 ~~~
 {}{img_left}{fig/localLip.png}{local Lipschitz}{350px}{}{}
@@ -80,9 +80,9 @@ iterative proximal mapping, and the convex-set constraint.   The tuning of
 Clone or press “Download ZIP” button in the right panel of
 [https://github.com/isucsp/pnpg PNPG's GitHub page].
 
-=== Usage
-
-Under construction ...
+#=== Usage
+#
+#Under construction ...
 
 === Reference:
 
