@@ -169,7 +169,7 @@ tStart=tic;
 
 itr=0; convThresh=0; x=xInit;
 NLLVal=NLL(x);
-penVal=proximal.val(x);
+penVal=proximal.val(x)+Utils.indicatorC(opt.prj_C,x);
 cost=NLLVal+opt.u*penVal;
 goodStep=true;
 t=stepSizeInit(opt.initStep,opt.Lip);

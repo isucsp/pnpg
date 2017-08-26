@@ -457,6 +457,15 @@ function [Psi,Psit] = getPsiPsit(daub,dwt_L,maskmt,maskkmt)
     Psi =@(z) mask.a(midwt(maskk.b(z),wav,dwt_L));
     Psit=@(z) maskk.a(mdwt(mask.b(z),wav,dwt_L));
 end
+
+function ind = indicatorC(prj_C, z)
+    if(norm(reshape(prj_C(z)-z,[],1),inf)==0)
+        ind = 0;
+    else
+        ind=inf;
+    end
+end
+
 end
 end
 
