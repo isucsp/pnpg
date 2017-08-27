@@ -17,6 +17,7 @@ which use the some utility functions under `utils` folder.
    \[[DOI](https://doi.org/10.1109/TSP.2017.2691661)\] 
    \[[PDF](https://isucsp.github.io/pnpg/pdf/tsp_pnpg.pdf)\]
 
+<!---
 1. R. Gu and A. Dogandžić, (May. 2016). Projected Nesterov's
    Proximal-Gradient Algorithm for Sparse Signal Reconstruction with a
    Convex Constraint. *arXiv*:
@@ -28,7 +29,6 @@ which use the some utility functions under `utils` folder.
    1490–1495.  [\[DOI\]](http://dx.doi.org/10.1109/ACSSC.2015.7421393)
    [\[PDF\]](http://isucsp.github.io/pnpg/pdf/asilomar2015.pdf)
 
-<!---
 R. Gu and A. Dogandžić, “Nesterov’s Proximal-Gradient Algorithms for Reconstructing Nonnegative Signals with Sparse Transform Coefficients,” 2014.
 --->
 
