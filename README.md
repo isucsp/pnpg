@@ -11,9 +11,9 @@ which use the some utility functions under `utils` folder.
 
 ##### References
 
-1. R.~Gu and A.~Dogandžić, "Projected Nesterov’s proximal-gradient
-   algorithm for sparse signal recovery," /IEEE Trans.~Signal Process./,
-   vol.~65, no.~13, pp.~3510--3525, 2017. 
+1. R. Gu and A. Dogandžić, "Projected Nesterov’s proximal-gradient
+   algorithm for sparse signal recovery," *IEEE Trans. Signal Process.*,
+   vol. 65, no. 13, pp. 3510–3525, 2017. 
    \[[DOI](https://doi.org/10.1109/TSP.2017.2691661)\] 
    \[[PDF](https://isucsp.github.io/pnpg/pdf/tsp_pnpg.pdf)\]
 
