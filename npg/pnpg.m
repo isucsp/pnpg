@@ -60,6 +60,10 @@ function out = pnpg(NLL,proximal,xInit,opt)
 %
 %
 %   Reference:
+%       R. Gu and A. Dogandžić, “Projected Nesterov’s proximal-gradient
+%       algorithm for sparse signal recovery,” IEEE Trans. Signal Process.,
+%       vol. 65, no. 13, pp. 3510–3525, 2017.
+%
 %   Author: Renliang Gu (gurenliang@gmail.com)
 
 % default to not use any constraints.
