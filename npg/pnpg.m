@@ -190,6 +190,11 @@ itr=0; convThresh=0; x=xInit; theta=1; preX=x; itrRes=0;
 NLLVal=NLL(x);
 penVal=proximal.val(x)+Utils.indicatorC(opt.prj_C, x);
 cost=NLLVal+opt.u*penVal;
+
+if(isinf(cost))
+    warning('The initial value yields infinite objective!!');
+end
+
 goodStep=true;
 t=stepSizeInit(opt.initStep,opt.Lip);
 
